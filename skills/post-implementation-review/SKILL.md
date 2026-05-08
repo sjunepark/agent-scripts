@@ -1,6 +1,6 @@
 ---
 name: post-implementation-review
-description: Manually review already-implemented code for design flaws, abstraction issues, structural problems, or refactors that only became clear in real code. Use only when the user explicitly asks for a post-implementation review, explicitly asks whether recent implementation work revealed design or structure problems, or explicitly wants refactor recommendations after the code exists. Do not auto-trigger for ordinary implementation, debugging, explanation, or generic code review requests. Prefer embedded snippets with file-path comments over editor-oriented file and line references. Prioritize real design, ownership, abstraction, and organization weaknesses over minor local polish, call out real tradeoffs, and separate straightforward recommendations from items worth discussion.
+description: Manually review already-implemented code for design flaws, abstraction issues, structural problems, or refactors that only became clear in real code. Use only when the user explicitly asks for a post-implementation review, explicitly asks whether recent implementation work revealed design or structure problems, or explicitly wants refactor recommendations after the code exists. Do not auto-trigger for ordinary implementation, debugging, explanation, or generic code review requests. Prefer embedded snippets with file-path comments over editor-oriented file and line references. Treat findings as signals about code shape and quality; prioritize root-cause design, ownership, abstraction, and organization improvements, including broad refactors when warranted, over bandage fixes such as tiny helper extractions or local polish.
 ---
 
 # Post-Implementation Review
@@ -9,9 +9,21 @@ Use this skill manually. Do not invoke it unless the user explicitly asks for a 
 
 Review the code after the implementation exists. Focus on issues that were hard to see upfront and only became obvious once the change touched real interfaces, control flow, state, tests, or module boundaries.
 
-This skill is for improvement-oriented design review after the real code exists. Prioritize actual design flaws, weak boundaries, ownership confusion, abstraction leaks, overengineered code or structure, and organization problems that will matter as the codebase grows. Prefer recommendations that materially improve a seam, file, module, or end-to-end concern once the code is real. Do not let change size alone veto a worthwhile recommendation, but also do not fill the review with tiny local tidy-ups that barely change maintenance cost or design clarity. If tradeoffs, uncertainty, or hidden constraints matter, surface them clearly.
+This skill is for improvement-oriented design review after the real code exists. Prioritize actual design flaws, weak boundaries, ownership confusion, abstraction leaks, overengineered code or structure, and organization problems that will matter as the codebase grows. Prefer recommendations that materially improve a seam, file, module, or end-to-end concern once the code is real. If tradeoffs, uncertainty, or hidden constraints matter, surface them clearly.
 
 It is still acceptable for the review to conclude that the implementation is fine. Do not invent a flaw just to produce feedback. If the code does not reveal a meaningful improvement, say plainly that there is nothing worth changing right now.
+
+## Root-Cause Review Lens
+
+Treat each finding as evidence about code design or quality, not as a prompt to find the smallest edit that quiets the symptom.
+
+- First ask what the finding implies about ownership, boundaries, data shape, control flow, module layout, or future change cost.
+- Recommend the root-cause refactor when a symptom points to misplaced ownership, an awkward interface, scattered responsibilities, repeated translation, or the wrong module shape.
+- Broad refactors are acceptable when they materially improve the codebase. Describe the path, cost, and risk instead of downscoping the recommendation into a smaller bandage.
+- Avoid tactical bandages: tiny helper extractions, wrapper patches, local cleanup, or isolated polish that hides a symptom while leaving the design weakness intact.
+- If a small helper or extraction is the right recommendation, explain the boundary, invariant, or ownership clarity it creates. If it only saves a few lines, omit it.
+- Do not overcorrect. Do not recommend a refactor only because another design looks cleaner in theory, and do not treat unfamiliar code as broken code.
+- Optimize for the smallest refactor that actually improves the codebase's shape, not the smallest diff.
 
 ## Workflow
 
@@ -35,19 +47,19 @@ It is still acceptable for the review to conclude that the implementation is fin
 - The feature now feels too flat or mixed: readers must scan unrelated files or responsibilities to follow one concern.
 - The code technically works, but the implementation revealed a real boundary, ownership, organization, or overengineering weakness that will keep taxing future changes.
 
-3. Prefer credible improvements, not only obvious failures.
-- Do not recommend a refactor just because another design looks cleaner in theory.
-- Do not treat unfamiliar code as broken code.
+3. Apply the Root-Cause Review Lens.
 - Assume there may be constraints you cannot yet see unless the code gives clear contrary evidence.
 - Recommend a refactor when the implementation shows a solid improvement path for readability, boundaries, extension, or correctness, even if the current code still works.
 - Bias toward improvements that change the design meaningfully at the seam, file, module, or feature-flow level.
 - Prioritize actual design and organization weaknesses over local readability or polish wins.
-- Do not surface tiny helper extractions, one-off log polish, or single-branch cleanup unless they clearly point to a broader pattern, close an important boundary gap, or fix a problem likely to recur.
 - Do not reject a worthwhile recommendation just because it touches many files. Discuss that cost when it matters, but size alone is not a veto.
+- If the evidence is weak, say so instead of padding the review.
 
-4. Separate evidence, recommendation, and decision level.
+4. Separate evidence, design implication, recommendation, and decision level.
 - First state what the implementation revealed.
-- Then state whether there is a likely recommended path.
+- Then state what design or quality weakness the finding implies.
+- Then state the likely root-cause recommendation or no supported action.
+- If a smaller tactical patch would be tempting but would leave the design weakness intact, name it as a bandage.
 - Classify every finding or recommendation into one of two buckets:
   - `Bucket I — Straightforward / recommended`: likely has a clear answer or strongly recommended fix path; present briefly for awareness.
   - `Bucket II — Worth discussing`: real tradeoffs, multiple plausible directions, unclear constraints, or technical decisions.
@@ -90,8 +102,10 @@ Use this structure when reporting:
 - Number the items in this bucket (`1.`, `2.`, `3.`). Do not use unordered bullets for the primary items.
 - For each numbered item, include:
   - what the implementation revealed
+  - the design or quality weakness it implies
   - why it became visible after implementation
-  - the recommended fix in short form
+  - the recommended root-cause refactor or design direction in short form, not just the smallest edit
+  - why a smaller tactical patch would be a bandage, but only when such a patch is a realistic temptation
   - the main cost or tradeoff only if it matters
 - Support with a short embedded snippet when existing code is central to the point.
 
@@ -100,8 +114,10 @@ Use this structure when reporting:
 - Number the items in this bucket (`1.`, `2.`, `3.`). Do not use unordered bullets for the primary items.
 - For each numbered item, include:
   - what the implementation revealed
+  - the design or quality weakness it implies
   - why it became visible after implementation
-  - the main options or decision points
+  - the main options or decision points, including broader refactor paths when credible
+  - which smaller patch would be a bandage, but only when such a patch is a realistic temptation
   - the tradeoffs, risks, or uncertainty
 - Support with a short embedded snippet when existing code is central to the point.
 
@@ -113,7 +129,7 @@ Use this structure when reporting:
 ### Verdict
 - End with one of:
   - `No meaningful improvement identified`
-  - `Recommended targeted refactors, mostly straightforward`
+  - `Recommended design refactors, mostly straightforward`
   - `Recommended changes include technical decisions`
   - `Broader redesign may be warranted after clarifying constraints`
 - If Bucket I or Bucket II is empty, say so explicitly instead of implying hidden findings.
@@ -134,6 +150,7 @@ Use this structure when reporting:
 - Do not force the user back into the editor just to follow the review.
 - Default toward surfacing actual design, abstraction, ownership, organization, structure, and overengineering weaknesses that materially affect maintainability or future change paths.
 - Check not only for missing structure but also for structure that is heavier than the current behavior justifies, and call out where it can be reduced.
+- Apply the Root-Cause Review Lens instead of optimizing for the smallest diff.
 - Avoid padding the review with minor pre-fixes: tiny helper extraction, one-off naming polish, isolated local dedupe, or small logging niceties are usually not worth calling out unless they indicate a broader problem.
 - Do not treat code churn alone as a reason to avoid recommending a refactor.
 - Surface real tradeoffs when they exist.
@@ -158,6 +175,7 @@ Use the same posture here:
 - Treat readability-oriented helpers, small composed objects, and clear subdirectories as legitimate value even when they are single-use.
 - Prioritize structural findings that expose weak ownership, mixed responsibilities, scattered concerns, overbuilt abstractions, or directories/modules that no longer help readers predict where code lives.
 - Recommend simplification or reorganization when the current shape adds recurring maintenance cost, obscures the real flow, or when a credible cleanup would materially improve ownership clarity.
+- Prefer reorganizations that address the real ownership or module-shape problem over wrapper/helper patches that leave scattered responsibilities in place.
 - Do not reject a structural recommendation just because the reorganization would touch many files; surface the cost and tradeoff instead.
 
 Treat these as strong signals:
