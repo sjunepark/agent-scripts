@@ -1,0 +1,253 @@
+---
+name: post-implementation-review-loop
+description: Iteratively review already-implemented code using the required phase_checkpoint_compact Pi extension tool at every phase boundary; automatically apply straightforward Bucket I fixes, validate, and continue until no accepted Bucket I actions remain while Bucket II items receive recommended next actions.
+---
+
+# Post-Implementation Review Loop
+
+Use this skill manually. Do not invoke it unless the user explicitly asks for a looped or iterative post-implementation review, or asks to fix straightforward findings from a post-implementation review automatically.
+
+This is an implementation-and-review loop, not a one-pass advisory review. Review the completed code, verify findings, apply straightforward fixes, validate, and transition between phases only through `phase_checkpoint_compact` so Pi performs a real compacted handoff before the next phase.
+
+## Hard Requirement
+
+This skill requires the Pi extension tool `phase_checkpoint_compact`.
+
+If `phase_checkpoint_compact` is unavailable:
+
+- Stop before starting the loop.
+- Tell the user the `post-implementation-review-loop` skill requires the `phase-checkpoint-compact` Pi extension.
+- Do not substitute `/compact`, soft checkpoints, summaries, or ordinary conversation handoffs.
+
+## Contract
+
+- Treat each review finding as advisory until verified against the real code path, nearby interfaces, tests, and docs.
+- Do not blindly apply generated or previous review output.
+- Reject weak, speculative, unrealistic, or overcomplicated recommendations.
+- Prefer root-cause design, ownership, boundary, structure, or abstraction fixes over tactical bandages.
+- Apply Bucket I findings automatically when they are straightforward, materially worthwhile, and safe within the user's requested scope.
+- Do not automatically implement Bucket II findings unless the user explicitly approved that direction. For each Bucket II item, give a recommended next action that prefers improving overall code quality and design over temporary fixes unless the refactor cost, risk, or uncertainty is too high.
+- If a review-triggered fix changes code, rerun focused tests or validation and rerun the review loop.
+- Call `phase_checkpoint_compact` at every active phase boundary.
+- After calling `phase_checkpoint_compact`, do not continue substantial work; wait for the extension's next-phase prompt.
+- Keep going until no accepted/actionable Bucket I findings remain.
+- Stop when remaining work is Bucket II, out of scope, blocked by missing context, or not worth changing now.
+- Do not push, commit, or install globally unless the user explicitly asks.
+
+## Review Lens
+
+Focus on issues that become visible only after the implementation touched real interfaces, control flow, state, tests, docs, or module boundaries.
+
+Look for:
+
+- Repeated branching, mapping, translation, or glue code that suggests the abstraction boundary is off.
+- Modules knowing details they should not need to know.
+- One concept forcing edits across too many files in a way likely to recur.
+- Awkward ownership of data, side effects, orchestration, or validation.
+- Responsibilities blurred enough that naming or call flow became hard to explain.
+- Tests becoming hard to set up because dependencies or ownership are misplaced.
+- Workarounds or special cases that will probably spread.
+- Speculative structure: extra fields, hooks, wrappers, options, strategy objects, generic layers, or config surfaces current behavior barely uses.
+- Under-structure: related concerns scattered or mixed so readers cannot follow one feature end to end.
+
+Do not manufacture findings. If the code is structurally sound, say so.
+
+## Phase Loop
+
+Active phase rhythm:
+
+```text
+post-review -> checkpoint -> impl-review -> checkpoint -> impl -> checkpoint -> post-review -> ...
+```
+
+If the user already provided an accepted implementation plan, the loop may start at `impl`. Otherwise, start at `post-review` for an already-completed change.
+
+### Phase meanings
+
+1. `post-review`
+   - Re-read the current diff and relevant files.
+   - Separate pre-existing debt, issues introduced by the change, and issues merely exposed by the change.
+   - Produce Bucket I and Bucket II findings.
+   - Do not edit code.
+   - End by calling `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`.
+
+2. `impl-review`
+   - Verify each post-review finding against the actual code path, adjacent files, tests, scope, and risk.
+   - Accept, reject, downgrade, or move findings between buckets.
+   - Convert accepted Bucket I findings into a concrete implementation plan.
+   - Keep Bucket II as decisions and attach a recommended action to each.
+   - Do not edit code unless the item is already accepted as Bucket I and the next phase is explicitly `impl`.
+   - If accepted/actionable Bucket I exists, call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`.
+   - If no accepted/actionable Bucket I remains, stop with the final report instead of entering another active phase.
+
+3. `impl`
+   - Implement only accepted Bucket I actions or the user's explicitly approved Bucket II direction.
+   - Implement the root-cause change, not just the smallest quieting patch.
+   - Keep changes tight and reviewable.
+   - If the apparent fix grows into a technical decision, move it to Bucket II and stop instead of guessing.
+   - Rerun focused validation after changes.
+   - End by calling `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"`.
+
+## `phase_checkpoint_compact` Usage
+
+Call `phase_checkpoint_compact` only after the current phase is complete and the next active phase is known.
+
+Populate the tool fields as follows:
+
+- `phaseCompleted`: the phase just completed: `impl`, `post-review`, or `impl-review`.
+- `nextPhase`: the next active phase: `post-review`, `impl-review`, or `impl`.
+- `goal`: the user's review/fix objective.
+- `scope`: the reviewed diff, files, commit range, or user-provided scope.
+- `changedFiles`: repo-relative paths touched or relevant to the loop.
+- `validation`: commands run and whether each passed, failed, or was skipped.
+- `bucketIApplied`: Bucket I fixes already applied.
+- `bucketIRemaining`: accepted/actionable Bucket I items still to implement or verify.
+- `bucketII`: discussion items, each with options when useful and a recommended action.
+- `rejectedOrKeptAsIs`: meaningful findings rejected after verification and why.
+- `handoffSummary`: concise next-phase handoff; include only what the next phase needs.
+
+Handoff summaries must preserve:
+
+- current goal and scope
+- phase completed and next phase
+- changed files and important seams
+- validation commands and results
+- accepted Bucket I actions already applied
+- remaining Bucket I items, if any
+- Bucket II items with recommended actions and tradeoffs
+- rejected or kept-as-is findings and why
+- the next phase's first concrete action
+
+Do not preserve long reasoning traces, stale alternatives, raw tool output dumps, or rejected findings that no longer matter.
+
+## Bucket Rules
+
+### Bucket I — Straightforward / Recommended
+
+Put a finding here only when all are true:
+
+- The evidence is concrete in the implemented code.
+- The improvement is materially worthwhile for correctness, ownership, boundaries, organization, or future change cost.
+- The fix path is clear enough to implement without a user decision.
+- The change is inside the user's requested scope.
+
+For loop execution, Bucket I means: verify it, implement it, validate it, then review again.
+
+Avoid Bucket I for tiny helper extractions, one-off naming polish, isolated dedupe, or logging niceties unless they reflect a broader boundary or ownership issue.
+
+### Bucket II — Worth Discussing
+
+Put a finding here when any are true:
+
+- Multiple credible designs exist.
+- The correct choice depends on product, domain, rollout, compatibility, or risk tolerance.
+- The refactor is broad enough that user approval matters.
+- The evidence is real but not yet strong enough to justify immediate change.
+- The issue may be pre-existing debt outside the requested scope.
+
+For loop execution, Bucket II means: do not auto-implement. Explain the tradeoff and recommend how to act.
+
+When recommending an option, prefer the path that improves the codebase's design, ownership, boundaries, and long-term maintainability. Recommend a temporary/local fix only when the broader refactor cost is disproportionate, the evidence is not strong enough, the change would introduce meaningful new risk, or the decision depends on product/domain constraints.
+
+Recommended actions:
+
+- `Discuss before changing`: user/domain decision needed.
+- `Defer`: real concern, but not worth changing until the next related feature or until stronger evidence justifies the refactor.
+- `Keep as-is for now`: current shape is acceptable; watch for repetition.
+- `Prototype separately`: validate a broader refactor before committing when the design improvement is promising but risk or uncertainty is meaningful.
+- `Implement next if approved`: best design-improving path is clear enough, but requires explicit approval because cost/risk/scope is meaningful.
+
+State the reason for the recommendation, not just the available options. If recommending a temporary fix, explicitly say why the stronger design improvement is not worth doing now.
+
+## Validation Rules
+
+- Identify focused tests, typechecks, formatters, or validation commands from the repository's existing workflow.
+- After every code change, rerun focused checks that cover the touched area.
+- If validation fails because of the loop's changes, fix or report before moving phases.
+- If validation fails for unrelated/pre-existing reasons, record it clearly in `validation` and continue only if the next phase can still reason safely.
+- Do not invent validation commands when the repo has an established workflow.
+
+## Stop Conditions
+
+Stop when any of these are true:
+
+- The final `impl-review` finds no accepted/actionable Bucket I items.
+- Remaining work is Bucket II and needs explicit user approval.
+- A validation failure remains and cannot be safely resolved inside scope.
+- Scope or context is missing.
+- The required `phase_checkpoint_compact` tool is unavailable.
+
+Do not run extra review cycles just to get nicer wording after a clean pass.
+
+## Output
+
+During active phases, keep progress brief because the extension will preserve handoffs:
+
+- phase name
+- Bucket I actions accepted/applied
+- validation run and result
+- Bucket II items deferred for decision
+- checkpoint target phase
+
+Final report structure:
+
+### Loop Summary
+
+- Iterations and phases run.
+- Files changed by the loop.
+- Validation commands run.
+- Final clean condition: no accepted/actionable Bucket I findings, or why the loop stopped.
+
+### Bucket I — Applied / Resolved
+
+Number each item and include:
+
+- what the implementation revealed
+- the root-cause fix applied
+- why a smaller patch would have been a bandage, if relevant
+- validation evidence
+
+If empty, say: `No Bucket I actions were applied.`
+
+### Bucket II — Worth Discussing
+
+Number each item and include:
+
+- what the implementation revealed
+- the design or quality weakness it implies
+- main options or decision points
+- `Recommended action: ...`
+- tradeoffs, risks, or uncertainty
+
+If empty, say: `No Bucket II decisions remain.`
+
+### Rejected / Kept As-Is
+
+Call out meaningful findings rejected after verification, plus why no change is recommended.
+
+### Verdict
+
+End with one of:
+
+- `Loop clean: no accepted/actionable Bucket I findings remain`
+- `Loop stopped: Bucket II decision needed`
+- `Loop stopped: validation failure remains`
+- `Loop stopped: scope or context needed`
+- `Loop stopped: phase_checkpoint_compact unavailable`
+
+## Snippet Rules
+
+- When citing existing code, prefer embedded snippets over bare file paths and line numbers.
+- Put the source file path on the first line of each snippet as a comment.
+- Keep snippets tight and evidence-focused.
+- Use file and line references only when snippets would add noise.
+
+## Communication Rules
+
+- Be direct and specific.
+- Do not make the user inspect the editor just to understand the review.
+- Keep Bucket I concise because those items should already be resolved by the loop.
+- Put the user's attention on Bucket II decisions and your recommended action for each.
+- Surface real tradeoffs without padding the review.
+- Do not recommend broad rewrites unless they clearly improve the bug class or design seam.
+- If there are no meaningful design flaws or worthwhile improvements, say so plainly.
