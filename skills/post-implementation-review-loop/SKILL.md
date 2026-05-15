@@ -1,6 +1,6 @@
 ---
 name: post-implementation-review-loop
-description: Iteratively review already-implemented code using the required phase_checkpoint_compact Pi extension tool at every phase boundary; automatically apply straightforward Bucket I fixes, validate, and continue until no accepted Bucket I actions remain while Bucket II items receive recommended next actions.
+description: Iteratively review already-implemented code using the required phase_checkpoint_compact Pi extension tool at every phase boundary; print visible phase reports, automatically apply straightforward Bucket I fixes, validate, and continue until no accepted Bucket I actions remain or the iteration limit is reached while Bucket II items receive recommended next actions.
 ---
 
 # Post-Implementation Review Loop
@@ -30,9 +30,12 @@ If `phase_checkpoint_compact` is unavailable:
 - If a review-triggered fix changes code, rerun focused tests or validation and rerun the review loop.
 - Call `phase_checkpoint_compact` at every active phase boundary.
 - After calling `phase_checkpoint_compact`, do not continue substantial work; wait for the extension's next-phase prompt.
-- Keep going until no accepted/actionable Bucket I findings remain.
-- Stop when remaining work is Bucket II, out of scope, blocked by missing context, or not worth changing now.
-- Do not push, commit, or install globally unless the user explicitly asks.
+- Keep going until no accepted/actionable Bucket I findings remain or the iteration limit is reached.
+- Use a default maximum of 5 review iterations unless the user gives a different number.
+- Before the loop starts, create a Git baseline for the scoped pre-review changes so user edits and loop edits are separable in history.
+- Maintain a cumulative loop ledger so the final response can brief the user on every Bucket I finding, Bucket II finding, rejected finding, fix applied, and validation result across all iterations.
+- Stop when remaining work is Bucket II, out of scope, blocked by missing context, not worth changing now, or the iteration limit is reached.
+- Do not push, install globally, or create non-baseline commits unless the user explicitly asks.
 
 ## Review Lens
 
@@ -62,6 +65,58 @@ post-review -> checkpoint -> impl-review -> checkpoint -> impl -> checkpoint -> 
 
 If the user already provided an accepted implementation plan, the loop may start at `impl`. Otherwise, start at `post-review` for an already-completed change.
 
+### Git baseline before loop
+
+Before the first active phase, create or record a baseline so pre-loop edits and review-loop edits are easy to separate.
+
+1. Run `git status --short` and identify the user-requested review scope.
+2. If there are uncommitted changes in scope, stage only those scoped files and commit them before reviewing.
+3. Use this commit subject:
+
+   ```text
+   wip(post-review-loop): baseline before review
+   ```
+
+4. Include this marker in the commit body:
+
+   ```text
+   Post-review-loop baseline
+
+   Captures the pre-loop implementation state before automated post-review fixes.
+   Loop edits should appear after this commit.
+   ```
+
+5. If the working tree is already clean, record the current `HEAD` as the baseline instead of creating an empty commit.
+6. If unrelated dirty files exist and the scoped files cannot be separated safely, stop and ask the user which files belong in the baseline.
+7. Do not commit loop-generated fixes by default. Leave them after the baseline commit so the user can inspect `git diff HEAD` or ask for a separate follow-up commit.
+
+Treat invoking this loop skill as approval to create the baseline WIP commit for scoped pre-review changes. It is not approval to push or to commit the loop's later fixes.
+
+### Iteration limit
+
+- Default maximum: 5 review iterations.
+- If the user provides an iteration count, use that count instead.
+- Count one iteration each time a `post-review` phase completes against the current implementation state.
+- Count the initial `post-review` as iteration 1.
+- If the loop starts at `impl`, the first `post-review` after that implementation is iteration 1.
+- Stop instead of starting another active phase when the completed review iteration count reaches the limit and more Bucket I work would otherwise remain.
+- Include the current count and limit in every visible phase report and checkpoint handoff.
+
+### Cumulative loop ledger
+
+Maintain a concise ledger across compacted handoffs. Update it at every phase boundary and use it for the final briefing.
+
+Track:
+
+- Baseline commit hash or baseline `HEAD`, plus which scoped files were included.
+- Bucket I findings discovered, accepted, rejected, applied, or still remaining.
+- Bucket II findings, recommended actions, and whether the user approved any direction.
+- Rejected or kept-as-is findings and why they were rejected.
+- Code fixes/refactors applied, including the files touched and the root-cause issue each fix addressed.
+- Validation commands and results for each implementation pass.
+
+Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
+
 ### Phase meanings
 
 1. `post-review`
@@ -69,7 +124,9 @@ If the user already provided an accepted implementation plan, the loop may start
    - Separate pre-existing debt, issues introduced by the change, and issues merely exposed by the change.
    - Produce Bucket I and Bucket II findings.
    - Do not edit code.
-   - End by calling `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`.
+   - If no Bucket I candidates are found, stop with the final report instead of checkpointing into `impl-review`.
+   - If the iteration limit has been reached and Bucket I candidates remain, stop with the final report instead of checkpointing into `impl-review`.
+   - Otherwise, print a visible phase report, then call `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`.
 
 2. `impl-review`
    - Verify each post-review finding against the actual code path, adjacent files, tests, scope, and risk.
@@ -77,8 +134,9 @@ If the user already provided an accepted implementation plan, the loop may start
    - Convert accepted Bucket I findings into a concrete implementation plan.
    - Keep Bucket II as decisions and attach a recommended action to each.
    - Do not edit code unless the item is already accepted as Bucket I and the next phase is explicitly `impl`.
-   - If accepted/actionable Bucket I exists, call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`.
+   - If accepted/actionable Bucket I exists and the iteration limit is not exhausted, print a visible phase report, then call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`.
    - If no accepted/actionable Bucket I remains, stop with the final report instead of entering another active phase.
+   - If accepted/actionable Bucket I exists but the iteration limit is exhausted, stop with the final report and list the unimplemented Bucket I items.
 
 3. `impl`
    - Implement only accepted Bucket I actions or the user's explicitly approved Bucket II direction.
@@ -86,7 +144,7 @@ If the user already provided an accepted implementation plan, the loop may start
    - Keep changes tight and reviewable.
    - If the apparent fix grows into a technical decision, move it to Bucket II and stop instead of guessing.
    - Rerun focused validation after changes.
-   - End by calling `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"`.
+   - Print a visible phase report, then call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached.
 
 ## `phase_checkpoint_compact` Usage
 
@@ -99,7 +157,7 @@ Populate the tool fields as follows:
 - `goal`: the user's review/fix objective.
 - `scope`: the reviewed diff, files, commit range, or user-provided scope.
 - `changedFiles`: repo-relative paths touched or relevant to the loop.
-- `validation`: commands run and whether each passed, failed, or was skipped.
+- `validation`: commands run and whether each passed, failed, or was skipped. Each `result` value must be exactly `passed`, `failed`, or `skipped`; never use values like `not run`, `pending`, `unknown`, or `n/a`.
 - `bucketIApplied`: Bucket I fixes already applied.
 - `bucketIRemaining`: accepted/actionable Bucket I items still to implement or verify.
 - `bucketII`: discussion items, each with options when useful and a recommended action.
@@ -109,13 +167,17 @@ Populate the tool fields as follows:
 Handoff summaries must preserve:
 
 - current goal and scope
+- baseline commit hash or baseline `HEAD`
 - phase completed and next phase
 - changed files and important seams
-- validation commands and results
+- iteration count and iteration limit
+- validation commands and results using only `passed`, `failed`, or `skipped`
 - accepted Bucket I actions already applied
 - remaining Bucket I items, if any
+- cumulative Bucket I findings and how each was resolved or left remaining
 - Bucket II items with recommended actions and tradeoffs
 - rejected or kept-as-is findings and why
+- fixes/refactors applied and the files they touched
 - the next phase's first concrete action
 
 Do not preserve long reasoning traces, stale alternatives, raw tool output dumps, or rejected findings that no longer matter.
@@ -162,6 +224,8 @@ State the reason for the recommendation, not just the available options. If reco
 ## Validation Rules
 
 - Identify focused tests, typechecks, formatters, or validation commands from the repository's existing workflow.
+- For `phase_checkpoint_compact`, every validation item must use one of exactly three result strings: `passed`, `failed`, or `skipped`.
+- For no-edit review phases where validation was not applicable, include a validation item with `result: "skipped"` and a command such as `No validation run (review-only phase)`.
 - After every code change, rerun focused checks that cover the touched area.
 - If validation fails because of the loop's changes, fix or report before moving phases.
 - If validation fails for unrelated/pre-existing reasons, record it clearly in `validation` and continue only if the next phase can still reason safely.
@@ -171,7 +235,9 @@ State the reason for the recommendation, not just the available options. If reco
 
 Stop when any of these are true:
 
-- The final `impl-review` finds no accepted/actionable Bucket I items.
+- A `post-review` phase finds no Bucket I candidates.
+- An `impl-review` phase finds no accepted/actionable Bucket I items.
+- The loop reaches the maximum review iteration count, defaulting to 5 unless the user provided another number.
 - Remaining work is Bucket II and needs explicit user approval.
 - A validation failure remains and cannot be safely resolved inside scope.
 - Scope or context is missing.
@@ -181,45 +247,83 @@ Do not run extra review cycles just to get nicer wording after a clean pass.
 
 ## Output
 
-During active phases, keep progress brief because the extension will preserve handoffs:
+During active phases, print a visible phase report before every `phase_checkpoint_compact` call. Do not hide review findings only inside tool-call arguments or compacted handoffs.
 
-- phase name
-- Bucket I actions accepted/applied
-- validation run and result
-- Bucket II items deferred for decision
-- checkpoint target phase
+Use this active phase report structure:
 
-Final report structure:
+### Phase Report — <phase>
 
-### Loop Summary
+- Iteration: `<current>/<limit>`
+- Checkpoint target: `<next phase>`
 
-- Iterations and phases run.
+#### Bucket I
+
+List Bucket I findings, accepted actions, or applied fixes. If empty, say `No Bucket I items.`
+
+#### Bucket II
+
+List discussion items with `Recommended action: ...`. If empty, say `No Bucket II items.`
+
+#### Rejected / Kept As-Is
+
+List meaningful rejected findings. If empty, say `None.`
+
+#### Validation
+
+List commands and results. Use only `passed`, `failed`, or `skipped` as status words.
+
+Then call `phase_checkpoint_compact` with the same facts in the tool payload.
+
+When the loop stops, provide a final briefing. Do not stop with only a checkpoint handoff or terse verdict.
+
+Final briefing structure:
+
+### Loop Briefing
+
+- Baseline commit hash or baseline `HEAD`, and whether a WIP baseline commit was created.
+- Iterations and phases run, including the maximum allowed iterations.
 - Files changed by the loop.
 - Validation commands run.
 - Final clean condition: no accepted/actionable Bucket I findings, or why the loop stopped.
+- If stopped by iteration limit, list any remaining Bucket I items that were not implemented.
 
-### Bucket I — Applied / Resolved
+### Bucket I — Findings and Fixes
 
-Number each item and include:
+Number each Bucket I finding discovered across the loop and include:
 
 - what the implementation revealed
-- the root-cause fix applied
+- whether it was accepted, applied, rejected, or left remaining
+- the root-cause fix/refactor applied, if any
+- files changed by the fix
 - why a smaller patch would have been a bandage, if relevant
 - validation evidence
 
-If empty, say: `No Bucket I actions were applied.`
+If empty, say: `No Bucket I findings were found.`
 
-### Bucket II — Worth Discussing
+### Bucket II — Findings and Recommendations
 
-Number each item and include:
+Number each Bucket II finding discovered across the loop and include:
 
 - what the implementation revealed
 - the design or quality weakness it implies
 - main options or decision points
 - `Recommended action: ...`
 - tradeoffs, risks, or uncertainty
+- whether it was left for user decision, deferred, kept as-is for now, or implemented after explicit approval
 
-If empty, say: `No Bucket II decisions remain.`
+If empty, say: `No Bucket II findings were found.`
+
+### Code Changes Applied
+
+Summarize each fix/refactor applied by the loop:
+
+- files changed
+- behavior/design issue addressed
+- why this was the right scope of change
+- validation evidence
+- how to inspect it relative to the baseline, for example `git diff <baseline>..HEAD` if committed or `git diff HEAD` if left uncommitted after the baseline
+
+If empty, say: `No code changes were applied by the loop.`
 
 ### Rejected / Kept As-Is
 
@@ -231,6 +335,7 @@ End with one of:
 
 - `Loop clean: no accepted/actionable Bucket I findings remain`
 - `Loop stopped: Bucket II decision needed`
+- `Loop stopped: iteration limit reached`
 - `Loop stopped: validation failure remains`
 - `Loop stopped: scope or context needed`
 - `Loop stopped: phase_checkpoint_compact unavailable`
