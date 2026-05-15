@@ -22,12 +22,14 @@ If `phase_checkpoint_compact` is unavailable:
 ## Contract
 
 - Treat each review finding as advisory until verified against the real code path, nearby interfaces, tests, and docs.
-- Do not blindly apply generated or previous review output.
+- Do not blindly apply generated, previous review, or subagent review output.
 - Reject weak, speculative, unrealistic, or overcomplicated recommendations.
 - Prefer root-cause design, ownership, boundary, structure, or abstraction fixes over tactical bandages.
 - Apply Bucket I findings automatically when they are straightforward, materially worthwhile, and safe within the user's requested scope.
 - Do not automatically implement Bucket II findings unless the user explicitly approved that direction. For each Bucket II item, give a recommended next action that prefers improving overall code quality and design over temporary fixes unless the refactor cost, risk, or uncertainty is too high.
 - If a review-triggered fix changes code, rerun focused tests or validation and rerun the review loop.
+- Do not keep looping for optional polish, speculative improvements, or findings already deferred by the parent.
+- Keep exactly one writer against the active worktree. Fresh reviewers are review-only; if a worker subagent applies fixes, the parent must not edit concurrently.
 - Call `phase_checkpoint_compact` at every active phase boundary.
 - After calling `phase_checkpoint_compact`, do not continue substantial work; wait for the extension's next-phase prompt.
 - Keep going until no accepted/actionable Bucket I findings remain or the iteration limit is reached.
@@ -54,6 +56,34 @@ Look for:
 - Under-structure: related concerns scattered or mixed so readers cannot follow one feature end to end.
 
 Do not manufacture findings. If the code is structurally sound, say so.
+
+## Optional Subagent-Assisted Review
+
+`phase_checkpoint_compact` remains the only required extension for this skill. If the `subagent` tool is unavailable, run the loop yourself.
+
+When `subagent` is available and the change is non-trivial, use fresh-context parallel reviewers during `post-review` before finalizing Bucket I and Bucket II findings. Use this for broad diffs, risky changes, design-heavy work, UI/CLI behavior, security-sensitive code, or any change where a second independent read would reduce tunnel vision.
+
+Reviewer rules:
+
+- Use `context: "fresh"`, not forked context, unless the user explicitly asks otherwise.
+- Reviewers must inspect repository instructions, relevant files, and the current diff directly from tools and commands.
+- Reviewers must not edit files or run their own subagent workflows.
+- Give each reviewer one distinct angle chosen from the actual change. Prefer three strong reviewers over many vague ones.
+- Common angles: correctness/regressions, tests/validation, simplicity/maintainability.
+- Add security/privacy, performance, docs/API contracts, user-flow behavior, accessibility, cleanup/deslop, or structural-boundary angles only when the change calls for them.
+- Ask reviewers for concise, evidence-backed findings with file/line references or tight snippets and suggested fixes.
+
+Parent synthesis rules:
+
+- Treat reviewer output as leads, not verdicts.
+- Verify every finding against the real code path, nearby interfaces, tests, docs, scope, and risk before acting.
+- Map verified findings into this skill's categories:
+  - fixes worth doing now -> Bucket I
+  - product, scope, architecture, compatibility, or broad refactor decisions -> Bucket II
+  - optional polish -> deferred or kept as-is
+  - weak or incorrect feedback -> rejected
+- If reviewers surface an unapproved product, scope, or architecture decision, stop and ask the user before implementation.
+- Preserve the normal phase rhythm. Subagent fanout belongs inside `post-review`; accepted fixes still pass through `impl-review`, `phase_checkpoint_compact`, and `impl`.
 
 ## Phase Loop
 
@@ -121,7 +151,9 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
 
 1. `post-review`
    - Re-read the current diff and relevant files.
+   - For non-trivial changes, consider fresh-context subagent review fanout before finalizing findings.
    - Separate pre-existing debt, issues introduced by the change, and issues merely exposed by the change.
+   - Synthesize review output into fixes worth doing now, decisions needing user approval, optional/deferred items, and rejected feedback.
    - Produce Bucket I and Bucket II findings.
    - Do not edit code.
    - If no Bucket I candidates are found, stop with the final report instead of checkpointing into `impl-review`.
@@ -285,6 +317,7 @@ Final briefing structure:
 - Files changed by the loop.
 - Validation commands run.
 - Final clean condition: no accepted/actionable Bucket I findings, or why the loop stopped.
+- Confirmation that you inspected the final diff yourself and either ran or confirmed focused validation.
 - If stopped by iteration limit, list any remaining Bucket I items that were not implemented.
 
 ### Bucket I — Findings and Fixes
