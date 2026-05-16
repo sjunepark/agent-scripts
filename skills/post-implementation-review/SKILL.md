@@ -38,9 +38,28 @@ Treat each finding as evidence about code design or quality, not as a prompt to 
 - If a small helper or extraction is the right fix, make clear what boundary, invariant, or ownership clarity it creates. If it only saves a few lines, skip it.
 - Do not overcorrect. Do not refactor only because another design looks cleaner in theory, and do not treat unfamiliar code as broken code.
 
+## Tunnel-Vision Control
+
+Subagents are not required for this skill. A careful single-context review is valid for small or obvious changes.
+
+When the change is non-trivial, risky, broad, design-heavy, security-sensitive, or easy to rationalize because you just implemented it, use an isolated reviewer when available. In Pi, a fresh-context subagent is the cleanest way to get that separation. Without a separate reviewer process, do not claim independent review; run a deliberate second pass in the same context and treat it as weaker evidence.
+
+Fresh context does not mean context-free. Give the reviewer a bounded review packet: objective, scope or diff target, relevant constraints, validation commands, and any user-approved direction. Do not include the implementer's rationale, rejected alternatives, or persuasive framing unless it is needed to understand a hard constraint.
+
+Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
+
+- Give each reviewer a narrow angle such as correctness/regressions, tests/validation, simplicity/maintainability, security/privacy, performance, docs/API contracts, accessibility, or structural boundaries.
+- Prefer a few focused reviewers over many vague ones.
+- Ask reviewers to inspect repository instructions, relevant files, and the current diff directly.
+- Ask for concise, evidence-backed findings and exact files/tests to rerun.
+- Treat reviewer output as leads. Verify every accepted finding yourself against the real code path, nearby interfaces, tests, docs, scope, and risk.
+- Reject noisy, speculative, unrealistic, overbroad, or overcomplicated findings.
+- Do not run an extra review pass solely to get nicer closeout wording after there are no accepted/actionable findings.
+
 ## Workflow
 
 1. Anchor the review in the actual change.
+   - Pick the correct review target: dirty local diff, branch versus base, commit range, recent commits, or the user-provided scope. A clean local diff does not prove committed branch work is clean.
    - Read the changed files, nearby interfaces, and affected tests or docs.
    - Use `git status`, `git diff`, recent commits, or the user-provided scope as appropriate.
    - Distinguish between pre-existing design debt, issues introduced by the change, and issues the change merely made easier to see.

@@ -60,9 +60,15 @@ Do not manufacture findings. If the code is structurally sound, say so.
 
 ## Optional Subagent-Assisted Review
 
-`phase_checkpoint_compact` remains the only required extension for this skill. If the `subagent` tool is unavailable, run the loop yourself.
+`phase_checkpoint_compact` remains the only required extension for this skill. Subagents are a tunnel-vision control, not a hard dependency. If the `subagent` tool is unavailable, run the loop yourself.
 
-When `subagent` is available and the change is non-trivial, use fresh-context parallel reviewers during `post-review` before finalizing Bucket I and Bucket II findings. Use this for broad diffs, risky changes, design-heavy work, UI/CLI behavior, security-sensitive code, or any change where a second independent read would reduce tunnel vision.
+When `subagent` is available and the change is non-trivial, use fresh-context parallel reviewers during `post-review` before finalizing Bucket I and Bucket II findings. Use this for broad diffs, risky changes, design-heavy work, UI/CLI behavior, security-sensitive code, or any change where a second independent read would reduce confirmation bias.
+
+Fresh context does not mean context-free. Give each reviewer a bounded review packet: objective, scope or diff target, relevant constraints, validation commands, and any user-approved direction. Do not include the implementer's rationale, rejected alternatives, or persuasive framing unless it is needed to understand a hard constraint.
+
+If `subagent` is unavailable, do not describe the same-conversation pass as independent. Run a deliberate second pass yourself and treat it as weaker evidence.
+
+If an external review command or model is noisy, prefer running it through a review-only subagent filter so the parent receives only accepted actionable findings, rejected findings with one-line reasons, and exact files/tests to rerun.
 
 Reviewer rules:
 
@@ -78,6 +84,7 @@ Parent synthesis rules:
 
 - Treat reviewer output as leads, not verdicts.
 - Verify every finding against the real code path, nearby interfaces, tests, docs, scope, and risk before acting.
+- Reject noisy, speculative, unrealistic, overbroad, or overcomplicated findings even when multiple reviewers repeat them.
 - Map verified findings into this skill's categories:
   - fixes worth doing now -> Bucket I
   - product, scope, architecture, compatibility, or broad refactor decisions -> Bucket II
