@@ -62,22 +62,28 @@ Do not manufacture findings. If the code is structurally sound, say so.
 
 `phase_checkpoint_compact` remains the only required extension for this skill. Subagents are a tunnel-vision control, not a hard dependency. If the `subagent` tool is unavailable, run the loop yourself.
 
-When `subagent` is available and the change is non-trivial, use fresh-context parallel reviewers during `post-review` before finalizing Bucket I and Bucket II findings. Use this for broad diffs, risky changes, design-heavy work, UI/CLI behavior, security-sensitive code, or any change where a second independent read would reduce confirmation bias.
+Use the lightest review shape that will materially improve confidence. Do not fan out reviewers by default, and do not treat every non-trivial change as requiring parallel subagents. Escalate only when the added independence is likely to catch issues the parent review would miss:
+
+- Small or obvious change: review it yourself, then do a deliberate second pass if needed.
+- Moderate non-trivial change: use at most one fresh-context reviewer when independence is useful.
+- Broad, risky, design-heavy, security-sensitive, UI/CLI behavior-heavy, or multi-surface change: use multiple focused reviewers only when distinct risk angles need separate attention.
 
 Fresh context does not mean context-free. Give each reviewer a bounded review packet: objective, scope or diff target, relevant constraints, validation commands, and any user-approved direction. Do not include the implementer's rationale, rejected alternatives, or persuasive framing unless it is needed to understand a hard constraint.
 
 If `subagent` is unavailable, do not describe the same-conversation pass as independent. Run a deliberate second pass yourself and treat it as weaker evidence.
 
-If an external review command or model is noisy, prefer running it through a review-only subagent filter so the parent receives only accepted actionable findings, rejected findings with one-line reasons, and exact files/tests to rerun.
+If an external review command or model is noisy, prefer running it through one review-only subagent filter so the parent receives only accepted actionable findings, rejected findings with one-line reasons, and exact files/tests to rerun.
 
 Reviewer rules:
 
 - Use `context: "fresh"`, not forked context, unless the user explicitly asks otherwise.
 - Reviewers must inspect repository instructions, relevant files, and the current diff directly from tools and commands.
 - Reviewers must not edit files or run their own subagent workflows.
-- Give each reviewer one distinct angle chosen from the actual change. Prefer three strong reviewers over many vague ones.
+- Give each reviewer one distinct angle chosen from the actual change.
+- Prefer one or two focused reviewers over a larger panel. Use three only when three distinct angles are genuinely important; avoid more unless the user asks or the scope is unusually broad.
 - Common angles: correctness/regressions, tests/validation, simplicity/maintainability.
 - Add security/privacy, performance, docs/API contracts, user-flow behavior, accessibility, cleanup/deslop, or structural-boundary angles only when the change calls for them.
+- Do not assign duplicate or vague angles just to create parallelism.
 - Ask reviewers for concise, evidence-backed findings with file/line references or tight snippets and suggested fixes.
 
 Parent synthesis rules:
@@ -203,7 +209,7 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
 
 1. `post-review`
    - Re-read the current diff and relevant files.
-   - For non-trivial changes, consider fresh-context subagent review fanout before finalizing findings.
+   - Consider fresh-context subagent review only when it would materially improve confidence; fan out only for distinct risk angles that need separate attention.
    - Separate pre-existing debt, issues introduced by the change, and issues merely exposed by the change.
    - Synthesize review output into fixes worth doing now, decisions needing user approval, optional/deferred items, and rejected feedback.
    - Produce Bucket I and Bucket II findings.

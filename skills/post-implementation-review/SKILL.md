@@ -40,16 +40,23 @@ Treat each finding as evidence about code design or quality, not as a prompt to 
 
 ## Tunnel-Vision Control
 
-Subagents are not required for this skill. A careful single-context review is valid for small or obvious changes.
+Subagents are not required for this skill. A careful single-context review is valid for small, obvious, or tightly scoped changes.
 
-When the change is non-trivial, risky, broad, design-heavy, security-sensitive, or easy to rationalize because you just implemented it, use an isolated reviewer when available. In Pi, a fresh-context subagent is the cleanest way to get that separation. Without a separate reviewer process, do not claim independent review; run a deliberate second pass in the same context and treat it as weaker evidence.
+Use the lightest review shape that will materially improve confidence. Do not fan out reviewers by default. Escalate only when the added independence is likely to catch issues the parent review would miss:
 
-Fresh context does not mean context-free. Give the reviewer a bounded review packet: objective, scope or diff target, relevant constraints, validation commands, and any user-approved direction. Do not include the implementer's rationale, rejected alternatives, or persuasive framing unless it is needed to understand a hard constraint.
+- Small or obvious change: review it yourself, then do a deliberate second pass if needed.
+- Moderate non-trivial change: use at most one fresh-context reviewer when independence is useful.
+- Broad, risky, design-heavy, security-sensitive, or multi-surface change: use multiple focused reviewers only when distinct risk angles need separate attention.
+
+When an isolated reviewer is warranted, use it well. In Pi, a fresh-context subagent is the cleanest way to get that separation. Without a separate reviewer process, do not claim independent review; run a deliberate second pass in the same context and treat it as weaker evidence.
+
+Fresh context does not mean context-free. Give each reviewer a bounded review packet: objective, scope or diff target, relevant constraints, validation commands, and any user-approved direction. Do not include the implementer's rationale, rejected alternatives, or persuasive framing unless it is needed to understand a hard constraint.
 
 Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
 
 - Give each reviewer a narrow angle such as correctness/regressions, tests/validation, simplicity/maintainability, security/privacy, performance, docs/API contracts, accessibility, or structural boundaries.
-- Prefer a few focused reviewers over many vague ones.
+- Prefer one or two focused reviewers over a larger panel. Use three only when three distinct angles are genuinely important; avoid more unless the user asks or the scope is unusually broad.
+- Do not assign duplicate or vague angles just to create parallelism.
 - Ask reviewers to inspect repository instructions, relevant files, and the current diff directly.
 - Ask for concise, evidence-backed findings and exact files/tests to rerun.
 - Treat reviewer output as leads. Verify every accepted finding yourself against the real code path, nearby interfaces, tests, docs, scope, and risk.
