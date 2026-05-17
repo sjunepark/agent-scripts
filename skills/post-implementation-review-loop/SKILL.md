@@ -95,6 +95,44 @@ Parent synthesis rules:
 
 ## Phase Loop
 
+### Deterministic phase gate
+
+Use `scripts/loop-decision` as the authoritative transition gate before stopping, asking the user whether to proceed, calling `phase_checkpoint_compact`, or entering the next phase. The script does not review or fix code; it converts the current phase state into one allowed transition.
+
+Resolve the script path against this skill directory. From this repository root, run it with a JSON phase snapshot, for example:
+
+```bash
+skills/post-implementation-review-loop/scripts/loop-decision --pretty <<'JSON'
+{"phase":"post-review","iteration":1,"limit":5,"bucketICandidates":2,"bucketII":0}
+JSON
+```
+
+The output's `nextPhase` is binding. If it says `continue`, continue without asking for permission. If it says `stop`, provide the final briefing. If it says `checkpointRequired: true`, call `phase_checkpoint_compact` before the next `post-review`.
+
+Minimum snapshot fields:
+
+- Always include `phase`, `iteration`, and `limit`.
+- For `post-review`, include `bucketICandidates` and `bucketII` counts or lists.
+- For `impl-review`, include `acceptedBucketI` and `bucketII` counts or lists.
+- For `impl`, include `appliedBucketI` count or list.
+- Include boolean stop flags when relevant: `reviewOnly`, `scopeBlocked`, `validationBlocked`, `checkpointUnavailable`.
+
+Transition table encoded by the gate:
+
+| Phase | Condition | Next phase |
+| --- | --- | --- |
+| any | review-only, scope blocked, validation blocked, or checkpoint unavailable | final briefing |
+| `post-review` | no Bucket I candidates | final briefing |
+| `post-review` | iteration limit reached | final briefing |
+| `post-review` | Bucket I candidates exist | `impl-review` |
+| `impl-review` | no accepted/actionable Bucket I | final briefing |
+| `impl-review` | iteration limit reached | final briefing |
+| `impl-review` | accepted/actionable Bucket I exists | `impl` |
+| `impl` | no Bucket I fixes were applied | final briefing |
+| `impl` | Bucket I fixes were applied | `post-review` via `phase_checkpoint_compact` |
+
+Treat user wording like "do not edit code in this phase" as phase-local unless the user explicitly says the whole run is review-only or asks to wait for approval before implementation. Producing Bucket I/Bucket II findings is not a stop condition by itself. Do not write "if you want me to proceed" during an active loop.
+
 Active phase rhythm:
 
 ```text
@@ -166,9 +204,8 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Synthesize review output into fixes worth doing now, decisions needing user approval, optional/deferred items, and rejected feedback.
    - Produce Bucket I and Bucket II findings.
    - Do not edit code.
-   - If no Bucket I candidates are found, stop with the final report; do not checkpoint into a no-op phase.
-   - If the iteration limit has been reached and Bucket I candidates remain, stop with the final report; do not checkpoint into a no-op phase.
-   - Otherwise, print a visible phase report and continue directly to `impl-review` without calling `phase_checkpoint_compact`.
+   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "post-review"`, the current `iteration` and `limit`, `bucketICandidates`, `bucketII`, and any active stop flags.
+   - Obey the gate output: continue directly to `impl-review` only when it returns `nextPhase: "impl-review"`; otherwise stop with the final report and do not checkpoint into a no-op phase.
 
 2. `impl-review`
    - Verify each post-review finding against the actual code path, adjacent files, tests, scope, and risk.
@@ -176,9 +213,8 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Convert accepted Bucket I findings into a concrete implementation plan.
    - Keep Bucket II as decisions and attach a recommended action to each.
    - Do not edit code unless the item is already accepted as Bucket I and implementation has begun.
-   - If accepted/actionable Bucket I exists and the iteration limit is not exhausted, print a visible phase report and continue directly to `impl` without calling `phase_checkpoint_compact`.
-   - If no accepted/actionable Bucket I remains, stop with the final report instead of entering another active phase.
-   - If accepted/actionable Bucket I exists but the iteration limit is exhausted, stop with the final report and list the unimplemented Bucket I items.
+   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "impl-review"`, the current `iteration` and `limit`, `acceptedBucketI`, `bucketII`, and any active stop flags.
+   - Obey the gate output: continue directly to `impl` only when it returns `nextPhase: "impl"`; otherwise stop with the final report and list any unimplemented Bucket I items.
 
 3. `impl`
    - Implement only accepted Bucket I actions or the user's explicitly approved Bucket II direction.
@@ -187,7 +223,8 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - If the apparent fix grows into a technical decision, move it to Bucket II and stop instead of guessing.
    - Rerun focused validation after changes.
    - Update the cumulative ledger with the applied fixes, validation, rejected items, Bucket II items, and any remaining Bucket I items.
-   - Print a visible phase report, then call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached.
+   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "impl"`, the current `iteration` and `limit`, `appliedBucketI`, and any active stop flags.
+   - Obey the gate output: when it returns `checkpointRequired: true`, call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached; otherwise stop with the final report.
 
 ## `phase_checkpoint_compact` Usage
 
