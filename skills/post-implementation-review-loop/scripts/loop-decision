@@ -81,6 +81,7 @@ def stop(next_phase: str, reason: str) -> Dict[str, Any]:
         "decision": "stop",
         "nextPhase": next_phase,
         "checkpointRequired": False,
+        "requiredAction": "final_briefing",
         "reason": reason,
     }
 
@@ -90,6 +91,9 @@ def cont(next_phase: str, reason: str, checkpoint_required: bool = False) -> Dic
         "decision": "continue",
         "nextPhase": next_phase,
         "checkpointRequired": checkpoint_required,
+        "requiredAction": "call_phase_checkpoint_compact"
+        if checkpoint_required
+        else "enter_next_phase",
         "reason": reason,
     }
 
@@ -129,7 +133,11 @@ def decide(payload: Dict[str, Any]) -> Dict[str, Any]:
             return stop("final briefing", "no Bucket I candidates found")
         if iteration >= limit:
             return stop("final briefing", "iteration limit reached after post-review")
-        return cont("impl-review", "Bucket I candidates exist and no stop condition is active")
+        return cont(
+            "impl-review",
+            "Bucket I candidates exist; checkpoint before verification/planning",
+            checkpoint_required=True,
+        )
 
     if phase == "impl-review":
         accepted_bucket_i = count_value(payload, "acceptedBucketI", required=True)
@@ -140,7 +148,11 @@ def decide(payload: Dict[str, Any]) -> Dict[str, Any]:
             return stop("final briefing", "no accepted/actionable Bucket I items remain")
         if iteration >= limit:
             return stop("final briefing", "iteration limit reached before implementation")
-        return cont("impl", "accepted/actionable Bucket I work exists and no stop condition is active")
+        return cont(
+            "impl",
+            "accepted/actionable Bucket I work exists; checkpoint before implementation",
+            checkpoint_required=True,
+        )
 
     # impl
     applied_bucket_i = count_value(payload, "appliedBucketI", required=True)

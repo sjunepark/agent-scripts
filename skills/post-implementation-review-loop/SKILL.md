@@ -1,13 +1,13 @@
 ---
 name: post-implementation-review-loop
-description: Iteratively review already-implemented code using the required phase_checkpoint_compact Pi extension tool after each fix/validation pass; print visible phase reports, automatically apply straightforward Bucket I fixes, validate, and continue until no accepted Bucket I actions remain or the iteration limit is reached while Bucket II items receive recommended next actions.
+description: Iteratively review already-implemented code using the required phase_checkpoint_compact Pi extension tool at every continuing phase boundary; automatically apply straightforward Bucket I fixes, validate, and continue until no accepted Bucket I actions remain or the iteration limit is reached while Bucket II items receive recommended next actions.
 ---
 
 # Post-Implementation Review Loop
 
 Use this skill manually. Do not invoke it unless the user explicitly asks for a looped or iterative post-implementation review, or asks to fix straightforward findings from a post-implementation review automatically.
 
-This is an implementation-and-review loop, not a one-pass advisory review. Review the completed code, verify findings, apply straightforward fixes, validate, and call `phase_checkpoint_compact` only after the fix/validation pass so Pi performs a real compacted handoff before the next review.
+This is an implementation-and-review loop, not a one-pass advisory review. Review the completed code, verify findings, apply straightforward fixes, validate changed code, and call `phase_checkpoint_compact` at every continuing phase boundary so Pi performs a real compacted handoff before the next phase.
 
 ## Hard Requirement
 
@@ -27,11 +27,11 @@ If `phase_checkpoint_compact` is unavailable:
 - Prefer root-cause design, ownership, boundary, structure, or abstraction fixes over tactical bandages.
 - Apply Bucket I findings automatically when they are straightforward, materially worthwhile, and safe within the user's requested scope.
 - Do not automatically implement Bucket II findings unless the user explicitly approved that direction. For each Bucket II item, give a recommended next action that prefers improving overall code quality and design over temporary fixes unless the refactor cost, risk, or uncertainty is too high.
-- If a review-triggered fix changes code, rerun focused tests or validation, call `phase_checkpoint_compact`, and rerun the review loop after the compacted handoff.
+- If a review-triggered fix changes code, rerun focused tests or validation before moving phases.
 - Do not keep looping for optional polish, speculative improvements, or findings already deferred by the parent.
 - Keep exactly one writer against the active worktree. Fresh reviewers are review-only; if a worker subagent applies fixes, the parent must not edit concurrently.
-- Do not checkpoint after review-only or planning-only phases; move from review to verification to implementation in the same active context unless a real handoff safety issue requires stopping.
-- Call `phase_checkpoint_compact` only after an implementation/fix and validation pass completes, with `nextPhase: "post-review"`.
+- Treat every continuing phase transition as a checkpointed handoff. Do not rely on same-turn self-continuation after a continue gate.
+- Call `phase_checkpoint_compact` at every continuing phase boundary returned by `scripts/loop-decision`, including no-edit review and planning phases; use skipped validation for phases that made no code changes.
 - After calling `phase_checkpoint_compact`, do not continue substantial work; wait for the extension's next-phase prompt.
 - Keep going until no accepted/actionable Bucket I findings remain or the iteration limit is reached.
 - Use a default maximum of 5 review iterations unless the user gives a different number.
@@ -107,7 +107,9 @@ skills/post-implementation-review-loop/scripts/loop-decision --pretty <<'JSON'
 JSON
 ```
 
-The output's `nextPhase` is binding. If it says `continue`, continue without asking for permission. If it says `stop`, provide the final briefing. If it says `checkpointRequired: true`, call `phase_checkpoint_compact` before the next `post-review`.
+The output's `requiredAction`, `nextPhase`, and `checkpointRequired` are binding. If `requiredAction` is `final_briefing`, provide the final briefing. If `requiredAction` is `call_phase_checkpoint_compact`, do not produce a final answer or ask permission; call `phase_checkpoint_compact` and let the extension inject the next-phase prompt.
+
+Goal-extension lesson: durable loops need persisted active state plus a continuation prompt, not only prose instructions. This skill does not use `create_goal` automatically, but it follows the same control pattern by checkpointing every continuing phase and preserving the next phase's first concrete action in the handoff.
 
 Minimum snapshot fields:
 
@@ -115,7 +117,7 @@ Minimum snapshot fields:
 - For `post-review`, include `bucketICandidates` and `bucketII` counts or lists.
 - For `impl-review`, include `acceptedBucketI` and `bucketII` counts or lists.
 - For `impl`, include `appliedBucketI` count or list.
-- Include boolean stop flags when relevant: `reviewOnly`, `scopeBlocked`, `validationBlocked`, `checkpointUnavailable`.
+- Include boolean stop flags when relevant: `reviewOnly`, `scopeBlocked`, `validationBlocked`, `checkpointUnavailable`. Use `reviewOnly` only for a whole-run user request not to implement fixes; do not set it merely because the current phase is a no-edit review or planning phase.
 
 Transition table encoded by the gate:
 
@@ -124,22 +126,24 @@ Transition table encoded by the gate:
 | any | review-only, scope blocked, validation blocked, or checkpoint unavailable | final briefing |
 | `post-review` | no Bucket I candidates | final briefing |
 | `post-review` | iteration limit reached | final briefing |
-| `post-review` | Bucket I candidates exist | `impl-review` |
+| `post-review` | Bucket I candidates exist | `impl-review` via `phase_checkpoint_compact` |
 | `impl-review` | no accepted/actionable Bucket I | final briefing |
 | `impl-review` | iteration limit reached | final briefing |
-| `impl-review` | accepted/actionable Bucket I exists | `impl` |
+| `impl-review` | accepted/actionable Bucket I exists | `impl` via `phase_checkpoint_compact` |
 | `impl` | no Bucket I fixes were applied | final briefing |
 | `impl` | Bucket I fixes were applied | `post-review` via `phase_checkpoint_compact` |
 
 Treat user wording like "do not edit code in this phase" as phase-local unless the user explicitly says the whole run is review-only or asks to wait for approval before implementation. Producing Bucket I/Bucket II findings is not a stop condition by itself. Do not write "if you want me to proceed" during an active loop.
 
+Forbidden pattern: after a gate returns `requiredAction: "call_phase_checkpoint_compact"`, do not end the assistant turn with prose like "Gate result: continue to impl-review" or "I did not edit code in this phase." That is a premature stop. The next action must be `phase_checkpoint_compact` with the gate's `nextPhase`.
+
 Active phase rhythm:
 
 ```text
-review -> impl/fix -> compact -> review -> impl/fix -> compact -> ...
+post-review -> compact -> impl-review -> compact -> impl/fix -> compact -> post-review -> ...
 ```
 
-Concretely, `post-review` and `impl-review` run together as the review/planning side of an iteration, then accepted Bucket I work is implemented in `impl`, validated, and compacted before the next `post-review`.
+Each compacted handoff carries the active loop state, like goal continuation does. `post-review` discovers candidates, `impl-review` verifies and accepts actionable Bucket I work, and `impl` applies and validates fixes before the next `post-review`.
 
 If the user already provided an accepted implementation plan, the loop may start at `impl`. Otherwise, start at `post-review` for an already-completed change.
 
@@ -204,17 +208,17 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Synthesize review output into fixes worth doing now, decisions needing user approval, optional/deferred items, and rejected feedback.
    - Produce Bucket I and Bucket II findings.
    - Do not edit code.
-   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "post-review"`, the current `iteration` and `limit`, `bucketICandidates`, `bucketII`, and any active stop flags.
-   - Obey the gate output: continue directly to `impl-review` only when it returns `nextPhase: "impl-review"`; otherwise stop with the final report and do not checkpoint into a no-op phase.
+   - Run `scripts/loop-decision` with `phase: "post-review"`, the current `iteration` and `limit`, `bucketICandidates`, `bucketII`, and any active stop flags.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`; otherwise stop with the final briefing and do not checkpoint into a no-op phase.
 
 2. `impl-review`
    - Verify each post-review finding against the actual code path, adjacent files, tests, scope, and risk.
    - Accept, reject, downgrade, or move findings between buckets.
    - Convert accepted Bucket I findings into a concrete implementation plan.
    - Keep Bucket II as decisions and attach a recommended action to each.
-   - Do not edit code unless the item is already accepted as Bucket I and implementation has begun.
-   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "impl-review"`, the current `iteration` and `limit`, `acceptedBucketI`, `bucketII`, and any active stop flags.
-   - Obey the gate output: continue directly to `impl` only when it returns `nextPhase: "impl"`; otherwise stop with the final report and list any unimplemented Bucket I items.
+   - Do not edit code; all code changes happen in `impl` so validation and checkpoint payloads match the phase that changed files.
+   - Run `scripts/loop-decision` with `phase: "impl-review"`, the current `iteration` and `limit`, `acceptedBucketI`, `bucketII`, and any active stop flags.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`; otherwise stop with the final briefing and list any unimplemented Bucket I items.
 
 3. `impl`
    - Implement only accepted Bucket I actions or the user's explicitly approved Bucket II direction.
@@ -223,23 +227,23 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - If the apparent fix grows into a technical decision, move it to Bucket II and stop instead of guessing.
    - Rerun focused validation after changes.
    - Update the cumulative ledger with the applied fixes, validation, rejected items, Bucket II items, and any remaining Bucket I items.
-   - Print a visible phase report, then run `scripts/loop-decision` with `phase: "impl"`, the current `iteration` and `limit`, `appliedBucketI`, and any active stop flags.
-   - Obey the gate output: when it returns `checkpointRequired: true`, call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached; otherwise stop with the final report.
+   - Run `scripts/loop-decision` with `phase: "impl"`, the current `iteration` and `limit`, `appliedBucketI`, and any active stop flags.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "post-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached; otherwise stop with the final briefing.
 
 ## `phase_checkpoint_compact` Usage
 
-Call `phase_checkpoint_compact` only after an implementation/fix pass is complete and focused validation has been recorded. Do not call it after review-only or planning-only phases.
+Call `phase_checkpoint_compact` after every gate output with `requiredAction: "call_phase_checkpoint_compact"`. No-edit review and planning checkpoints are intentional: they persist loop state and inject the next-phase prompt, matching the continuation-control lesson from goal mode.
 
 Populate the tool fields as follows:
 
-- `phaseCompleted`: `impl`.
-- `nextPhase`: `post-review`.
+- `phaseCompleted`: the completed phase: `post-review`, `impl-review`, or `impl`.
+- `nextPhase`: the gate output's `nextPhase`: `impl-review`, `impl`, or `post-review`.
 - `goal`: the user's review/fix objective.
 - `scope`: the reviewed diff, files, commit range, or user-provided scope.
 - `changedFiles`: repo-relative paths touched or relevant to the loop.
-- `validation`: commands run and whether each passed, failed, or was skipped. Each `result` value must be exactly `passed`, `failed`, or `skipped`; never use values like `not run`, `pending`, `unknown`, or `n/a`.
-- `bucketIApplied`: Bucket I fixes already applied.
-- `bucketIRemaining`: accepted/actionable Bucket I items still to implement or verify.
+- `validation`: commands run and whether each passed, failed, or was skipped. Each `result` value must be exactly `passed`, `failed`, or `skipped`; never use values like `not run`, `pending`, `unknown`, or `n/a`. For no-edit review or planning phases, include one skipped item such as `Review/planning phase; no code changes to validate` when no command applies.
+- `bucketIApplied`: Bucket I fixes already applied; use an empty list before implementation has applied fixes.
+- `bucketIRemaining`: Bucket I candidates or accepted/actionable Bucket I items still to implement or verify.
 - `bucketII`: discussion items, each with options when useful and a recommended action.
 - `rejectedOrKeptAsIs`: meaningful findings rejected after verification and why.
 - `handoffSummary`: concise next-phase handoff; include only what the next phase needs.
@@ -248,7 +252,7 @@ Handoff summaries must preserve:
 
 - current goal and scope
 - baseline commit hash or baseline `HEAD`
-- phase completed (`impl`) and next phase (`post-review`)
+- phase completed and next phase exactly as returned by the gate
 - changed files and important seams
 - iteration count and iteration limit
 - validation commands and results using only `passed`, `failed`, or `skipped`
@@ -258,6 +262,7 @@ Handoff summaries must preserve:
 - Bucket II items with recommended actions and tradeoffs
 - rejected or kept-as-is findings and why
 - fixes/refactors applied and the files they touched
+- gate output, especially `decision`, `nextPhase`, `checkpointRequired`, `requiredAction`, and `reason`
 - the next phase's first concrete action
 
 Do not preserve long reasoning traces, stale alternatives, raw tool output dumps, or rejected findings that no longer matter.
@@ -305,7 +310,7 @@ State the reason for the recommendation, not just the available options. If reco
 
 - Identify focused tests, typechecks, formatters, or validation commands from the repository's existing workflow.
 - For `phase_checkpoint_compact`, every validation item must use one of exactly three result strings: `passed`, `failed`, or `skipped`.
-- No-edit review and planning phases do not trigger checkpoint payloads; record skipped validation in the visible phase report or ledger only when it helps explain that validation was not applicable.
+- No-edit review and planning phases still use checkpoint payloads when the gate continues; record skipped validation when no command applies. Whole-run review-only mode is different and remains a stop condition.
 - After every code change, rerun focused checks that cover the touched area.
 - If validation fails because of the loop's changes, fix or report before moving phases.
 - If validation fails for unrelated/pre-existing reasons, record it clearly in `validation` and continue only if the next phase can still reason safely.
@@ -327,14 +332,14 @@ Do not run extra review cycles just to get nicer wording after a clean pass.
 
 ## Output
 
-During active phases, print a visible phase report at each review/planning decision point and before the post-implementation `phase_checkpoint_compact` call. Do not hide review findings only inside tool-call arguments or compacted handoffs.
+During active phases, preserve a phase report at each gate decision. For `call_phase_checkpoint_compact` gates, the report belongs in the `phase_checkpoint_compact` handoff and may also be shown by the checkpoint UI; do not replace the checkpoint with an ordinary final answer. For `final_briefing` gates, print the final briefing.
 
 Use this active phase report structure:
 
 ### Phase Report — <phase>
 
 - Iteration: `<current>/<limit>`
-- Next step: `<impl-review>`, `<impl>`, `<post-review via checkpoint>`, or `<final briefing>`
+- Next step: `<impl-review via checkpoint>`, `<impl via checkpoint>`, `<post-review via checkpoint>`, or `<final briefing>`
 
 #### Bucket I
 
@@ -352,7 +357,7 @@ List meaningful rejected findings. If empty, say `None.`
 
 List commands and results. Use only `passed`, `failed`, or `skipped` as status words.
 
-Only the `impl` phase report is followed by `phase_checkpoint_compact`, using the same facts in the tool payload. Review-only and planning-only reports continue directly to the next in-context phase or stop with the final briefing.
+Every phase report with a continuing gate is followed by `phase_checkpoint_compact`, using the same facts in the tool payload. No-edit review and planning reports checkpoint to the next phase instead of continuing in-context.
 
 When the loop stops, provide a final briefing. Do not stop with only a checkpoint handoff or terse verdict.
 
