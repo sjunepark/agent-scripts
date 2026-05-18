@@ -36,7 +36,7 @@ If `phase_checkpoint_compact` is unavailable:
 - Keep going until no accepted/actionable Bucket I findings remain or the iteration limit is reached.
 - Use a default maximum of 5 review iterations unless the user gives a different number.
 - Before the loop starts, create a Git baseline for the scoped pre-review changes so user edits and loop edits are separable in history.
-- Maintain a cumulative loop ledger so the final response can brief the user on every Bucket I finding, Bucket II finding, rejected finding, fix applied, and validation result across all iterations.
+- Maintain a cumulative loop ledger so `scripts/final-report` can render every Bucket I finding, Bucket II finding, rejected finding, fix applied, and validation result across all iterations.
 - Stop when remaining work is Bucket II, out of scope, blocked by missing context, not worth changing now, or the iteration limit is reached.
 - Do not push, install globally, or create non-baseline commits unless the user explicitly asks.
 
@@ -113,7 +113,7 @@ skills/post-implementation-review-loop/scripts/loop-decision --pretty <<'JSON'
 JSON
 ```
 
-The output's `requiredAction`, `nextPhase`, and `checkpointRequired` are binding. If `requiredAction` is `final_briefing`, provide the final briefing. If `requiredAction` is `call_phase_checkpoint_compact`, do not produce a final answer or ask permission; call `phase_checkpoint_compact` and let the extension inject the next-phase prompt.
+The output's `requiredAction`, `nextPhase`, `checkpointRequired`, and report fields are binding. If `requiredAction` is `render_final_report`, update the cumulative ledger, run `scripts/final-report`, and use its stdout as the final answer. Do not hand-write, summarize, or replace the rendered report. If `requiredAction` is `call_phase_checkpoint_compact`, do not produce a final answer or ask permission; call `phase_checkpoint_compact` and let the extension inject the next-phase prompt.
 
 Goal-extension lesson: durable loops need persisted active state plus a continuation prompt, not only prose instructions. This skill does not use `create_goal` automatically, but it follows the same control pattern by checkpointing every continuing phase and preserving the next phase's first concrete action in the handoff.
 
@@ -129,14 +129,14 @@ Transition table encoded by the gate:
 
 | Phase | Condition | Next phase |
 | --- | --- | --- |
-| any | review-only, scope blocked, validation blocked, or checkpoint unavailable | final briefing |
-| `post-review` | no Bucket I candidates | final briefing |
-| `post-review` | iteration limit reached | final briefing |
+| any | review-only, scope blocked, validation blocked, or checkpoint unavailable | final report via `scripts/final-report` |
+| `post-review` | no Bucket I candidates | final report via `scripts/final-report` |
+| `post-review` | iteration limit reached | final report via `scripts/final-report` |
 | `post-review` | Bucket I candidates exist | `impl-review` via `phase_checkpoint_compact` |
-| `impl-review` | no accepted/actionable Bucket I | final briefing |
-| `impl-review` | iteration limit reached | final briefing |
+| `impl-review` | no accepted/actionable Bucket I | final report via `scripts/final-report` |
+| `impl-review` | iteration limit reached | final report via `scripts/final-report` |
 | `impl-review` | accepted/actionable Bucket I exists | `impl` via `phase_checkpoint_compact` |
-| `impl` | no Bucket I fixes were applied | final briefing |
+| `impl` | no Bucket I fixes were applied | final report via `scripts/final-report` |
 | `impl` | Bucket I fixes were applied | `post-review` via `phase_checkpoint_compact` |
 
 Treat user wording like "do not edit code in this phase" as phase-local unless the user explicitly says the whole run is review-only or asks to wait for approval before implementation. Producing Bucket I/Bucket II findings is not a stop condition by itself. Do not write "if you want me to proceed" during an active loop.
@@ -192,7 +192,7 @@ Treat invoking this loop skill as approval to create the baseline WIP commit for
 
 ### Cumulative loop ledger
 
-Maintain a concise ledger across iterations and compacted handoffs. Update it after each visible phase report and after each fix/validation checkpoint so the final briefing has the full loop history.
+Maintain a concise ledger across iterations and compacted handoffs. Update it after each visible phase report and after each fix/validation checkpoint so `scripts/final-report` has the full loop history.
 
 Track:
 
@@ -205,6 +205,94 @@ Track:
 
 Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
 
+Before rendering the final report, convert the ledger to the `post-implementation-review-loop-final-report-v1` JSON shape expected by `scripts/final-report`:
+
+```json
+{
+  "reportFormat": "post-implementation-review-loop-final-report-v1",
+  "baseline": {
+    "ref": "<commit-or-HEAD>",
+    "createdCommit": true,
+    "scopedFiles": ["<repo-relative-path>"]
+  },
+  "scope": "<review scope>",
+  "iterations": { "completed": 1, "limit": 5 },
+  "phasesRun": [
+    {
+      "phase": "post-review",
+      "iteration": 1,
+      "gateDecision": "stop",
+      "summary": "<one-line outcome>"
+    }
+  ],
+  "filesChanged": ["<repo-relative-path>"],
+  "validation": [
+    {
+      "command": "<command or skipped-validation note>",
+      "result": "passed",
+      "phase": "impl",
+      "notes": "<concise notes>"
+    }
+  ],
+  "finalCleanCondition": "<no accepted/actionable Bucket I findings remain, or stop reason>",
+  "finalDiffInspection": "<confirmation that the final diff was inspected and validation was run or intentionally skipped>",
+  "bucketI": [
+    {
+      "title": "<finding title>",
+      "revealed": "<what the implementation revealed>",
+      "status": "applied",
+      "fix": "<root-cause fix/refactor, or why none>",
+      "files": ["<repo-relative-path>"],
+      "bandageReason": "<why a smaller patch would have been a bandage, or Not applicable>",
+      "validation": ["<validation evidence>"]
+    }
+  ],
+  "bucketII": [
+    {
+      "title": "<finding title>",
+      "revealed": "<what the implementation revealed>",
+      "weakness": "<design or quality weakness>",
+      "options": ["<option>"],
+      "recommendedAction": "Discuss before changing",
+      "tradeoffs": "<tradeoffs, risks, or uncertainty>",
+      "status": "left for user decision"
+    }
+  ],
+  "codeChanges": [
+    {
+      "title": "<fix/refactor title>",
+      "files": ["<repo-relative-path>"],
+      "issueAddressed": "<behavior/design issue addressed>",
+      "scopeReason": "<why this was the right scope>",
+      "validation": ["<validation evidence>"],
+      "inspect": "git diff HEAD"
+    }
+  ],
+  "rejectedOrKeptAsIs": [
+    { "title": "<finding>", "reason": "<why no change is recommended>" }
+  ],
+  "finalGate": {
+    "decision": "stop",
+    "nextPhase": "final report",
+    "checkpointRequired": false,
+    "requiredAction": "render_final_report",
+    "reportRequired": true,
+    "reportFormat": "post-implementation-review-loop-final-report-v1",
+    "reason": "<gate reason>"
+  },
+  "verdict": "Loop clean: no accepted/actionable Bucket I findings remain"
+}
+```
+
+Required report enum values:
+
+- `validation[].result`: `passed`, `failed`, or `skipped`.
+- `bucketI[].status`: `accepted`, `applied`, `rejected`, or `remaining`.
+- `bucketII[].status`: `left for user decision`, `deferred`, `kept as-is for now`, or `implemented after explicit approval`.
+- `verdict`: one of the exact Verdict lines in the Output section.
+
+Use empty lists for empty sections. Do not omit required keys. If a field truly does not apply, use a short explicit value such as `Not applicable` instead of deleting the field.
+
 ### Phase meanings
 
 1. `post-review`
@@ -215,7 +303,7 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Produce Bucket I and Bucket II findings.
    - Do not edit code.
    - Run `scripts/loop-decision` with `phase: "post-review"`, the current `iteration` and `limit`, `bucketICandidates`, `bucketII`, and any active stop flags.
-   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`; otherwise stop with the final briefing and do not checkpoint into a no-op phase.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "post-review"` and `nextPhase: "impl-review"`; otherwise render the final report and do not checkpoint into a no-op phase.
 
 2. `impl-review`
    - Verify each post-review finding against the actual code path, adjacent files, tests, scope, and risk.
@@ -224,7 +312,7 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Keep Bucket II as decisions and attach a recommended action to each.
    - Do not edit code; all code changes happen in `impl` so validation and checkpoint payloads match the phase that changed files.
    - Run `scripts/loop-decision` with `phase: "impl-review"`, the current `iteration` and `limit`, `acceptedBucketI`, `bucketII`, and any active stop flags.
-   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`; otherwise stop with the final briefing and list any unimplemented Bucket I items.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "impl"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl-review"` and `nextPhase: "impl"`; otherwise render the final report and include any unimplemented Bucket I items in the ledger.
 
 3. `impl`
    - Implement only accepted Bucket I actions or the user's explicitly approved Bucket II direction.
@@ -234,7 +322,7 @@ Keep the ledger concise. Preserve facts and outcomes, not long reasoning traces.
    - Rerun focused validation after changes.
    - Update the cumulative ledger with the applied fixes, validation, rejected items, Bucket II items, and any remaining Bucket I items.
    - Run `scripts/loop-decision` with `phase: "impl"`, the current `iteration` and `limit`, `appliedBucketI`, and any active stop flags.
-   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "post-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached; otherwise stop with the final briefing.
+   - Obey the gate output: when it returns `checkpointRequired: true` and `nextPhase: "post-review"`, call `phase_checkpoint_compact` with `phaseCompleted: "impl"` and `nextPhase: "post-review"` so the next review can confirm whether Bucket I is clean or the iteration limit has been reached; otherwise render the final report.
 
 ## `phase_checkpoint_compact` Usage
 
@@ -338,14 +426,14 @@ Do not run extra review cycles just to get nicer wording after a clean pass.
 
 ## Output
 
-During active phases, preserve a phase report at each gate decision. For `call_phase_checkpoint_compact` gates, the report belongs in the `phase_checkpoint_compact` handoff and may also be shown by the checkpoint UI; do not replace the checkpoint with an ordinary final answer. For `final_briefing` gates, print the final briefing.
+During active phases, preserve a phase report at each gate decision. For `call_phase_checkpoint_compact` gates, the report belongs in the `phase_checkpoint_compact` handoff and may also be shown by the checkpoint UI; do not replace the checkpoint with an ordinary final answer. For `render_final_report` gates, render the deterministic final report with `scripts/final-report` and use that stdout as the final answer.
 
 Use this active phase report structure:
 
 ### Phase Report — <phase>
 
 - Iteration: `<current>/<limit>`
-- Next step: `<impl-review via checkpoint>`, `<impl via checkpoint>`, `<post-review via checkpoint>`, or `<final briefing>`
+- Next step: `<impl-review via checkpoint>`, `<impl via checkpoint>`, `<post-review via checkpoint>`, or `<final report>`
 
 #### Bucket I
 
@@ -365,65 +453,31 @@ List commands and results. Use only `passed`, `failed`, or `skipped` as status w
 
 Every phase report with a continuing gate is followed by `phase_checkpoint_compact`, using the same facts in the tool payload. No-edit review and planning reports checkpoint to the next phase instead of continuing in-context.
 
-When the loop stops, provide a final briefing. Do not stop with only a checkpoint handoff or terse verdict.
+When the loop stops, render the final report. Do not stop with only a checkpoint handoff or terse verdict.
 
-Final briefing structure:
+### Deterministic final report
 
-### Loop Briefing
+When `scripts/loop-decision` returns `requiredAction: "render_final_report"`:
 
-- Baseline commit hash or baseline `HEAD`, and whether a WIP baseline commit was created.
-- Iterations and phases run, including the maximum allowed iterations.
-- Files changed by the loop.
-- Validation commands run.
-- Final clean condition: no accepted/actionable Bucket I findings, or why the loop stopped.
-- Confirmation that you inspected the final diff yourself and either ran or confirmed focused validation.
-- If stopped by iteration limit, list any remaining Bucket I items that were not implemented.
+1. Update the cumulative ledger with the final gate output.
+2. Convert the ledger to the `post-implementation-review-loop-final-report-v1` JSON shape described in the Cumulative loop ledger section.
+3. Run `scripts/final-report` with that JSON on stdin or through `--input`.
+4. Use the script's stdout as the final answer. Do not hand-edit, summarize, or replace the rendered Markdown.
+5. If the renderer rejects the ledger, fix the ledger facts and rerun it. Do not bypass the renderer.
 
-### Bucket I — Findings and Fixes
+The rendered report always has these sections:
 
-Number each Bucket I finding discovered across the loop and include:
+- `# Post-Implementation Review Loop Report`
+- `## Summary`
+- `## Phases Run`
+- `## Validation`
+- `## Bucket I — Findings and Fixes`
+- `## Bucket II — Findings and Recommendations`
+- `## Code Changes Applied`
+- `## Rejected / Kept As-Is`
+- `## Final Verdict`
 
-- what the implementation revealed
-- whether it was accepted, applied, rejected, or left remaining
-- the root-cause fix/refactor applied, if any
-- files changed by the fix
-- why a smaller patch would have been a bandage, if relevant
-- validation evidence
-
-If empty, say: `No Bucket I findings were found.`
-
-### Bucket II — Findings and Recommendations
-
-Number each Bucket II finding discovered across the loop and include:
-
-- what the implementation revealed
-- the design or quality weakness it implies
-- main options or decision points
-- `Recommended action: ...`
-- tradeoffs, risks, or uncertainty
-- whether it was left for user decision, deferred, kept as-is for now, or implemented after explicit approval
-
-If empty, say: `No Bucket II findings were found.`
-
-### Code Changes Applied
-
-Summarize each fix/refactor applied by the loop:
-
-- files changed
-- behavior/design issue addressed
-- why this was the right scope of change
-- validation evidence
-- how to inspect it relative to the baseline, for example `git diff <baseline>..HEAD` if committed or `git diff HEAD` if left uncommitted after the baseline
-
-If empty, say: `No code changes were applied by the loop.`
-
-### Rejected / Kept As-Is
-
-Call out meaningful findings rejected after verification, plus why no change is recommended.
-
-### Verdict
-
-End with one of:
+The report must end with one of these exact verdicts:
 
 - `Loop clean: no accepted/actionable Bucket I findings remain`
 - `Loop stopped: Bucket II decision needed`
