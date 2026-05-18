@@ -31,6 +31,12 @@ BUCKET_II_STATUSES = {
     "kept as-is for now",
     "implemented after explicit approval",
 }
+BASELINE_MODE_LABELS = {
+    "existing-head": "Existing HEAD recorded",
+    "amended-loop-baseline": "Existing loop baseline amended",
+    "amended-head": "Approved target commit amended",
+    "created-wip-baseline": "WIP baseline commit created",
+}
 
 
 def usage_error(message: str) -> None:
@@ -137,9 +143,20 @@ def format_validation_refs(value: Any, field: str) -> str:
 
 def validate_baseline(payload: Dict[str, Any]) -> Dict[str, Any]:
     baseline = require_dict(payload, "baseline")
+    created_commit = require_bool(baseline, "createdCommit")
+    mode = baseline.get("mode")
+    if mode is None:
+        mode = "created-wip-baseline" if created_commit else "existing-head"
+    if not isinstance(mode, str) or mode not in BASELINE_MODE_LABELS:
+        usage_error(
+            "baseline.mode must be one of: " + ", ".join(sorted(BASELINE_MODE_LABELS))
+        )
+    if created_commit and mode != "created-wip-baseline":
+        usage_error("baseline.createdCommit true requires baseline.mode created-wip-baseline")
     return {
         "ref": require_str(baseline, "ref"),
-        "createdCommit": require_bool(baseline, "createdCommit"),
+        "mode": mode,
+        "createdCommit": created_commit,
         "scopedFiles": string_list(require_list(baseline, "scopedFiles"), "baseline.scopedFiles"),
     }
 
@@ -404,7 +421,7 @@ def render_phases(records: List[Dict[str, Any]]) -> str:
 def render_report(data: Dict[str, Any]) -> str:
     baseline = data["baseline"]
     iterations = data["iterations"]
-    baseline_kind = "WIP baseline commit created" if baseline["createdCommit"] else "Existing HEAD recorded"
+    baseline_kind = BASELINE_MODE_LABELS[baseline["mode"]]
     scoped_files_text = ", ".join(baseline["scopedFiles"]) if baseline["scopedFiles"] else "None recorded"
     files_changed = data["filesChanged"]
     files_changed_text = ", ".join(files_changed) if files_changed else "None"
