@@ -32,10 +32,18 @@ BUCKET_II_STATUSES = {
     "implemented after explicit approval",
 }
 BASELINE_MODE_LABELS = {
-    "existing-head": "Existing HEAD recorded",
-    "amended-loop-baseline": "Existing loop baseline amended",
-    "amended-head": "Approved target commit amended",
-    "created-wip-baseline": "WIP baseline commit created",
+    "existing-head": "Existing HEAD recorded as before-review baseline",
+    "created-before-review": "Before-review commit created",
+    "amended-before-review": "Existing before-review commit amended",
+    "legacy-wip-baseline": "Legacy WIP baseline recorded",
+}
+AFTER_REVIEW_MODE_LABELS = {
+    "not-needed": "No after-review commit needed",
+    "created-after-review": "After-review commit created",
+    "amended-after-review": "Existing after-review commit amended",
+    "skipped-validation-failed": "Skipped because validation failed",
+    "skipped-scope-blocked": "Skipped because scope or context blocked",
+    "left-uncommitted": "Loop changes left uncommitted",
 }
 
 
@@ -146,18 +154,39 @@ def validate_baseline(payload: Dict[str, Any]) -> Dict[str, Any]:
     created_commit = require_bool(baseline, "createdCommit")
     mode = baseline.get("mode")
     if mode is None:
-        mode = "created-wip-baseline" if created_commit else "existing-head"
+        mode = "created-before-review" if created_commit else "existing-head"
+    if mode == "created-wip-baseline":
+        mode = "legacy-wip-baseline"
     if not isinstance(mode, str) or mode not in BASELINE_MODE_LABELS:
         usage_error(
             "baseline.mode must be one of: " + ", ".join(sorted(BASELINE_MODE_LABELS))
         )
-    if created_commit and mode != "created-wip-baseline":
-        usage_error("baseline.createdCommit true requires baseline.mode created-wip-baseline")
+    if created_commit and mode not in {"created-before-review", "legacy-wip-baseline"}:
+        usage_error("baseline.createdCommit true requires a created baseline mode")
     return {
         "ref": require_str(baseline, "ref"),
         "mode": mode,
         "createdCommit": created_commit,
         "scopedFiles": string_list(require_list(baseline, "scopedFiles"), "baseline.scopedFiles"),
+    }
+
+
+def validate_after_review_commit(payload: Dict[str, Any]) -> Dict[str, Any]:
+    raw = payload.get("afterReviewCommit")
+    if raw is None:
+        return {"ref": "None", "mode": "not-needed", "files": []}
+    if not isinstance(raw, dict):
+        usage_error("afterReviewCommit must be an object")
+    mode = require_str(raw, "mode")
+    if mode not in AFTER_REVIEW_MODE_LABELS:
+        usage_error(
+            "afterReviewCommit.mode must be one of: "
+            + ", ".join(sorted(AFTER_REVIEW_MODE_LABELS))
+        )
+    return {
+        "ref": require_str(raw, "ref"),
+        "mode": mode,
+        "files": string_list(require_list(raw, "files"), "afterReviewCommit.files"),
     }
 
 
@@ -325,6 +354,7 @@ def validate_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "baseline": validate_baseline(payload),
+        "afterReviewCommit": validate_after_review_commit(payload),
         "scope": require_str(payload, "scope"),
         "iterations": validate_iterations(payload),
         "phasesRun": validate_phase_history(payload),
@@ -420,9 +450,13 @@ def render_phases(records: List[Dict[str, Any]]) -> str:
 
 def render_report(data: Dict[str, Any]) -> str:
     baseline = data["baseline"]
+    after_review_commit = data["afterReviewCommit"]
     iterations = data["iterations"]
     baseline_kind = BASELINE_MODE_LABELS[baseline["mode"]]
+    after_review_kind = AFTER_REVIEW_MODE_LABELS[after_review_commit["mode"]]
     scoped_files_text = ", ".join(baseline["scopedFiles"]) if baseline["scopedFiles"] else "None recorded"
+    after_review_files = after_review_commit["files"]
+    after_review_files_text = ", ".join(after_review_files) if after_review_files else "None"
     files_changed = data["filesChanged"]
     files_changed_text = ", ".join(files_changed) if files_changed else "None"
     final_gate = data["finalGate"]
@@ -433,8 +467,10 @@ def render_report(data: Dict[str, Any]) -> str:
             "",
             "## Summary",
             "",
-            f"- Baseline: `{baseline['ref']}` ({baseline_kind})",
-            f"- Baseline scoped files: {scoped_files_text}",
+            f"- Before-review baseline: `{baseline['ref']}` ({baseline_kind})",
+            f"- Before-review scoped files: {scoped_files_text}",
+            f"- After-review commit: `{after_review_commit['ref']}` ({after_review_kind})",
+            f"- After-review files: {after_review_files_text}",
             f"- Scope: {data['scope']}",
             f"- Iterations: {iterations['completed']}/{iterations['limit']}",
             f"- Files changed by loop: {files_changed_text}",

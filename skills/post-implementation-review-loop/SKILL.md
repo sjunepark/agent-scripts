@@ -35,11 +35,12 @@ If `phase_checkpoint_compact` is unavailable:
 - After calling `phase_checkpoint_compact`, do not continue substantial work; wait for the extension's next-phase prompt.
 - Keep going until no accepted/actionable Bucket I findings remain or the iteration limit is reached.
 - Use a default maximum of 5 review iterations unless the user gives a different number.
-- Before the loop starts, establish a Git baseline for the scoped pre-review changes so user edits and loop edits are identifiable.
-- Prefer amending an existing loop baseline or an explicitly approved amend target; do not create new WIP baseline commits by default.
+- Before the loop starts, establish a Git before-review baseline for the scoped pre-review changes so user edits and loop edits are identifiable.
+- When scoped implementation changes are uncommitted, automatically create or amend a `review(post-review): before review` commit instead of asking for a WIP baseline.
+- When the loop applies fixes and validation succeeds, automatically create or amend a `review(post-review): after review` commit for the loop's own changes.
 - Maintain a cumulative loop ledger so `scripts/final-report` can render every Bucket I finding, Bucket II finding, rejected finding, fix applied, and validation result across all iterations.
 - Stop when remaining work is Bucket II, out of scope, blocked by missing context, not worth changing now, or the iteration limit is reached.
-- Do not push, install globally, create new commits, or amend non-loop commits unless the user explicitly asks.
+- Do not push, install globally, create unrelated commits, or amend non-loop commits unless the user explicitly asks.
 
 ## Review Lens
 
@@ -154,36 +155,52 @@ Each compacted handoff carries the active loop state, like goal continuation doe
 
 If the user already provided an accepted implementation plan, the loop may start at `impl`. Otherwise, start at `post-review` for an already-completed change.
 
-### Git baseline / amend policy before loop
+### Git before/after review commit policy
 
-Before the first active phase, establish a baseline so pre-loop edits and review-loop edits are identifiable without filling history with repeated WIP commits.
+Before the first active phase, establish a before-review baseline so pre-loop implementation work and review-loop fixes are identifiable without leaving generic WIP commits in history.
 
 1. Run `git status --short` and identify the user-requested review scope.
-2. If the working tree is already clean, record the current `HEAD` as the baseline. Set `baseline.mode` to `existing-head`.
-3. If there are uncommitted scoped changes and `HEAD` is already a post-review-loop baseline commit, stage only those scoped files and run `git commit --amend --no-edit` before reviewing. A commit counts as a loop baseline when its subject is `wip(post-review-loop): baseline before review` or its body contains `Post-review-loop baseline`. Record the new `HEAD` and set `baseline.mode` to `amended-loop-baseline`.
-4. If the user explicitly requested amend/fold-in mode, stage only scoped files and run `git commit --amend --no-edit` against the approved target commit. Do this only after confirming unrelated dirty files are not staged and the amend target is the implementation commit the user wants rewritten. Record the new `HEAD` and set `baseline.mode` to `amended-head`.
-5. Create a new WIP baseline commit only when the user explicitly asks for a baseline/WIP commit or approves that option after being asked. Use this subject:
+2. If unrelated dirty files exist and the scoped files cannot be separated safely, stop and ask the user which files belong in the loop scope before staging anything.
+3. If the working tree is clean, record the current `HEAD` as the before-review baseline. Set `baseline.mode` to `existing-head`.
+4. If `HEAD` is already a before-review commit from this loop and there are additional uncommitted scoped implementation changes, stage only those scoped files and run `git commit --amend --no-edit` before reviewing. A commit counts as a before-review loop commit when its subject is `review(post-review): before review` or its body contains `Post-review-loop before-review`. Record the new `HEAD` and set `baseline.mode` to `amended-before-review`.
+5. If `HEAD` is a legacy `wip(post-review-loop): baseline before review` commit, treat it as a loop-owned before-review baseline. If scoped implementation changes are dirty, stage only those files and amend now while renaming the commit to `review(post-review): before review` and keeping the `Post-review-loop before-review` marker.
+6. If there are uncommitted scoped implementation changes and `HEAD` is not already a loop-owned before-review commit, stage only those scoped files and create this commit automatically before reviewing:
 
    ```text
-   wip(post-review-loop): baseline before review
+   review(post-review): before review
    ```
 
    Include this marker in the commit body:
 
    ```text
-   Post-review-loop baseline
+   Post-review-loop before-review
 
-   Captures the pre-loop implementation state before automated post-review fixes.
-   Loop edits should appear after this commit.
+   Captures the implementation state before automated post-review fixes.
+   Loop fixes should appear in a later after-review commit.
    ```
 
-   Record the new `HEAD` and set `baseline.mode` to `created-wip-baseline`.
-6. If unrelated dirty files exist and the scoped files cannot be separated safely, stop and ask the user which files belong in the baseline.
-7. If uncommitted scoped changes exist but none of the amend or explicit-WIP conditions applies, stop and ask the user to choose one concrete history policy: amend the current implementation commit, create one WIP baseline commit, or commit/clean the scope manually and rerun.
-8. Do not commit loop-generated fixes by default. Leave them after the baseline so the user can inspect `git diff HEAD` or ask for a separate follow-up amend/commit.
-9. If the user explicitly requested amend/fold-in mode for loop fixes too, amend the same approved target after each successful implementation-and-validation phase instead of creating follow-up commits. Never create additional WIP commits for loop fixes.
+   Record the new `HEAD` and set `baseline.mode` to `created-before-review`.
+7. Do not amend normal user commits unless the user explicitly asks for amend/fold-in mode. Prefer before/after review commits over rewriting feature commits.
+8. During the loop, leave loop-generated fixes uncommitted until a stop condition is reached so each phase can inspect `git diff HEAD`.
+9. Before rendering the final report, if the loop applied fixes, validation for those fixes did not fail, no scope/context blocker remains, and `HEAD` is not already a loop-owned after-review commit, stage only the files changed by the loop and create this commit automatically:
 
-Treat invoking this loop skill as approval to amend an existing post-review-loop baseline only. It is not approval to create a new WIP commit, amend a non-loop commit, push, or commit later fixes.
+   ```text
+   review(post-review): after review
+   ```
+
+   Include this marker in the commit body:
+
+   ```text
+   Post-review-loop after-review
+
+   Applies validated automated post-review fixes on top of the before-review baseline.
+   ```
+
+   Record the new `HEAD` in `afterReviewCommit.ref`, set `afterReviewCommit.mode` to `created-after-review`, and list only the loop-changed files.
+10. If `HEAD` is already a loop-owned after-review commit and the current run adds more validated loop fixes, stage only loop-changed files and run `git commit --amend --no-edit` instead of creating another after-review commit. Record the new `HEAD` and set `afterReviewCommit.mode` to `amended-after-review`.
+11. If no loop fixes were applied, set `afterReviewCommit.mode` to `not-needed`. If validation failed, set it to `skipped-validation-failed` and leave fixes uncommitted for inspection. If scope/context blocked the loop, set it to `skipped-scope-blocked`.
+
+Treat invoking this loop skill as approval to create or amend only loop-owned before-review and after-review commits. It is not approval to amend normal user commits, push, install globally, or commit unrelated files.
 
 ### Iteration limit
 
@@ -201,7 +218,8 @@ Maintain a concise ledger across iterations and compacted handoffs. Update it af
 
 Track:
 
-- Baseline commit hash or baseline `HEAD`, baseline mode, plus which scoped files were included.
+- Before-review baseline commit hash or baseline `HEAD`, baseline mode, and scoped files included.
+- After-review commit hash or skip mode, plus which loop-changed files were included.
 - Bucket I findings discovered, accepted, rejected, applied, or still remaining.
 - Bucket II findings, recommended actions, and whether the user approved any direction.
 - Rejected or kept-as-is findings and why they were rejected.
@@ -220,6 +238,11 @@ Before rendering the final report, convert the ledger to the `post-implementatio
     "mode": "existing-head",
     "createdCommit": false,
     "scopedFiles": ["<repo-relative-path>"]
+  },
+  "afterReviewCommit": {
+    "ref": "<commit-or-none>",
+    "mode": "not-needed",
+    "files": ["<repo-relative-path>"]
   },
   "scope": "<review scope>",
   "iterations": { "completed": 1, "limit": 5 },
@@ -292,7 +315,8 @@ Before rendering the final report, convert the ledger to the `post-implementatio
 
 Required report enum values:
 
-- `baseline.mode`: `existing-head`, `amended-loop-baseline`, `amended-head`, or `created-wip-baseline`.
+- `baseline.mode`: `existing-head`, `created-before-review`, `amended-before-review`, or `legacy-wip-baseline`.
+- `afterReviewCommit.mode`: `not-needed`, `created-after-review`, `amended-after-review`, `skipped-validation-failed`, `skipped-scope-blocked`, or `left-uncommitted`.
 - `validation[].result`: `passed`, `failed`, or `skipped`.
 - `bucketI[].status`: `accepted`, `applied`, `rejected`, or `remaining`.
 - `bucketII[].status`: `left for user decision`, `deferred`, `kept as-is for now`, or `implemented after explicit approval`.
@@ -352,7 +376,7 @@ Populate the tool fields as follows:
 Handoff summaries must preserve:
 
 - current goal and scope
-- baseline commit hash or baseline `HEAD`, plus baseline mode
+- before-review baseline commit hash or baseline `HEAD`, baseline mode, after-review commit status, and changed files
 - phase completed and next phase exactly as returned by the gate
 - changed files and important seams
 - iteration count and iteration limit
@@ -467,10 +491,11 @@ When the loop stops, render the final report. Do not stop with only a checkpoint
 When `scripts/loop-decision` returns `requiredAction: "render_final_report"`:
 
 1. Update the cumulative ledger with the final gate output.
-2. Convert the ledger to the `post-implementation-review-loop-final-report-v1` JSON shape described in the Cumulative loop ledger section.
-3. Run `scripts/final-report` with that JSON on stdin or through `--input`.
-4. Use the script's stdout as the final answer. Do not hand-edit, summarize, or replace the rendered Markdown.
-5. If the renderer rejects the ledger, fix the ledger facts and rerun it. Do not bypass the renderer.
+2. Apply the after-review commit policy before rendering: create or amend the loop-owned `review(post-review): after review` commit when validated loop fixes exist, or record the skip mode when no after-review commit should be made.
+3. Convert the ledger to the `post-implementation-review-loop-final-report-v1` JSON shape described in the Cumulative loop ledger section.
+4. Run `scripts/final-report` with that JSON on stdin or through `--input`.
+5. Use the script's stdout as the final answer. Do not hand-edit, summarize, or replace the rendered Markdown.
+6. If the renderer rejects the ledger, fix the ledger facts and rerun it. Do not bypass the renderer.
 
 The rendered report always has these sections:
 
