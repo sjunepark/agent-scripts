@@ -100,6 +100,7 @@ Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
    - Rerun focused tests, typechecks, formatters, or other repo-standard checks after changes.
    - If validation fails because of your changes, fix it or report the blocker clearly.
    - If validation fails for unrelated/pre-existing reasons, record that distinction.
+   - Start with a short human-friendly explanation of what code or behavior you reviewed, not just file names or changed-file lists.
    - Report applied changes, remaining decisions, and keep-as-is findings.
 
 ## Bucket I — Straightforward / Recommended
@@ -188,6 +189,10 @@ Use the same posture:
 
 Use this structure when reporting:
 
+### What I Reviewed
+
+Give 1-3 short sentences in compact change-explainer style. Explain the reviewed code, behavior, or flow in human terms and why it mattered. Do not turn this into a file list, findings list, or long walkthrough.
+
 ### Applied / Resolved
 
 Number each item and include:
@@ -243,6 +248,7 @@ End with one of:
 ## Communication Rules
 
 - Be direct and specific.
+- Keep the opening review summary short and readable; use the change-explainer skill's mental model style without its long walkthrough format.
 - Prefer file-level, seam-level, module-level, or feature-flow observations over vague architectural commentary.
 - Do not force the user back into the editor just to follow the review.
 - Default toward fixing actual design, abstraction, ownership, organization, structure, and overengineering weaknesses that materially affect maintainability or future change paths.
