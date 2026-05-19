@@ -18,6 +18,12 @@
       "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks together, explain how they fit into the same idea, and teach me the patch in the easiest order to understand. Stay mostly descriptive unless something looks materially risky. Show snippets only.",
       "expected_output": "A conceptual, teach-like explanation of a patch grouped by purpose, with snippet-based evidence, clear before/after/why framing or post-change teaching, explicit mental-model building, and restrained judgment.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $change-explainer and explain what's changed.",
+      "expected_output": "The skill defaults to the current repository's uncommitted change set, checks git status plus staged and unstaged diffs, includes relevant untracked files, and only asks for a specific commit, range, patch, or file pair if there are no uncommitted changes to explain.",
+      "files": []
     }
   ]
 }

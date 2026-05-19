@@ -1,6 +1,6 @@
 ---
 name: change-explainer
-description: Teach a code or document change set in clear learning order, with embedded snippets, before/after contrasts, and clear implications. Use whenever the user wants help understanding a `git diff`, unstaged changes, a commit, commit range, PR patch, or two versions of a file or document, especially when they want a guided walkthrough that starts with the big picture and then explains why and how the patch works. Prefer this skill when the user wants snippets instead of file or line references, even if they only ask "walk me through this diff" or "help me understand these changes."
+description: Teach a code or document change set in clear learning order, with embedded snippets, before/after contrasts, and clear implications. Use whenever the user wants help understanding a `git diff`, unstaged changes, a commit, commit range, PR patch, or two versions of a file or document, especially when they want a guided walkthrough that starts with the big picture and then explains why and how the patch works. If the user asks to explain changes without providing details, default to the current repo's uncommitted changes. Prefer this skill when the user wants snippets instead of file or line references, even if they only ask "walk me through this diff" or "help me understand these changes."
 ---
 
 # Change Explainer
@@ -27,6 +27,8 @@ Handle these as normal entry points:
 - a commit range
 - a PR patch or review diff
 - two versions of a file or document
+
+If the user asks for an explanation but does not provide a diff, commit, range, patch, file pair, or other comparison target, default to the current repository's uncommitted changes. Treat staged changes, unstaged changes, and untracked files as part of that default target. Do not ask for clarification before checking local status. If there are no uncommitted changes, say that plainly and ask for the commit, range, patch, or file versions to explain.
 
 If the user provides another concrete comparison format, adapt the same workflow.
 
@@ -102,7 +104,9 @@ If the user provides another concrete comparison format, adapt the same workflow
 
 1. Identify the comparison unit.
 - Confirm whether you are explaining local changes, a specific commit, a commit range, a PR patch, or a file-to-file comparison.
-- If the comparison is ambiguous, infer the most likely source from the task and available context.
+- If the comparison is ambiguous or omitted, default to uncommitted local changes in the current repository.
+- Start with `git status --short`, then inspect staged and unstaged diffs. Include untracked files when they are part of the visible local change set.
+- If there are no uncommitted changes, stop and ask for the commit, range, patch, or file versions to explain.
 
 2. Read the change before the surroundings.
 - Start with the diff or patch.
