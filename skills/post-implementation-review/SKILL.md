@@ -9,7 +9,11 @@ Use this skill manually. Do not invoke it unless the user explicitly asks for a 
 
 Review the code after the implementation exists. Focus on issues that were hard to see upfront and only became obvious once the change touched real interfaces, control flow, state, tests, docs, or module boundaries.
 
+Default to reviewing uncommitted changes when the user asks for a post-implementation review without naming a specific target. Use `git status`, `git diff`, and `git diff --staged` to anchor that review, and inspect untracked files shown by status. If the user provides a scope, commit range, branch, file list, or other prompt, use that target instead.
+
 This is a review-and-improve skill, not a passive advisory report. By default, verify findings against the real code, apply supported fixes/refactors that are safe within the requested scope, validate them, and report what changed. If the user explicitly asks for review-only feedback, do not edit.
+
+In Pi, if the `post-review-loop` extension is active or the user explicitly starts/asks for that loop, treat the extension as the source of truth for phase, ledger, checkpointing, and final report shape. Follow `post_review_loop_get_state` and the phase prompt instead of running this skill as a parallel manual workflow. Use this skill as the portable/manual review behavior and as the conceptual standard behind the loop.
 
 It is acceptable for the review to conclude that the implementation is fine. Do not invent a flaw just to produce feedback. If the code does not reveal a meaningful improvement, say plainly that there is nothing worth changing right now.
 
@@ -25,6 +29,7 @@ It is acceptable for the review to conclude that the implementation is fine. Do 
 - Ask before implementing Bucket II only when the tradeoff genuinely requires the user's review or decision.
 - After every code change, rerun focused validation when the repository provides an applicable command.
 - Do not push, commit, or install globally unless the user explicitly asks.
+- Keep reviewed/inspected files distinct from files edited by this skill when reporting results.
 
 ## Root-Cause Review Lens
 
@@ -63,12 +68,23 @@ Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
 - Reject noisy, speculative, unrealistic, overbroad, or overcomplicated findings.
 - Do not run an extra review pass solely to get nicer closeout wording after there are no accepted/actionable findings.
 
+## Evidence Reuse and Batching
+
+Avoid redundant work, but only when the current repository state supports it.
+
+- If a later pass reviews the same target, first verify what changed since the earlier pass with `git status`, relevant diffs, and affected file inspection. Do not rely on memory alone.
+- Reuse earlier inspection facts only for files you can verify are unchanged. Re-inspect files changed since that evidence and any new dependencies needed for the current finding.
+- Reuse earlier validation only when the command's relevant inputs are unchanged and that relationship is clear. Otherwise rerun the focused command.
+- When multiple Bucket I findings share files, modules, ownership boundaries, or UI state domains, verify and apply them as one batch when safe. Do not stop after the first related fix if the rest can be reviewed and fixed in the same narrow area.
+- Keep batching bounded by scope and risk. Do not bundle unrelated fixes just to reduce phases or produce a larger patch.
+
 ## Workflow
 
 1. Anchor the review in the actual change.
+   - If the user did not specify a target, review uncommitted changes by default: inspect `git status`, `git diff`, `git diff --staged`, and untracked files shown by status.
    - Pick the correct review target: dirty local diff, branch versus base, commit range, recent commits, or the user-provided scope. A clean local diff does not prove committed branch work is clean.
    - Read the changed files, nearby interfaces, and affected tests or docs.
-   - Use `git status`, `git diff`, recent commits, or the user-provided scope as appropriate.
+   - Use `git status`, `git diff`, `git diff --staged`, recent commits, or the user-provided scope as appropriate.
    - Distinguish between pre-existing design debt, issues introduced by the change, and issues the change merely made easier to see.
    - Identify focused validation commands from the repository's existing workflow.
 
@@ -83,6 +99,7 @@ Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
    - The implementation introduced speculative or overbuilt structure that current behavior barely uses.
    - One concern is scattered across files or modules in a way that weakens discoverability.
    - The feature now feels too flat or mixed: readers must scan unrelated files or responsibilities to follow one concern.
+   - UI state, labels, disabled states, readiness, permissions, repair actions, or run/resume/complete actions now depend on scattered or mismatched conditions.
 
 3. Verify and classify each meaningful finding.
    - `Bucket I — Straightforward / Recommended`: clear fix path, low decision risk, materially worthwhile, and within scope. Apply automatically.
@@ -90,7 +107,8 @@ Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
    - `Keep As-Is`: plausible concern, but evidence is weak, current structure earns its keep, or the change would be overcorrection.
 
 4. Act.
-   - Apply Bucket I fixes automatically.
+   - Apply Bucket I fixes automatically unless the user requested review-only feedback.
+   - In review-only mode, report Bucket I findings as recommended but not applied, and say that review-only scope is why no edits were made.
    - For Bucket II, choose the option that best improves code quality and design unless refactor cost, new risk, uncertainty, or product/domain constraints make that irresponsible.
    - Implement Bucket II only when you can justify the choice without needing the user's taste or judgment.
    - Ask for permission when choosing among credible options depends on developer preference, API style, rollout risk, compatibility tolerance, product/domain constraints, or architectural direction.
@@ -105,6 +123,8 @@ Use isolated reviewers to reduce confirmation bias, not to transfer judgment:
 
 ## Bucket I — Straightforward / Recommended
 
+Bucket I is auto-fix-track work in normal review-and-improve mode. In review-only mode, it is still the set of safe, in-scope fixes you would otherwise apply; make the non-application explicit.
+
 Put a finding here only when all are true:
 
 - The evidence is concrete in the implemented code.
@@ -113,6 +133,8 @@ Put a finding here only when all are true:
 - The change is inside the user's requested scope.
 
 For execution, Bucket I means: do it, validate it, then report it.
+
+Before applying, look for closely related Bucket I items in the same files, modules, or state boundary and handle the safe batch together. This is especially important for UI enablement bugs where label, disabled state, action choice, and readiness often fail as a group.
 
 Avoid Bucket I for tiny helper extractions, one-off naming polish, isolated dedupe, or logging niceties unless they reflect a broader boundary or ownership issue.
 
@@ -168,6 +190,12 @@ Treat these as weak signals that often do not justify action on their own:
 
 If the evidence is weak, say so. If the only available feedback is minor polish, prefer `No meaningful improvement identified` over padding the review. A clean review is valid.
 
+## UI and State-Combination Concerns
+
+When findings involve UI labels, disabled states, readiness, permissions, bridge/settings availability, repair actions, or run/resume/complete actions, check related state combinations together instead of one label or branch at a time.
+
+Consider the relevant dimensions for the actual app, such as loading / ready / error, configured / repairable / unavailable, idle / running / restoring, or run / resume / complete. The goal is not a giant matrix for its own sake; it is to catch mismatched conditions where the label, disabled state, and action handler disagree.
+
 ## Structure and Complexity Concerns
 
 When a post-implementation review raises questions about speculative structure, unnecessary complexity, over-engineering, flat organization, or mixed responsibilities, review and act on those concerns inline here.
@@ -191,7 +219,7 @@ Use this structure when reporting:
 
 ### What I Reviewed
 
-Give 1-3 short sentences in compact change-explainer style. Explain the reviewed code, behavior, or flow in human terms and why it mattered. Do not turn this into a file list, findings list, or long walkthrough.
+Give 1-3 short sentences in compact change-explainer style. Explain the reviewed code, behavior, or flow in human terms and why it mattered. Do not turn this into a file list, findings list, or long walkthrough. If useful, add one concise line distinguishing files reviewed from files edited by this skill.
 
 ### Applied / Resolved
 
@@ -224,7 +252,7 @@ Call out meaningful findings rejected after verification, plus why no change is 
 
 ### Validation
 
-List validation commands run and results. If no validation was run, explain why.
+List validation commands run and results. If a prior validation result was reused, say what unchanged input made it safe to reuse. If no validation was run, explain why.
 
 ### Verdict
 
