@@ -79,7 +79,6 @@ REPO_SKILLS=(
   doc-comment-writer
   documentation-state-auditor
   pi-extension-intake
-  post-implementation-review
   skills-cli
   source-investigator
   structure-review
