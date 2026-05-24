@@ -33,6 +33,7 @@ If none exists:
 - Use repository docs and local agent instructions first. Do not invent release commands.
 - Validate with the repo's documented CI/test/build commands. For release-specific commands, use read-only checks or documented dry-runs unless the user explicitly authorizes pushing, tagging, publishing, creating releases, merging release PRs, or other irreversible operations.
 - Do not merge Release Please PRs by default. Merging may create tags, GitHub releases, publish packages, or trigger deployment automation, so merge only when the user explicitly authorizes merging the specific PR after seeing the review summary.
+- Always get explicit user confirmation of the exact version number(s) that will be released before any side-effecting release step, including merging a Release Please PR, tagging, publishing, creating a GitHub release, or running release automation. For manifest or monorepo releases, confirm each component/package version separately.
 
 ## Release Impact Classification
 
@@ -89,13 +90,14 @@ If the repo has its own contract docs, use those as the authoritative checklist 
    - Run documented typecheck/test/build commands and safe release validation checks.
    - For release commands, prefer read-only checks or documented dry-runs.
    - Do not push, tag, publish, create GitHub releases, merge release PRs, or run irreversible release automation unless the user explicitly authorizes that operation.
+   - Before any authorized side-effecting release step, state the exact version number(s) to be released and ask the user to confirm those version(s).
    - Confirm CI gates, publishing permissions, and tag/version consistency when the task involves release automation.
 
 6. Handle authorized release automation.
    - If the user explicitly authorizes running Release Please automation, wait for the relevant GitHub Actions workflow to finish and for the Release Please PR to be created or updated.
    - Review the resulting PR before recommending merge: version bump, changelog, release notes, component/package scope, breaking-change notes, CI status, and any workflows that would run after merge.
    - Report whether the PR appears merge-ready, with blockers and risks.
-   - Stop before merge unless the user explicitly authorizes merging that specific PR after the review summary.
+   - Stop before merge unless the user explicitly authorizes merging that specific PR and confirms the exact version number(s) to release after the review summary.
 
 7. Report.
    - Recommended SemVer bump.
@@ -116,7 +118,8 @@ Audit public contracts: CLI/API, output formats, exit codes, runtime requirement
 Ensure the intended classification is represented by Conventional Commit messages and supported by the repository's Release Please config.
 Run documented read-only validation commands and dry-runs only unless I authorize side-effecting release operations.
 If I explicitly authorize Release Please automation, wait for GitHub Actions and the Release Please PR, then review the PR contents and CI status.
-Do not merge the release PR unless I explicitly authorize merging that specific PR after your review summary.
+Before any side-effecting release step, ask me to confirm the exact version number(s) that will be released.
+Do not merge the release PR unless I explicitly authorize merging that specific PR and confirm the exact release version number(s) after your review summary.
 Report the recommended SemVer bump, evidence, missing docs/tests, breaking-change migration notes, validation results, and PR merge-readiness when applicable.
 ```
 
