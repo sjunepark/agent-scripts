@@ -3,20 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Use $teach and explain how this feature works end to end. I want the big picture first, then the main runtime flow, then the tricky implementation details. Show snippets inline so I don't have to open my editor, and add a simple ASCII diagram if that would make the flow easier to follow.",
-      "expected_output": "A top-down teaching explanation of a feature or flow with embedded snippets, a clear mental model, relevant implementation details, and a compact ASCII diagram when it materially helps.",
+      "prompt": "Use $teach and explain how this feature works end to end. I want the big picture first, then the main runtime flow, then the important design decisions and maintenance implications. Only show snippets if they're crucial, and add a simple ASCII diagram if that would make the flow easier to follow.",
+      "expected_output": "A top-down reviewer-oriented explanation of a feature or flow with a clear mental model, important design decisions, maintenance implications, snippets only when crucial, and a compact ASCII diagram when it materially helps.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Teach me this module in a way that's easy to learn. Explain its role, who calls it, what data it owns, and what assumptions it relies on. If there are important confusing parts, tell me those too. Use snippets, not file references.",
-      "expected_output": "A module-focused lesson covering responsibilities, callers, data flow, invariants, and important confusion points with inline snippets.",
+      "prompt": "Teach me this module in a way that's easy to learn. Explain its role, who calls it, what data it owns, what assumptions it relies on, and what a maintainer should watch for. If there are important confusing parts, tell me those too. Keep snippets rare unless the exact code is important.",
+      "expected_output": "A module-focused lesson covering responsibilities, callers, data flow, invariants, maintenance implications, and important confusion points with snippets only when the exact code is important.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "I keep getting lost in how this app uses the framework. Teach me the relevant framework behavior only as much as needed to understand the code here, then connect that back to the implementation with examples.",
-      "expected_output": "A code-grounded explanation that uses only the necessary library or framework context and ties it back to the local implementation with examples or snippets.",
+      "prompt": "I keep getting lost in how this app uses the framework. Teach me the relevant framework behavior only as much as needed to understand the design here, then connect that back to the local responsibilities, contracts, and tradeoffs.",
+      "expected_output": "A code-grounded explanation that uses only the necessary library or framework context and ties it back to the local design, responsibilities, contracts, and tradeoffs with selective evidence.",
       "files": []
     }
   ]
