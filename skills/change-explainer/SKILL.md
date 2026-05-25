@@ -1,22 +1,22 @@
 ---
 name: change-explainer
-description: Teach a code or document change set in clear learning order, with embedded snippets, before/after contrasts, and clear implications. Use whenever the user wants help understanding a `git diff`, unstaged changes, a commit, commit range, PR patch, or two versions of a file or document, especially when they want a guided walkthrough that starts with the big picture and then explains why and how the patch works. If the user asks to explain changes without providing details, default to the current repo's uncommitted changes. Prefer this skill when the user wants snippets instead of file or line references, even if they only ask "walk me through this diff" or "help me understand these changes."
+description: Explain a code or document change set in clear learning order for reviewers and maintainers, focusing on overall design, technical decisions, contracts, tradeoffs, and maintenance implications rather than syntax or line-by-line execution. Use whenever the user wants help understanding a `git diff`, unstaged changes, a commit, commit range, PR patch, or two versions of a file or document. If the user asks to explain changes without providing details, default to the current repo's uncommitted changes. Include code snippets only when they are important or crucial to understanding the change.
 ---
 
 # Change Explainer
 
 Teach the change, not just the patch mechanics.
 
-The goal is to help the user understand:
+The goal is to help a reviewer or maintainer understand:
 - what problem or purpose the change seems to address
+- what changed at the design, responsibility, or contract level
 - what the relevant part of the system now does after the change
-- what changed at a high level
-- how the important edits fit together
+- how the important edits fit together into one technical decision
 - how control flow, data flow, ownership, or contracts changed
+- what tradeoffs, risks, or maintenance consequences matter
 - what mental model the reader should carry forward
-- what implications matter for readers, callers, or future changes
 
-This is primarily an explanatory skill. Do not turn it into a code review by default. Offer opinions only when the change appears to introduce a material issue or an important tradeoff the user should know about.
+This is primarily an explanatory skill, not an implementer tutorial. Do not explain syntax, line-by-line execution, or how to write the code unless the user explicitly asks. Do not turn it into a formal code review by default. Offer opinions only when the change appears to introduce a material issue or an important tradeoff the user should know about.
 
 ## First-Class Inputs
 
@@ -73,12 +73,13 @@ If the user provides another concrete comparison format, adapt the same workflow
 - If responsibilities were split, merged, or renamed, make that relationship explicit.
 - Say what idea the cluster of edits expresses, not just what lines changed.
 
-7. Use snippets as the primary evidence.
-- Embed short, focused code snippets directly in the response.
+7. Use snippets only when they are crucial evidence.
+- Snippets are rare by default.
+- Include a snippet only when the exact code shape is important or crucial to understanding the change.
+- Prefer prose, compact pseudocode, or a small diagram when the decision can be explained without quoting code.
+- When a snippet is necessary, embed a short, focused excerpt directly in the response.
 - Start each snippet with a comment that names the file path it came from.
-- Prefer the smallest snippet that makes the point clear.
-- Use multiple small snippets instead of one large dump when several ideas matter.
-- Show `before` and `after` snippets when the contrast helps.
+- Show `before` and `after` snippets only when the contrast is important to the technical decision.
 - Do not send the user to file paths or line numbers unless they explicitly ask for references.
 
 8. Use ASCII diagrams when flow is easier to see than describe.
@@ -115,24 +116,26 @@ If the user provides another concrete comparison format, adapt the same workflow
 3. Build conceptual buckets.
 - Merge scattered hunks that serve one idea.
 - Split one large diff into separate conceptual changes when it mixes different concerns.
-- Name each bucket by its purpose, not by the file it touched.
+- Name each bucket by its purpose or technical decision, not by the file it touched.
 
-4. Organize the explanation as a lesson.
+4. Organize the explanation as reviewer context.
 - Start with the highest-level purpose of the patch.
 - Then explain the changed system or document in the smallest useful scope.
-- Then move through the main behavior or contract changes.
-- Then explain the supporting implementation details that make those changes work.
+- Then move through the main behavior, contract, ownership, or data-flow changes.
+- Then cover only the supporting implementation details needed to understand the decision.
 - Keep tests and docs near the concept they validate rather than treating them as a disconnected appendix.
 
 5. Teach each conceptual bucket with a stable pattern.
 - Prefer `before -> after -> why` when the contrast materially helps.
 - If the old state is less important, explain the post-change design first and then name the delta.
 - Explicitly say what new mental model the reader should adopt for this part of the patch.
+- Avoid line-by-line behavior unless the user explicitly asks for it.
 
-6. Teach with evidence.
-- For each conceptual change, include a small snippet, before/after contrast, pseudocode summary, or compact ASCII diagram when appropriate.
-- Explain why the snippet matters.
-- Connect the evidence back to the larger mental model of the patch.
+6. Teach with selective evidence.
+- For each conceptual change, use prose first.
+- Add a snippet only when the exact code is important or crucial to understanding the change.
+- Prefer a compact ASCII diagram or pseudocode summary when it explains ownership, flow, or contracts more clearly than syntax.
+- Connect any evidence back to the larger mental model of the patch.
 
 7. Close the loop, not just the walkthrough.
 - Summarize what the patch changed in the reader's mental model.
@@ -146,13 +149,17 @@ If the user provides another concrete comparison format, adapt the same workflow
 
 ## Snippet Rules
 
-- Use fenced code blocks for snippets.
+- Snippets are rare by default.
+- Include a snippet only when prose would make the change ambiguous or hide a crucial technical decision.
+- Good reasons to include a snippet include an exact contract shape, condition, data shape, boundary, or API that the reviewer must see to understand the change.
+- Do not include snippets just to prove that a file changed, restate syntax, or walk through routine implementation detail.
+- Use fenced code blocks for necessary snippets.
 - Put the source file path in the first line of the snippet as a comment.
 - Match the comment style to the language when practical, for example `// src/auth/session.ts` or `# app/models/user.rb`.
 - If the language is unclear, use a neutral comment style or label the snippet in surrounding prose.
 - Keep each snippet narrowly scoped to the point being explained.
 - Prefer the changed lines plus just enough surrounding context to make them legible.
-- If a long function changed, excerpt the relevant branch, condition, signature, or data shape instead of pasting the whole function.
+- If a long function changed, excerpt only the relevant branch, condition, signature, or data shape instead of pasting the whole function.
 - When comparing versions, make the contrast obvious:
 
 ```ts
@@ -198,19 +205,20 @@ Use this shape unless the user asks for something else:
 
 ### How the Change Works
 - Explain each conceptual change in logical learning order.
-- Use embedded snippets as evidence.
+- Add a snippet only when the exact code is crucial to understanding the change.
 - Add a compact ASCII diagram if it makes the flow or relationships clearer.
-- Focus on behavior, boundaries, and movement of control or data.
+- Focus on behavior, boundaries, contracts, ownership, and movement of control or data.
 
-### Key Ideas
+### Key Decisions
 - Call out the few abstractions, invariants, contracts, or design decisions that make the patch make sense.
+
+### Reviewer / Maintenance Focus
+- List only the consequences that materially affect usage, behavior, compatibility, testing, maintenance, or future review.
+- Mention important tradeoffs, risks, or follow-up questions from a maintainer's perspective.
 
 ### What to Remember
 - State the new mental model in one short paragraph or a few tight bullets.
 - Favor the one or two points that will help the reader understand future edits in this area.
-
-### Important Implications
-- List only the consequences that materially affect usage, behavior, compatibility, testing, or maintenance.
 
 ### Important Concerns
 - Include only if there is a critical or important issue.
@@ -218,21 +226,23 @@ Use this shape unless the user asks for something else:
 
 ## Communication Rules
 
-- Optimize for learning, not exhaustiveness.
-- Prefer a coherent lesson over a file-by-file or hunk-by-hunk tour.
+- Optimize for reviewer understanding, not exhaustiveness.
+- Prefer a coherent design explanation over a file-by-file or hunk-by-hunk tour.
 - Do not default to flat bullet lists like "change 1, change 2, change 3" unless the user explicitly wants a recap.
 - Do not let the explanation collapse into "file A changed X, file B changed Y" narration without naming the concept those edits serve.
 - Do not default to review language like "finding" or "severity" unless the user explicitly wants review mode.
+- Do not teach syntax, line-by-line behavior, or implementation-writing technique unless explicitly requested.
+- Do not include code snippets unless they are important or crucial to understanding the change.
 - Do not mention file names or line numbers as the primary navigation aid.
 - Keep the explanation concrete enough that the user does not need to open an editor just to follow the answer.
 - When inferring intent or tradeoffs, say that you are inferring from the change.
-- If the user seems to want a concise overview, stay high-level.
-- If the user clearly wants deeper teaching, go further into mechanisms and tradeoffs.
+- If the user seems to want a concise overview or the change is tiny, stay brief and practical.
+- If the user clearly wants deeper teaching, go further into mechanisms, design decisions, and tradeoffs.
 
 ## Example Triggers
 
 - "Walk me through my unstaged changes and explain them in an order that makes sense."
-- "Explain this diff like I'm joining the review late. Start with the big picture, then show me how the patch works."
-- "I don't want a file-by-file recap. Teach me this commit with snippets."
-- "Compare these two versions and explain the implementation change in the easiest order to learn."
-- "Help me understand what changed, why, and what it implies. Show snippets, not file references."
+- "Explain this diff like I'm joining the review late. Start with the big picture, then explain the design decisions."
+- "I don't want a file-by-file recap. Help me understand this commit from a maintainer's perspective."
+- "Compare these two versions and explain the technical decisions in the easiest order to understand."
+- "Help me understand what changed, why, and what it implies. Only show snippets if they're crucial."

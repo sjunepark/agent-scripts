@@ -3,20 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Use $change-explainer on my unstaged changes. I don't want a file-by-file recap. Start with the big picture, then teach me the edits in the order that makes the most sense, show the key code snippets inline, and tell me what the behavior change implies for future work.",
-      "expected_output": "A teach-style explanation of local diff hunks that starts with the patch purpose, establishes the smallest useful post-change mental model, then walks through conceptual changes in learning order with embedded snippets, before/after/why contrasts where useful, and implications instead of file references.",
+      "prompt": "Use $change-explainer on my unstaged changes. I don't want a file-by-file recap. Start with the big picture, then teach me the edits in the order that makes the most sense, and tell me what the behavior change implies for future work. Only show snippets if they're crucial.",
+      "expected_output": "A reviewer-oriented explanation of local diff hunks that starts with the patch purpose, establishes the smallest useful post-change mental model, then walks through conceptual changes in learning order with before/after/why contrasts where useful, maintenance implications, and snippets only when crucial.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Walk me through the last commit like I'm reviewing it cold. I want to understand what problem this patch solves first, then how the contract changed, then how the implementation was reshaped. Please include snippets so I don't need to open the code.",
-      "expected_output": "A commit walkthrough that teaches the patch top-down: problem and scope first, then the new contract or behavior the reader should understand, then the implementation changes, using inline snippets and clear relationships between hunks.",
+      "prompt": "Walk me through the last commit like I'm reviewing it cold. I want to understand what problem this patch solves first, then how the contract changed, then how the implementation was reshaped. Keep snippets rare unless the exact code is important.",
+      "expected_output": "A commit walkthrough that teaches the patch top-down: problem and scope first, then the new contract or behavior the reader should understand, then the design and implementation decisions, using snippets only when the exact code is important.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks together, explain how they fit into the same idea, and teach me the patch in the easiest order to understand. Stay mostly descriptive unless something looks materially risky. Show snippets only.",
-      "expected_output": "A conceptual, teach-like explanation of a patch grouped by purpose, with snippet-based evidence, clear before/after/why framing or post-change teaching, explicit mental-model building, and restrained judgment.",
+      "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks together, explain how they fit into the same idea, and teach me the patch in the easiest order to understand. Stay mostly descriptive unless something looks materially risky. Avoid line-by-line explanation.",
+      "expected_output": "A conceptual, reviewer-oriented explanation of a patch grouped by purpose, with clear before/after/why framing or post-change teaching, explicit mental-model building, selective evidence, and restrained judgment.",
       "files": []
     },
     {
