@@ -1,6 +1,6 @@
 ---
 name: tailwind-semantic-theme
-description: "Set up or refactor Tailwind v4 app theming around shadcn-compatible semantic CSS tokens without using shadcn itself. Use only when the user explicitly asks for this skill by name or explicitly asks for this exact methodology: OKLCH theme variables in `:root` and `.dark`, class-based dark mode, `@theme inline`, and shadcn-compatible token naming for future UI compatibility."
+description: "Set up or refactor Tailwind v4 theming with shadcn-compatible semantic CSS tokens, without shadcn. Use only when explicitly named or when the exact methodology is requested: OKLCH `:root` and `.dark` variables, class-based dark mode, `@theme inline`, and shadcn-compatible token names."
 ---
 
 # Tailwind Semantic Theme

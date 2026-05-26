@@ -1,6 +1,6 @@
 ---
 name: manual-branch-integrator
-description: Carefully integrate one Git branch into another without blindly accepting a mechanical merge or losing source-branch intent. Use when manually merging, transplanting, or refactoring branch work; when the user says not to blindly merge; when resolving conflicts while preserving clean current-branch structure; or when auditing that source additions, removals, tests, and docs all landed intentionally.
+description: "Manually integrate Git branch work without blind mechanical merges. Use when merging, transplanting, or refactoring branch work; resolving conflicts; preserving source-branch intent in a clean current-branch structure; or auditing that source additions, removals, tests, and docs landed intentionally."
 ---
 
 # Manual Branch Integrator

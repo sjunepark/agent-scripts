@@ -1,6 +1,6 @@
 ---
 name: architecture-md-writer
-description: Create, update, review, and split ARCHITECTURE.md files that explain a codebase's shape, major components, runtime flow, code map, and important invariants. Use when a repository lacks architecture docs, an existing ARCHITECTURE.md is stale or too detailed, a subsystem needs its own nested ARCHITECTURE.md, or a root architecture doc should link to deeper module architecture docs.
+description: "Create, update, review, or split ARCHITECTURE.md files that explain codebase shape, major components, runtime flow, code maps, and invariants. Use when architecture docs are missing, stale, too detailed, need nested subsystem docs, or need root-to-module architecture links."
 ---
 
 # ARCHITECTURE.md Writer

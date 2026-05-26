@@ -1,6 +1,6 @@
 ---
 name: agents-md-writer
-description: Create, edit, review, and improve AGENTS.md files for repositories used by agentic coding tools with concise, actionable instructions and correct precedence behavior. Use whenever AGENTS.md content is being changed, including updating existing guidance, drafting a new AGENTS.md, migrating legacy instruction files, defining nested overrides in monorepos, or debugging why tools load the wrong guidance.
+description: "Create, edit, review, or improve AGENTS.md files for agentic coding tools. Use when changing AGENTS.md guidance, drafting a new file, migrating legacy instruction files, defining nested overrides in monorepos, or debugging tool discovery and precedence behavior."
 ---
 
 # AGENTS.md Writer

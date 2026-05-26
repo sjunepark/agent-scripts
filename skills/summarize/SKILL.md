@@ -1,6 +1,6 @@
 ---
 name: summarize
-description: Use the steipete/summarize CLI to summarize URLs, local files, stdin, YouTube links, podcasts, and media with LLM models. Trigger when users ask to install or run summarize, configure model/provider API keys, tune output flags (length/language/json/extract/slides), set defaults in ~/.summarize/config.json, or troubleshoot summarize CLI errors.
+description: "Use the steipete/summarize CLI to summarize URLs, local files, stdin, YouTube links, podcasts, and media with LLM models. Use when installing or running summarize, configuring provider/API keys, tuning length/language/json/extract/slides flags, setting ~/.summarize/config.json defaults, or troubleshooting CLI errors."
 ---
 
 # Summarize CLI

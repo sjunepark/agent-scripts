@@ -1,6 +1,6 @@
 ---
 name: documentation-state-auditor
-description: Audit repository docs for confusion between implemented state, intended state, and unresolved questions, then recommend boundaries, structure, progressive disclosure, and writing rules that fit the project.
+description: "Audit repository docs for confusion between implemented state, intended or planned state, and unresolved questions, then recommend documentation boundaries, structure, progressive disclosure, and writing rules."
 ---
 
 # Documentation State Auditor

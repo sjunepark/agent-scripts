@@ -1,6 +1,6 @@
 ---
 name: pi-extension-intake
-description: Evaluate, import, vendor, fork, and harden third-party pi extensions with a control-first workflow. Use whenever the user wants to copy a pi extension into their own repo, decide between vendoring vs internal fork vs patch-package vs direct dependency, audit weakly maintained extension code, remove self-install or network-install behavior, or understand the real trust boundary behind a small wrapper package. Also use when the user says things like "should I just copy this extension," "vendor this repo," "fork vs patch-package," "I don't want to trust this npm package," or "bring this pi extension in-house."
+description: "Evaluate, import, vendor, fork, and harden third-party pi extensions. Use when copying a pi extension into a repo, choosing vendoring vs internal fork vs patch-package vs direct dependency, auditing weakly maintained extension code, removing self-install or network-install behavior, or analyzing wrapper-package and npm package trust boundaries."
 ---
 
 # Pi Extension Intake

@@ -1,6 +1,6 @@
 ---
 name: structure-review
-description: Review code structure for both unnecessary complexity and insufficient organization. Use whenever the user asks whether code is overengineered, too abstract, too flat, poorly organized, too configurable, too future-proof, whether extra DB columns/fields/helpers should exist, whether a change feels heavier than necessary, whether modules or directories mix unrelated responsibilities, or wants help simplifying or reorganizing code while keeping readability benefits such as clear names, small object boundaries, or helpful file structure.
+description: "Review code structure for unnecessary complexity and insufficient organization. Use when asked whether code is overengineered, too abstract, too flat, poorly organized/configurable/future-proof, has extra DB columns/fields/helpers, mixes responsibilities, feels heavier than needed, or should be simplified or reorganized while preserving readability."
 ---
 
 # Structure Review

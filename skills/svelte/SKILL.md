@@ -1,6 +1,6 @@
 ---
 name: svelte
-description: Build, review, refactor, and debug modern Svelte 5 components using current idioms rather than legacy patterns. Use whenever a task is primarily about `.svelte` component design, runes, props, snippets, events, styling, context, local/shared reactive state, or Svelte reactivity gotchas, even inside a SvelteKit app when the problem is component-level rather than route/server-level.
+description: "Build, review, refactor, and debug modern Svelte 5 components. Use for `.svelte` component design, runes, props, snippets, events, styling, context, local/shared reactive state, and Svelte reactivity gotchas, including SvelteKit apps when the issue is component-level rather than route/server-level."
 ---
 
 # Svelte

@@ -1,6 +1,6 @@
 ---
 name: source-investigator
-description: Investigate external libraries, frameworks, and unfamiliar repositories by cloning the exact repo into a project-local temp workspace, ignoring that workspace in git, and delegating code reading to focused subagents so the main thread stays clean. Use whenever docs are incomplete, version-specific behavior matters, you need to learn how a codebase works, or exploring lots of source inline would pollute the main context.
+description: "Investigate external libraries, frameworks, and unfamiliar repositories from exact source in a project-local temp clone. Use when docs are incomplete, version-specific behavior matters, codebase learning is needed, or large source exploration should be delegated to focused subagents instead of polluting the main context."
 ---
 
 # Source Investigator

@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach the user how code, a subsystem, or a relevant technical concept works in clear learning order for reviewers and maintainers, focusing on design, responsibilities, contracts, data flow, invariants, tradeoffs, and maintenance implications rather than syntax or line-by-line execution. Use whenever the user asks to understand a part of the current codebase, a feature flow, an architecture area, a module, an API boundary, a data flow, or a relevant library or framework concept needed to understand the code. Include code snippets only when they are important or crucial to understanding. If the request is specifically about what changed in a diff, commit, or patch, prefer `change-explainer`.
+description: "Teach how code, a subsystem, architecture area, feature flow, module, API/data boundary, or relevant technical concept works for reviewers and maintainers. Use when the user asks to understand code or concepts; focus on design, responsibilities, contracts, data flow, invariants, tradeoffs, and maintenance implications, not syntax or line-by-line execution. Use `change-explainer` for diffs, commits, or patches."
 ---
 
 # Teach

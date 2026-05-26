@@ -1,6 +1,6 @@
 ---
 name: change-explainer
-description: Explain a code or document change set in clear learning order for reviewers and maintainers, focusing on overall design, technical decisions, contracts, tradeoffs, and maintenance implications rather than syntax or line-by-line execution. Use whenever the user wants help understanding a `git diff`, unstaged changes, a commit, commit range, PR patch, or two versions of a file or document. If the user asks to explain changes without providing details, default to the current repo's uncommitted changes. Include code snippets only when they are important or crucial to understanding the change.
+description: "Explain a code or document change set for reviewers and maintainers, focusing on design, decisions, contracts, tradeoffs, and maintenance implications. Use for understanding a git diff, unstaged changes, commit, commit range, PR patch, or two versions of a file or document."
 ---
 
 # Change Explainer

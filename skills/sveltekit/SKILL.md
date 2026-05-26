@@ -1,6 +1,6 @@
 ---
 name: sveltekit
-description: Build, review, refactor, and debug modern SvelteKit apps using current routing, load/action, SSR, hydration, navigation, and state-management patterns. Use whenever a task involves SvelteKit routes, `+page/+layout/+server`, `load`, form actions, hooks, cookies, auth, invalidation, SSR or hydration behavior, or URL/server/client state boundaries, even if the user only asks for a bugfix or small feature.
+description: "Build, review, refactor, and debug modern SvelteKit apps. Use for routes, `+page/+layout/+server`, `load`, form actions, hooks, cookies, auth, invalidation, SSR, hydration, navigation, and URL/server/client state boundaries, even for small bugfixes or features."
 ---
 
 # SvelteKit

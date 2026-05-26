@@ -1,6 +1,6 @@
 ---
 name: briefing
-description: Manually brief the user on the current task or session so they can make the next decision without reloading the whole codebase. Use only when the user explicitly asks for a briefing, catch-up, current state, relevant architecture, or implementation context. Prefer this skill for task-scoped context recovery when the conversation is long, the code has changed, or the user wants the relevant details without a long explanation.
+description: "Brief the user on the current task or session so they can decide next steps without reloading the codebase. Use only when they explicitly ask for a briefing, catch-up, current state, relevant architecture, implementation context, or task-scoped context recovery."
 ---
 
 # Briefing

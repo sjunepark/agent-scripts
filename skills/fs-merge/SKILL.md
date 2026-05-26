@@ -1,6 +1,6 @@
 ---
 name: fs-merge
-description: "Merge multi-year Korean financial statements (재무제표: BS, PL, 제조원가명세서) from PDFs or spreadsheets into one comparison .xlsx. Use when the user provides two or more Korean FS files and asks to consolidate, compare, 합본, 합치기, combine year-over-year statements, or build a merged workbook."
+description: "Merge multi-year Korean financial statements, 재무제표, BS, PL, 제조원가명세서, from PDFs or spreadsheets into one comparison .xlsx. Use when the user provides two or more Korean FS files and asks to consolidate, compare, 합본, 합치기, combine year-over-year statements, or build a merged workbook."
 license: "Personal use"
 version: 2
 ---

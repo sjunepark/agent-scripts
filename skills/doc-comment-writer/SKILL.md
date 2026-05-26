@@ -1,6 +1,6 @@
 ---
 name: doc-comment-writer
-description: Add or improve doc comments in mentioned source files without filling the code with obvious restatements. Use whenever the user asks to document code, add doc comments, explain modules/functions/types for future maintainers, add a useful file-level overview, or make a file understandable without tracing its internal logic, even if they do not explicitly say "doc comments."
+description: "Add or improve doc comments in source files without obvious restatements. Use when the user asks to document code, add doc comments, explain modules, functions, or types for maintainers, add a useful file-level overview, or make a file understandable without tracing internals."
 ---
 
 # Doc Comment Writer

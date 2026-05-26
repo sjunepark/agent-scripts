@@ -1,6 +1,6 @@
 ---
 name: release-please-release
-description: Prepare, audit, set up, and guide releases for repositories that use or are explicitly adopting Release Please. Use when the user asks to release, prepare a release PR, set up or add Release Please, classify SemVer impact, decide whether a change is breaking, write Release Please-compatible Conventional Commit guidance, review a Release Please PR, or document release criteria. Release work requires existing Release Please configuration; setup work requires an explicit setup request.
+description: "Prepare, audit, set up, and guide Release Please releases. Use when releasing, preparing or reviewing a release PR, adding Release Please, classifying SemVer impact or breaking changes, writing Release Please-compatible Conventional Commit guidance, or documenting release criteria. Release work requires existing Release Please config; setup requires an explicit setup request."
 ---
 
 # Release Please Release

@@ -1,6 +1,6 @@
 ---
 name: diet
-description: Review code for unearned weight and overengineering. Use whenever the user asks whether code is overbuilt, helper-heavy, schema-heavy, field-heavy, wrapper-heavy, or bandaged on; wants to know what can be deleted, collapsed, inlined, or questioned; mentions too many helpers, abstractions, JSON fields, DB columns, DTO properties, config options, or future-proofing; says a change feels appended instead of integrated; or asks to "put this on a diet," "trim the fat," or "make this leaner." Focus on review and diagnosis first, not automatic refactor planning.
+description: "Review code for unearned weight, overengineering, and bolted-on design. Use when code seems overbuilt, helper-heavy, schema-heavy, field-heavy, wrapper-heavy, future-proofed, or bandaged on, or when the user asks what can be deleted, collapsed, inlined, questioned, put on a diet, trimmed, or made leaner."
 ---
 
 # Diet

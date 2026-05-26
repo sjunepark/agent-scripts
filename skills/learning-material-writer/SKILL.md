@@ -1,6 +1,6 @@
 ---
 name: learning-material-writer
-description: Create or update repo learning material under `docs/learning` for readers who are new to the codebase but already know programming. Treat that material as onboarding guidance, not the project's source of truth for implementation behavior or decisions. Use only when the user explicitly asks for learning material, onboarding docs, a codebase guide, a repo handbook, or `docs/learning` content. Default to the whole repository unless the user scopes the request more narrowly.
+description: "Create or update repo learning material under docs/learning for programmers new to the codebase. Use only when the user explicitly asks for learning material, onboarding docs, a codebase guide, repo handbook, or docs/learning content. Treat it as onboarding guidance, not the source of truth for behavior or decisions."
 ---
 
 # Learning Material Writer
