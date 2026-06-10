@@ -1,6 +1,6 @@
 ---
 name: review-campaign
-description: "Long-running systematic codebase review with a persistent ledger in reviews/. Use to plan review areas, continue the next review pass, check campaign status, triage findings with the user, or apply auto-tier fixes. Modes: plan, continue, status, triage, fix (default continue)."
+description: "Long-running systematic codebase review with a persistent ledger in reviews/. Use to plan review areas, continue the next review pass, check campaign status, triage findings with the user, apply auto-tier fixes, or absorb base-branch drift into the campaign. Modes: plan, continue, status, triage, fix, sync (default continue)."
 ---
 
 # Review Campaign
@@ -19,7 +19,7 @@ Stateful engine for reviewing a whole repo in small, resumable sessions. The ski
 
 ```text
 reviews/
-  REVIEW.md       dashboard: repo profile, phases, next-up pointer, area config table, matrix
+  REVIEW.md       dashboard: repo profile, phases, next-up pointer, area config table, matrix, sync log
   areas/<id>.md   per-area: Map / Findings / Pass log
   decisions.md    append-only triage log (accept/reject + reason)
 ```
@@ -68,22 +68,32 @@ Invoked as `/review-campaign <mode>`; no argument means `continue`.
 1. Inventory: tracked-file counts per directory, languages and frameworks (e.g. Effect usage via import grep), test locations, colocated docs, existing review docs and TODO conventions.
 2. Write or refresh the repo profile. At first bootstrap ask the user for the campaign branch + merge policy and the export convention — those are theirs to choose; derive verification commands from the repo's scripts and agent instructions.
 3. Propose or update the area table: paths, id prefix, pass applicability, priority, `small` flag (small areas batch all their passes into one session).
-4. Replan duty: for every `✓` cell run `git diff --stat <sha>..HEAD -- <paths>`; mark changed cells `~`.
+4. Replan duty: for every `✓ <sha>` cell run `git diff --stat <sha>..HEAD -- <paths>`; flip changed cells to `~`, keeping the old sha.
 5. Seed `reviews/` files that are missing. Confirm row changes with the user when present; otherwise only apply splits already recorded by structure passes.
+
+### sync — absorb base-branch drift
+
+Run when the base branch has moved while the campaign branch reviewed against an older base — at latest before each milestone merge. Sync owns only the merge and the ledger bookkeeping; it reviews nothing and writes no findings — the `~` cells it produces are reconciled cell-by-cell by `continue`.
+
+1. Merge base → campaign with a true merge commit (`git merge <base>` on the campaign branch), never the reverse — the profile's merge policy governs only campaign → base milestone merges. Conflict rules: integrate the base faithfully without fixing reviewed code (findings reach code only through triage/fix); under `reviews/` the campaign side is authoritative; a resolution that undoes an applied auto fix flips that finding back to `open` and retiers it to `triage`.
+2. Staleness sweep: run `plan`'s replan duty.
+3. Module drift: paths the merge deleted get their rows removed from the config table and matrix (keep the area file for history); top-level modules the base introduced are listed in the sync log as proposed rows — adding rows is `plan`'s job and needs the user.
+4. Record the sync in REVIEW.md's sync log: one line with date, merge commit sha7, cells flipped, rows removed or proposed.
+5. Commit (`reviews/` only): `review(sync): merge <base> @ <sha7>, restale N cells`.
 
 ### continue — one session, one cell
 
 1. Read `reviews/REVIEW.md` **only** (not the whole ledger).
 2. Pick the next cell: stale (`~`) cells in the current phase first, then by phase order and area priority. Within detail phases, finish one area's columns (left to right) before moving to the next area.
 3. Read that area's file (create from template if missing) and the one rubric for the pass. Load nothing else.
-4. Review per the rubric. Verify every claim before writing it (read the code path, run the git history check, grep the usage) — findings are acted on later without re-verification. For stale cells, scope to `git diff <sha>..HEAD -- <paths>` plus existing findings: mark `obsolete` where the code is gone, then review the delta.
+4. Review per the rubric. Verify every claim before writing it (read the code path, run the git history check, grep the usage) — findings are acted on later without re-verification. For stale cells, scope to `git diff <sha>..HEAD -- <paths>` plus existing findings: mark `obsolete` where the code is gone or rewritten past recognition, repoint `where:` refs that merely moved, then review the delta. Never silently drop a finding.
 5. Write findings (dedup first — see session discipline), append a pass-log line, stamp the cell `✓ <HEAD sha7>`, update the next-up pointer.
 6. Commit the notes: `review(<area>): <pass> pass notes`. Notes commits touch only `reviews/`; rubric sharpenings belong in the skill's source repo, not the target repo.
 7. Report: cell finished, finding counts by severity, blockers called out explicitly, open auto-tier count, next cell. If the matrix has no pending cells, report the campaign complete and suggest a final triage and milestone merge.
 
 ### status — read-only
 
-Print the matrix, open-finding counts by severity and tier, and a staleness sweep (diff each `✓` cell, report without restamping). Suggest `triage` when open triage findings exceed ~15 or a column just completed; suggest a milestone merge when a phase completes.
+Print the matrix, open-finding counts by severity and tier, a staleness sweep (diff each `✓` cell, report without restamping), and base drift (`git rev-list --count HEAD..<base>`). Suggest `triage` when open triage findings exceed ~15 or a column just completed; suggest a milestone merge when a phase completes; suggest `sync` when the base is ahead.
 
 ### fix — auto tier only
 
@@ -128,6 +138,6 @@ Default is `triage`. Mark `auto` only when **all** hold:
 
 ## Long-running use
 
-Goal prompt: `Run /review-campaign repeatedly until it reports the matrix complete or a blocker finding. Stop and surface blockers immediately.`
+Goal prompt: `Run /review-campaign repeatedly until it reports the matrix complete or a blocker finding. Every few sessions run /review-campaign status; run sync when it reports base drift. Stop and surface blockers immediately.`
 
-Cadence: review sessions run unattended; `triage` runs only with the user; merge the campaign branch at milestones (phase complete or after a triage batch), which also carries exported work items and auto fixes.
+Cadence: review sessions run unattended; `triage` runs only with the user; merge the campaign branch at milestones (phase complete or after a triage batch), which also carries exported work items and auto fixes. Run `status` every few sessions; run `sync` when it reports base drift, and always before a milestone merge.
