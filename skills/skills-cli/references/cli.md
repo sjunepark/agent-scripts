@@ -76,16 +76,14 @@ REPO_SKILLS=(
   architecture-md-writer
   briefing
   change-explainer
+  diet
   doc-comment-writer
-  documentation-state-auditor
-  pi-extension-intake
+  manual-branch-integrator
   skills-cli
   source-investigator
   structure-review
-  summarize
   svelte
   sveltekit
-  tailwind-semantic-theme
   teach
 )
 

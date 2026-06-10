@@ -1,4 +1,0 @@
-interface:
-  display_name: "FS Merge"
-  short_description: "Merge Korean multi-year financial statements into a comparison workbook."
-  default_prompt: "Use $fs-merge when the user provides two or more Korean financial statement files (PDF or spreadsheet) and asks to consolidate, compare, 합본, 합치기, or build a year-over-year workbook. Preserve source structure, avoid string-based account matching, and flag uncertain matches for manual review."

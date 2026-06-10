@@ -1,4 +1,0 @@
-interface:
-  display_name: "Tailwind Semantic Theme"
-  short_description: "Shadcn-style semantic CSS token methodology for Tailwind v4 without using shadcn."
-  default_prompt: "Use this skill only when explicitly requested to set up or refactor a Tailwind v4 theme using shadcn-compatible semantic CSS variables, OKLCH tokens, `@theme inline`, and class-based `.dark` mode without adding shadcn."

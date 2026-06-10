@@ -1,4 +1,0 @@
-interface:
-  display_name: "Pi Extension Intake"
-  short_description: "Choose a control-first adoption strategy for third-party pi extensions and expose the real trust boundary behind wrapper packages."
-  default_prompt: "Use $pi-extension-intake whenever evaluating, importing, vendoring, forking, patching, or hardening a third-party pi extension, especially when the user wants to copy an extension into their repo, strip self-install or network-install behavior, or understand the real trust boundary behind a small wrapper package."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Campaign"
+  short_description: "Long-running systematic codebase review with a persistent reviews/ ledger: plan areas, run passes, triage findings, apply auto-tier fixes"
+  default_prompt: "Use review-campaign to run one unit of a long-running systematic codebase review. Read reviews/REVIEW.md first and honor its repo profile; pick the next pending cell by phase order (structure across all areas, then security on trust-boundary areas, then per-area detail passes); load only that area's notes file and the one rubric from references/; verify every claim before recording it; write findings with id, severity, and tier (auto only for uncontroversial, mechanically verifiable items — never security or removals); stamp the cell with the reviewed commit and commit notes scoped to reviews/. Modes: plan, continue (default), status, triage (requires the user), fix (auto-tier findings only). A clean pass is a valid result."

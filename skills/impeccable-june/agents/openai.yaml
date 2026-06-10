@@ -1,4 +1,0 @@
-interface:
-  display_name: "Impeccable June"
-  short_description: "Design and iterate frontend interfaces with guarded live-mode workflow"
-  default_prompt: "Use this skill for frontend design, UI critique, visual polish, and Impeccable live sessions. Prefer repo-specific strict dev commands and confirmed app URLs before live mode; do not assume Vite's default 5173."
