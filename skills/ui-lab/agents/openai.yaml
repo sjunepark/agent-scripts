@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Lab"
+  short_description: "Build an in-app, dev-only scenario gallery that mounts real components in hard-to-reach states with deterministic fixtures, reusable from browser tests."
+  default_prompt: "Use $ui-lab to set up or extend an in-app UI lab: a dev-only catalog that mounts production components in hard-to-reach states (dialogs, empty/error/overflow, large-N) with static fixtures, gated out of packaged builds, and reuses the same fixtures from browser tests. Adapt the portable architecture (scenario contract, registry, shared host, dev-only entry gate, colocated fixtures, smoke test) and the lab shell UI guidance to the target app's framework and test runner."
