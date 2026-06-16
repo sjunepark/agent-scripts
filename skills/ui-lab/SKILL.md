@@ -36,7 +36,7 @@ Seven pieces. Keep them in one dev-only subtree (e.g. `<renderer>/dev/ui-lab/`) 
 
 4. **Lab shell** — dev tooling UI: grouped sidebar with filter, a preview pane, theme switch, a remount control, and URL-synced selection. The shell is developer-facing; keep its own copy in the team's working language even if scenarios render localized product copy.
 
-5. **Boot + entry gate** — gate the lab behind a **static dev-only check** so packaged builds compile the whole branch (and the dynamically imported lab chunk) away. A hash route (`#/ui-lab`, `#/ui-lab/<id>`) is ideal: dynamically import the lab boot when the build is dev AND the hash matches; otherwise run the normal app boot. Hash (not query param) gives stable per-scenario URLs for later screenshot automation.
+5. **Boot + entry gate** — gate the lab behind a **static dev-only check** so packaged builds compile the whole branch (and the dynamically imported lab chunk) away. A hash route (`#/ui-lab`, `#/ui-lab/<id>`) is ideal: dynamically import the lab boot when the build is dev AND the hash matches; otherwise run the normal app boot. Hash (not query param) gives stable per-scenario URLs for later screenshot automation. The lab boot runs outside the app's privileged host (no Electron preload, no SSR pass), so any global the host normally injects and that renderer modules hard-fail without — runtime config, feature flags, platform info — must be **seeded with a dev fallback in the boot path**, with the real host value winning when present.
 
 6. **Fixtures** — colocated per scenario group. **Copy** useful builders from the test suite into lab-local fixture modules (with provenance comments) rather than importing test code: the dependency direction must stay **tests → lab**, never lab → tests. Import the app's own domain constructors (branded ids, builders, defaults) directly.
 
@@ -60,7 +60,7 @@ The shell is internal tooling — make it fast to navigate, visually quiet, and 
 
 - **Layout:** fixed sidebar (navigation) + flexible preview pane. Sidebar ~`18rem`. Preview pane scrolls independently; give it generous padding so component edges/shadows aren't clipped.
 - **Sidebar:** collapsible groups with per-group counts and a total. A live substring **filter** over scenario + group titles/ids, focusable from anywhere via `/`, clearable via Escape, with match highlighting. While filtering, force matching groups open. Show a "no matches" empty state.
-- **Selection:** drive selection from the URL (hash) so every state is a shareable deep link; sync back on `hashchange`. Mark the active item (accent dot + weight, `aria-current`).
+- **Selection:** drive selection from the URL (hash) so every state is a shareable deep link; sync back on `hashchange`. Mark the active item (accent dot + weight, `aria-current`). Add keyboard stepping — `j`/`k` (and arrow keys) move to the next/previous scenario, wrapping over the flat list of currently visible scenarios — but ignore the keys while focus is in a text field.
 - **Header:** scenario title + description + a click-to-copy scenario id (for deep links and test lookups).
 - **Controls (top-right, minimal):** theme mode toggle (light/dark/system) and a **Remount** button — dialog/dismissable scenarios need a clean re-mount, done by bumping an epoch key on the mount wrapper. Add nothing the visual review doesn't need.
 - **Empty/unknown states:** "pick a scenario" prompt; for an unknown id from a stale URL, say so and point back to the sidebar.
