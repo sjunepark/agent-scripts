@@ -2,7 +2,7 @@
   "version": 1,
   "skills": {
     "doc-comment-writer": {
-      "source": "/Users/sejunpark/IT/custom-skills/skills/doc-comment-writer",
+      "source": "/Users/sejunpark/IT/agent-scripts/skills/doc-comment-writer",
       "sourceType": "local",
       "computedHash": "ac075e51344dd3637f8b79f82030a6eda684f8a7986900c18db71d0987a25b15"
     },

@@ -28,7 +28,7 @@ If the same skill `name` exists in more than one discovered location, discovery 
 
 For this repository specifically:
 
-- Use `https://github.com/sjunepark/custom-skills/tree/main/skills` as the normal install source.
+- Use `https://github.com/sjunepark/agent-scripts/tree/main/skills` as the normal install source.
 - Prefer that GitHub subpath URL over `.` or `./skills` so installed skills can be updated across multiple machines without publishing repo-local `.agents/` or `.claude/` skills.
 - Use `./skills` only for local validation or unpublished work.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
@@ -43,7 +43,7 @@ For this repository specifically:
 ### Inspect this repo as a remote skill source
 
 ```bash
-bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --list
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --list
 ```
 
 ### Add one published repo skill to Claude Code + Pi globally
@@ -54,7 +54,7 @@ Commit and push first if the skill was just edited locally.
 git add skills/<skill-name>
 git commit -m "update <skill-name>"
 git push origin main
-bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --skill <skill-name> --copy -g -a claude-code -a pi -y
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill <skill-name> --copy -g -a claude-code -a pi -y
 ```
 
 ### Add every published repo skill to Claude Code + Pi globally
@@ -62,7 +62,7 @@ bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --sk
 Commit and push first if the published repo skills were edited locally and those edits should be included in the reinstall.
 
 ```bash
-bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
 ```
 
 ### Reset all published repo skills to Claude Code + Pi only
@@ -70,7 +70,7 @@ bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --sk
 Use this when older installs in `~/.agents/skills/` or other global agent directories make `skills list -g` report many agents for one skill.
 
 ```bash
-SKILLS_URL="https://github.com/sjunepark/custom-skills/tree/main/skills"
+SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
 REPO_SKILLS=(
   agents-md-writer
   architecture-md-writer
@@ -79,12 +79,14 @@ REPO_SKILLS=(
   diet
   doc-comment-writer
   manual-branch-integrator
+  review-campaign
   skills-cli
   source-investigator
   structure-review
   svelte
   sveltekit
   teach
+  ui-lab
 )
 
 bunx skills remove "${REPO_SKILLS[@]}" -g -y

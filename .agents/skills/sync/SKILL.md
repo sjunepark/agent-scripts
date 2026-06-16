@@ -14,7 +14,7 @@ Always use the skills CLI for installation. Do not install from `.` or `./skills
 1. Confirm the repository remote URL.
 - Run `git remote get-url origin`.
 - If `origin` is missing, stop and tell the user you need a remote URL for this repo.
-- For this repository, convert the remote into the GitHub `skills/` subpath: `https://github.com/sjunepark/custom-skills/tree/main/skills`.
+- For this repository, convert the remote into the GitHub `skills/` subpath: `https://github.com/sjunepark/agent-scripts/tree/main/skills`.
 - If the remote points somewhere unexpected, show it to the user before committing, pushing, or installing.
 
 2. Inspect the working tree and decide what to publish.
@@ -54,7 +54,7 @@ Always use the skills CLI for installation. Do not install from `.` or `./skills
 - Use the current repo's GitHub `skills/` subpath URL, not a filesystem path and not the repo root URL.
 - Do not install from the remote URL until intended local changes have been committed and pushed.
 - Do not commit unrelated working-tree changes just because they are present.
-- Prefer the canonical published source `https://github.com/sjunepark/custom-skills/tree/main/skills` for this repo.
+- Prefer the canonical published source `https://github.com/sjunepark/agent-scripts/tree/main/skills` for this repo.
 - Default to installing for Claude Code + Pi with `--skill '*' --copy -g -a claude-code -a pi -y` unless the user explicitly wants another target set.
 - If the user wants `skills list -g` to stay scoped to Claude Code + Pi, do not leave this repo's published skills in `~/.agents/skills`.
 - If the install command would overwrite existing skills, report that clearly in the summary.
@@ -62,7 +62,7 @@ Always use the skills CLI for installation. Do not install from `.` or `./skills
 ## Command Pattern
 
 ```bash
-SKILLS_URL="https://github.com/sjunepark/custom-skills/tree/main/skills"
+SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
 git remote get-url origin
 git status --short
 git add <intended-skill-files>

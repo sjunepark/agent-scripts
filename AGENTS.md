@@ -23,9 +23,9 @@
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - For installs on individual machines, use the GitHub `skills/` subpath so updates can flow across machines without publishing repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
-- For this repo's normal machine-global setup, install directly to Claude Code + Pi with copy mode so `bunx skills list -g` shows `Agents: Claude Code, Pi`: `bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y`.
+- For this repo's normal machine-global setup, install directly to Claude Code + Pi with copy mode so `bunx skills list -g` shows `Agents: Claude Code, Pi`: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y`.
 - Do not use `--all` for that setup; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which overrides the Claude Code + Pi agent restriction and recreates shared `~/.agents/skills` installs.
-- To install one published repo skill for the same setup, use: `bunx skills add https://github.com/sjunepark/custom-skills/tree/main/skills --skill <skill-name> --copy -g -a claude-code -a pi -y`.
+- To install one published repo skill for the same setup, use: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill <skill-name> --copy -g -a claude-code -a pi -y`.
 - Do not leave this repo's published machine-global installs under `~/.agents/skills` unless the user explicitly wants universal multi-harness sharing; that shared path makes `bunx skills list -g` report many agents.
 - Do not install this repo's skills from the current working tree, `.` or `./skills`, when the goal is to install them for ongoing use on a machine.
 - Use local-path installs only for local validation or unpublished work.
