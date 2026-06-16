@@ -1,81 +1,87 @@
 ---
 name: ui-lab
-description: "Build an in-app UI lab — a dev-only catalog that mounts real production components in hard-to-reach states with deterministic fixtures, reusable from browser tests. Use when asked to set up a Storybook-style scenario gallery, isolate/preview UI states (dialogs, panels, empty/error/overflow states), or share fixtures between a visual lab and automated tests, in any app regardless of framework."
+description: "Build or extend a lightweight in-app UI Lab for web apps: a dev-only route that renders real production UI states with deterministic fixtures shared by UI tests and excluded from production builds."
 ---
 
 # UI Lab
 
-A UI Lab is a dev-only scenario renderer that lives **inside the app's own renderer/build**, not a separate Storybook install. It mounts the real production components with static fixture props so you can open any UI state directly — and reuse the exact same fixtures from browser tests.
+A UI Lab is a small dev-only page inside a web app that renders real production UI in deterministic scenarios. It is for states that are hard or slow to reach by clicking through the live app: expired auth, empty/error states, long-content overflow, loading/success/failure panels, large tables, dialogs, popovers, and similar product surfaces.
 
-The point is not a primitive catalog (buttons, inputs). The point is **whole UI states that are hard or slow to reach by driving the live app**: a device-pairing-expired dialog, a failed run transcript, an empty list, a 60-row paginated table, long-content overflow, a toolchain-installing panel.
+Keep it lightweight. This is not Storybook, not a design-system primitive catalog, and not a new app framework. Start with the smallest useful path: scenario definitions, a registry, a shared host, one lab route, and a smoke test. Add polish only when the scenario set grows.
 
-Build this only when asked. Adapt every concrete choice below to the target app's framework, router, build tool, and test runner — the architecture is portable; the APIs are not.
+Adapt naming and APIs to the target framework, build tool, router, and test runner. The architecture is portable; the code shape is not.
 
 ## When to use
 
-- "Set up a UI lab / scenario gallery / in-app Storybook."
-- "Let me preview this dialog/panel/state in isolation without clicking through the app."
-- "Share these test fixtures with a visual review surface."
-- Reviewing or extending an existing lab (add a scenario, add a group).
+- "Set up a UI lab / scenario gallery / in-app Storybook-like preview."
+- "Let me preview this dialog, panel, or UI state without clicking through the app."
+- "Share fixtures between a visual review page and UI/component/browser tests."
+- Extending an existing lab with a new scenario group or state.
 
-Not for: a real Storybook/Ladle install the user explicitly wants; a primitive component catalog; backend-only work.
+Not for: a real Storybook/Ladle install the user explicitly wants; a full design-system catalog; backend-only work.
 
-## Core architecture
+## Basic shape
 
-Seven pieces. Keep them in one dev-only subtree (e.g. `<renderer>/dev/ui-lab/`) so the guardrails stay auditable by directory.
+Use these five pieces unless the existing app already has a clearer equivalent.
 
-1. **Scenario contract** — a minimal, type-erased record: `{ id, title, description, component, createProps }`.
-   - `id`: globally unique, convention `<group>/<state>`; used in the deep-link URL.
-   - `createProps`: a **factory**, not a value — every mount gets fresh props so stateful fixtures never leak across mounts/tests.
-   - A `defineScenario` helper type-checks `createProps`'s return against the real component's props, then erases to a heterogeneous type so one registry can hold all scenarios.
-   - Keep it minimal. No width/viewport/controls metadata — surfaces that need framing get a **wrapper component** instead (see below).
+1. **Scenario contract** — a minimal record describing one renderable UI state.
+   - Include: `id`, `title`, optional `description`, render target/component/view, and a fresh fixture factory such as `createProps`, `createState`, or `setup`.
+   - Use ids like `<group>/<state>` so they work in URLs and tests.
+   - The fixture factory must create fresh data for every render so mutable state does not leak between scenarios or tests.
+   - Do not add controls, viewport metadata, knobs, or custom schema until there is a real need. If a scenario needs layout, size, an anchor, or a controller, use a small wrapper/stage component instead.
 
-2. **Registry** — a manually curated array of groups (`{ id, title, scenarios[] }`). Explicit imports, ordered by feature area. Validate unique group + scenario ids at module load (throw on duplicate). Avoid bundler auto-discovery magic until the count outgrows manual curation.
+2. **Manual registry** — an explicit ordered list of groups and scenarios.
+   - Prefer hand-written imports over auto-discovery while the lab is small.
+   - Validate duplicate group ids and scenario ids at load time.
+   - Keep ordering useful for humans: by feature area, then by surface/state.
 
-3. **Scenario host** — mounts one scenario wrapped in the **minimum app-level providers** production components assume (theme, shortcuts, i18n, store context). This host is **shared with tests** — that sharing is what guarantees a scenario mounts identically in the lab and in a test.
+3. **Shared scenario host** — the same mount wrapper used by the lab page and tests.
+   - Install the real app providers the UI expects: theme, router context, i18n, stores, query/cache client, modal/toast roots, feature flags, or dependency injection.
+   - Stub external services at this boundary. Scenarios should not call live network, analytics, auth, storage, IPC, or other production side effects.
+   - Keep the host small; it exists to make production UI mount correctly, not to simulate the whole app.
 
-4. **Lab shell** — dev tooling UI: grouped sidebar with filter, a preview pane, theme switch, a remount control, and URL-synced selection. The shell is developer-facing; keep its own copy in the team's working language even if scenarios render localized product copy.
+4. **Dev-only lab route** — a route/page such as `/__ui-lab`, `/dev/ui-lab`, or `#/ui-lab`.
+   - Gate it with the app's dev/build flag so lab code is excluded from production builds or release artifacts.
+   - Deep-link to selected scenarios (`/__ui-lab/<id>` or `#/ui-lab/<id>`) so reviewers and tests can open a state directly.
+   - Keep the shell simple: scenario list, preview pane, current title/description, and a remount/reset button. Add filter, keyboard shortcuts, theme toggles, screenshots, or visual-regression hooks only when needed.
 
-5. **Boot + entry gate** — gate the lab behind a **static dev-only check** so packaged builds compile the whole branch (and the dynamically imported lab chunk) away. A hash route (`#/ui-lab`, `#/ui-lab/<id>`) is ideal: dynamically import the lab boot when the build is dev AND the hash matches; otherwise run the normal app boot. Hash (not query param) gives stable per-scenario URLs for later screenshot automation. The lab boot runs outside the app's privileged host (no Electron preload, no SSR pass), so any global the host normally injects and that renderer modules hard-fail without — runtime config, feature flags, platform info — must be **seeded with a dev fallback in the boot path**, with the real host value winning when present.
+5. **Smoke test** — one UI/component/browser test that imports the registry and shared host, then mounts every scenario.
+   - Assert every scenario renders without crashing and without live services.
+   - Capture obvious failures: thrown errors, unhandled promises, console errors if the test stack supports it, and scenario setup failures.
+   - Add at least one example assertion against real product DOM to show tests can reuse a scenario without the lab shell.
 
-6. **Fixtures** — colocated per scenario group. **Copy** useful builders from the test suite into lab-local fixture modules (with provenance comments) rather than importing test code: the dependency direction must stay **tests → lab**, never lab → tests. Import the app's own domain constructors (branded ids, builders, defaults) directly.
+## Guardrails
 
-7. **Smoke test** — one browser test that imports the registry + host (not the shell) and asserts **every** registered scenario mounts cleanly with no live services. This is the contract that keeps fixtures reusable. Add fixture-level assertion examples to show tests reading production DOM through a scenario.
-
-## Hard rules (the guardrails)
-
-- **Production must never import lab code**, and **lab must never ship in packaged builds.** Enforce by directory (dev-only subtree) + static build guard.
-- **Determinism, always.** No live IPC, network, timers, or randomness. Callbacks are inert stubs. Timestamps are fixed. For async/result-shaped props use the framework's immediate-success/failure primitive. States that intrinsically start a live timer (e.g. an elapsed-time counter) are represented timer-free or skipped — and the skip is documented in the scenario file.
-- **Wrapper components model real mounting contexts.** When a surface needs a footprint the host doesn't provide (fixed-height container, anchored popover stage, a controller + toaster, a labelled grid), add a small group-local wrapper component rather than bloating the scenario contract.
-- **Internal-state surfaces are driven by replayed DOM interactions**, using the same interactions the browser tests use, with bounded polling (e.g. `requestAnimationFrame`) — never timers/network/randomness. Keep this the exception, not the default.
-- **Stale scenarios die with the product state they represent.** Delete them; don't keep dead fixtures.
+- **No production dependency on lab code.** Production UI may be imported by the lab; production code must not import the lab.
+- **Do not ship the lab.** Use a static dev-only build guard where the stack supports it, then verify with the app's normal production build/checks.
+- **Deterministic scenarios only.** No live network, randomness, dates based on now, or live credentials. Avoid timers that affect rendered state; use fixed timestamps, stable ids, inert callbacks, and immediate success/failure values.
+- **Prefer fixture state over scripted setup.** Seed props/state directly when possible. Use DOM interaction replay only for states that truly require interaction behavior such as focus, keyboard, pointer, drag/drop, or portal positioning.
+- **Do not add test-only props to production components.** Add props only when they are legitimate component boundaries. Otherwise keep lab-specific setup in wrappers.
+- **Delete stale scenarios.** If the product state no longer exists, remove the scenario instead of preserving dead fixtures.
 
 ## Selecting scenarios
 
-Favor states that are **hard to reach live**: auth pairing/denied/expired, install/failed toolchain, failed and looped/retried transcripts, conflict and rename validation, read-only and empty states, long-content overflow, large-N pagination, no-results search. Cover the status/variant matrix for each surface in one scenario when it reads clearly. Skip what's genuinely live-only and record why in the scenario file's comments.
+Favor product states that are valuable to review but expensive to reach live:
 
-## Lab shell UI guidance
+- auth/session/device states: pending, denied, expired, disconnected
+- async states: loading, success, empty, error, retrying, partial data
+- validation states: conflict, duplicate name, invalid input, permission denied
+- content stress: long labels, long descriptions, overflow, empty lists, no search results
+- scale states: large tables/lists, pagination, dense rows, many chips/tags
+- transient surfaces: dialogs, popovers, toasts, banners, command palettes
 
-The shell is internal tooling — make it fast to navigate, visually quiet, and out of the way of the previewed component.
-
-- **Layout:** fixed sidebar (navigation) + flexible preview pane. Sidebar ~`18rem`. Preview pane scrolls independently; give it generous padding so component edges/shadows aren't clipped.
-- **Sidebar:** collapsible groups with per-group counts and a total. A live substring **filter** over scenario + group titles/ids, focusable from anywhere via `/`, clearable via Escape, with match highlighting. While filtering, force matching groups open. Show a "no matches" empty state.
-- **Selection:** drive selection from the URL (hash) so every state is a shareable deep link; sync back on `hashchange`. Mark the active item (accent dot + weight, `aria-current`). Add keyboard stepping — `j`/`k` (and arrow keys) move to the next/previous scenario, wrapping over the flat list of currently visible scenarios — but ignore the keys while focus is in a text field.
-- **Header:** scenario title + description + a click-to-copy scenario id (for deep links and test lookups).
-- **Controls (top-right, minimal):** theme mode toggle (light/dark/system) and a **Remount** button — dialog/dismissable scenarios need a clean re-mount, done by bumping an epoch key on the mount wrapper. Add nothing the visual review doesn't need.
-- **Empty/unknown states:** "pick a scenario" prompt; for an unknown id from a stale URL, say so and point back to the sidebar.
-- **Visual restraint:** lean on typography, spacing, and a single accent; avoid nesting the preview in heavy bordered cards — the component under review is the subject, the chrome is not. Use `aria-label`/`title` on icon-only controls; the filter is a labelled input; theme buttons expose `aria-pressed`.
+Skip states that are genuinely live-only, and leave a short comment explaining why if the omission is non-obvious.
 
 ## Build order
 
-1. Confirm framework, build tool, router/entry mechanism, and browser test runner.
-2. Find the test suite's existing fixtures and the app's domain constructors — these seed scenarios.
-3. Write the contract + `defineScenario` helper, the host (with real providers), and the registry with id validation.
-4. Wire the dev-only entry gate and boot; verify the normal app boot is untouched.
-5. Add 1–2 scenario groups end to end (fixtures → wrapper if needed → scenarios → registry), then the lab shell.
-6. Add the smoke test asserting all scenarios mount; run it.
-7. Fill in remaining groups. Run the app's `check`/`lint`/`format`/test commands. Manually review representative scenarios in light and dark.
+1. Confirm the app's framework, router, build/dev flag, provider setup, and UI test runner.
+2. Find existing test fixtures, domain builders, mock data, and provider/test utilities.
+3. Add the scenario contract, shared host, manual registry, and duplicate-id validation.
+4. Wire the dev-only lab route without changing the normal app boot path.
+5. Add 1–2 useful scenario groups end to end.
+6. Add the smoke test that mounts all registered scenarios through the host.
+7. Add more scenarios only after the first path is validated.
 
 ## Validate
 
-Run the repo's own quality gates (type-check, lint, format, browser tests) over touched files. The smoke test passing = the lab/test reuse contract holds. Record what you validated.
+Run the repository's normal checks over touched files: type-check, lint, format, production build, and the relevant UI/component/browser tests. The smoke test passing is the contract that scenarios remain reusable outside the lab shell.
