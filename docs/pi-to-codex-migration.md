@@ -64,6 +64,15 @@ discussion after Codex has been dogfooded with native features.
     so `bunx skills list -g` can report broad agent availability for Codex
     global skills.
   - Details: `docs/settings-sync.md`.
+- [x] Codex global instructions are wired through chezmoi.
+  - Live symlink:
+    `/Users/sejunpark/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`
+  - Chezmoi source commit: `aced3cb`.
+- [x] Codex conservative live defaults applied.
+  - `approval_policy = "on-request"`
+  - `sandbox_mode = "workspace-write"`
+  - `web_search = "cached"`
+  - The full live `~/.codex/config.toml` is not managed by chezmoi.
 - [ ] Decide whether the canonical local path should remain
   `/Users/sejunpark/IT/agent-scripts` or be exposed as `/Users/sejunpark/agent-scripts`.
   - `./agent-scripts` and `../agent-scripts` from `/Users/sejunpark/.pi` do not
@@ -115,19 +124,28 @@ Goal: make Codex load shared instructions and skills from this repository.
   - Installed command:
     `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y`.
   - Observed location: `~/.agents/skills`.
-- [ ] Wire global Codex instructions.
+- [x] Wire global Codex instructions.
   - Candidate:
     `~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`
   - If keeping repo-maintenance instructions in `AGENTS.md`, create a separate
     shared global instruction file first.
-  - Shared file exists; machine-level symlink is intentionally not applied yet.
-- [ ] Verify Codex instruction loading.
-  - Run from a normal repo: `codex --ask-for-approval never "Summarize the current instructions."`
-  - Confirm Codex reports the global file and any repo-local `AGENTS.md`.
+  - Shared file exists; machine-level symlink is applied and tracked by
+    chezmoi.
+- [x] Verify Codex instruction loading.
+  - Run from a normal repo:
+    `codex --ask-for-approval never exec "Summarize the current instructions."`
+  - Confirm Codex reports the user-level instruction context and any repo-local
+    `AGENTS.md`.
+  - Verification used:
+    `codex --strict-config --ask-for-approval never exec "Summarize the current instructions and list the instruction files you loaded."`
+  - Codex reported the user-level instruction context and this repo's
+    `AGENTS.md`.
 - [ ] Verify Codex skill loading.
   - Start Codex and run `/skills`.
   - Confirm the expected skills appear.
   - Test one explicit mention, for example `$manual-branch-integrator`.
+  - CLI verification completed with `bunx skills list -g -a codex`; TUI
+    `/skills` check remains pending.
 
 ## Phase 3: Config Migration
 
@@ -136,18 +154,21 @@ Goal: carry over only stable personal defaults from Pi settings.
 - [x] Map Pi `defaultModel`.
   - Pi: `gpt-5.5`
   - Codex: already set to `gpt-5.5`.
-- [ ] Decide whether to map Pi `defaultThinkingLevel`.
+- [x] Decide whether to map Pi `defaultThinkingLevel`.
   - Pi: `high`
   - Codex currently: `model_reasoning_effort = "medium"`
   - Change to `high` only if that is the desired default cost/latency tradeoff.
-- [ ] Decide sandbox and approval defaults.
+  - Decision: keep Codex at `medium` for now.
+- [x] Decide sandbox and approval defaults.
   - Recommended interactive default: `sandbox_mode = "workspace-write"` with
     `approval_policy = "on-request"`.
   - Use `danger-full-access` only for externally sandboxed or explicitly trusted
     sessions.
-- [ ] Decide web search mode.
+  - Applied live to `/Users/sejunpark/.codex/config.toml`.
+- [x] Decide web search mode.
   - Codex default is cached web search.
   - Use live search only when current external facts matter.
+  - Applied live: `web_search = "cached"`.
 - [ ] Preserve trusted projects deliberately.
   - Existing trusted entries include `/Users/sejunpark/IT/creo`,
     `/Users/sejunpark/IT/codex`, `/Users/sejunpark/IT/pi-personal`, and
