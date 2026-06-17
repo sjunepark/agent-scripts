@@ -1,0 +1,23 @@
+{
+  "name": "codex-pushover-notify",
+  "version": "0.1.0",
+  "description": "Send Pushover notifications when Codex finishes a turn.",
+  "author": {
+    "name": "Local developer"
+  },
+  "interface": {
+    "displayName": "Codex Pushover Notify",
+    "shortDescription": "Notify your phone when a Codex turn finishes.",
+    "longDescription": "Codex Pushover Notify adds lifecycle hooks that record turn start time and send a Pushover notification with duration and the latest assistant response preview when Codex stops.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Lifecycle hooks",
+      "Network"
+    ],
+    "defaultPrompt": [
+      "Send a Pushover test notification.",
+      "Check Pushover notification status."
+    ]
+  }
+}
