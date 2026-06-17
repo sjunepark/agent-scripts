@@ -1,0 +1,39 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Agent Operations",
+      "description": "Skills for agent instructions, task briefings, change explanations, source investigation, teaching, and skills CLI maintenance.",
+      "skills": [
+        "agents-md-writer",
+        "briefing",
+        "change-explainer",
+        "skills-cli",
+        "source-investigator",
+        "teach"
+      ]
+    },
+    {
+      "title": "Architecture And Review",
+      "description": "Skills for architecture documentation, branch integration, code review campaigns, structure review, doc comments, and simplification.",
+      "skills": [
+        "architecture-md-writer",
+        "diet",
+        "doc-comment-writer",
+        "manual-branch-integrator",
+        "review-campaign",
+        "structure-review"
+      ]
+    },
+    {
+      "title": "Frontend",
+      "description": "Skills for Svelte, SvelteKit, and lightweight UI lab workflows.",
+      "skills": [
+        "svelte",
+        "sveltekit",
+        "ui-lab"
+      ]
+    }
+  ]
+}

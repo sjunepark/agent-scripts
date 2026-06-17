@@ -1,0 +1,132 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..");
+const skillsRoot = path.join(root, "skills");
+const errors = [];
+const names = new Map();
+
+function fail(file, message) {
+  errors.push(`${path.relative(root, file)}: ${message}`);
+}
+
+function readSkillDirs() {
+  if (!fs.existsSync(skillsRoot)) {
+    errors.push("skills/: missing skills directory");
+    return [];
+  }
+
+  return fs
+    .readdirSync(skillsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(skillsRoot, entry.name))
+    .sort();
+}
+
+function parseFrontMatter(file, content) {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+
+  if (lines[0] !== "---") {
+    fail(file, "front matter must start on the first line with ---");
+    return null;
+  }
+
+  const end = lines.findIndex((line, index) => index > 0 && line === "---");
+  if (end === -1) {
+    fail(file, "front matter is missing closing ---");
+    return null;
+  }
+
+  return lines.slice(1, end);
+}
+
+function fieldValue(lines, field) {
+  const prefix = `${field}:`;
+  const line = lines.find((candidate) => candidate.startsWith(prefix));
+  if (!line) return "";
+
+  return line
+    .slice(prefix.length)
+    .trim()
+    .replace(/^["']|["']$/g, "");
+}
+
+function validateLocalLinks(file, content) {
+  const skillDir = path.dirname(file);
+  const linkPattern = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  let match;
+
+  while ((match = linkPattern.exec(content)) !== null) {
+    const rawTarget = match[1].split("#")[0];
+    if (
+      !rawTarget ||
+      rawTarget.startsWith("#") ||
+      rawTarget.startsWith("/") ||
+      /^[a-z][a-z0-9+.-]*:/i.test(rawTarget)
+    ) {
+      continue;
+    }
+
+    const target = path.resolve(skillDir, rawTarget);
+    if (!fs.existsSync(target)) {
+      fail(file, `linked file does not exist: ${rawTarget}`);
+    }
+  }
+}
+
+for (const skillDir of readSkillDirs()) {
+  const file = path.join(skillDir, "SKILL.md");
+  const dirName = path.basename(skillDir);
+
+  if (!fs.existsSync(file)) {
+    fail(path.join(skillDir, "SKILL.md"), "missing SKILL.md");
+    continue;
+  }
+
+  const content = fs.readFileSync(file, "utf8");
+  const frontMatter = parseFrontMatter(file, content);
+  if (!frontMatter) continue;
+
+  const name = fieldValue(frontMatter, "name");
+  if (!name) {
+    fail(file, "front matter must include non-empty name");
+  } else {
+    if (name !== dirName) {
+      fail(file, `name must match directory (${dirName})`);
+    }
+
+    const existing = names.get(name) || [];
+    existing.push(file);
+    names.set(name, existing);
+  }
+
+  if (
+    !frontMatter.some((line) =>
+      /^description:\s*"[^"]+"\s*$/.test(line)
+    )
+  ) {
+    fail(file, "front matter must include a non-empty quoted description");
+  }
+
+  validateLocalLinks(file, content);
+}
+
+for (const [name, files] of names.entries()) {
+  if (files.length > 1) {
+    for (const file of files) {
+      fail(file, `duplicate skill name: ${name}`);
+    }
+  }
+}
+
+if (errors.length > 0) {
+  console.error("Skill validation failed:");
+  for (const error of errors) {
+    console.error(`- ${error}`);
+  }
+  process.exit(1);
+}
+
+console.log(`Validated ${names.size} skills.`);

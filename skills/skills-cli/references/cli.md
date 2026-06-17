@@ -33,8 +33,10 @@ For this repository specifically:
 - Use `./skills` only for local validation or unpublished work.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
 - The normal machine-global setup for this repo is Claude Code + Pi only: use `--skill '*' --copy -g -a claude-code -a pi -y`.
+- Codex global installs are explicit and separate: use `--skill '*' --copy -g -a codex -y`.
 - Do not use `--all` for that setup. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which overrides the Claude Code + Pi restriction and recreates shared `~/.agents/skills` installs.
 - That copy-mode install writes directly to `~/.claude/skills/` and `~/.pi/agent/skills/` and keeps `skills list -g` reporting `Agents: Claude Code, Pi`.
+- The Codex copy-mode install writes directly to `~/.codex/skills/`.
 - Do not leave this repo's published machine-global installs in `~/.agents/skills/` unless the user explicitly wants universal multi-harness sharing.
 - If the user asks for a global install, add `-g`; that writes to user-level directories, not repo-local `.agents/` or `.claude/`.
 
@@ -63,6 +65,14 @@ Commit and push first if the published repo skills were edited locally and those
 
 ```bash
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
+```
+
+### Add every published repo skill to Codex globally
+
+Commit and push first if the published repo skills were edited locally and those edits should be included in the reinstall.
+
+```bash
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y
 ```
 
 ### Reset all published repo skills to Claude Code + Pi only

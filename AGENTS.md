@@ -21,9 +21,12 @@
 - Use `bunx skills list -g` to inspect user-level global installs.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
+- Validate published skill metadata and local links with `scripts/validate-skills`.
+- Enable the optional Git hook with `git config core.hooksPath hooks`; it runs `scripts/validate-skills`.
 - For installs on individual machines, use the GitHub `skills/` subpath so updates can flow across machines without publishing repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
 - For this repo's normal machine-global setup, install directly to Claude Code + Pi with copy mode so `bunx skills list -g` shows `Agents: Claude Code, Pi`: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y`.
+- To install this repo's published skills for Codex global use, use an explicit Codex target: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y`.
 - Do not use `--all` for that setup; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which overrides the Claude Code + Pi agent restriction and recreates shared `~/.agents/skills` installs.
 - To install one published repo skill for the same setup, use: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill <skill-name> --copy -g -a claude-code -a pi -y`.
 - Do not leave this repo's published machine-global installs under `~/.agents/skills` unless the user explicitly wants universal multi-harness sharing; that shared path makes `bunx skills list -g` report many agents.
@@ -42,4 +45,5 @@
 
 ## Current repo facts
 - There is no package manifest, CI workflow, formatter config, or automated test suite at the repo root today.
+- There is a repository-local skill validation script at `scripts/validate-skills`.
 - Do not add build, lint, or test instructions to this file unless those workflows are added to the repository.
