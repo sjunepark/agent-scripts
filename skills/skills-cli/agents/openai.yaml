@@ -1,4 +1,4 @@
 interface:
   display_name: "Skills CLI"
   short_description: "Manage agent skills via skills.sh CLI"
-  default_prompt: "Use this skill to install, list, update, remove, and troubleshoot skills with bunx skills for Codex, Claude Code, and Pi. For this repo's normal machine-global setup, prefer --copy -g -a claude-code -a pi so global listings stay scoped to Claude Code and Pi."
+  default_prompt: "Use this skill to install, list, update, remove, and troubleshoot skills with bunx skills for Codex, Claude Code, and Pi. For this repo, treat skills/ as a catalog and install selected skills by name from the GitHub skills subpath; use --copy -g -a claude-code -a pi or --copy -g -a codex only for the intended target."

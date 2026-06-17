@@ -43,17 +43,26 @@ Inspect the local source while developing:
 bunx skills add ./skills --list
 ```
 
-Install the published skills from GitHub after committing and pushing:
+Install published skills from GitHub after committing and pushing. Treat
+`skills/` as the available catalog, not as a list that must all be installed
+globally.
+
+For a selected skill:
 
 ```bash
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
+SKILL_NAME="change-explainer"
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
 ```
 
-To install the same published skills for Codex, use an explicit Codex target:
+For a selected Codex global skill, use an explicit Codex target:
 
 ```bash
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y
+SKILL_NAME="change-explainer"
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
 ```
+
+Install domain skills such as `svelte`, `sveltekit`, and `ui-lab` only in
+projects where they are relevant.
 
 Use chezmoi for machine-level pointers and config templates, not for copying
 live runtime directories such as `~/.codex`, `~/.pi`, or `~/.claude` wholesale.

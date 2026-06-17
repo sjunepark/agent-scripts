@@ -1,0 +1,4 @@
+interface:
+  display_name: "Progress Committer"
+  short_description: "Update progress docs and commit completed work"
+  default_prompt: "Use $progress-committer to update stale progress docs and commit the completed work."

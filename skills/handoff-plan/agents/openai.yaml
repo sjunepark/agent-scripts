@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff Plan"
+  short_description: "Create concise implementation handoff plans"
+  default_prompt: "Use $handoff-plan to create a concise implementation plan for the next session."

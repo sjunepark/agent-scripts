@@ -1,4 +1,4 @@
 interface:
   display_name: "Manual Branch Integrator"
-  short_description: "Integrate Git branches carefully with intent, residual-diff, and deletion audits."
-  default_prompt: "Use $manual-branch-integrator to carefully integrate a source Git branch into the current branch without losing source-branch intent."
+  short_description: "Plan, integrate, or audit branch merges without losing intent"
+  default_prompt: "Use $manual-branch-integrator to carefully plan, integrate, or audit a source Git branch merge without losing source-branch intent."

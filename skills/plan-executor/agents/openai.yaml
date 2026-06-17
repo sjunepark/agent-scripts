@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Executor"
+  short_description: "Run an entire plan with progress updates"
+  default_prompt: "Use $plan-executor to execute the entire plan file end to end with progress updates; commit only if explicitly requested."

@@ -12,7 +12,7 @@ repo or public skill installs.
 | Layer | Owner | Examples | Sync method |
 | --- | --- | --- | --- |
 | Reusable agent assets | `agent-scripts` | `skills/`, docs, validation scripts, optional hooks | Git commit and push |
-| Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
+| Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
 | Machine pointers | chezmoi | symlinks or scripts that point tools at this repo | Chezmoi source repo |
 | Stable personal defaults | chezmoi, with care | selected model, reasoning effort, sandbox default | Template or idempotent update script |
 | Runtime state | local machine only | auth, sessions, logs, caches, memories, SQLite files | Do not sync |
@@ -71,14 +71,21 @@ harnesses may also report skills from that shared location. It currently also
 holds non-repo skills (`context7-mcp`, `impeccable`, and `skill-cleaner`), so do
 not replace it with a symlink to this repo.
 
-Use explicit agent targets instead:
+Treat this repo's `skills/` directory as the published catalog. A skill being
+published here means it can be installed from the GitHub `skills/` subpath; it
+does not mean it belongs in every global agent install. Keep global installs to
+the skills that are broadly useful, and install domain skills such as `svelte`,
+`sveltekit`, and `ui-lab` only in matching projects.
+
+Use explicit skill and agent targets:
 
 ```bash
-# Existing normal setup for Claude Code + Pi
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
+# Selected setup for Claude Code + Pi
+SKILL_NAME="change-explainer"
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
 
-# Codex setup; current CLI behavior writes Codex user skills under ~/.agents/skills
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y
+# Selected Codex setup; current CLI behavior writes Codex user skills under ~/.agents/skills
+bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
 ```
 
 Chezmoi can run those commands as bootstrap/update scripts after this repo is
