@@ -5,15 +5,16 @@ description: "Post-implementation review loop for code changes. Use when the use
 
 # Post-Review Loop
 
-Emulate Pi's post-review-loop as an explicit Codex workflow. Codex cannot own hidden extension state or inject follow-up prompts, so persist loop state in the conversation for one-shot work and in a visible ledger for multi-turn or resumed loops.
+Emulate Pi's post-review-loop as an explicit Codex workflow. Codex cannot own hidden extension state or inject follow-up prompts, so persist loop state in a visible ledger for the default loop and any resumed loop. Use conversation-local state only for explicit one-shot work.
 
 ## Modes
 
 Interpret the user's requested mode from natural language:
 
-- `oneshot` or no mode: review the implementation once, optionally apply safe fixes, validate, and report.
+- `loop` or no mode: create or reuse a persistent loop ledger, run the phase loop, apply safe fixes, validate, and stop cleanly when no accepted/actionable Bucket I findings remain or the iteration limit is reached. Default limit: 5 iterations.
+- `oneshot`: review the implementation once, optionally apply safe fixes, validate, and report without creating a ledger unless the work cannot finish in one turn.
 - `review-only`: review once without editing files.
-- `start`: create a persistent loop ledger and run the first phase.
+- `start`: create a persistent loop ledger and run the default loop.
 - `continue` or `resume`: read the ledger and run the next phase.
 - `status`: report current lifecycle, phase, unresolved buckets, validation, and next action without changing files.
 - `report` or `stop`: render the final/current report. Stop after the current phase if already working.
@@ -23,7 +24,7 @@ Default scope is `uncommitted changes`. If the user names a branch, commit range
 
 ## Ledger
 
-Use an explicit ledger only for `start`, `continue`, `resume`, `status`, `report`, or work that cannot finish in one turn. Prefer `reviews/post-review-loop.md` at the target repo root unless the repo already has a better review-state convention.
+Use an explicit ledger for the default `loop`, `start`, `continue`, `resume`, `status`, `report`, or work that cannot finish in one turn. Prefer `reviews/post-review-loop.md` at the target repo root unless the repo already has a better review-state convention.
 
 Ledger shape:
 
@@ -115,7 +116,7 @@ Gate after each phase:
 - After `impl`, continue to another `post-review` only if at least one Bucket I fix was applied.
 - Stop cleanly when no accepted/actionable Bucket I findings remain.
 
-Use a default iteration limit of 5 for persistent loops unless the user gives another limit.
+Use a default iteration limit of 5 for the default loop and other persistent loops unless the user gives another limit.
 
 ## Git And Validation
 
