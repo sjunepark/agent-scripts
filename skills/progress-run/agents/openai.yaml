@@ -1,0 +1,4 @@
+interface:
+  display_name: "Progress Run"
+  short_description: "Execute a plan while updating progress"
+  default_prompt: "Use $progress-run to continue work from docs/PLAN.md and update progress as you go."
