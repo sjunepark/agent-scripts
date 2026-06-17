@@ -1,15 +1,14 @@
 {
   "name": "chezmoi-sync",
-  "version": "0.1.0",
-  "description": "Read-only chezmoi drift checks and explicit sync workflows for Codex.",
+  "version": "0.1.0+codex.20260617160340",
+  "description": "Read-only chezmoi drift checks and explicit sync helper scripts for Codex.",
   "author": {
     "name": "Local developer"
   },
-  "skills": "./skills/",
   "interface": {
     "displayName": "Chezmoi Sync",
     "shortDescription": "Check chezmoi drift and guide explicit syncs.",
-    "longDescription": "Chezmoi Sync adds a read-only Codex startup check for chezmoi drift and a skill-guided workflow for reviewed apply, add, update, commit, and push operations.",
+    "longDescription": "Chezmoi Sync adds a read-only Codex startup check for chezmoi drift and helper scripts for reviewed apply, add, update, commit, and push operations.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [

@@ -55,7 +55,7 @@ main() {
 		printf '%s\n' "$status" | sed 's/^/  /'
 	fi
 	echo
-	echo "Ask Codex to use \$chezmoi-sync for reviewed next steps. The startup hook only reports; it does not sync."
+	echo "Ask Codex to review chezmoi sync state before taking explicit next steps. The startup hook only reports; it does not sync."
 	exit 0
 }
 

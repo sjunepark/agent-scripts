@@ -78,8 +78,10 @@ chezmoi drift from Codex:
   it reports only.
 - `plugins/chezmoi-sync/scripts/chezmoi-review.sh` is the explicit review
   helper for status and optional diff/fetch.
-- `plugins/chezmoi-sync/skills/chezmoi-sync/SKILL.md` owns the reviewed
-  apply/add/update/commit/push workflow.
+
+The plugin intentionally does not bundle Codex skills. Keep mutating actions
+explicit: review `chezmoi-review.sh --diff`, choose `chezmoi add`,
+`chezmoi apply`, or `chezmoi update`, then re-run the review.
 
 Install or verify the repo marketplace on this machine:
 
@@ -89,8 +91,8 @@ codex plugin add chezmoi-sync@personal
 codex plugin list --marketplace personal --json
 ```
 
-After editing plugin metadata, skills, or hooks, refresh Codex's installed
-cache and start a new thread:
+After editing plugin metadata or hooks, refresh Codex's installed cache and
+start a new thread:
 
 ```bash
 python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \

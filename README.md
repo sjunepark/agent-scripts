@@ -76,8 +76,8 @@ codex plugin add chezmoi-sync@personal
 ```
 
 The `chezmoi-sync` startup hook only checks and reports. Use the bundled
-`$chezmoi-sync` skill for reviewed mutating actions such as `chezmoi apply`,
-`chezmoi add`, `chezmoi update`, commits, or pushes.
+review helper before mutating actions such as `chezmoi apply`, `chezmoi add`,
+`chezmoi update`, commits, or pushes.
 
 Use chezmoi for machine-level pointers and config templates, not for copying
 live runtime directories such as `~/.codex`, `~/.pi`, or `~/.claude` wholesale.
