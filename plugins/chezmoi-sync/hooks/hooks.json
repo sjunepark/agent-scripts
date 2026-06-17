@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -lc 'script=\"$HOME/IT/agent-scripts/plugins/chezmoi-sync/scripts/chezmoi-check.sh\"; if [ -x \"$script\" ]; then exec \"$script\"; fi; exit 0'",
+            "timeout": 30,
+            "statusMessage": "Checking chezmoi sync"
+          }
+        ]
+      }
+    ]
+  }
+}

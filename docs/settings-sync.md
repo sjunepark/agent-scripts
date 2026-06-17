@@ -12,6 +12,7 @@ repo or public skill installs.
 | Layer | Owner | Examples | Sync method |
 | --- | --- | --- | --- |
 | Reusable agent assets | `agent-scripts` | `skills/`, docs, validation scripts, optional hooks | Git commit and push |
+| Repo-local Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Local Codex marketplace install |
 | Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
 | Machine pointers | chezmoi | symlinks or scripts that point tools at this repo | Chezmoi source repo |
 | Stable personal defaults | chezmoi, with care | selected model, reasoning effort, sandbox default | Template or idempotent update script |
@@ -22,16 +23,15 @@ repo or public skill installs.
 Read-only inspection on 2026-06-17 found:
 
 - Chezmoi source: `/Users/sejunpark/.local/share/chezmoi`.
-- Source repo: clean on `main`.
-- `chezmoi status`: `MM .zshrc`.
+- Source repo: clean on `main`, tracking `origin/main` with `0` ahead and
+  `0` behind.
+- `chezmoi status`: clean.
 - `~/.codex/AGENTS.md` is managed by chezmoi as a symlink to
   `/Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`.
 - `~/.codex/config.toml` and `~/.agents` are not currently managed by chezmoi.
 - `~/.claude/CLAUDE.md` is managed as a symlink to
   `/Users/sejunpark/.pi/agent/AGENTS.md`.
 - `~/.pi/agent/AGENTS.md` and `~/.pi/agent/extensions` are managed.
-- Applying the current chezmoi source would remove local `EDITOR` and `VISUAL`
-  exports from `~/.zshrc`; resolve that before broad `chezmoi apply`.
 
 ## Codex Settings
 
@@ -63,6 +63,48 @@ Machine-local or Codex-managed sections to preserve:
 - `[marketplaces.*]` local cache paths.
 - `[plugins.*]` installed plugin state.
 - UI onboarding and keymap state unless intentionally standardized.
+
+## Codex Plugins
+
+Keep local Codex plugin source in this repo under `plugins/<plugin-name>/`.
+Keep the repo marketplace at `.agents/plugins/marketplace.json`; it is
+repository metadata, not machine runtime state.
+
+The `chezmoi-sync` plugin is the local workflow for checking and reviewing
+chezmoi drift from Codex:
+
+- `plugins/chezmoi-sync/hooks/hooks.json` registers a `SessionStart` hook.
+- `plugins/chezmoi-sync/scripts/chezmoi-check.sh` is read-only and exits zero;
+  it reports only.
+- `plugins/chezmoi-sync/scripts/chezmoi-review.sh` is the explicit review
+  helper for status and optional diff/fetch.
+- `plugins/chezmoi-sync/skills/chezmoi-sync/SKILL.md` owns the reviewed
+  apply/add/update/commit/push workflow.
+
+Install or verify the repo marketplace on this machine:
+
+```bash
+codex plugin marketplace add /Users/sejunpark/IT/agent-scripts
+codex plugin add chezmoi-sync@personal
+codex plugin list --marketplace personal --json
+```
+
+After editing plugin metadata, skills, or hooks, refresh Codex's installed
+cache and start a new thread:
+
+```bash
+python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
+  /Users/sejunpark/IT/agent-scripts/plugins/chezmoi-sync
+codex plugin add chezmoi-sync@personal
+```
+
+Script-only edits to `plugins/chezmoi-sync/scripts/chezmoi-check.sh` are picked
+up by the installed hook because the hook command calls this repo path. Still
+run the plugin validation before committing any plugin change.
+
+Do not manage `~/.codex/plugins/cache`, plugin trust records, or installed
+plugin state through chezmoi. Recreate those with `codex plugin marketplace
+add`, `codex plugin add`, `/plugins`, and `/hooks` on each machine.
 
 ## Skills
 
@@ -108,10 +150,11 @@ this repo's maintenance-specific rules.
 ## Bootstrap Order For A New Machine
 
 1. Install Codex, Claude Code, Pi, Bun, Git, and chezmoi.
-2. Apply chezmoi only after resolving pending diffs such as `.zshrc`.
+2. Apply chezmoi only after resolving any pending managed-file diffs.
 3. Clone or update this repo.
 4. Run `scripts/validate-skills`.
-5. Install published skills from the GitHub `skills/` subpath with explicit
+5. Register the repo Codex marketplace and install local repo plugins.
+6. Install published skills from the GitHub `skills/` subpath with explicit
    agent targets.
-6. Apply or verify Codex stable config keys.
-7. Re-authenticate tools locally; do not copy auth files from another machine.
+7. Apply or verify Codex stable config keys.
+8. Re-authenticate tools locally; do not copy auth files from another machine.

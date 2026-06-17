@@ -3,7 +3,9 @@
 ## Scope
 - This repository stores custom local skills for agentic coding tools and is meant to be consumed with `bunx skills`.
 - Treat `skills/` as the distributable source for this repository.
+- Treat `plugins/` as repo-managed local Codex plugin source.
 - Treat repo-local `.agents/` and `.claude/` as skills/config used while working in this repository, not as the source to distribute or globally install from.
+- Treat `.agents/plugins/marketplace.json` as repo-local Codex marketplace metadata, not as a global install target.
 - Keep shared instructions at the repo root. Add a nested `AGENTS.md` only when one skill subtree needs different rules.
 
 ## Skill layout
@@ -28,6 +30,16 @@
 - When checking whether Codex loads skills, verify the intended installed
   subset, not every skill present under this repo's `skills/`.
 
+## Codex plugin layout
+- Store repo-local Codex plugins in `plugins/<plugin-name>/`.
+- Keep each plugin manifest at `plugins/<plugin-name>/.codex-plugin/plugin.json`.
+- Keep plugin skills under the plugin's `skills/` directory, not the published
+  root `skills/` catalog.
+- Keep plugin lifecycle hooks read-only unless the user explicitly asks for a
+  mutating hook. The `chezmoi-sync` startup hook must only check and report.
+- After changing plugin metadata, skills, or hooks, update the Codex cachebuster
+  and reinstall the plugin from the configured repo marketplace before testing.
+
 ## Working commands
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
@@ -35,6 +47,11 @@
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.
+- Validate one Codex plugin with `python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/<plugin-name>`.
+- If that plugin validator reports missing `yaml`, run it from a temporary
+  virtualenv with `PyYAML` installed.
+- Install the repo-local Codex marketplace with `codex plugin marketplace add /Users/sejunpark/IT/agent-scripts`.
+- Install or reinstall the local `chezmoi-sync` plugin with `codex plugin add chezmoi-sync@personal`.
 - Enable the optional Git hook with `git config core.hooksPath hooks`; it runs `scripts/validate-skills`.
 - For installs on individual machines, use the GitHub `skills/` subpath so updates can flow across machines without publishing repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
@@ -51,6 +68,8 @@
 ## Editing expectations
 - Prefer editing an existing skill in place over adding new top-level conventions.
 - When a skill's behavior changes, update `SKILL.md` and any referenced files in the same change.
+- When a plugin's behavior changes, update its manifest, bundled skill, hooks,
+  scripts, and `docs/settings-sync.md` together when those docs are affected.
 - When the goal is to sync that changed skill onto a machine, tell the user to commit and push first so the GitHub `skills/` URL can be used for the install.
 - Keep skill instructions concise, executable, and tool-facing.
 - Prefer exact commands and concrete paths over generic guidance.
