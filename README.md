@@ -68,12 +68,16 @@ projects where they are relevant.
 
 ## Codex Plugins
 
-Install the repo-local plugin marketplace and the `chezmoi-sync` plugin:
+Install the remote-backed plugin marketplace and the `chezmoi-sync` plugin:
 
 ```bash
-codex plugin marketplace add /Users/sejunpark/IT/agent-scripts
+codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main
 codex plugin add chezmoi-sync@personal
 ```
+
+Use local plugin marketplace paths only for temporary development testing.
+For ongoing machine setup, commit and push plugin changes first, then run
+`codex plugin marketplace upgrade personal` and reinstall the affected plugin.
 
 The `chezmoi-sync` startup hook only checks and reports. Use the bundled
 review helper before mutating actions such as `chezmoi apply`, `chezmoi add`,

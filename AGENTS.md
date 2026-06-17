@@ -50,17 +50,28 @@
 - Validate one Codex plugin with `python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/<plugin-name>`.
 - If that plugin validator reports missing `yaml`, run it from a temporary
   virtualenv with `PyYAML` installed.
-- Install the repo-local Codex marketplace with `codex plugin marketplace add /Users/sejunpark/IT/agent-scripts`.
-- Install or reinstall the local `chezmoi-sync` plugin with `codex plugin add chezmoi-sync@personal`.
+- Install this repo's Codex marketplace for ongoing machine use from the remote:
+  `codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main`.
+- Do not leave this repo's Codex plugin marketplace pointed at
+  `/Users/sejunpark/IT/agent-scripts` or another local working tree unless the
+  user explicitly asks for a temporary local development install.
+- After changing repo-managed plugins for ongoing use, commit and push first,
+  then run `codex plugin marketplace upgrade personal` and reinstall the
+  affected plugin with `codex plugin add <plugin-name>@personal`.
+- Install or reinstall `chezmoi-sync` with `codex plugin add chezmoi-sync@personal`.
 - Enable the optional Git hook with `git config core.hooksPath hooks`; it runs `scripts/validate-skills`.
-- For installs on individual machines, use the GitHub `skills/` subpath so updates can flow across machines without publishing repo-local `.agents/` and `.claude/` skills.
+- For installs on individual machines, use remote GitHub sources so updates can
+  flow across machines without depending on the current working tree.
+- For skills, use the GitHub `skills/` subpath so installs do not publish
+  repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
 - To install one published repo skill for Claude Code + Pi global use, set `SKILL_NAME=change-explainer` and run: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y`.
 - To install one published repo skill for Codex global use, set `SKILL_NAME=change-explainer` and use an explicit Codex target: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y`; current Codex user-scope discovery uses `~/.agents/skills`.
 - Do not use `--all` for scoped installs; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which can override the intended agent restriction and recreate shared `~/.agents/skills` installs.
 - Do not leave this repo's published machine-global installs under `~/.agents/skills` unless the user explicitly wants Codex user-scope/global sharing; that shared path makes `bunx skills list -g` report many agents.
 - Do not install this repo's skills from the current working tree, `.` or `./skills`, when the goal is to install them for ongoing use on a machine.
-- Use local-path installs only for local validation or unpublished work.
+- Use local-path skill or plugin installs only for local validation,
+  unpublished work, or explicitly requested temporary development testing.
 - Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
 - When converting shared `~/.agents/skills` installs to scoped Claude Code + Pi installs, remove only the affected skill names globally first, then reinstall the intended selected skills from the GitHub `skills/` subpath in copy mode. Keep the concrete command sequence in `skills/skills-cli/references/cli.md`.

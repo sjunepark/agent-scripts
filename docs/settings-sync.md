@@ -83,26 +83,34 @@ The plugin intentionally does not bundle Codex skills. Keep mutating actions
 explicit: review `chezmoi-review.sh --diff`, choose `chezmoi add`,
 `chezmoi apply`, or `chezmoi update`, then re-run the review.
 
-Install or verify the repo marketplace on this machine:
+Install or verify the repo marketplace on this machine from the remote:
 
 ```bash
-codex plugin marketplace add /Users/sejunpark/IT/agent-scripts
+codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main
 codex plugin add chezmoi-sync@personal
 codex plugin list --marketplace personal --json
 ```
 
-After editing plugin metadata or hooks, refresh Codex's installed cache and
-start a new thread:
+Do not leave this repo's marketplace pointed at `/Users/sejunpark/IT/agent-scripts`
+or another local working tree for normal machine use. Local marketplace paths
+are only for temporary development testing.
+
+After editing plugin metadata or hooks for ongoing use, commit and push first,
+then refresh the remote-backed marketplace snapshot and start a new thread:
 
 ```bash
 python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
   /Users/sejunpark/IT/agent-scripts/plugins/chezmoi-sync
+git add plugins/chezmoi-sync
+git commit -m "Update chezmoi sync plugin"
+git push origin main
+codex plugin marketplace upgrade personal
 codex plugin add chezmoi-sync@personal
 ```
 
-Script-only edits to `plugins/chezmoi-sync/scripts/chezmoi-check.sh` are picked
-up by the installed hook because the hook command calls this repo path. Still
-run the plugin validation before committing any plugin change.
+Run the plugin validation before committing any plugin change. Script-only
+edits still need the commit, push, marketplace upgrade, and reinstall flow
+before they affect remote-backed installs.
 
 Do not manage `~/.codex/plugins/cache`, plugin trust records, or installed
 plugin state through chezmoi. Recreate those with `codex plugin marketplace
