@@ -24,8 +24,8 @@ Read-only inspection on 2026-06-17 found:
 - Chezmoi source: `/Users/sejunpark/.local/share/chezmoi`.
 - Source repo: clean on `main`.
 - `chezmoi status`: `MM .zshrc`.
-- `~/.codex/config.toml`, `~/.codex/AGENTS.md`, `~/.codex/skills`, and
-  `~/.agents` are not currently managed by chezmoi.
+- `~/.codex/config.toml`, `~/.codex/AGENTS.md`, and `~/.agents` are not
+  currently managed by chezmoi.
 - `~/.claude/CLAUDE.md` is managed as a symlink to
   `/Users/sejunpark/.pi/agent/AGENTS.md`.
 - `~/.pi/agent/AGENTS.md` and `~/.pi/agent/extensions` are managed.
@@ -65,9 +65,11 @@ Machine-local or Codex-managed sections to preserve:
 
 ## Skills
 
-Keep `~/.agents/skills` for intentional universal multi-harness skills. It
-currently holds non-repo skills (`context7-mcp`, `impeccable`, and
-`skill-cleaner`), so do not replace it with a symlink to this repo.
+Keep `~/.agents/skills` as a generated user-scope skill install location, not
+as a chezmoi-managed directory. Codex discovers user skills there, and other
+harnesses may also report skills from that shared location. It currently also
+holds non-repo skills (`context7-mcp`, `impeccable`, and `skill-cleaner`), so do
+not replace it with a symlink to this repo.
 
 Use explicit agent targets instead:
 
@@ -75,7 +77,7 @@ Use explicit agent targets instead:
 # Existing normal setup for Claude Code + Pi
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a claude-code -a pi -y
 
-# Codex setup
+# Codex setup; current CLI behavior writes Codex user skills under ~/.agents/skills
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y
 ```
 

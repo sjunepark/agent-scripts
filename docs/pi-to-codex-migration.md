@@ -58,8 +58,11 @@ discussion after Codex has been dogfooded with native features.
   - Chezmoi owns machine-level pointers and stable non-secret settings.
   - Skill installs come from the GitHub `skills/` subpath with explicit agent
     targets.
-  - `~/.agents/skills` stays available for intentionally universal skills and
+  - `~/.agents/skills` stays a generated user-scope skill install location and
     must not be replaced by this repo.
+  - Codex user-scope skills are currently installed under `~/.agents/skills`,
+    so `bunx skills list -g` can report broad agent availability for Codex
+    global skills.
   - Details: `docs/settings-sync.md`.
 - [ ] Decide whether the canonical local path should remain
   `/Users/sejunpark/IT/agent-scripts` or be exposed as `/Users/sejunpark/agent-scripts`.
@@ -103,7 +106,15 @@ Goal: make Codex load shared instructions and skills from this repository.
   - Add Codex separately when ready:
     `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y`.
   - Do not replace `~/.agents/skills`; it currently contains `context7-mcp`,
-    `impeccable`, and `skill-cleaner`.
+    `impeccable`, and `skill-cleaner`, and Codex user-scope skills are
+    installed there.
+- [x] Install published repo skills for Codex global use.
+  - Commit pushed: `e51f164`.
+  - Remote source validated:
+    `https://github.com/sjunepark/agent-scripts/tree/main/skills`.
+  - Installed command:
+    `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill '*' --copy -g -a codex -y`.
+  - Observed location: `~/.agents/skills`.
 - [ ] Wire global Codex instructions.
   - Candidate:
     `~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`

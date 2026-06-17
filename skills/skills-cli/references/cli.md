@@ -19,10 +19,10 @@ Use `bunx skills list -g` to inspect machine-wide global installs.
 
 For the harnesses used most often in this repo:
 
-- Shared universal path used by many harnesses: `~/.agents/skills/`
+- Shared user-scope path used by Codex and many harnesses: `~/.agents/skills/`
 - Claude Code global path: `~/.claude/skills/`
 - Pi global path: `~/.pi/agent/skills/`
-- Codex global path: `~/.codex/skills/`
+- Codex user-scope path: `~/.agents/skills/`
 
 If the same skill `name` exists in more than one discovered location, discovery can show multiple entries instead of merging them. Installs left in the shared `~/.agents/skills/` path can make `skills list -g` report many agents for one skill.
 
@@ -36,8 +36,8 @@ For this repository specifically:
 - Codex global installs are explicit and separate: use `--skill '*' --copy -g -a codex -y`.
 - Do not use `--all` for that setup. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which overrides the Claude Code + Pi restriction and recreates shared `~/.agents/skills` installs.
 - That copy-mode install writes directly to `~/.claude/skills/` and `~/.pi/agent/skills/` and keeps `skills list -g` reporting `Agents: Claude Code, Pi`.
-- The Codex copy-mode install writes directly to `~/.codex/skills/`.
-- Do not leave this repo's published machine-global installs in `~/.agents/skills/` unless the user explicitly wants universal multi-harness sharing.
+- The Codex copy-mode install currently writes directly to `~/.agents/skills/`.
+- Do not leave this repo's published machine-global installs in `~/.agents/skills/` unless the user explicitly wants Codex user-scope/global sharing.
 - If the user asks for a global install, add `-g`; that writes to user-level directories, not repo-local `.agents/` or `.claude/`.
 
 ## Practical recipes
