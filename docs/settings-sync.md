@@ -24,8 +24,9 @@ Read-only inspection on 2026-06-17 found:
 - Chezmoi source: `/Users/sejunpark/.local/share/chezmoi`.
 - Source repo: clean on `main`.
 - `chezmoi status`: `MM .zshrc`.
-- `~/.codex/config.toml`, `~/.codex/AGENTS.md`, and `~/.agents` are not
-  currently managed by chezmoi.
+- `~/.codex/AGENTS.md` is managed by chezmoi as a symlink to
+  `/Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`.
+- `~/.codex/config.toml` and `~/.agents` are not currently managed by chezmoi.
 - `~/.claude/CLAUDE.md` is managed as a symlink to
   `/Users/sejunpark/.pi/agent/AGENTS.md`.
 - `~/.pi/agent/AGENTS.md` and `~/.pi/agent/extensions` are managed.

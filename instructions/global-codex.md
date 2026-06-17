@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Treat these as personal Codex defaults. Repository and subtree `AGENTS.md`
-files override this file when they are more specific.
+files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
@@ -27,7 +27,8 @@ files override this file when they are more specific.
   without explicit confirmation.
 - Keep change surfaces tight and reviewable.
 - Use the repository's existing commands and conventions.
-- Persist important decisions in docs, code, or commit messages.
+- Persist important decisions in docs or code comments where the decision
+  affects future maintenance.
 - After implementation, run the most relevant validation available.
 
 ## Code Defaults
