@@ -1,0 +1,4 @@
+interface:
+  display_name: "Post-Review Loop"
+  short_description: "Iterative post-implementation review and fix loop"
+  default_prompt: "Use $post-review-loop to review the latest implementation, apply safe in-scope fixes, separate decision-needed tradeoffs, validate the result, and report the final outcome."

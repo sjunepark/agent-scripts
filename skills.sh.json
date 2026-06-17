@@ -22,6 +22,7 @@
         "diet",
         "doc-comment-writer",
         "manual-branch-integrator",
+        "post-review-loop",
         "review-campaign",
         "structure-review"
       ]
