@@ -4,13 +4,13 @@
   "groupings": [
     {
       "title": "Agent Operations",
-      "description": "Skills for agent instructions, task briefings, change explanations, source investigation, teaching, and skills CLI maintenance.",
+      "description": "Skills for agent instructions, task briefings, change explanations, external repo exploration, teaching, and skills CLI maintenance.",
       "skills": [
         "agents-md-writer",
         "briefing",
         "change-explainer",
+        "explore-repo",
         "skills-cli",
-        "source-investigator",
         "teach"
       ]
     },

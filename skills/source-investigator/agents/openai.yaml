@@ -1,4 +1,0 @@
-interface:
-  display_name: "Source Investigator"
-  short_description: "Clone source into a temp workspace and use subagents to investigate it cleanly."
-  default_prompt: "Use $source-investigator whenever you need to inspect an external repo or large codebase by cloning it into a project-local temp directory, ignoring that directory in git, and delegating source exploration to subagents so the main thread stays focused."
