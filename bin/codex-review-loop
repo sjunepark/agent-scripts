@@ -18,11 +18,13 @@ Options:
   --sandbox <mode>        Codex sandbox mode. Default: ${DEFAULT_SANDBOX}
   --model <model>         Optional model override passed to codex exec.
   --reasoning-effort <n>  Optional reasoning effort override passed to codex exec.
+  --service-tier <tier>   Optional service tier override passed to codex exec.
+  --fast                  Shortcut for --service-tier fast.
   --network               Enable network access inside workspace-write sandbox.
   --review-only           Review and report without editing files.
   --log-style <style>     Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
   --print-effective-config
-                          Print resolved model/reasoning settings and exit.
+                          Print resolved model/reasoning/fast-mode settings and exit.
   --help                  Show this help.
 
 The wrapper runs fresh Codex review and fix phases, writes private run logs
@@ -37,6 +39,7 @@ function parseArgs(argv) {
     sandbox: DEFAULT_SANDBOX,
     model: "",
     reasoningEffort: "",
+    serviceTier: "",
     network: false,
     reviewOnly: false,
     logStyle: DEFAULT_LOG_STYLE,
@@ -60,6 +63,11 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--fast") {
+      options.serviceTier = "fast";
+      continue;
+    }
+
     if (arg === "--print-effective-config") {
       options.printEffectiveConfig = true;
       continue;
@@ -71,6 +79,7 @@ function parseArgs(argv) {
       arg === "--sandbox" ||
       arg === "--model" ||
       arg === "--reasoning-effort" ||
+      arg === "--service-tier" ||
       arg === "--log-style"
     ) {
       const value = argv[i + 1];
@@ -89,6 +98,8 @@ function parseArgs(argv) {
         options.model = value;
       } else if (arg === "--reasoning-effort") {
         options.reasoningEffort = value;
+      } else if (arg === "--service-tier") {
+        options.serviceTier = value;
       } else {
         options.logStyle = value;
       }
@@ -113,6 +124,9 @@ function parseArgs(argv) {
   }
   if (options.reasoningEffort && !["low", "medium", "high", "xhigh"].includes(options.reasoningEffort)) {
     throw new Error(`unsupported reasoning effort: ${options.reasoningEffort}`);
+  }
+  if (options.serviceTier && !/^[A-Za-z0-9._-]+$/.test(options.serviceTier)) {
+    throw new Error(`unsupported service tier: ${options.serviceTier}`);
   }
   if (options.reviewOnly && options.sandbox !== "read-only") {
     options.sandbox = "read-only";
@@ -192,27 +206,33 @@ function homeDir() {
 function readCodexConfig() {
   const configFile = path.join(codexHome(), "config.toml");
   if (!fs.existsSync(configFile)) {
-    return { path: configFile, values: {} };
+    return { path: configFile, values: {}, tables: {} };
   }
 
   const values = {};
+  const tables = {};
   const lines = fs.readFileSync(configFile, "utf8").split(/\r?\n/);
-  let inTopLevel = true;
+  let tableName = "";
   for (const rawLine of lines) {
     const line = stripTomlComment(rawLine).trim();
     if (!line) continue;
     if (line.startsWith("[") && line.endsWith("]")) {
-      inTopLevel = false;
+      tableName = line.replace(/^\[+|\]+$/g, "");
+      if (!tables[tableName]) tables[tableName] = {};
       continue;
     }
-    if (!inTopLevel) continue;
 
     const match = line.match(/^([A-Za-z0-9_-]+)\s*=\s*(.+)$/);
     if (!match) continue;
-    values[match[1]] = parseTomlScalar(match[2].trim());
+    const parsed = parseTomlScalar(match[2].trim());
+    if (!tableName) {
+      values[match[1]] = parsed;
+    } else {
+      tables[tableName][match[1]] = parsed;
+    }
   }
 
-  return { path: configFile, values };
+  return { path: configFile, values, tables };
 }
 
 function stripTomlComment(line) {
@@ -248,11 +268,25 @@ function effectiveCodexConfig(options) {
   const config = readCodexConfig();
   const modelFromConfig = stringValue(config.values.model);
   const reasoningFromConfig = stringValue(config.values.model_reasoning_effort);
+  const serviceTierFromConfig = stringValue(config.values.service_tier);
+  const fastModeFeatureFromConfig = booleanValue(config.tables.features && config.tables.features.fast_mode);
+  const serviceTier = options.serviceTier || serviceTierFromConfig || "Codex default";
+  const serviceTierSource = options.serviceTier ? "flag" : serviceTierFromConfig ? "config" : "codex-default";
+  const fastModeFeatureEnabled = fastModeFeatureFromConfig !== false;
+  const fastModeApplied = serviceTier === "fast" && fastModeFeatureEnabled;
+  const fastModeDetail =
+    serviceTier === "fast" && !fastModeFeatureEnabled
+      ? "service_tier=fast but features.fast_mode=false"
+      : `service_tier=${serviceTier}`;
   return {
     model: options.model || modelFromConfig || "Codex default",
     modelSource: options.model ? "flag" : modelFromConfig ? "config" : "codex-default",
     reasoningEffort: options.reasoningEffort || reasoningFromConfig || "Codex default",
     reasoningEffortSource: options.reasoningEffort ? "flag" : reasoningFromConfig ? "config" : "codex-default",
+    serviceTier,
+    serviceTierSource,
+    fastModeApplied,
+    fastModeDetail,
     configPath: config.path,
     sandbox: options.sandbox,
     reviewOnly: options.reviewOnly,
@@ -266,10 +300,15 @@ function stringValue(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
+function booleanValue(value) {
+  return typeof value === "boolean" ? value : null;
+}
+
 function printEffectiveConfig(options) {
   const effective = effectiveCodexConfig(options);
   console.log(`Model: ${effective.model} (${effective.modelSource})`);
   console.log(`Reasoning effort: ${effective.reasoningEffort} (${effective.reasoningEffortSource})`);
+  console.log(`Fast mode: ${effective.fastModeApplied ? "yes" : "no"} (${effective.fastModeDetail}, ${effective.serviceTierSource})`);
   console.log(`Config: ${effective.configPath}`);
   console.log(`Sandbox: ${effective.sandbox}`);
   console.log(`Review only: ${effective.reviewOnly ? "yes" : "no"}`);
@@ -384,6 +423,10 @@ function buildCodexArgs({ options, schemaFile, lastMessageFile, prompt }) {
 
   if (options.reasoningEffort) {
     args.push("-c", `model_reasoning_effort=${JSON.stringify(options.reasoningEffort)}`);
+  }
+
+  if (options.serviceTier) {
+    args.push("-c", `service_tier=${JSON.stringify(options.serviceTier)}`);
   }
 
   args.push(prompt);
@@ -753,6 +796,9 @@ async function main() {
   console.error(`[codex-review-loop] scope: ${options.scope}`);
   console.error(`[codex-review-loop] model: ${effectiveConfig.model} (${effectiveConfig.modelSource})`);
   console.error(`[codex-review-loop] reasoning effort: ${effectiveConfig.reasoningEffort} (${effectiveConfig.reasoningEffortSource})`);
+  console.error(
+    `[codex-review-loop] fast mode: ${effectiveConfig.fastModeApplied ? "yes" : "no"} (${effectiveConfig.fastModeDetail}, ${effectiveConfig.serviceTierSource})`,
+  );
   console.error(`[codex-review-loop] run state: ${runDir}`);
   writeJson(path.join(runDir, "start.json"), {
     repoRoot,
