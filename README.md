@@ -61,6 +61,9 @@ default while still saving raw JSONL logs under `.git/codex-plan-loop/` or
 `.git/codex-review-loop/`. Use `--log-style quiet` for wrapper-only terminal
 output or `--log-style jsonl` to mirror raw Codex JSONL events to the terminal.
 Use the matching `*-log` command to inspect saved runs after or during a run.
+Loop worker phases set `CODEX_PUSHOVER_DRY_RUN=1` for their child `codex exec`
+runs so `codex-pushover-notify` does not send a phone notification for every
+phase. Direct Codex turns still notify normally.
 
 ## Validation
 
