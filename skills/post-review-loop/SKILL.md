@@ -1,6 +1,6 @@
 ---
 name: post-review-loop
-description: "Post-implementation review loop for code changes. Use when the user asks for a post-review loop, post-implementation review, after-the-fact code review, review-and-fix pass, review-only pass, or an equivalent to Pi's post-review-loop extension. Supports one-shot review, persistent start/continue/status/report loops, strict review finding quality gates, Bucket I safe fixes, Bucket II decision items, validation, and final reporting."
+description: "Post-implementation review loop for code changes. Use when the user asks for a post-review loop, post-implementation review, after-the-fact code review, review-and-fix pass, review-only pass, or an equivalent to Pi's post-review-loop extension. Supports one-shot review, persistent start/continue/status/report loops, subagent-assisted review passes, strict review finding quality gates, Bucket I safe fixes, Bucket II decision items, validation, and final reporting."
 ---
 
 # Post-Review Loop
@@ -90,6 +90,20 @@ Review after the implementation exists. Inspect real files and diffs before deci
 - Distinguish issues introduced by the change from pre-existing debt merely exposed by it.
 - Prefer no finding over a weak finding. A clean review is valid.
 
+### Subagent Review
+
+Default to subagents during `post-review` when the scope is non-trivial: broad diffs, unfamiliar subsystems, cross-module contracts, lifecycle/concurrency risk, validation/test risk, or any second and later loop iteration. Skip subagents for tiny local diffs where orchestration would cost more than the review.
+
+Use subagents to reduce context bias and widen coverage, not to outsource judgment:
+
+- Give each subagent bounded current context: requested scope, relevant diff/files, nearby invariants, validation signals, and one review lens.
+- Do not give stale ledger bodies, previous findings, or the main agent's suspected answer unless explicitly validating that finding.
+- Prefer independent lenses such as correctness/invariants, integration/contracts, lifecycle/concurrency, tests/validation, security/permissions, and simplification/ownership.
+- Require concise output with file/line evidence, trigger scenario, impact, confidence, and Bucket I / Bucket II / Keep As-Is recommendation.
+- Ask subagents to report "no finding" when evidence is weak. Do not reward volume.
+
+The main agent owns final review quality: dedupe subagent reports, verify evidence against the real code, apply the finding quality gate, classify buckets, update the ledger, implement Bucket I fixes, and run validation.
+
 ### Finding Quality Gate
 
 Do not record a Bucket I or Bucket II item until it passes this gate:
@@ -153,7 +167,7 @@ post-review -> impl-review -> impl -> post-review -> ... -> final-report
 
 Phase rules:
 
-- `post-review`: review the current diff and nearby architecture. Do not edit code. Record Bucket I candidates, Bucket II decisions, and useful Keep As-Is entries.
+- `post-review`: review the current diff and nearby architecture, using subagents by default for non-trivial scope. Do not edit code. Record Bucket I candidates, Bucket II decisions, and useful Keep As-Is entries.
 - `impl-review`: re-verify each actionable Bucket I item against real code paths and tests. Do not edit code. Mark safe items `accepted`; reject, downgrade, or move uncertain items to Bucket II.
 - `impl`: implement accepted Bucket I fixes tightly. Mark fixed items `applied`, record code changes, and validate.
 
