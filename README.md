@@ -40,6 +40,8 @@ or keep `PATH` pointed at `~/.local/bin` and symlink selected commands:
 mkdir -p ~/.local/bin
 ln -s "$HOME/IT/agent-scripts/bin/codex-plan-loop" ~/.local/bin/codex-plan-loop
 ln -s "$HOME/IT/agent-scripts/bin/codex-plan-log" ~/.local/bin/codex-plan-log
+ln -s "$HOME/IT/agent-scripts/bin/codex-review-loop" ~/.local/bin/codex-review-loop
+ln -s "$HOME/IT/agent-scripts/bin/codex-review-log" ~/.local/bin/codex-review-log
 ```
 
 Then use the command from any git repository:
@@ -48,12 +50,17 @@ Then use the command from any git repository:
 codex-plan-loop path/to/PLAN.md
 codex-plan-log show latest
 codex-plan-log transcript latest
+
+codex-review-loop --scope "uncommitted changes"
+codex-review-log show latest
+codex-review-log transcript latest
 ```
 
-`codex-plan-loop` prints a live readable transcript by default while still
-saving raw JSONL logs under `.git/codex-plan-loop/`. Use
-`--log-style quiet` for wrapper-only terminal output or `--log-style jsonl` to
-mirror raw Codex JSONL events to the terminal.
+`codex-plan-loop` and `codex-review-loop` print live readable transcripts by
+default while still saving raw JSONL logs under `.git/codex-plan-loop/` or
+`.git/codex-review-loop/`. Use `--log-style quiet` for wrapper-only terminal
+output or `--log-style jsonl` to mirror raw Codex JSONL events to the terminal.
+Use the matching `*-log` command to inspect saved runs after or during a run.
 
 ## Validation
 
