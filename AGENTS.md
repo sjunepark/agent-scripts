@@ -40,7 +40,17 @@
 - After changing plugin metadata, skills, or hooks, update the Codex cachebuster
   and reinstall the plugin from the configured repo marketplace before testing.
 
+## Command layout
+- Store stable user-facing commands in `bin/`.
+- Treat `bin/` as the only directory intended to be added to `PATH` or symlinked
+  into `~/.local/bin`.
+- Store repository maintenance helpers in `scripts/`.
+- Do not put one-off maintenance helpers in `bin/`; add a stable wrapper there
+  only when the command is meant to be used across repositories.
+- Prefer exact command names without extensions for `bin/` commands.
+
 ## Working commands
+- Run the plan execution wrapper from any git repo with `codex-plan-loop <plan-file>` after adding this repo's `bin/` directory to `PATH` or symlinking the command into `~/.local/bin`.
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.

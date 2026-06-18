@@ -10,6 +10,8 @@ not the published package layout.
 ## Layout
 
 - `AGENTS.md`: maintenance instructions for this repository.
+- `bin/`: stable user-facing commands intended to be on `PATH` or symlinked
+  into `~/.local/bin`.
 - `instructions/global-codex.md`: candidate personal Codex defaults for
   `~/.codex/AGENTS.md`.
 - `plugins/`: repo-managed local Codex plugins.
@@ -22,6 +24,28 @@ not the published package layout.
 
 Runtime state, auth files, sessions, logs, caches, and machine-local Codex or Pi
 data do not belong in this repository.
+
+## Shared Commands
+
+Expose cross-repo commands from `bin/`, not `scripts/`. For a machine-local
+setup, either add this repository's `bin/` directory to `PATH`:
+
+```bash
+export PATH="$HOME/IT/agent-scripts/bin:$PATH"
+```
+
+or keep `PATH` pointed at `~/.local/bin` and symlink selected commands:
+
+```bash
+mkdir -p ~/.local/bin
+ln -s "$HOME/IT/agent-scripts/bin/codex-plan-loop" ~/.local/bin/codex-plan-loop
+```
+
+Then use the command from any git repository:
+
+```bash
+codex-plan-loop path/to/PLAN.md
+```
 
 ## Validation
 

@@ -9,7 +9,7 @@ const DEFAULT_SANDBOX = "workspace-write";
 const DEFAULT_REVIEW_LIMIT = 5;
 
 function usage() {
-  console.log(`Usage: scripts/codex-plan-loop <plan-file> [options]
+  console.log(`Usage: codex-plan-loop <plan-file> [options]
 
 Options:
   --max-cycles <n>       Maximum progress cycles to run. Default: ${DEFAULT_MAX_CYCLES}
