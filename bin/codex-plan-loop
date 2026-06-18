@@ -23,7 +23,8 @@ Options:
   --reasoning-effort <n> Optional reasoning effort override passed to codex exec.
   --service-tier <tier>  Optional service tier override passed to codex exec.
   --fast                 Shortcut for --service-tier fast.
-  --network              Enable network access inside workspace-write sandbox.
+  --network              Force network access inside workspace-write sandbox.
+  --no-network           Force network access off inside workspace-write sandbox.
   --review-limit <n>     Maximum review passes per progress cycle. Default: ${DEFAULT_REVIEW_LIMIT}
   --log-style <style>    Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
   --print-effective-config
@@ -42,7 +43,7 @@ function parseArgs(argv) {
     model: "",
     reasoningEffort: "",
     serviceTier: "",
-    network: false,
+    network: null,
     reviewLimit: DEFAULT_REVIEW_LIMIT,
     logStyle: DEFAULT_LOG_STYLE,
     printEffectiveConfig: false,
@@ -58,6 +59,11 @@ function parseArgs(argv) {
 
     if (arg === "--network") {
       options.network = true;
+      continue;
+    }
+
+    if (arg === "--no-network") {
+      options.network = false;
       continue;
     }
 
@@ -276,8 +282,13 @@ function effectiveCodexConfig(options) {
   const reasoningFromConfig = stringValue(config.values.model_reasoning_effort);
   const serviceTierFromConfig = stringValue(config.values.service_tier);
   const fastModeFeatureFromConfig = booleanValue(config.tables.features && config.tables.features.fast_mode);
+  const networkFromConfig = booleanValue(
+    config.tables.sandbox_workspace_write && config.tables.sandbox_workspace_write.network_access,
+  );
   const serviceTier = options.serviceTier || serviceTierFromConfig || "Codex default";
   const serviceTierSource = options.serviceTier ? "flag" : serviceTierFromConfig ? "config" : "codex-default";
+  const network = typeof options.network === "boolean" ? options.network : networkFromConfig;
+  const networkSource = typeof options.network === "boolean" ? "flag" : networkFromConfig !== null ? "config" : "codex-default";
   const fastModeFeatureEnabled = fastModeFeatureFromConfig !== false;
   const fastModeApplied = serviceTier === "fast" && fastModeFeatureEnabled;
   const fastModeDetail =
@@ -295,7 +306,8 @@ function effectiveCodexConfig(options) {
     fastModeDetail,
     configPath: config.path,
     sandbox: options.sandbox,
-    network: options.network,
+    network,
+    networkSource,
     maxCycles: options.maxCycles,
     reviewLimit: options.reviewLimit,
     logStyle: options.logStyle,
@@ -310,6 +322,13 @@ function booleanValue(value) {
   return typeof value === "boolean" ? value : null;
 }
 
+function formatEffectiveNetwork(effective) {
+  if (typeof effective.network !== "boolean") {
+    return "Codex default (codex-default)";
+  }
+  return `${effective.network ? "enabled" : "disabled"} (${effective.networkSource})`;
+}
+
 function printEffectiveConfig(planFile, options) {
   const effective = effectiveCodexConfig(options);
   console.log(`Model: ${effective.model} (${effective.modelSource})`);
@@ -318,7 +337,7 @@ function printEffectiveConfig(planFile, options) {
   console.log(`Config: ${effective.configPath}`);
   console.log(`Plan file: ${planFile}`);
   console.log(`Sandbox: ${effective.sandbox}`);
-  console.log(`Network: ${effective.network ? "enabled" : "disabled"}`);
+  console.log(`Network: ${formatEffectiveNetwork(effective)}`);
   console.log(`Max cycles: ${effective.maxCycles}`);
   console.log(`Review limit: ${effective.reviewLimit}`);
   console.log(`Log style: ${effective.logStyle}`);
@@ -395,8 +414,8 @@ function buildCodexArgs({ options, schemaFile, lastMessageFile, prompt }) {
     'approval_policy="never"',
   ];
 
-  if (options.network) {
-    args.push("-c", "sandbox_workspace_write.network_access=true");
+  if (typeof options.network === "boolean") {
+    args.push("-c", `sandbox_workspace_write.network_access=${options.network ? "true" : "false"}`);
   }
 
   if (options.model) {

@@ -29,7 +29,7 @@ codex-review-loop --scope "<scope>" --print-effective-config
 3. Require explicit confirmation before starting.
    - Report the repository, scope, current worktree status, effective model, effective reasoning effort, whether Fast mode will apply, and exact command.
    - State that `codex-review-loop` may edit files by applying safe Bucket I fixes, but never stages, commits, or pushes.
-   - Use existing CLI defaults unless the user specified options: max 5 iterations, `workspace-write`, no network, live logs, Codex configured/default model, Codex configured/default reasoning effort, and Codex configured/default service tier.
+   - Use existing CLI defaults unless the user specified options: max 5 iterations, `workspace-write`, Codex configured/default network access, live logs, Codex configured/default model, Codex configured/default reasoning effort, and Codex configured/default service tier.
    - For read-only review, include `--review-only`.
 
 4. Start the command in a long-running terminal session so the conversation can continue:
@@ -43,6 +43,7 @@ Use user-provided options exactly, for example:
 ```bash
 codex-review-loop --scope "HEAD~1..HEAD" --review-only --max-iterations 1
 codex-review-loop --scope "current uncommitted changes" --network --model <model>
+codex-review-loop --scope "current uncommitted changes" --no-network
 codex-review-loop --scope "current uncommitted changes" --model <model> --reasoning-effort high
 codex-review-loop --scope "current uncommitted changes" --fast
 codex-review-loop --scope "current uncommitted changes" --service-tier fast
@@ -102,7 +103,8 @@ When the wrapper exits with `decision_needed`, `blocked`, `failed`,
 
 - `codex-review-loop` allows an initially dirty worktree because the default scope is uncommitted changes.
 - The wrapper writes private run logs under `.git/codex-review-loop/`.
-- If `--model`, `--reasoning-effort`, or `--service-tier` is omitted, the wrapper lets `codex exec` use Codex configuration or Codex defaults. Use `codex-review-loop --print-effective-config` to see what the wrapper can resolve before starting.
+- If `--model`, `--reasoning-effort`, `--service-tier`, or network flags are omitted, the wrapper lets `codex exec` use Codex configuration or Codex defaults. Use `codex-review-loop --print-effective-config` to see what the wrapper can resolve before starting.
+- `--network` and `--no-network` explicitly override Codex network configuration for that run.
 - `--fast` is a shortcut for `--service-tier fast`. It uses Codex's documented Fast mode path, `service_tier = "fast"`.
 - The wrapper uses fresh `codex exec` turns; the active chat session is the supervisor, not the worker.
 - The wrapper applies only Bucket I safe fixes by default and never stages, commits, or pushes.
