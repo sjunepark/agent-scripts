@@ -10,8 +10,8 @@ not the published package layout.
 ## Layout
 
 - `AGENTS.md`: maintenance instructions for this repository.
-- `bin/`: stable user-facing commands intended to be on `PATH` or symlinked
-  into `~/.local/bin`.
+- `bin/` when present: stable user-facing commands intended to be on `PATH` or
+  symlinked into `~/.local/bin`.
 - `instructions/global-codex.md`: candidate personal Codex defaults for
   `~/.codex/AGENTS.md`.
 - `plugins/`: repo-managed local Codex plugins.
@@ -20,50 +20,22 @@ not the published package layout.
 - `docs/`: migration and setup decisions.
 - `scripts/`: repository maintenance scripts.
 - `hooks/`: optional Git hooks.
-- `skills.sh.json`: skills.sh grouping metadata.
+- `skills.sh.json`: skills.sh display grouping metadata; use it to
+  communicate recommended install scope, but install behavior is still
+  controlled by explicit `bunx skills add` flags.
 
 Runtime state, auth files, sessions, logs, caches, and machine-local Codex or Pi
 data do not belong in this repository.
 
 ## Shared Commands
 
-Expose cross-repo commands from `bin/`, not `scripts/`. For a machine-local
-setup, either add this repository's `bin/` directory to `PATH`:
+Expose stable cross-repo commands from `bin/`, not `scripts/`. There are no
+stable shared commands published by this repository right now; prefer skills for
+agent workflows.
 
-```bash
-export PATH="$HOME/IT/agent-scripts/bin:$PATH"
-```
-
-or keep `PATH` pointed at `~/.local/bin` and symlink selected commands:
-
-```bash
-mkdir -p ~/.local/bin
-ln -s "$HOME/IT/agent-scripts/bin/codex-plan-loop" ~/.local/bin/codex-plan-loop
-ln -s "$HOME/IT/agent-scripts/bin/codex-plan-log" ~/.local/bin/codex-plan-log
-ln -s "$HOME/IT/agent-scripts/bin/codex-review-loop" ~/.local/bin/codex-review-loop
-ln -s "$HOME/IT/agent-scripts/bin/codex-review-log" ~/.local/bin/codex-review-log
-```
-
-Then use the command from any git repository:
-
-```bash
-codex-plan-loop path/to/PLAN.md
-codex-plan-log show latest
-codex-plan-log transcript latest
-
-codex-review-loop --scope "uncommitted changes"
-codex-review-log show latest
-codex-review-log transcript latest
-```
-
-`codex-plan-loop` and `codex-review-loop` print live readable transcripts by
-default while still saving raw JSONL logs under `.git/codex-plan-loop/` or
-`.git/codex-review-loop/`. Use `--log-style quiet` for wrapper-only terminal
-output or `--log-style jsonl` to mirror raw Codex JSONL events to the terminal.
-Use the matching `*-log` command to inspect saved runs after or during a run.
-Loop worker phases set `CODEX_PUSHOVER_DRY_RUN=1` for their child `codex exec`
-runs so `codex-pushover-notify` does not send a phone notification for every
-phase. Direct Codex turns still notify normally.
+Use `$progress-run` for the next clear slice from a plan, `$plan-executor` for
+an entire plan file, and `$post-implementation-review` for a bounded review pass
+that applies only obvious safe fixes.
 
 ## Validation
 

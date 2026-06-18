@@ -3,33 +3,41 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "Agent Operations",
-      "description": "Skills for agent instructions, task briefings, change explanations, external repo exploration, teaching, and skills CLI maintenance.",
+      "title": "Recommended Global Baseline",
+      "description": "Broadly useful skills that are reasonable to install globally for general coding-agent work.",
       "skills": [
         "agents-md-writer",
+        "architecture-md-writer",
         "briefing",
         "change-explainer",
+        "doc-comment-writer",
         "explore-repo",
+        "merge-branch",
         "skills-cli",
         "teach"
       ]
     },
     {
-      "title": "Architecture And Review",
-      "description": "Skills for architecture documentation, branch integration, code review campaigns, structure review, doc comments, and simplification.",
+      "title": "Optional Global Workflows",
+      "description": "General workflow and review skills to install globally when they match your normal process.",
       "skills": [
-        "architecture-md-writer",
+        "bug-retro",
         "diet",
-        "doc-comment-writer",
-        "codex-review-loop",
-        "merge-branch",
+        "handoff-plan",
+        "plan-executor",
+        "post-implementation-review",
+        "progress-committer",
+        "progress-doc",
+        "progress-handoff",
+        "progress-run",
+        "refactor-assessment",
         "review-campaign",
         "structure-review"
       ]
     },
     {
-      "title": "Frontend",
-      "description": "Skills for Svelte, SvelteKit, and lightweight UI lab workflows.",
+      "title": "Project-Specific Frontend",
+      "description": "Frontend skills to install only in Svelte, SvelteKit, or UI-heavy projects where they apply.",
       "skills": [
         "svelte",
         "sveltekit",

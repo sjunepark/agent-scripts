@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex Plan Loop"
-  short_description: "Supervise codex-plan-loop runs"
-  default_prompt: "Use $codex-plan-loop to supervise a codex-plan-loop run for my plan file."

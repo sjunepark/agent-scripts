@@ -50,12 +50,9 @@
 - Prefer exact command names without extensions for `bin/` commands.
 
 ## Working commands
-- Run the plan execution wrapper from any git repo with `codex-plan-loop <plan-file>` after adding this repo's `bin/` directory to `PATH` or symlinking the command into `~/.local/bin`.
-- `codex-plan-loop` defaults to live readable phase logging. Use `--log-style quiet` for wrapper-only output or `--log-style jsonl` to mirror raw Codex JSONL events.
-- Inspect saved plan-loop logs from any git repo with `codex-plan-log show latest` or the `codex-plan-loop` skill.
-- Run the review wrapper from any git repo with `codex-review-loop --scope "uncommitted changes"` after adding this repo's `bin/` directory to `PATH` or symlinking the command into `~/.local/bin`.
-- `codex-review-loop` defaults to applying safe Bucket I fixes without staging, committing, or pushing. Use `--review-only` for read-only review.
-- Inspect saved review-loop logs from any git repo with `codex-review-log show latest` or the `codex-review-loop` skill.
+- Use `$progress-run` to execute the next clear slice from a plan or handoff file.
+- Use `$plan-executor` only when the user explicitly asks to execute an entire plan file end to end.
+- Use `$post-implementation-review` after implementation to run one bounded review pass and apply only obvious safe fixes.
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
