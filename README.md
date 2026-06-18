@@ -39,12 +39,14 @@ or keep `PATH` pointed at `~/.local/bin` and symlink selected commands:
 ```bash
 mkdir -p ~/.local/bin
 ln -s "$HOME/IT/agent-scripts/bin/codex-plan-loop" ~/.local/bin/codex-plan-loop
+ln -s "$HOME/IT/agent-scripts/bin/codex-plan-log" ~/.local/bin/codex-plan-log
 ```
 
 Then use the command from any git repository:
 
 ```bash
 codex-plan-loop path/to/PLAN.md
+codex-plan-log show latest
 ```
 
 ## Validation

@@ -3,43 +3,57 @@
 - ledger-version: 3
 - repo: /Users/sejunpark/IT/agent-scripts
 - lifecycle: complete
-- scope: uncommitted changes: scripts/codex-plan-loop
+- scope: uncommitted changes: codex-plan-log helper and codex-plan-logs skill
 - phase: final-report
 - iteration: 1/5
 - review-only: false
-- baseline: b3a42e54a343e2a70ade0335b99135a9eae78828
-- scope-fingerprint: HEAD b3a42e54; untracked scripts/codex-plan-loop
-- updated: 2026-06-18T14:25:00+09:00
+- baseline: c3fc86b692a6967a36af0da003170a212446422f
+- scope-fingerprint: HEAD c3fc86b; M AGENTS.md README.md; new bin/codex-plan-log skills/codex-plan-logs; archived stale post-review ledger
+- updated: 2026-06-18T14:58:00+09:00
 
 ## What Was Reviewed
-The uncommitted wrapper script `scripts/codex-plan-loop`, including CLI parsing, Codex process orchestration, review loop gates, Bucket II aggregation, and auto-commit behavior.
+
+Reviewed the uncommitted `codex-plan-log` helper, the published `codex-plan-logs`
+skill metadata/instructions, and the README/AGENTS command documentation. The
+previous completed ledger for `scripts/codex-plan-loop` was stale for this
+scope and was archived to `reviews/archive/post-review-loop-20260618T145630+0900.md`.
 
 ## Bucket I - Safe In-Scope Fixes
+
 | status | priority | title | design signal | evidence | fix | validation |
-| --- | --- | --- | --- | --- | --- | --- |
-| applied | P3 | Commit body drops review validation when progress validation exists | simple local mistake | `scripts/codex-plan-loop:540` commit body used one `Validation:` field with `progress.validation || lastReview.validation`, so review validation was omitted whenever progress validation was present. | Split commit body into `Progress validation:` and `Review validation:` lines. | `node --check scripts/codex-plan-loop`; `scripts/validate-skills`; `scripts/codex-plan-loop --help` |
+|---|---|---|---|---|---|---|
+| none | - | No accepted Bucket I findings | - | The helper artifact names match `bin/codex-plan-loop`, no-log handling is explicit, and fixture validation covered list/show/events paths. | No automatic code changes applied. | `node --check bin/codex-plan-log`; `bin/codex-plan-log --help`; `scripts/validate-skills`; `bunx skills add ./skills/codex-plan-logs --list`; synthetic `.git/codex-plan-loop` fixture check |
 
 ## Bucket II - Needs Decision
+
 | status | priority | title | design signal | recommendation | tradeoffs |
-| --- | --- | --- | --- | --- | --- |
+|---|---|---|---|---|---|
+| none | - | No unresolved Bucket II decisions | - | No product, rollout, or architecture decision is needed for this slice. | - |
 
 ## Keep As-Is
+
 | title | reason |
-| --- | --- |
+|---|---|
+| Keep `events` run selector explicit | The helper usage consistently documents `codex-plan-log events latest <phase-prefix>`. Adding a shorthand for omitted `latest` would be a usability enhancement, not a correctness issue introduced by this change. |
+| Keep helper read-only and local to git repo logs | The skill's stated workflow is to inspect `.git/codex-plan-loop` artifacts from the current repository. Adding cross-repo path flags would expand the command surface without a current need. |
 
 ## Code Changes Applied
+
 | title | files | issue addressed | validation |
-| --- | --- | --- | --- |
-| Preserve both validation results in generated commits | `scripts/codex-plan-loop` | Commit messages now retain both progress and review validation evidence. | `node --check scripts/codex-plan-loop`; `scripts/validate-skills`; `scripts/codex-plan-loop --help` |
+|---|---|---|---|
+| None | - | No Bucket I fixes were accepted. | See validation below. |
 
 ## Validation
+
 | command | result | notes |
-| --- | --- | --- |
-| `node --check scripts/codex-plan-loop` | passed | Syntax check. |
-| `scripts/validate-skills` | passed | Reported `Validated 24 skills.` |
-| `scripts/codex-plan-loop --help` | passed | CLI help renders successfully. |
+|---|---|---|
+| `node --check bin/codex-plan-log` | pass | Syntax check for the new helper. |
+| `bin/codex-plan-log --help` | pass | CLI usage renders successfully. |
+| `scripts/validate-skills` | pass | Reported `Validated 25 skills.` |
+| `bunx skills add ./skills/codex-plan-logs --list` | pass | Local skill path validated and skill was listed. |
+| synthetic `.git/codex-plan-loop` fixture check | pass | Verified `list`, `show latest`, `show latest --json`, and `events latest cycle-1-progress`. |
 
 ## Phase Log
-- 1 post-review: reviewed uncommitted wrapper and found one safe local commit-message evidence issue; gate: Bucket I candidate.
-- 1 impl-review: rechecked the finding against commit-message generation and accepted it as safe; gate: implement.
-- 1 impl: applied the focused validation-message split and reran validation; gate: no actionable Bucket I remains.
+
+- 1 post-review: reviewed helper, skill, docs, and wrapper artifact contract; gate: no Bucket I candidates.
+- 1 final-report: validation passed; gate: complete.

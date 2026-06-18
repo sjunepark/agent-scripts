@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Plan Logs"
+  short_description: "Inspect codex-plan-loop runs"
+  default_prompt: "Use $codex-plan-logs to inspect the latest codex-plan-loop run and explain what happened."
