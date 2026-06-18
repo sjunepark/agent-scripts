@@ -1,4 +1,0 @@
-interface:
-  display_name: "Plan Runner"
-  short_description: "Execute a plan file while updating progress"
-  default_prompt: "Use $plan-runner to continue work from docs/PLAN.md and update progress as you go."

@@ -5,7 +5,7 @@ description: "Long-run plan execution. Use when explicitly asked to execute an e
 
 # Plan Executor
 
-Run an entire plan file as far as possible in one session. This is broader than `plan-runner`: continue through multiple clear tasks until the plan is complete, blocked by a real external issue, or a decision is required.
+Run an entire plan file as far as possible in one session. This is broader than `progress-run`: continue through multiple clear tasks until the plan is complete, blocked by a real external issue, or a decision is required.
 
 ## Workflow
 
