@@ -157,11 +157,10 @@ If no unresolved Bucket II decisions remain, write `No unresolved Bucket II deci
 ### Keep As-Is
 <Meaningful rejected findings and why, or omit tiny non-findings.>
 
-### Validation
-<commands and results, or why skipped>
-
 ### Verdict
 <one of: No meaningful improvement identified; Applied straightforward design improvements; Applied improvements; decision needed for remaining tradeoff; Decision needed before refactor; Validation failure remains>
 ```
+
+Include `### Validation` before `### Verdict` only when validation was run, failed, skipped for a meaningful reason, or affects the verdict. Otherwise fold validation into the relevant applied item or omit it. In review-only or no-edit reports, do not add a validation section only to say no commands were run.
 
 For `status`, keep the response shorter: lifecycle, phase, iteration, Bucket I applied/actionable counts, Bucket II unresolved count, latest validation outcome, and next action.
