@@ -33,9 +33,9 @@ Expose stable cross-repo commands from `bin/`, not `scripts/`. There are no
 stable shared commands published by this repository right now; prefer skills for
 agent workflows.
 
-Use `$progress-run` for the next clear slice from a plan, `$plan-executor` for
-an entire plan file, and `$post-implementation-review` for a bounded review pass
-that applies only obvious safe fixes.
+Use `$progress-run` for the next clear slice from a plan and
+`$post-implementation-review` for a bounded review pass that applies only
+obvious safe fixes.
 
 ## Validation
 

@@ -51,7 +51,6 @@
 
 ## Working commands
 - Use `$progress-run` to execute the next clear slice from a plan or handoff file.
-- Use `$plan-executor` only when the user explicitly asks to execute an entire plan file end to end.
 - Use `$post-implementation-review` after implementation to run one bounded review pass and apply only obvious safe fixes.
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
