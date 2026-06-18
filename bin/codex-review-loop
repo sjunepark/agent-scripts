@@ -659,6 +659,7 @@ Mode: ${reviewOnly ? "review-only; do not edit files" : "review phase only; do n
 
 Requirements:
 - Inspect the real repo state before deciding. For uncommitted changes, inspect git status, git diff, git diff --staged, and relevant untracked files.
+- Use subagents when useful for review quality: delegate independent focus areas or broad reconnaissance to fresh-context reviewers, and ask them for concise findings with evidence, affected paths, and validation notes. Prefer the inherited model and reasoning effort unless a simple focused task clearly warrants lower effort.
 - Distinguish issues introduced by the reviewed change from pre-existing debt.
 - Prefer no finding over a weak finding.
 - Do not create, read, or update a persistent review ledger.

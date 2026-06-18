@@ -541,6 +541,7 @@ Review pass: ${reviewPass}
 
 Requirements:
 - Inspect git status, git diff, git diff --staged, and relevant untracked files before deciding.
+- Use subagents when useful for review quality: delegate independent focus areas or broad reconnaissance to fresh-context reviewers, and ask them for concise findings with evidence, affected paths, and validation notes. Prefer the inherited model and reasoning effort unless a simple focused task clearly warrants lower effort.
 - Review only the current uncommitted changes and nearby code needed to judge them.
 - Distinguish issues introduced by the current changes from pre-existing debt.
 - Prefer no finding over a weak finding.
