@@ -1,9 +1,9 @@
 ---
-name: manual-branch-integrator
+name: merge-branch
 description: "Manually integrate Git branch work without blind mechanical merges. Use when merging, dry-planning a merge, transplanting or refactoring branch work, resolving conflicts, preserving source-branch intent in a clean current-branch structure, or auditing a completed merge for lost intent, unsafe assumptions, and integration quality."
 ---
 
-# Manual Branch Integrator
+# Merge Branch
 
 Integrate branch intent, not just patches. Prefer Git's merge machinery as a draft, then edit, refactor, audit, validate, and report the deliberate result.
 

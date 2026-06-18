@@ -1,0 +1,4 @@
+interface:
+  display_name: "Merge Branch"
+  short_description: "Plan, integrate, or audit branch merges without losing intent"
+  default_prompt: "Use $merge-branch to carefully plan, integrate, or audit a source Git branch merge without losing source-branch intent."

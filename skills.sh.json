@@ -21,7 +21,7 @@
         "architecture-md-writer",
         "diet",
         "doc-comment-writer",
-        "manual-branch-integrator",
+        "merge-branch",
         "post-review-loop",
         "review-campaign",
         "structure-review"

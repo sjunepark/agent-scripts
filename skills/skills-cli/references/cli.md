@@ -57,7 +57,7 @@ bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --li
 Commit and push first if the skill was just edited locally.
 
 ```bash
-SKILL_NAME="manual-branch-integrator"
+SKILL_NAME="merge-branch"
 git add "skills/$SKILL_NAME"
 git commit -m "update $SKILL_NAME"
 git push origin main
