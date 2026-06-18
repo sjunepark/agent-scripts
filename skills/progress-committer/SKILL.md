@@ -45,5 +45,4 @@ Report:
 
 - commit hash and subject
 - planning docs updated, or that none were relevant
-- validation run or why skipped
 - remaining uncommitted changes and why they were left out

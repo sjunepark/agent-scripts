@@ -43,5 +43,4 @@ Include:
 
 - work completed
 - plan file updates
-- validation run and outcome
 - blockers or next plan item
