@@ -69,7 +69,7 @@ Inspect external source from a stable cache outside the current project. Keep re
 
   ```bash
   mkdir -p ~/.repos/.worktrees
-  git -C ~/.repos/github.com/<owner>/<repo> worktree add ~/.repos/.worktrees/<repo>-<task> <ref>
+  git -C ~/.repos/github.com/<owner>/<repo> worktree add --detach ~/.repos/.worktrees/<repo>-<task> <ref>
   ```
 
 - Remove worktrees only when they were created for the current task and are no longer needed.
@@ -93,5 +93,5 @@ Use `~/.repos` as an intentional cache, not disposable task output. When storage
 
 ```bash
 du -sh ~/.repos/* 2>/dev/null
-find ~/.repos -maxdepth 3 -type d -name .git -prune -print
+find ~/.repos -mindepth 2 -maxdepth 4 -type d -name .git -prune -exec dirname {} \;
 ```
