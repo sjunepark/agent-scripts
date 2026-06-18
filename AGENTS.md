@@ -52,7 +52,7 @@
 ## Working commands
 - Run the plan execution wrapper from any git repo with `codex-plan-loop <plan-file>` after adding this repo's `bin/` directory to `PATH` or symlinking the command into `~/.local/bin`.
 - `codex-plan-loop` defaults to live readable phase logging. Use `--log-style quiet` for wrapper-only output or `--log-style jsonl` to mirror raw Codex JSONL events.
-- Inspect saved plan-loop logs from any git repo with `codex-plan-log show latest` or the `codex-plan-logs` skill.
+- Inspect saved plan-loop logs from any git repo with `codex-plan-log show latest` or the `codex-plan-loop` skill.
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
