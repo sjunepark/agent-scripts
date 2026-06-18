@@ -17,9 +17,12 @@ Options:
   --max-iterations <n>    Maximum review/fix iterations. Default: ${DEFAULT_MAX_ITERATIONS}
   --sandbox <mode>        Codex sandbox mode. Default: ${DEFAULT_SANDBOX}
   --model <model>         Optional model override passed to codex exec.
+  --reasoning-effort <n>  Optional reasoning effort override passed to codex exec.
   --network               Enable network access inside workspace-write sandbox.
   --review-only           Review and report without editing files.
   --log-style <style>     Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
+  --print-effective-config
+                          Print resolved model/reasoning settings and exit.
   --help                  Show this help.
 
 The wrapper runs fresh Codex review and fix phases, writes private run logs
@@ -33,9 +36,11 @@ function parseArgs(argv) {
     maxIterations: DEFAULT_MAX_ITERATIONS,
     sandbox: DEFAULT_SANDBOX,
     model: "",
+    reasoningEffort: "",
     network: false,
     reviewOnly: false,
     logStyle: DEFAULT_LOG_STYLE,
+    printEffectiveConfig: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -55,11 +60,17 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--print-effective-config") {
+      options.printEffectiveConfig = true;
+      continue;
+    }
+
     if (
       arg === "--scope" ||
       arg === "--max-iterations" ||
       arg === "--sandbox" ||
       arg === "--model" ||
+      arg === "--reasoning-effort" ||
       arg === "--log-style"
     ) {
       const value = argv[i + 1];
@@ -76,6 +87,8 @@ function parseArgs(argv) {
         options.sandbox = value;
       } else if (arg === "--model") {
         options.model = value;
+      } else if (arg === "--reasoning-effort") {
+        options.reasoningEffort = value;
       } else {
         options.logStyle = value;
       }
@@ -97,6 +110,9 @@ function parseArgs(argv) {
   }
   if (!["live", "quiet", "jsonl"].includes(options.logStyle)) {
     throw new Error(`unsupported log style: ${options.logStyle}`);
+  }
+  if (options.reasoningEffort && !["low", "medium", "high", "xhigh"].includes(options.reasoningEffort)) {
+    throw new Error(`unsupported reasoning effort: ${options.reasoningEffort}`);
   }
   if (options.reviewOnly && options.sandbox !== "read-only") {
     options.sandbox = "read-only";
@@ -163,6 +179,103 @@ function makeRunDir(repoRoot) {
 
 function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function codexHome() {
+  return process.env.CODEX_HOME || path.join(homeDir(), ".codex");
+}
+
+function homeDir() {
+  return process.env.HOME || process.env.USERPROFILE || "";
+}
+
+function readCodexConfig() {
+  const configFile = path.join(codexHome(), "config.toml");
+  if (!fs.existsSync(configFile)) {
+    return { path: configFile, values: {} };
+  }
+
+  const values = {};
+  const lines = fs.readFileSync(configFile, "utf8").split(/\r?\n/);
+  let inTopLevel = true;
+  for (const rawLine of lines) {
+    const line = stripTomlComment(rawLine).trim();
+    if (!line) continue;
+    if (line.startsWith("[") && line.endsWith("]")) {
+      inTopLevel = false;
+      continue;
+    }
+    if (!inTopLevel) continue;
+
+    const match = line.match(/^([A-Za-z0-9_-]+)\s*=\s*(.+)$/);
+    if (!match) continue;
+    values[match[1]] = parseTomlScalar(match[2].trim());
+  }
+
+  return { path: configFile, values };
+}
+
+function stripTomlComment(line) {
+  let inString = false;
+  let quote = "";
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if ((char === '"' || char === "'") && line[i - 1] !== "\\") {
+      if (!inString) {
+        inString = true;
+        quote = char;
+      } else if (quote === char) {
+        inString = false;
+        quote = "";
+      }
+    }
+    if (char === "#" && !inString) {
+      return line.slice(0, i);
+    }
+  }
+  return line;
+}
+
+function parseTomlScalar(value) {
+  const quoted = value.match(/^"([\s\S]*)"$/) || value.match(/^'([\s\S]*)'$/);
+  if (quoted) return quoted[1];
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+}
+
+function effectiveCodexConfig(options) {
+  const config = readCodexConfig();
+  const modelFromConfig = stringValue(config.values.model);
+  const reasoningFromConfig = stringValue(config.values.model_reasoning_effort);
+  return {
+    model: options.model || modelFromConfig || "Codex default",
+    modelSource: options.model ? "flag" : modelFromConfig ? "config" : "codex-default",
+    reasoningEffort: options.reasoningEffort || reasoningFromConfig || "Codex default",
+    reasoningEffortSource: options.reasoningEffort ? "flag" : reasoningFromConfig ? "config" : "codex-default",
+    configPath: config.path,
+    sandbox: options.sandbox,
+    reviewOnly: options.reviewOnly,
+    network: options.network,
+    maxIterations: options.maxIterations,
+    logStyle: options.logStyle,
+  };
+}
+
+function stringValue(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function printEffectiveConfig(options) {
+  const effective = effectiveCodexConfig(options);
+  console.log(`Model: ${effective.model} (${effective.modelSource})`);
+  console.log(`Reasoning effort: ${effective.reasoningEffort} (${effective.reasoningEffortSource})`);
+  console.log(`Config: ${effective.configPath}`);
+  console.log(`Sandbox: ${effective.sandbox}`);
+  console.log(`Review only: ${effective.reviewOnly ? "yes" : "no"}`);
+  console.log(`Network: ${effective.network ? "enabled" : "disabled"}`);
+  console.log(`Max iterations: ${effective.maxIterations}`);
+  console.log(`Log style: ${effective.logStyle}`);
 }
 
 function reviewSchema() {
@@ -267,6 +380,10 @@ function buildCodexArgs({ options, schemaFile, lastMessageFile, prompt }) {
 
   if (options.model) {
     args.push("--model", options.model);
+  }
+
+  if (options.reasoningEffort) {
+    args.push("-c", `model_reasoning_effort=${JSON.stringify(options.reasoningEffort)}`);
   }
 
   args.push(prompt);
@@ -617,9 +734,15 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const repoRoot = findRepoRoot();
 
+  if (options.printEffectiveConfig) {
+    printEffectiveConfig(options);
+    return 0;
+  }
+
   ensureCommand("codex");
 
   const runDir = makeRunDir(repoRoot);
+  const effectiveConfig = effectiveCodexConfig(options);
   let bucket2Items = [];
   let appliedCount = 0;
   let lastReview = null;
@@ -627,11 +750,14 @@ async function main() {
 
   console.error(`[codex-review-loop] repo: ${repoRoot}`);
   console.error(`[codex-review-loop] scope: ${options.scope}`);
+  console.error(`[codex-review-loop] model: ${effectiveConfig.model} (${effectiveConfig.modelSource})`);
+  console.error(`[codex-review-loop] reasoning effort: ${effectiveConfig.reasoningEffort} (${effectiveConfig.reasoningEffortSource})`);
   console.error(`[codex-review-loop] run state: ${runDir}`);
   writeJson(path.join(runDir, "start.json"), {
     repoRoot,
     scope: options.scope,
     options,
+    effectiveConfig,
     status: gitStatus(repoRoot),
   });
 

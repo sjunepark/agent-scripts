@@ -23,12 +23,13 @@ git rev-parse --show-toplevel
 git status --porcelain=v1
 command -v codex-review-loop
 command -v codex-review-log
+codex-review-loop --scope "<scope>" --print-effective-config
 ```
 
 3. Require explicit confirmation before starting.
-   - Report the repository, scope, current worktree status, and exact command.
+   - Report the repository, scope, current worktree status, effective model, effective reasoning effort, and exact command.
    - State that `codex-review-loop` may edit files by applying safe Bucket I fixes, but never stages, commits, or pushes.
-   - Use existing CLI defaults unless the user specified options: max 5 iterations, `workspace-write`, no network, live logs.
+   - Use existing CLI defaults unless the user specified options: max 5 iterations, `workspace-write`, no network, live logs, Codex configured/default model, and Codex configured/default reasoning effort.
    - For read-only review, include `--review-only`.
 
 4. Start the command in a long-running terminal session so the conversation can continue:
@@ -42,6 +43,7 @@ Use user-provided options exactly, for example:
 ```bash
 codex-review-loop --scope "HEAD~1..HEAD" --review-only --max-iterations 1
 codex-review-loop --scope "current uncommitted changes" --network --model <model>
+codex-review-loop --scope "current uncommitted changes" --model <model> --reasoning-effort high
 ```
 
 ## Monitor A Live Run
@@ -98,6 +100,7 @@ When the wrapper exits with `decision_needed`, `blocked`, `failed`,
 
 - `codex-review-loop` allows an initially dirty worktree because the default scope is uncommitted changes.
 - The wrapper writes private run logs under `.git/codex-review-loop/`.
+- If `--model` or `--reasoning-effort` is omitted, the wrapper lets `codex exec` use Codex configuration or Codex defaults. Use `codex-review-loop --print-effective-config` to see what the wrapper can resolve before starting.
 - The wrapper uses fresh `codex exec` turns; the active chat session is the supervisor, not the worker.
 - The wrapper applies only Bucket I safe fixes by default and never stages, commits, or pushes.
 - A phase can succeed while the wrapper later stops because Bucket II needs a decision, validation failed, or the iteration limit was reached.
