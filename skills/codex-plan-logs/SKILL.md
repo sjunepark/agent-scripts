@@ -29,12 +29,15 @@ questions.
    - `final-summary.json`: wrapper final state and aggregated Bucket II items.
    - `cycle-*-progress-parsed.json`: structured output from `$progress-run`.
    - `cycle-*-review-*-parsed.json`: structured output from `$post-review-loop`.
+   - `*.transcript.log`: readable live-style transcript rendered from Codex JSONL events.
    - `*.stderr.log`: Codex progress stream and command/status messages.
    - `*.jsonl`: raw `codex exec --json` event stream.
 
 5. For event-level questions, use:
 
 ```bash
+codex-plan-log transcript latest
+codex-plan-log transcript latest cycle-1-progress
 codex-plan-log events latest
 codex-plan-log events latest cycle-1-progress
 codex-plan-log events latest cycle-1-review-1 --json
@@ -49,7 +52,7 @@ codex-plan-log events latest cycle-1-review-1 --json
 - Missing `.git/codex-plan-loop/` means no wrapper runs were saved in that repo.
 - Missing `final-summary.json` usually means the wrapper exited before its final reporting path.
 - A phase can succeed while the wrapper stops later because review found blocking Bucket II, validation failed, or the review limit was reached.
-- `codex-plan-loop` uses fresh `codex exec` turns; these logs are automation artifacts, not interactive TUI transcripts.
+- `codex-plan-loop` uses fresh `codex exec` turns; `*.transcript.log` is a readable automation transcript, while `*.jsonl` is the raw event stream.
 - The helper is read-only. Do not edit or delete saved run directories unless the user explicitly asks for cleanup.
 
 ## Output Shape

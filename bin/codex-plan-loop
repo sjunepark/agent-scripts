@@ -7,6 +7,7 @@ const { spawn, spawnSync } = require("child_process");
 const DEFAULT_MAX_CYCLES = 20;
 const DEFAULT_SANDBOX = "workspace-write";
 const DEFAULT_REVIEW_LIMIT = 5;
+const DEFAULT_LOG_STYLE = "live";
 
 function usage() {
   console.log(`Usage: codex-plan-loop <plan-file> [options]
@@ -17,10 +18,12 @@ Options:
   --model <model>        Optional model override passed to codex exec.
   --network              Enable network access inside workspace-write sandbox.
   --review-limit <n>     Maximum review passes per progress cycle. Default: ${DEFAULT_REVIEW_LIMIT}
+  --log-style <style>    Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
   --help                 Show this help.
 
 The wrapper requires a clean git worktree before starting. It writes private
-run logs under .git/codex-plan-loop/ and auto-commits each accepted slice.`);
+run logs under .git/codex-plan-loop/ and auto-commits each accepted slice.
+Raw JSONL, stderr, and readable transcript logs are saved for each Codex phase.`);
 }
 
 function parseArgs(argv) {
@@ -30,6 +33,7 @@ function parseArgs(argv) {
     model: "",
     network: false,
     reviewLimit: DEFAULT_REVIEW_LIMIT,
+    logStyle: DEFAULT_LOG_STYLE,
   };
   let planFile = "";
 
@@ -45,7 +49,13 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg === "--max-cycles" || arg === "--sandbox" || arg === "--model" || arg === "--review-limit") {
+    if (
+      arg === "--max-cycles" ||
+      arg === "--sandbox" ||
+      arg === "--model" ||
+      arg === "--review-limit" ||
+      arg === "--log-style"
+    ) {
       const value = argv[i + 1];
       if (!value || value.startsWith("--")) {
         throw new Error(`${arg} requires a value`);
@@ -58,8 +68,10 @@ function parseArgs(argv) {
         options.sandbox = value;
       } else if (arg === "--model") {
         options.model = value;
-      } else {
+      } else if (arg === "--review-limit") {
         options.reviewLimit = parsePositiveInteger(value, "review-limit");
+      } else {
+        options.logStyle = value;
       }
       continue;
     }
@@ -80,6 +92,9 @@ function parseArgs(argv) {
 
   if (!["read-only", "workspace-write", "danger-full-access"].includes(options.sandbox)) {
     throw new Error(`unsupported sandbox mode: ${options.sandbox}`);
+  }
+  if (!["live", "quiet", "jsonl"].includes(options.logStyle)) {
+    throw new Error(`unsupported log style: ${options.logStyle}`);
   }
 
   return { planFile, options };
@@ -241,6 +256,7 @@ function runCodexPhase({ repoRoot, runDir, phaseName, cycle, pass, options, sche
   const lastMessageFile = path.join(runDir, `${prefix}-last-message.json`);
   const jsonlFile = path.join(runDir, `${prefix}.jsonl`);
   const stderrFile = path.join(runDir, `${prefix}.stderr.log`);
+  const transcriptFile = path.join(runDir, `${prefix}.transcript.log`);
 
   writeJson(schemaFile, schema);
 
@@ -250,6 +266,12 @@ function runCodexPhase({ repoRoot, runDir, phaseName, cycle, pass, options, sche
   return new Promise((resolve, reject) => {
     const stdout = fs.createWriteStream(jsonlFile);
     const stderr = fs.createWriteStream(stderrFile);
+    const transcript = fs.createWriteStream(transcriptFile);
+    const renderer = createPhaseRenderer({
+      prefix,
+      style: options.logStyle,
+      transcript,
+    });
     const child = spawn("codex", args, {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"],
@@ -257,19 +279,20 @@ function runCodexPhase({ repoRoot, runDir, phaseName, cycle, pass, options, sche
 
     child.stdout.on("data", (chunk) => {
       stdout.write(chunk);
+      renderer.write(chunk);
     });
 
     child.stderr.on("data", (chunk) => {
       stderr.write(chunk);
-      process.stderr.write(chunk);
     });
 
     child.on("error", reject);
     child.on("close", (code) => {
-      Promise.all([finishStream(stdout), finishStream(stderr)])
+      renderer.end();
+      Promise.all([finishStream(stdout), finishStream(stderr), finishStream(transcript)])
         .then(() => {
           if (code !== 0) {
-            reject(new Error(`${prefix} failed with exit code ${code}; see ${stderrFile}`));
+            reject(new Error(`${prefix} failed with exit code ${code}; see ${stderrFile} and ${transcriptFile}`));
             return;
           }
 
@@ -292,6 +315,156 @@ function finishStream(stream) {
     stream.on("error", reject);
     stream.end(resolve);
   });
+}
+
+function createPhaseRenderer({ prefix, style, transcript }) {
+  let buffer = "";
+
+  function emit(message) {
+    const line = `[${prefix}] ${message}\n`;
+    transcript.write(line);
+    if (style === "live") {
+      process.stderr.write(line);
+    }
+  }
+
+  emit("phase started");
+
+  return {
+    write(chunk) {
+      const text = chunk.toString("utf8");
+      if (style === "jsonl") {
+        process.stderr.write(text);
+      }
+
+      buffer += text;
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        renderJsonLine(line, emit);
+      }
+    },
+    end() {
+      if (buffer.trim()) {
+        renderJsonLine(buffer, emit);
+      }
+      emit("phase finished");
+    },
+  };
+}
+
+function renderJsonLine(line, emit) {
+  if (!line.trim()) return;
+
+  let event;
+  try {
+    event = JSON.parse(line);
+  } catch {
+    emit(`unparsed event: ${truncate(line.trim(), 500)}`);
+    return;
+  }
+
+  if (event.type === "thread.started") {
+    emit(`thread started: ${event.thread_id || "unknown"}`);
+    return;
+  }
+
+  if (event.type === "turn.started") {
+    emit("turn started");
+    return;
+  }
+
+  if (event.type === "turn.completed") {
+    const usage = event.usage ? ` ${JSON.stringify(event.usage)}` : "";
+    emit(`turn completed${usage}`);
+    return;
+  }
+
+  if (event.type === "turn.failed" || event.type === "error") {
+    emit(`${event.type}: ${event.message || event.error || "unknown error"}`);
+    return;
+  }
+
+  const item = event.item || {};
+  if (!item.type) {
+    emit(`${event.type || "event"}: ${truncate(JSON.stringify(event), 1000)}`);
+    return;
+  }
+
+  if (event.type === "item.started" && item.type === "command_execution") {
+    emit(`running: ${compactCommand(item.command || "")}`);
+    return;
+  }
+
+  if (event.type === "item.completed" && item.type === "command_execution") {
+    const exitText = item.exit_code === null || item.exit_code === undefined ? "" : ` exit ${item.exit_code}`;
+    emit(`command ${item.status || "completed"}${exitText}: ${compactCommand(item.command || "")}`);
+    if (item.aggregated_output && item.aggregated_output.trim()) {
+      emitBlock("output", item.aggregated_output, emit, 1200);
+    }
+    return;
+  }
+
+  if (item.type === "agent_message") {
+    emitBlock("agent", formatAgentMessage(item.text || ""), emit, 4000);
+    return;
+  }
+
+  emit(`${item.type}: ${truncate(JSON.stringify(item), 1000)}`);
+}
+
+function compactCommand(command) {
+  return String(command || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatAgentMessage(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed.startsWith("{")) return trimmed;
+
+  try {
+    const value = JSON.parse(trimmed);
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return trimmed;
+    }
+
+    const lines = [];
+    if (value.status || value.summary) {
+      lines.push([value.status, value.summary].filter(Boolean).join(" - "));
+    }
+    if (typeof value.bucket1_applied_count === "number") {
+      lines.push(`Bucket I applied: ${value.bucket1_applied_count}`);
+    }
+    if (Array.isArray(value.bucket2_items)) {
+      lines.push(`Bucket II: ${value.bucket2_items.length}`);
+    }
+    if (value.validation) {
+      lines.push(`Validation: ${value.validation}`);
+    }
+    if (value.next_action) {
+      lines.push(`Next: ${value.next_action}`);
+    }
+    return lines.length ? lines.join("\n") : trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function emitBlock(label, text, emit, maxLength) {
+  const rendered = truncate(String(text || "").trim(), maxLength);
+  if (!rendered) return;
+  const lines = rendered.split(/\r?\n/);
+  emit(`${label}: ${lines[0]}`);
+  for (const line of lines.slice(1)) {
+    emit(`  ${line}`);
+  }
+}
+
+function truncate(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}... [truncated ${text.length - maxLength} chars]`;
 }
 
 function readFinalMessage(lastMessageFile, jsonlFile) {

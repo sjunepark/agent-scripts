@@ -11,17 +11,20 @@ Commands:
   list                         List saved codex-plan-loop runs.
   path [run-id|latest]         Print a run directory path.
   show [run-id|latest]         Show a run summary. Default command.
+  transcript [run-id|latest] [phase-prefix]
+                               Show readable transcript logs.
   events [run-id|latest] [phase-prefix]
                                Show useful JSONL events for a run or phase.
 
 Options:
-  --json                       Emit JSON for show/list/path/events.
+  --json                       Emit JSON for show/list/path/transcript/events.
   --help                       Show this help.
 
 Examples:
   codex-plan-log
   codex-plan-log list
   codex-plan-log show latest --json
+  codex-plan-log transcript latest cycle-1-progress
   codex-plan-log events latest cycle-1-progress`);
 }
 
@@ -44,7 +47,7 @@ function parseArgs(argv) {
     positional.push(arg);
   }
 
-  const knownCommands = new Set(["list", "path", "show", "events"]);
+  const knownCommands = new Set(["list", "path", "show", "transcript", "events"]);
   let command = "show";
   if (positional[0] && knownCommands.has(positional[0])) {
     command = positional.shift();
@@ -138,6 +141,7 @@ function phaseFiles(run) {
         parsedPath: path.join(run.path, name),
         jsonlPath: path.join(run.path, `${phase}.jsonl`),
         stderrPath: path.join(run.path, `${phase}.stderr.log`),
+        transcriptPath: path.join(run.path, `${phase}.transcript.log`),
         lastMessagePath: path.join(run.path, `${phase}-last-message.json`),
       };
     });
@@ -152,6 +156,7 @@ function summarizeRun(run) {
       parsed: phase.parsedPath,
       jsonl: fs.existsSync(phase.jsonlPath) ? phase.jsonlPath : null,
       stderr: fs.existsSync(phase.stderrPath) ? phase.stderrPath : null,
+      transcript: fs.existsSync(phase.transcriptPath) ? phase.transcriptPath : null,
       lastMessage: fs.existsSync(phase.lastMessagePath) ? phase.lastMessagePath : null,
     },
   }));
@@ -295,6 +300,45 @@ function printEvents(run, phasePrefix, asJson) {
   }
 }
 
+function printTranscript(run, phasePrefix, asJson) {
+  if (!run) {
+    printNoRuns(asJson);
+    return;
+  }
+
+  const transcripts = fs
+    .readdirSync(run.path)
+    .filter((name) => name.endsWith(".transcript.log"))
+    .filter((name) => !phasePrefix || name.startsWith(phasePrefix))
+    .sort()
+    .map((file) => {
+      const fullPath = path.join(run.path, file);
+      return {
+        file,
+        path: fullPath,
+        text: fs.readFileSync(fullPath, "utf8"),
+      };
+    });
+
+  if (asJson) {
+    console.log(JSON.stringify({ id: run.id, path: run.path, phasePrefix, transcripts }, null, 2));
+    return;
+  }
+
+  if (!transcripts.length) {
+    console.log("No matching transcript logs found.");
+    return;
+  }
+
+  for (const transcript of transcripts) {
+    console.log(`\n== ${transcript.file} ==`);
+    process.stdout.write(transcript.text);
+    if (!transcript.text.endsWith("\n")) {
+      console.log("");
+    }
+  }
+}
+
 function printNoRuns(asJson) {
   const message = "No codex-plan-loop runs found in this repository.";
   if (asJson) {
@@ -319,6 +363,8 @@ function main() {
     printPath(run, options.json);
   } else if (command === "show") {
     printShow(run, options.json);
+  } else if (command === "transcript") {
+    printTranscript(run, phasePrefix, options.json);
   } else if (command === "events") {
     printEvents(run, phasePrefix, options.json);
   } else {

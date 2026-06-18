@@ -47,7 +47,13 @@ Then use the command from any git repository:
 ```bash
 codex-plan-loop path/to/PLAN.md
 codex-plan-log show latest
+codex-plan-log transcript latest
 ```
+
+`codex-plan-loop` prints a live readable transcript by default while still
+saving raw JSONL logs under `.git/codex-plan-loop/`. Use
+`--log-style quiet` for wrapper-only terminal output or `--log-style jsonl` to
+mirror raw Codex JSONL events to the terminal.
 
 ## Validation
 

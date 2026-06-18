@@ -3,26 +3,27 @@
 - ledger-version: 3
 - repo: /Users/sejunpark/IT/agent-scripts
 - lifecycle: complete
-- scope: uncommitted changes: codex-plan-log helper and codex-plan-logs skill
+- scope: uncommitted changes: codex-plan-loop live transcript logging and codex-plan-log transcript inspection
 - phase: final-report
 - iteration: 1/5
 - review-only: false
-- baseline: c3fc86b692a6967a36af0da003170a212446422f
-- scope-fingerprint: HEAD c3fc86b; M AGENTS.md README.md; new bin/codex-plan-log skills/codex-plan-logs; archived stale post-review ledger
-- updated: 2026-06-18T14:58:00+09:00
+- baseline: d4f6d92f028f0b142cca0dc75e6e9eefdd36a609
+- scope-fingerprint: HEAD d4f6d92; M AGENTS.md README.md bin/codex-plan-log bin/codex-plan-loop skills/codex-plan-logs/SKILL.md; archived stale post-review ledger
+- updated: 2026-06-18T15:10:16+09:00
 
 ## What Was Reviewed
 
-Reviewed the uncommitted `codex-plan-log` helper, the published `codex-plan-logs`
-skill metadata/instructions, and the README/AGENTS command documentation. The
-previous completed ledger for `scripts/codex-plan-loop` was stale for this
-scope and was archived to `reviews/archive/post-review-loop-20260618T145630+0900.md`.
+Reviewed the live transcript renderer in `bin/codex-plan-loop`, the new
+`codex-plan-log transcript` inspection path, and the README/AGENTS/skill
+documentation that describes the new behavior. The previous completed ledger was
+for the earlier log-helper/skill slice and was archived to
+`reviews/archive/post-review-loop-20260618T150915+0900.md`.
 
 ## Bucket I - Safe In-Scope Fixes
 
 | status | priority | title | design signal | evidence | fix | validation |
 |---|---|---|---|---|---|---|
-| none | - | No accepted Bucket I findings | - | The helper artifact names match `bin/codex-plan-loop`, no-log handling is explicit, and fixture validation covered list/show/events paths. | No automatic code changes applied. | `node --check bin/codex-plan-log`; `bin/codex-plan-log --help`; `scripts/validate-skills`; `bunx skills add ./skills/codex-plan-logs --list`; synthetic `.git/codex-plan-loop` fixture check |
+| none | - | No accepted Bucket I findings | - | The renderer preserves raw JSONL, writes separate transcripts, supports `live`, `quiet`, and `jsonl` modes, and the inspection helper can replay transcript logs. | No automatic code changes applied. | `node --check bin/codex-plan-loop && node --check bin/codex-plan-log`; `scripts/validate-skills`; `bunx skills add ./skills/codex-plan-logs --list`; real temp-repo `codex-plan-loop` run with transcript replay |
 
 ## Bucket II - Needs Decision
 
@@ -34,8 +35,8 @@ scope and was archived to `reviews/archive/post-review-loop-20260618T145630+0900
 
 | title | reason |
 |---|---|
-| Keep `events` run selector explicit | The helper usage consistently documents `codex-plan-log events latest <phase-prefix>`. Adding a shorthand for omitted `latest` would be a usability enhancement, not a correctness issue introduced by this change. |
-| Keep helper read-only and local to git repo logs | The skill's stated workflow is to inspect `.git/codex-plan-loop` artifacts from the current repository. Adding cross-repo path flags would expand the command surface without a current need. |
+| Keep live transcript separate from raw JSONL | The wrapper still needs machine-readable JSONL for structured parsing and saved automation state. A separate readable transcript gives operator visibility without weakening the parser contract. |
+| Keep transcript replay explicit | `codex-plan-log transcript latest` is a distinct command rather than overloading `show`, which keeps summaries compact while allowing full readable replay when requested. |
 
 ## Code Changes Applied
 
@@ -47,13 +48,12 @@ scope and was archived to `reviews/archive/post-review-loop-20260618T145630+0900
 
 | command | result | notes |
 |---|---|---|
-| `node --check bin/codex-plan-log` | pass | Syntax check for the new helper. |
-| `bin/codex-plan-log --help` | pass | CLI usage renders successfully. |
+| `node --check bin/codex-plan-loop && node --check bin/codex-plan-log` | pass | Syntax checks for both command scripts. |
 | `scripts/validate-skills` | pass | Reported `Validated 25 skills.` |
 | `bunx skills add ./skills/codex-plan-logs --list` | pass | Local skill path validated and skill was listed. |
-| synthetic `.git/codex-plan-loop` fixture check | pass | Verified `list`, `show latest`, `show latest --json`, and `events latest cycle-1-progress`. |
+| real temp-repo `codex-plan-loop` run | pass | Verified default live stderr output, `Status: complete` stdout, transcript file creation, and `codex-plan-log transcript latest cycle-1-progress` replay. |
 
 ## Phase Log
 
-- 1 post-review: reviewed helper, skill, docs, and wrapper artifact contract; gate: no Bucket I candidates.
+- 1 post-review: reviewed wrapper stream handling, JSONL rendering, transcript artifact paths, helper replay path, and docs; gate: no Bucket I candidates.
 - 1 final-report: validation passed; gate: complete.
