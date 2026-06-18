@@ -23,12 +23,13 @@ git status --porcelain=v1
 command -v codex-plan-loop
 command -v codex-plan-log
 test -f <plan-file>
+codex-plan-loop <plan-file> --print-effective-config
 ```
 
 3. Require explicit confirmation before starting.
-   - Report the repository, plan file, clean-worktree result, and exact command.
+   - Report the repository, plan file, clean-worktree result, effective model, effective reasoning effort, whether Fast mode will apply, and exact command.
    - State that `codex-plan-loop` auto-commits each accepted progress/review slice.
-   - Use existing CLI defaults unless the user specified options: max 20 cycles, `workspace-write`, no network, review limit 5, live logs.
+   - Use existing CLI defaults unless the user specified options: max 20 cycles, `workspace-write`, no network, review limit 5, live logs, Codex configured/default model, Codex configured/default reasoning effort, and Codex configured/default service tier.
    - Do not start when the worktree is dirty unless the user explicitly instructs a different cleanup or isolation plan.
 
 4. Start the command in a long-running terminal session so the conversation can continue:
@@ -41,6 +42,9 @@ Use user-provided options exactly, for example:
 
 ```bash
 codex-plan-loop <plan-file> --max-cycles 1 --network --model <model>
+codex-plan-loop <plan-file> --model <model> --reasoning-effort high
+codex-plan-loop <plan-file> --fast
+codex-plan-loop <plan-file> --service-tier fast
 ```
 
 ## Monitor A Live Run
@@ -96,6 +100,8 @@ When the wrapper exits with `blocked`, `decision_needed`, `failed`, or
 ## Interpretation Notes
 
 - `codex-plan-loop` requires a clean worktree before starting and writes private run logs under `.git/codex-plan-loop/`.
+- If `--model`, `--reasoning-effort`, or `--service-tier` is omitted, the wrapper lets `codex exec` use Codex configuration or Codex defaults. Use `codex-plan-loop <plan-file> --print-effective-config` to see what the wrapper can resolve before starting.
+- `--fast` is a shortcut for `--service-tier fast`. It uses Codex's documented Fast mode path, `service_tier = "fast"`.
 - The wrapper uses fresh `codex exec` turns; the active chat session is the supervisor, not the worker.
 - A phase can succeed while the wrapper later stops because review found blocking Bucket II, validation failed, or the review limit was reached.
 - Missing `.git/codex-plan-loop/` means no wrapper runs were saved in that repository.

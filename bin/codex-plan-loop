@@ -20,9 +20,14 @@ Options:
   --max-cycles <n>       Maximum progress cycles to run. Default: ${DEFAULT_MAX_CYCLES}
   --sandbox <mode>       Codex sandbox mode. Default: ${DEFAULT_SANDBOX}
   --model <model>        Optional model override passed to codex exec.
+  --reasoning-effort <n> Optional reasoning effort override passed to codex exec.
+  --service-tier <tier>  Optional service tier override passed to codex exec.
+  --fast                 Shortcut for --service-tier fast.
   --network              Enable network access inside workspace-write sandbox.
   --review-limit <n>     Maximum review passes per progress cycle. Default: ${DEFAULT_REVIEW_LIMIT}
   --log-style <style>    Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
+  --print-effective-config
+                         Print resolved model/reasoning/fast-mode settings and exit.
   --help                 Show this help.
 
 The wrapper requires a clean git worktree before starting. It writes private
@@ -35,9 +40,12 @@ function parseArgs(argv) {
     maxCycles: DEFAULT_MAX_CYCLES,
     sandbox: DEFAULT_SANDBOX,
     model: "",
+    reasoningEffort: "",
+    serviceTier: "",
     network: false,
     reviewLimit: DEFAULT_REVIEW_LIMIT,
     logStyle: DEFAULT_LOG_STYLE,
+    printEffectiveConfig: false,
   };
   let planFile = "";
 
@@ -53,10 +61,22 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--fast") {
+      options.serviceTier = "fast";
+      continue;
+    }
+
+    if (arg === "--print-effective-config") {
+      options.printEffectiveConfig = true;
+      continue;
+    }
+
     if (
       arg === "--max-cycles" ||
       arg === "--sandbox" ||
       arg === "--model" ||
+      arg === "--reasoning-effort" ||
+      arg === "--service-tier" ||
       arg === "--review-limit" ||
       arg === "--log-style"
     ) {
@@ -72,6 +92,10 @@ function parseArgs(argv) {
         options.sandbox = value;
       } else if (arg === "--model") {
         options.model = value;
+      } else if (arg === "--reasoning-effort") {
+        options.reasoningEffort = value;
+      } else if (arg === "--service-tier") {
+        options.serviceTier = value;
       } else if (arg === "--review-limit") {
         options.reviewLimit = parsePositiveInteger(value, "review-limit");
       } else {
@@ -99,6 +123,12 @@ function parseArgs(argv) {
   }
   if (!["live", "quiet", "jsonl"].includes(options.logStyle)) {
     throw new Error(`unsupported log style: ${options.logStyle}`);
+  }
+  if (options.reasoningEffort && !["low", "medium", "high", "xhigh"].includes(options.reasoningEffort)) {
+    throw new Error(`unsupported reasoning effort: ${options.reasoningEffort}`);
+  }
+  if (options.serviceTier && !/^[A-Za-z0-9._-]+$/.test(options.serviceTier)) {
+    throw new Error(`unsupported service tier: ${options.serviceTier}`);
   }
 
   return { planFile, options };
@@ -169,6 +199,129 @@ function makeRunDir(repoRoot) {
 
 function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function codexHome() {
+  return process.env.CODEX_HOME || path.join(homeDir(), ".codex");
+}
+
+function homeDir() {
+  return process.env.HOME || process.env.USERPROFILE || "";
+}
+
+function readCodexConfig() {
+  const configFile = path.join(codexHome(), "config.toml");
+  if (!fs.existsSync(configFile)) {
+    return { path: configFile, values: {}, tables: {} };
+  }
+
+  const values = {};
+  const tables = {};
+  const lines = fs.readFileSync(configFile, "utf8").split(/\r?\n/);
+  let tableName = "";
+  for (const rawLine of lines) {
+    const line = stripTomlComment(rawLine).trim();
+    if (!line) continue;
+    if (line.startsWith("[") && line.endsWith("]")) {
+      tableName = line.replace(/^\[+|\]+$/g, "");
+      if (!tables[tableName]) tables[tableName] = {};
+      continue;
+    }
+
+    const match = line.match(/^([A-Za-z0-9_-]+)\s*=\s*(.+)$/);
+    if (!match) continue;
+    const parsed = parseTomlScalar(match[2].trim());
+    if (!tableName) {
+      values[match[1]] = parsed;
+    } else {
+      tables[tableName][match[1]] = parsed;
+    }
+  }
+
+  return { path: configFile, values, tables };
+}
+
+function stripTomlComment(line) {
+  let inString = false;
+  let quote = "";
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if ((char === '"' || char === "'") && line[i - 1] !== "\\") {
+      if (!inString) {
+        inString = true;
+        quote = char;
+      } else if (quote === char) {
+        inString = false;
+        quote = "";
+      }
+    }
+    if (char === "#" && !inString) {
+      return line.slice(0, i);
+    }
+  }
+  return line;
+}
+
+function parseTomlScalar(value) {
+  const quoted = value.match(/^"([\s\S]*)"$/) || value.match(/^'([\s\S]*)'$/);
+  if (quoted) return quoted[1];
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+}
+
+function effectiveCodexConfig(options) {
+  const config = readCodexConfig();
+  const modelFromConfig = stringValue(config.values.model);
+  const reasoningFromConfig = stringValue(config.values.model_reasoning_effort);
+  const serviceTierFromConfig = stringValue(config.values.service_tier);
+  const fastModeFeatureFromConfig = booleanValue(config.tables.features && config.tables.features.fast_mode);
+  const serviceTier = options.serviceTier || serviceTierFromConfig || "Codex default";
+  const serviceTierSource = options.serviceTier ? "flag" : serviceTierFromConfig ? "config" : "codex-default";
+  const fastModeFeatureEnabled = fastModeFeatureFromConfig !== false;
+  const fastModeApplied = serviceTier === "fast" && fastModeFeatureEnabled;
+  const fastModeDetail =
+    serviceTier === "fast" && !fastModeFeatureEnabled
+      ? "service_tier=fast but features.fast_mode=false"
+      : `service_tier=${serviceTier}`;
+  return {
+    model: options.model || modelFromConfig || "Codex default",
+    modelSource: options.model ? "flag" : modelFromConfig ? "config" : "codex-default",
+    reasoningEffort: options.reasoningEffort || reasoningFromConfig || "Codex default",
+    reasoningEffortSource: options.reasoningEffort ? "flag" : reasoningFromConfig ? "config" : "codex-default",
+    serviceTier,
+    serviceTierSource,
+    fastModeApplied,
+    fastModeDetail,
+    configPath: config.path,
+    sandbox: options.sandbox,
+    network: options.network,
+    maxCycles: options.maxCycles,
+    reviewLimit: options.reviewLimit,
+    logStyle: options.logStyle,
+  };
+}
+
+function stringValue(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function booleanValue(value) {
+  return typeof value === "boolean" ? value : null;
+}
+
+function printEffectiveConfig(planFile, options) {
+  const effective = effectiveCodexConfig(options);
+  console.log(`Model: ${effective.model} (${effective.modelSource})`);
+  console.log(`Reasoning effort: ${effective.reasoningEffort} (${effective.reasoningEffortSource})`);
+  console.log(`Fast mode: ${effective.fastModeApplied ? "yes" : "no"} (${effective.fastModeDetail}, ${effective.serviceTierSource})`);
+  console.log(`Config: ${effective.configPath}`);
+  console.log(`Plan file: ${planFile}`);
+  console.log(`Sandbox: ${effective.sandbox}`);
+  console.log(`Network: ${effective.network ? "enabled" : "disabled"}`);
+  console.log(`Max cycles: ${effective.maxCycles}`);
+  console.log(`Review limit: ${effective.reviewLimit}`);
+  console.log(`Log style: ${effective.logStyle}`);
 }
 
 function progressSchema() {
@@ -248,6 +401,14 @@ function buildCodexArgs({ options, schemaFile, lastMessageFile, prompt }) {
 
   if (options.model) {
     args.push("--model", options.model);
+  }
+
+  if (options.reasoningEffort) {
+    args.push("-c", `model_reasoning_effort=${JSON.stringify(options.reasoningEffort)}`);
+  }
+
+  if (options.serviceTier) {
+    args.push("-c", `service_tier=${JSON.stringify(options.serviceTier)}`);
   }
 
   args.push(prompt);
@@ -361,6 +522,11 @@ async function main() {
   const repoRoot = findRepoRoot();
   const planPath = path.resolve(process.cwd(), planFile);
 
+  if (options.printEffectiveConfig) {
+    printEffectiveConfig(planFile, options);
+    return 0;
+  }
+
   ensureCommand("codex");
   if (!fs.existsSync(planPath)) {
     throw new Error(`plan file does not exist: ${planPath}`);
@@ -372,11 +538,23 @@ async function main() {
 
   const runDir = makeRunDir(repoRoot);
   const planRelPath = path.relative(repoRoot, planPath);
+  const effectiveConfig = effectiveCodexConfig(options);
   let bucket2Items = [];
 
   console.error(`[codex-plan-loop] repo: ${repoRoot}`);
   console.error(`[codex-plan-loop] plan: ${planRelPath}`);
+  console.error(`[codex-plan-loop] model: ${effectiveConfig.model} (${effectiveConfig.modelSource})`);
+  console.error(`[codex-plan-loop] reasoning effort: ${effectiveConfig.reasoningEffort} (${effectiveConfig.reasoningEffortSource})`);
+  console.error(
+    `[codex-plan-loop] fast mode: ${effectiveConfig.fastModeApplied ? "yes" : "no"} (${effectiveConfig.fastModeDetail}, ${effectiveConfig.serviceTierSource})`,
+  );
   console.error(`[codex-plan-loop] run state: ${runDir}`);
+  writeJson(path.join(runDir, "start.json"), {
+    repoRoot,
+    plan: planRelPath,
+    options,
+    effectiveConfig,
+  });
 
   for (let cycle = 1; cycle <= options.maxCycles; cycle += 1) {
     const progress = await runCodexPhase({
