@@ -4,38 +4,39 @@ const fs = require("fs");
 const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 
-const DEFAULT_MAX_CYCLES = 20;
+const DEFAULT_MAX_ITERATIONS = 5;
 const DEFAULT_SANDBOX = "workspace-write";
-const DEFAULT_REVIEW_LIMIT = 5;
 const DEFAULT_LOG_STYLE = "live";
+const DEFAULT_SCOPE = "uncommitted changes";
 
 function usage() {
-  console.log(`Usage: codex-plan-loop <plan-file> [options]
+  console.log(`Usage: codex-review-loop [options]
 
 Options:
-  --max-cycles <n>       Maximum progress cycles to run. Default: ${DEFAULT_MAX_CYCLES}
-  --sandbox <mode>       Codex sandbox mode. Default: ${DEFAULT_SANDBOX}
-  --model <model>        Optional model override passed to codex exec.
-  --network              Enable network access inside workspace-write sandbox.
-  --review-limit <n>     Maximum review passes per progress cycle. Default: ${DEFAULT_REVIEW_LIMIT}
-  --log-style <style>    Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
-  --help                 Show this help.
+  --scope <text>          Review target. Default: ${DEFAULT_SCOPE}
+  --max-iterations <n>    Maximum review/fix iterations. Default: ${DEFAULT_MAX_ITERATIONS}
+  --sandbox <mode>        Codex sandbox mode. Default: ${DEFAULT_SANDBOX}
+  --model <model>         Optional model override passed to codex exec.
+  --network               Enable network access inside workspace-write sandbox.
+  --review-only           Review and report without editing files.
+  --log-style <style>     Terminal logging: live, quiet, or jsonl. Default: ${DEFAULT_LOG_STYLE}
+  --help                  Show this help.
 
-The wrapper requires a clean git worktree before starting. It writes private
-run logs under .git/codex-plan-loop/ and auto-commits each accepted slice.
-Raw JSONL, stderr, and readable transcript logs are saved for each Codex phase.`);
+The wrapper runs fresh Codex review and fix phases, writes private run logs
+under .git/codex-review-loop/, applies only safe Bucket I fixes by default,
+and never stages, commits, or pushes.`);
 }
 
 function parseArgs(argv) {
   const options = {
-    maxCycles: DEFAULT_MAX_CYCLES,
+    scope: DEFAULT_SCOPE,
+    maxIterations: DEFAULT_MAX_ITERATIONS,
     sandbox: DEFAULT_SANDBOX,
     model: "",
     network: false,
-    reviewLimit: DEFAULT_REVIEW_LIMIT,
+    reviewOnly: false,
     logStyle: DEFAULT_LOG_STYLE,
   };
-  let planFile = "";
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -49,11 +50,16 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--review-only") {
+      options.reviewOnly = true;
+      continue;
+    }
+
     if (
-      arg === "--max-cycles" ||
+      arg === "--scope" ||
+      arg === "--max-iterations" ||
       arg === "--sandbox" ||
       arg === "--model" ||
-      arg === "--review-limit" ||
       arg === "--log-style"
     ) {
       const value = argv[i + 1];
@@ -62,14 +68,14 @@ function parseArgs(argv) {
       }
       i += 1;
 
-      if (arg === "--max-cycles") {
-        options.maxCycles = parsePositiveInteger(value, "max-cycles");
+      if (arg === "--scope") {
+        options.scope = value;
+      } else if (arg === "--max-iterations") {
+        options.maxIterations = parsePositiveInteger(value, "max-iterations");
       } else if (arg === "--sandbox") {
         options.sandbox = value;
       } else if (arg === "--model") {
         options.model = value;
-      } else if (arg === "--review-limit") {
-        options.reviewLimit = parsePositiveInteger(value, "review-limit");
       } else {
         options.logStyle = value;
       }
@@ -80,24 +86,23 @@ function parseArgs(argv) {
       throw new Error(`unknown option: ${arg}`);
     }
 
-    if (planFile) {
-      throw new Error(`unexpected positional argument: ${arg}`);
-    }
-    planFile = arg;
+    throw new Error(`unexpected positional argument: ${arg}`);
   }
 
-  if (!planFile) {
-    throw new Error("missing required <plan-file>");
+  if (!options.scope.trim()) {
+    throw new Error("scope must not be empty");
   }
-
   if (!["read-only", "workspace-write", "danger-full-access"].includes(options.sandbox)) {
     throw new Error(`unsupported sandbox mode: ${options.sandbox}`);
   }
   if (!["live", "quiet", "jsonl"].includes(options.logStyle)) {
     throw new Error(`unsupported log style: ${options.logStyle}`);
   }
+  if (options.reviewOnly && options.sandbox !== "read-only") {
+    options.sandbox = "read-only";
+  }
 
-  return { planFile, options };
+  return options;
 }
 
 function parsePositiveInteger(value, label) {
@@ -136,13 +141,6 @@ function findRepoRoot() {
   return requireSuccessful("git", ["rev-parse", "--show-toplevel"]);
 }
 
-function ensureCleanWorktree(repoRoot) {
-  const status = requireSuccessful("git", ["status", "--porcelain=v1"], { cwd: repoRoot });
-  if (status) {
-    throw new Error(`worktree must be clean before starting:\n${status}`);
-  }
-}
-
 function ensureCommand(name) {
   const result = runSync("sh", ["-c", `command -v ${shellQuote(name)}`]);
   if (result.status !== 0) {
@@ -158,39 +156,13 @@ function makeRunDir(repoRoot) {
   const gitDir = requireSuccessful("git", ["rev-parse", "--git-dir"], { cwd: repoRoot });
   const absoluteGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(repoRoot, gitDir);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const runDir = path.join(absoluteGitDir, "codex-plan-loop", timestamp);
+  const runDir = path.join(absoluteGitDir, "codex-review-loop", timestamp);
   fs.mkdirSync(runDir, { recursive: true });
   return runDir;
 }
 
 function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function progressSchema() {
-  return {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      status: {
-        type: "string",
-        enum: ["progressed", "complete", "blocked", "decision_needed", "failed"],
-      },
-      summary: { type: "string" },
-      commit_title: { type: "string" },
-      validation: { type: "string" },
-      next_action: { type: "string" },
-      completed_coherent_slice: { type: "boolean" },
-    },
-    required: [
-      "status",
-      "summary",
-      "commit_title",
-      "validation",
-      "next_action",
-      "completed_coherent_slice",
-    ],
-  };
 }
 
 function reviewSchema() {
@@ -200,10 +172,26 @@ function reviewSchema() {
     properties: {
       status: {
         type: "string",
-        enum: ["clean", "bucket1_applied", "bucket2_only", "blocked", "validation_failed"],
+        enum: ["clean", "bucket1_candidates", "bucket2_only", "blocked", "validation_failed"],
       },
       summary: { type: "string" },
-      bucket1_applied_count: { type: "integer", minimum: 0 },
+      bucket1_candidates: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            priority: { type: "string" },
+            title: { type: "string" },
+            design_signal: { type: "string" },
+            evidence: { type: "string" },
+            scenario: { type: "string" },
+            impact: { type: "string" },
+            fix: { type: "string" },
+          },
+          required: ["priority", "title", "design_signal", "evidence", "scenario", "impact", "fix"],
+        },
+      },
       bucket2_items: {
         type: "array",
         items: {
@@ -212,15 +200,50 @@ function reviewSchema() {
           properties: {
             priority: { type: "string" },
             title: { type: "string" },
+            design_signal: { type: "string" },
             recommendation: { type: "string" },
-            blocks_remaining_plan: { type: "boolean" },
+            tradeoffs: { type: "string" },
+            blocks_completion: { type: "boolean" },
           },
-          required: ["priority", "title", "recommendation", "blocks_remaining_plan"],
+          required: ["priority", "title", "design_signal", "recommendation", "tradeoffs", "blocks_completion"],
+        },
+      },
+      keep_as_is: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            title: { type: "string" },
+            reason: { type: "string" },
+          },
+          required: ["title", "reason"],
         },
       },
       validation: { type: "string" },
     },
-    required: ["status", "summary", "bucket1_applied_count", "bucket2_items", "validation"],
+    required: ["status", "summary", "bucket1_candidates", "bucket2_items", "keep_as_is", "validation"],
+  };
+}
+
+function fixSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      status: {
+        type: "string",
+        enum: ["applied", "nothing_applied", "blocked", "validation_failed", "failed"],
+      },
+      summary: { type: "string" },
+      applied_count: { type: "integer", minimum: 0 },
+      changed_files: {
+        type: "array",
+        items: { type: "string" },
+      },
+      validation: { type: "string" },
+    },
+    required: ["status", "summary", "applied_count", "changed_files", "validation"],
   };
 }
 
@@ -250,8 +273,8 @@ function buildCodexArgs({ options, schemaFile, lastMessageFile, prompt }) {
   return args;
 }
 
-function runCodexPhase({ repoRoot, runDir, phaseName, cycle, pass, options, schema, prompt }) {
-  const prefix = `cycle-${cycle}-${phaseName}${pass ? `-${pass}` : ""}`;
+function runCodexPhase({ repoRoot, runDir, phaseName, iteration, options, schema, prompt }) {
+  const prefix = `iteration-${iteration}-${phaseName}`;
   const schemaFile = path.join(runDir, `${prefix}-schema.json`);
   const lastMessageFile = path.join(runDir, `${prefix}-last-message.json`);
   const jsonlFile = path.join(runDir, `${prefix}.jsonl`);
@@ -261,7 +284,7 @@ function runCodexPhase({ repoRoot, runDir, phaseName, cycle, pass, options, sche
   writeJson(schemaFile, schema);
 
   const args = buildCodexArgs({ options, schemaFile, lastMessageFile, prompt });
-  console.error(`[codex-plan-loop] starting ${prefix}`);
+  console.error(`[codex-review-loop] starting ${prefix}`);
 
   return new Promise((resolve, reject) => {
     const stdout = fs.createWriteStream(jsonlFile);
@@ -434,17 +457,17 @@ function formatAgentMessage(text) {
     if (value.status || value.summary) {
       lines.push([value.status, value.summary].filter(Boolean).join(" - "));
     }
-    if (typeof value.bucket1_applied_count === "number") {
-      lines.push(`Bucket I applied: ${value.bucket1_applied_count}`);
+    if (Array.isArray(value.bucket1_candidates)) {
+      lines.push(`Bucket I candidates: ${value.bucket1_candidates.length}`);
     }
     if (Array.isArray(value.bucket2_items)) {
       lines.push(`Bucket II: ${value.bucket2_items.length}`);
     }
+    if (typeof value.applied_count === "number") {
+      lines.push(`Applied: ${value.applied_count}`);
+    }
     if (value.validation) {
       lines.push(`Validation: ${value.validation}`);
-    }
-    if (value.next_action) {
-      lines.push(`Next: ${value.next_action}`);
     }
     return lines.length ? lines.join("\n") : trimmed;
   } catch {
@@ -510,99 +533,64 @@ function parseStructuredMessage(raw) {
   }
 }
 
-function buildProgressPrompt(planPath, planRelPath, cycle) {
-  return `Use $progress-run to execute the next clear slice from ${planRelPath}.
+function buildReviewPrompt({ scope, iteration, reviewOnly }) {
+  return `Run a strict post-implementation code review for this target:
+${scope}
 
-Plan file: ${planPath}
-Cycle: ${cycle}
-
-Requirements:
-- Read the plan file first and treat it as the progress tracker.
-- Execute exactly one coherent progress slice.
-- Update the same plan file as work proceeds.
-- Run relevant validation when practical.
-- Do not stage, commit, push, or run a post-review loop.
-- Stop if the plan is complete, blocked, or needs a decision.
-- Set completed_coherent_slice to true only when the current working-tree changes are safe to review and commit as one slice.
-- Set status to complete only when the full plan is done.
-- Set status to decision_needed when user input is required.
-- Set status to blocked when progress cannot safely continue without external change.
-- Set status to failed when validation or execution failed in a way that should stop automation.
-
-Return only JSON matching the provided schema.`;
-}
-
-function buildReviewPrompt(planPath, planRelPath, reviewPass) {
-  return `Run a strict post-implementation review on the current uncommitted changes.
-
-Plan file: ${planPath}
-Plan display path: ${planRelPath}
-Review pass: ${reviewPass}
+Iteration: ${iteration}
+Mode: ${reviewOnly ? "review-only; do not edit files" : "review phase only; do not edit files"}
 
 Requirements:
-- Inspect git status, git diff, git diff --staged, and relevant untracked files before deciding.
-- Review only the current uncommitted changes and nearby code needed to judge them.
-- Distinguish issues introduced by the current changes from pre-existing debt.
+- Inspect the real repo state before deciding. For uncommitted changes, inspect git status, git diff, git diff --staged, and relevant untracked files.
+- Distinguish issues introduced by the reviewed change from pre-existing debt.
 - Prefer no finding over a weak finding.
 - Do not create, read, or update a persistent review ledger.
-- Apply only Bucket I safe in-scope fixes: concrete, safe, in scope, materially useful, and root-cause-fixable now.
-- Treat Bucket II as a real improvement that needs product, domain, architecture, rollout, compatibility, churn, or risk judgment.
-- Do not stage, commit, push, or implement Bucket II items.
-- If Bucket I fixes were applied, set status to bucket1_applied.
-- If no Bucket I remains and unresolved Bucket II exists, set status to bucket2_only unless it blocks remaining plan work.
-- Mark blocks_remaining_plan true only when the decision should stop the wrapper before the next progress slice.
-- If any Bucket II blocks remaining plan work, set status to blocked.
-- If validation failed and should stop the wrapper, set status to validation_failed.
-- If no meaningful issue remains, set status to clean.
-- Record only Bucket II items that pass this gate: discrete, actionable, material, concrete affected path, explicit trigger scenario, narrow evidence, and likely author would address it.
+- Do not stage, commit, push, or modify files in this phase.
+- Bucket I means a concrete safe in-scope fix that can be applied without product, architecture, rollout, compatibility, or risk judgment.
+- Bucket II means a real improvement that needs user judgment before implementation.
+- Keep As-Is is for meaningful concerns rejected after inspection.
+- Record only findings that pass this gate: discrete, actionable, material, concrete affected path, explicit trigger scenario, narrow evidence, likely author would fix it.
+- Use priorities P0, P1, P2, or P3.
+- Use exactly one design signal: simple local mistake; weak validation or invariant gap; unclear ownership / boundary problem; weak type or schema model; state, lifecycle, concurrency, or ordering hazard; over-abstraction, under-abstraction, or duplicated logic; brittle integration or contract mismatch.
+- Set status to bucket1_candidates if any safe Bucket I candidate exists.
+- Set status to bucket2_only if no Bucket I candidate exists and unresolved Bucket II exists.
+- Set status to blocked when scope/context is insufficient or a blocking decision is needed.
+- Set status to validation_failed when an existing validation failure prevents reliable review.
+- Set status to clean when no meaningful issue remains.
 
 Return only JSON matching the provided schema.`;
 }
 
-function gitStatus(repoRoot) {
-  return requireSuccessful("git", ["status", "--porcelain=v1"], { cwd: repoRoot });
-}
+function buildFixPrompt({ scope, iteration, candidates }) {
+  return `Apply only the accepted safe Bucket I fixes for this review target:
+${scope}
 
-function hasChanges(repoRoot) {
-  return gitStatus(repoRoot).trim().length > 0;
-}
+Iteration: ${iteration}
+Bucket I candidates:
+${JSON.stringify(candidates, null, 2)}
 
-function pathHasChanges(repoRoot, relativePath) {
-  const status = requireSuccessful("git", ["status", "--porcelain=v1", "--", relativePath], { cwd: repoRoot });
-  return status.trim().length > 0;
-}
+Requirements:
+- Re-verify every candidate against the real code before editing.
+- Apply only concrete, safe, in-scope fixes that are root-cause-fixable now.
+- Reject or skip anything requiring product, domain, architecture, rollout, compatibility, churn, or risk judgment.
+- Keep edits tightly scoped to the reviewed change.
+- Do not create, read, or update a persistent review ledger.
+- Do not stage, commit, push, or implement Bucket II items.
+- Run focused validation when practical.
+- Set status to applied only when at least one fix was applied.
+- Set status to nothing_applied when all candidates were rejected or already resolved.
+- Set status to blocked when user input or external context is required.
+- Set status to validation_failed when validation fails due to the applied fix or blocks safe continuation.
+- Set status to failed for execution failure that should stop automation.
 
-function stageAndCommit(repoRoot, title, bodyLines) {
-  requireSuccessful("git", ["add", "-A"], { cwd: repoRoot });
-  const staged = runSync("git", ["diff", "--cached", "--quiet"], { cwd: repoRoot });
-  if (staged.status === 0) {
-    throw new Error("nothing staged after git add -A");
-  }
-
-  const messageFile = path.join(repoRoot, ".git", "codex-plan-loop-commit-message.txt");
-  const message = [sanitizeTitle(title), "", ...bodyLines.filter(Boolean)].join("\n");
-  fs.writeFileSync(messageFile, `${message.trim()}\n`);
-
-  try {
-    requireSuccessful("git", ["commit", "-F", messageFile], { cwd: repoRoot });
-  } finally {
-    fs.rmSync(messageFile, { force: true });
-  }
-}
-
-function sanitizeTitle(title) {
-  const cleaned = String(title || "Update plan progress")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!cleaned) return "Update plan progress";
-  return cleaned.length <= 72 ? cleaned : cleaned.slice(0, 69).trimEnd() + "...";
+Return only JSON matching the provided schema.`;
 }
 
 function summarizeBucket2(items) {
   if (!items.length) return "No unresolved Bucket II decisions.";
   return items
     .map((item, index) => {
-      const blocking = item.blocks_remaining_plan ? "blocking" : "deferred";
+      const blocking = item.blocks_completion ? "blocking" : "decision";
       return `${index + 1}. [${blocking}] ${item.priority} ${item.title}: ${item.recommendation}`;
     })
     .join("\n");
@@ -621,138 +609,131 @@ function uniqueBucket2(existing, incoming) {
   return merged;
 }
 
-async function main() {
-  const { planFile, options } = parseArgs(process.argv.slice(2));
-  const repoRoot = findRepoRoot();
-  const planPath = path.resolve(process.cwd(), planFile);
-
-  ensureCommand("codex");
-  if (!fs.existsSync(planPath)) {
-    throw new Error(`plan file does not exist: ${planPath}`);
-  }
-  if (!planPath.startsWith(`${repoRoot}${path.sep}`) && planPath !== repoRoot) {
-    throw new Error(`plan file must be inside repo root: ${repoRoot}`);
-  }
-  ensureCleanWorktree(repoRoot);
-
-  const runDir = makeRunDir(repoRoot);
-  const planRelPath = path.relative(repoRoot, planPath);
-  let bucket2Items = [];
-
-  console.error(`[codex-plan-loop] repo: ${repoRoot}`);
-  console.error(`[codex-plan-loop] plan: ${planRelPath}`);
-  console.error(`[codex-plan-loop] run state: ${runDir}`);
-
-  for (let cycle = 1; cycle <= options.maxCycles; cycle += 1) {
-    const progress = await runCodexPhase({
-      repoRoot,
-      runDir,
-      phaseName: "progress",
-      cycle,
-      options,
-      schema: progressSchema(),
-      prompt: buildProgressPrompt(planPath, planRelPath, cycle),
-    });
-
-    const dirtyAfterProgress = hasChanges(repoRoot);
-    writeJson(path.join(runDir, `cycle-${cycle}-progress-status.json`), {
-      progress,
-      dirtyAfterProgress,
-    });
-
-    if (progress.status === "failed") {
-      return finish("failed", runDir, bucket2Items, progress.summary);
-    }
-
-    if (!dirtyAfterProgress) {
-      if (progress.status === "complete") {
-        return finish("complete", runDir, bucket2Items, progress.summary);
-      }
-      return finish(progress.status, runDir, bucket2Items, progress.summary || "No working-tree changes were produced.");
-    }
-
-    if (!progress.completed_coherent_slice) {
-      return finish("blocked", runDir, bucket2Items, "Progress produced changes that were not marked as a coherent committable slice.");
-    }
-
-    let lastReview = null;
-    for (let reviewPass = 1; reviewPass <= options.reviewLimit; reviewPass += 1) {
-      lastReview = await runCodexPhase({
-        repoRoot,
-        runDir,
-        phaseName: "review",
-        cycle,
-        pass: reviewPass,
-        options,
-        schema: reviewSchema(),
-        prompt: buildReviewPrompt(planPath, planRelPath, reviewPass),
-      });
-
-      bucket2Items = uniqueBucket2(bucket2Items, lastReview.bucket2_items || []);
-      writeJson(path.join(runDir, `cycle-${cycle}-bucket2.json`), bucket2Items);
-
-      if (pathHasChanges(repoRoot, "reviews/codex-review-loop.md")) {
-        return finish("blocked", runDir, bucket2Items, "Review attempted to create or modify a persistent review ledger; stopping before commit.");
-      }
-
-      const blockingBucket2 = (lastReview.bucket2_items || []).some((item) => item.blocks_remaining_plan);
-      if (lastReview.status === "bucket1_applied") {
-        continue;
-      }
-      if (lastReview.status === "blocked" || blockingBucket2) {
-        return finish("blocked", runDir, bucket2Items, lastReview.summary);
-      }
-      if (lastReview.status === "validation_failed") {
-        return finish("validation_failed", runDir, bucket2Items, lastReview.summary);
-      }
-      break;
-    }
-
-    if (!lastReview) {
-      return finish("failed", runDir, bucket2Items, "Review did not run.");
-    }
-    if (lastReview.status === "bucket1_applied") {
-      return finish("review_limit_reached", runDir, bucket2Items, "Review kept applying Bucket I fixes until the review limit was reached.");
-    }
-
-    stageAndCommit(repoRoot, progress.commit_title, [
-      `Progress: ${progress.summary}`,
-      `Review: ${lastReview.summary}`,
-      `Progress validation: ${progress.validation || "not reported"}`,
-      `Review validation: ${lastReview.validation || "not reported"}`,
-      `Plan: ${planRelPath}`,
-    ]);
-
-    console.error(`[codex-plan-loop] committed cycle ${cycle}: ${sanitizeTitle(progress.commit_title)}`);
-
-    if (progress.status === "complete") {
-      return finish("complete", runDir, bucket2Items, progress.summary);
-    }
-    if (progress.status === "blocked" || progress.status === "decision_needed") {
-      return finish(progress.status, runDir, bucket2Items, progress.summary);
-    }
-  }
-
-  return finish("max_cycles_reached", runDir, bucket2Items, `Reached max cycle limit (${options.maxCycles}).`);
+function gitStatus(repoRoot) {
+  return requireSuccessful("git", ["status", "--porcelain=v1"], { cwd: repoRoot });
 }
 
-function finish(status, runDir, bucket2Items, summary) {
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const repoRoot = findRepoRoot();
+
+  ensureCommand("codex");
+
+  const runDir = makeRunDir(repoRoot);
+  let bucket2Items = [];
+  let appliedCount = 0;
+  let lastReview = null;
+  let lastFix = null;
+
+  console.error(`[codex-review-loop] repo: ${repoRoot}`);
+  console.error(`[codex-review-loop] scope: ${options.scope}`);
+  console.error(`[codex-review-loop] run state: ${runDir}`);
+  writeJson(path.join(runDir, "start.json"), {
+    repoRoot,
+    scope: options.scope,
+    options,
+    status: gitStatus(repoRoot),
+  });
+
+  for (let iteration = 1; iteration <= options.maxIterations; iteration += 1) {
+    lastReview = await runCodexPhase({
+      repoRoot,
+      runDir,
+      phaseName: "review",
+      iteration,
+      options,
+      schema: reviewSchema(),
+      prompt: buildReviewPrompt({
+        scope: options.scope,
+        iteration,
+        reviewOnly: options.reviewOnly,
+      }),
+    });
+
+    bucket2Items = uniqueBucket2(bucket2Items, lastReview.bucket2_items || []);
+    writeJson(path.join(runDir, `iteration-${iteration}-bucket2.json`), bucket2Items);
+
+    if (lastReview.status === "blocked") {
+      return finish("blocked", runDir, options.scope, appliedCount, bucket2Items, lastReview.summary, lastReview.validation);
+    }
+    if (lastReview.status === "validation_failed") {
+      return finish("validation_failed", runDir, options.scope, appliedCount, bucket2Items, lastReview.summary, lastReview.validation);
+    }
+
+    const candidates = lastReview.bucket1_candidates || [];
+    if (options.reviewOnly) {
+      const status = candidates.length ? "review_only_findings" : bucket2Items.length ? "decision_needed" : "clean";
+      return finish(status, runDir, options.scope, appliedCount, bucket2Items, lastReview.summary, lastReview.validation);
+    }
+
+    if (!candidates.length) {
+      const status = bucket2Items.length ? "decision_needed" : "clean";
+      return finish(status, runDir, options.scope, appliedCount, bucket2Items, lastReview.summary, lastReview.validation);
+    }
+
+    lastFix = await runCodexPhase({
+      repoRoot,
+      runDir,
+      phaseName: "fix",
+      iteration,
+      options,
+      schema: fixSchema(),
+      prompt: buildFixPrompt({
+        scope: options.scope,
+        iteration,
+        candidates,
+      }),
+    });
+
+    appliedCount += lastFix.applied_count || 0;
+
+    if (lastFix.status === "blocked") {
+      return finish("blocked", runDir, options.scope, appliedCount, bucket2Items, lastFix.summary, lastFix.validation);
+    }
+    if (lastFix.status === "validation_failed") {
+      return finish("validation_failed", runDir, options.scope, appliedCount, bucket2Items, lastFix.summary, lastFix.validation);
+    }
+    if (lastFix.status === "failed") {
+      return finish("failed", runDir, options.scope, appliedCount, bucket2Items, lastFix.summary, lastFix.validation);
+    }
+    if (lastFix.status === "nothing_applied" || !lastFix.applied_count) {
+      const status = bucket2Items.length ? "decision_needed" : "clean";
+      return finish(status, runDir, options.scope, appliedCount, bucket2Items, lastFix.summary, lastFix.validation);
+    }
+  }
+
+  const summary = lastFix
+    ? lastFix.summary
+    : lastReview
+      ? lastReview.summary
+      : `Reached max iteration limit (${options.maxIterations}).`;
+  const validation = lastFix ? lastFix.validation : lastReview ? lastReview.validation : "";
+  return finish("max_iterations_reached", runDir, options.scope, appliedCount, bucket2Items, summary, validation);
+}
+
+function finish(status, runDir, scope, appliedCount, bucket2Items, summary, validation) {
   const result = {
     status,
+    scope,
     summary,
     runDir,
+    appliedCount,
     bucket2Items,
+    validation: validation || "",
   };
   writeJson(path.join(runDir, "final-summary.json"), result);
 
   console.log(`Status: ${status}`);
   if (summary) console.log(`Summary: ${summary}`);
+  console.log(`Scope: ${scope}`);
+  console.log(`Applied Bucket I fixes: ${appliedCount}`);
+  if (validation) console.log(`Validation: ${validation}`);
   console.log(`Run state: ${runDir}`);
   console.log("");
   console.log("Bucket II:");
   console.log(summarizeBucket2(bucket2Items));
 
-  if (["complete", "max_cycles_reached"].includes(status)) {
+  if (["clean", "review_only_findings"].includes(status)) {
     return 0;
   }
   return 1;
@@ -763,6 +744,6 @@ main()
     process.exitCode = exitCode;
   })
   .catch((error) => {
-    console.error(`[codex-plan-loop] error: ${error.message}`);
+    console.error(`[codex-review-loop] error: ${error.message}`);
     process.exitCode = 1;
   });

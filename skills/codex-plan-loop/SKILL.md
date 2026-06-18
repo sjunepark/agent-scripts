@@ -77,7 +77,7 @@ Use raw artifacts only when the helper output is not enough:
 
 - `final-summary.json`: wrapper final state and aggregated Bucket II items
 - `cycle-*-progress-parsed.json`: structured output from `$progress-run`
-- `cycle-*-review-*-parsed.json`: structured output from `$post-review-loop`
+- `cycle-*-review-*-parsed.json`: structured output from the internal review phase
 - `*.transcript.log`: readable phase transcript
 - `*.stderr.log`: Codex progress stream and wrapper messages
 - `*.jsonl`: raw `codex exec --json` event stream

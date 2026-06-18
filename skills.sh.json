@@ -21,8 +21,8 @@
         "architecture-md-writer",
         "diet",
         "doc-comment-writer",
+        "codex-review-loop",
         "merge-branch",
-        "post-review-loop",
         "review-campaign",
         "structure-review"
       ]

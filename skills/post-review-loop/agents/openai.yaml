@@ -1,4 +1,0 @@
-interface:
-  display_name: "Post-Review Loop"
-  short_description: "Strict post-implementation review and safe-fix loop"
-  default_prompt: "Use $post-review-loop to review the latest implementation with strict finding quality gates, apply safe in-scope fixes, separate decision-needed tradeoffs, validate the result, and report the final outcome."

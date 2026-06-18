@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Review Loop"
+  short_description: "Supervise codex-review-loop runs"
+  default_prompt: "Use $codex-review-loop to supervise a codex-review-loop run for my current review scope."
