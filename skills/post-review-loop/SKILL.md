@@ -31,12 +31,16 @@ Ledger shape:
 ```markdown
 # Post-Review Loop
 
+- ledger-version: 2
+- repo: <target repo root or repository identity>
 - lifecycle: active | paused | finalizing | complete | cancelled
 - scope: <review target>
 - phase: post-review | impl-review | impl | final-report
 - iteration: <n>/<limit>
 - review-only: true | false
 - baseline: <HEAD or scope notes>
+- scope-fingerprint: <short stable identity for the reviewed diff/scope>
+- updated: <ISO-8601 timestamp>
 
 ## What Was Reviewed
 <target-oriented briefing>
@@ -58,6 +62,19 @@ Ledger shape:
 ```
 
 Treat the ledger as authoritative. If it is not in the ledger, it did not happen. Keep it concise; do not turn it into a transcript.
+
+## Ledger Freshness
+
+Before reading any existing ledger body, prove it belongs to the requested work:
+
+1. Determine the target repo root, requested mode, requested scope, current `HEAD`, and a current scope fingerprint. For default `uncommitted changes`, base the fingerprint on `HEAD`, `git status --short`, `git diff --name-only`, `git diff --staged --name-only`, and relevant untracked paths.
+2. If `reviews/post-review-loop.md` exists, read only the title and metadata block through `baseline` / `scope-fingerprint` / `updated`. Do not read findings, phase logs, or old report sections until the ledger is accepted as fresh.
+3. Reuse the ledger only when the repo, scope, lifecycle, and fingerprint clearly match the current request, or when the user explicitly asked to `continue`, `resume`, `status`, or `report` for that ledger and the header does not contradict the request.
+4. Treat completed, cancelled, mismatched, missing-metadata, or legacy ledgers as stale for a new `loop`, default loop, or `start`.
+5. Supersede stale ledgers by moving them to `reviews/archive/post-review-loop-<timestamp>.md`, then create a fresh ledger. Do not delete stale ledgers unless the user explicitly asks. Mention the archive path once in the final or status output.
+6. If the user explicitly asked to `continue`, `resume`, `status`, or `report` and the only ledger is stale or ambiguous, stop with a concise mismatch summary instead of importing old findings into the new context.
+
+When updating a live ledger, refresh `scope-fingerprint` and `updated` after every phase. Keep the fingerprint short; it is an identity check, not a transcript.
 
 ## Review Lens
 
