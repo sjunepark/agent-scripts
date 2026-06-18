@@ -60,7 +60,7 @@ Inspect external source from a stable cache outside the current project. Keep re
 
 5. Explore with focused reads.
 - Use `rg`, `rg --files`, `git grep`, `git log`, and narrow file reads before opening broad source files.
-- Delegate broad or independent exploration to subagents when available. Ask for concise findings, supporting paths, refs, and minimal quoted code.
+- Delegate broad or independent exploration to subagents when available. Prefer simple, fast models such as `gpt-5.4-mini`, or `gpt-5.5` with reasoning effort low, for default source scans. Use `gpt-5.5` with reasoning effort medium/high when the subagent must understand complex logic, architecture, cross-module behavior, or subtle implementation tradeoffs. Ask for concise findings, supporting paths, refs, and minimal quoted code.
 - Keep the main thread focused on synthesis and decisions, not raw source dumps.
 
 6. Use worktrees for experiments.
