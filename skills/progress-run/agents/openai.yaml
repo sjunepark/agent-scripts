@@ -1,4 +1,4 @@
 interface:
   display_name: "Progress Run"
-  short_description: "Run the next plan slice with updates"
-  default_prompt: "Use $progress-run to continue the next clear slice from docs/PLAN.md and update progress as you go."
+  short_description: "Run a substantial plan slice with updates"
+  default_prompt: "Use $progress-run to continue the next substantial coherent slice from docs/PLAN.md and update progress as you go."
