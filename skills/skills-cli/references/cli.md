@@ -33,6 +33,8 @@ For this repository specifically:
 - Use `./skills` only for local validation or unpublished work.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
 - Treat this repo's `skills/` directory as a published catalog, not as a manifest of skills that all belong in global installs.
+- Treat `global-skills.json` as this repo's desired machine-global install registry.
+- Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output against that registry. Use `scripts/audit-global-skills --apply` only to reinstall missing managed entries; audit-only/manual entries still need their own source handled separately.
 - Install globally useful skills by name with `--skill "$SKILL_NAME"`.
 - Install domain/project skills, such as `svelte`, `sveltekit`, and `ui-lab`, only in matching projects unless the user explicitly wants them globally.
 - Claude Code + Pi global installs should use `--skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y`.

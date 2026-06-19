@@ -18,6 +18,7 @@ not the published package layout.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
 - `skills/`: published reusable skills.
 - `docs/`: migration and setup decisions.
+- `global-skills.json`: desired machine-global skill registry.
 - `scripts/`: repository maintenance scripts.
 - `hooks/`: optional Git hooks.
 - `skills.sh.json`: skills.sh display grouping metadata; use it to
@@ -45,6 +46,12 @@ Validate the published skills before committing:
 scripts/validate-skills
 ```
 
+Audit this machine's global skills against the desired registry:
+
+```bash
+scripts/audit-global-skills
+```
+
 Enable the optional pre-commit hook:
 
 ```bash
@@ -62,6 +69,12 @@ bunx skills add ./skills --list
 Install published skills from GitHub after committing and pushing. Treat
 `skills/` as the available catalog, not as a list that must all be installed
 globally.
+
+Use `global-skills.json` as the desired machine-global registry. Use
+`scripts/audit-global-skills` to report drift and
+`scripts/audit-global-skills --apply` to reinstall missing managed entries.
+Skills listed under audit-only/manual profiles still need their source handled
+outside that repair command.
 
 For a selected skill:
 

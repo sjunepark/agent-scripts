@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "description": "Desired machine-global skill registry. skills.sh.json is display/catalog metadata; this file is the install/audit target.",
+  "allowUnlistedGlobalSkills": false,
+  "profiles": [
+    {
+      "name": "codex-repo-global",
+      "description": "Published repo skills that should be available to Codex user scope.",
+      "source": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": [
+        "agents-md-writer",
+        "architecture-md-writer",
+        "bug-retro",
+        "change-explainer",
+        "diet",
+        "doc-comment-writer",
+        "explore-repo",
+        "merge-branch",
+        "post-implementation-review",
+        "progress-handoff",
+        "review-campaign",
+        "teach"
+      ]
+    },
+    {
+      "name": "claude-pi-repo-global",
+      "description": "Published repo skills that should be available to Claude Code and Pi.",
+      "source": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code", "pi"],
+      "skills": [
+        "agents-md-writer",
+        "architecture-md-writer",
+        "change-explainer",
+        "diet",
+        "doc-comment-writer",
+        "merge-branch",
+        "post-implementation-review",
+        "progress-handoff",
+        "progress-run",
+        "review-campaign",
+        "teach"
+      ]
+    },
+    {
+      "name": "codex-matt-pocock-global",
+      "description": "Third-party engineering skills that should be available to Codex.",
+      "source": "mattpocock/skills",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "fullDepth": true,
+      "skills": [
+        "codebase-design",
+        "domain-modeling",
+        "improve-codebase-architecture",
+        "writing-great-skills"
+      ]
+    },
+    {
+      "name": "manual-global",
+      "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
+      "install": false,
+      "scope": "global",
+      "skills": [
+        {
+          "name": "auto-review",
+          "agents": ["claude-code"]
+        },
+        {
+          "name": "context7-mcp",
+          "agents": ["codex", "claude-code"]
+        },
+        {
+          "name": "impeccable",
+          "agents": ["codex", "claude-code"]
+        },
+        {
+          "name": "skill-cleaner",
+          "agents": ["codex", "claude-code"]
+        }
+      ]
+    }
+  ]
+}

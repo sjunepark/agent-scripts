@@ -10,6 +10,7 @@ Use `bunx skills` commands to manage skills.
 ## Workflow
 
 1. Inspect current state with `bunx skills list` for project scope and `bunx skills list -g` for global scope.
+   - In this repository, use `scripts/audit-global-skills` to compare machine-global installs against `global-skills.json`.
 2. Use `bunx skills find <query>` or `bunx skills add <source> --list` to discover options.
 3. Install with explicit scope and agent targeting:
    - For this repository's published skills, use `https://github.com/sjunepark/agent-scripts/tree/main/skills` rather than the repo root or current working tree so installs can update across machines without exposing repo-local `.agents/` and `.claude/` skills.
@@ -51,6 +52,7 @@ Use `bunx skills` commands to manage skills.
 - Use `--skill '*'` only when the user explicitly wants every skill from a source. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which can unintentionally recreate shared `~/.agents/skills` installs.
 - Treat installed skills as executable instructions; avoid untrusted sources.
 - If managing dotfiles with chezmoi, avoid `chezmoi add` on live skills directories.
+- Treat `skills.sh.json` as display grouping metadata, not as the desired machine-global install registry.
 
 ## References
 

@@ -55,6 +55,10 @@
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
+- Use `global-skills.json` as the desired machine-global skill registry.
+- Use `scripts/audit-global-skills` to compare `bunx skills list -g --json`
+  with `global-skills.json`; use `scripts/audit-global-skills --apply` only
+  when missing managed entries should be reinstalled.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.

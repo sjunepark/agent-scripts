@@ -130,6 +130,12 @@ does not mean it belongs in every global agent install. Keep global installs to
 the skills that are broadly useful, and install domain skills such as `svelte`,
 `sveltekit`, and `ui-lab` only in matching projects.
 
+Use `global-skills.json` as the desired machine-global skill registry, and run
+`scripts/audit-global-skills` from this repo to compare that registry with
+`bunx skills list -g --json`. Use `scripts/audit-global-skills --apply` only
+when missing managed entries should be reinstalled; manual/audit-only entries
+still need their source handled separately.
+
 Use explicit skill and agent targets:
 
 ```bash
