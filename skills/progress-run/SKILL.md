@@ -18,11 +18,14 @@ Use the provided plan or handoff file as the working progress tracker. Read it f
    - Read only the files needed for the next clear plan item.
 
 3. Execute one substantial coherent progress slice.
-   - Complete the smallest useful milestone that leaves the repo in a coherent, validated state.
-   - Include tightly coupled adjacent checklist items when they share files, ownership boundaries, or validation.
-   - Do not stop after a tiny subtask if the next connected work is clear and low-risk.
+   - Prefer the broadest connected slice that remains bounded, reviewable, and validated.
+   - Treat checklist items as planning hints, not automatic stop boundaries.
+   - Execute the next coherent checklist cluster, not just the next checkbox.
+   - Include adjacent plan items when they share a phase, subsystem, files, ownership boundary, validation suite, or decision context.
+   - After finishing a tiny subtask, inspect the next adjacent item before stopping; continue when it is low-risk and connected.
    - Prefer safe, reviewable progress over broad rewrites.
-   - If the next step needs a product, design, ownership, API, data-shape, compatibility, or other user decision, ask before continuing.
+   - If the next step appears to need a product, design, ownership, API, data-shape, compatibility, or other user decision, first do a quick evidence check in existing code, tests, docs, or product behavior unless the decision is clearly external to the repo.
+   - Stop for a decision only when the answer is not already implied by that evidence.
    - When missing context or requirements block progress, identify the specific information needed and ask focused questions.
 
 4. Use subagents for focused context gathering when useful.
@@ -45,7 +48,7 @@ Use the provided plan or handoff file as the working progress tracker. Read it f
    - Record important validation results in the plan file, especially failures or skipped checks that affect continuation.
 
 7. Stop at the right boundary.
-   - Stop when the current slice is done, the plan is complete, progress is blocked, or a decision is required.
+   - Stop when the current coherent cluster is done, the plan is complete, progress is blocked, or a decision is required.
    - Stop before unrelated phases, broad rewrites, unclear requirements, or work that needs a user decision.
    - Do not stage, commit, or push unless explicitly asked.
 
@@ -55,4 +58,6 @@ Include:
 
 - work completed
 - plan file updates
+- why you stopped
+- adjacent work intentionally included or left out
 - blockers or next plan item
