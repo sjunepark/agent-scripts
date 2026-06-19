@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Desired machine-global skill registry. skills.sh.json is display/catalog metadata; this file is the install/audit target.",
+  "description": "Desired machine-global skill registry and install/audit target.",
   "allowUnlistedGlobalSkills": false,
   "profiles": [
     {

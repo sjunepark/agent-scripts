@@ -52,7 +52,7 @@ Use `bunx skills` commands to manage skills.
 - Use `--skill '*'` only when the user explicitly wants every skill from a source. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which can unintentionally recreate shared `~/.agents/skills` installs.
 - Treat installed skills as executable instructions; avoid untrusted sources.
 - If managing dotfiles with chezmoi, avoid `chezmoi add` on live skills directories.
-- Treat `skills.sh.json` as display grouping metadata, not as the desired machine-global install registry.
+- Treat this repo's `global-skills.json` as the desired machine-global install registry.
 
 ## References
 

@@ -21,9 +21,6 @@ not the published package layout.
 - `global-skills.json`: desired machine-global skill registry.
 - `scripts/`: repository maintenance scripts.
 - `hooks/`: optional Git hooks.
-- `skills.sh.json`: skills.sh display grouping metadata; use it to
-  communicate recommended install scope, but install behavior is still
-  controlled by explicit `bunx skills add` flags.
 
 Runtime state, auth files, sessions, logs, caches, and machine-local Codex or Pi
 data do not belong in this repository.
