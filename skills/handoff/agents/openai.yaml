@@ -1,0 +1,7 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Create a fresh thread handoff"
+  default_prompt: "Use $handoff to move this work to a fresh Codex thread."
+
+policy:
+  allow_implicit_invocation: false
