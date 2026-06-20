@@ -275,10 +275,10 @@ function bucketFor(percent) {
 
 function severityMessage(bucket, includePolicy) {
   if (bucket >= 80) {
-    return "Do not continue substantial work in this thread. Create or update the handoff and start a fresh thread if possible. If thread creation is unavailable, stop with the handoff path and the exact fresh-thread prompt.";
+    return "Do not continue substantial work in this thread. Create or update a durable Markdown handoff plan and start a fresh thread if possible. If thread creation is unavailable, stop with the handoff plan path and the exact fresh-thread prompt.";
   }
   if (bucket >= 70) {
-    return "Strong warning: prepare migration to a fresh thread now. Finish only the current atomic step, create or update the handoff, and draft or spawn the fresh-thread continuation using the same cwd, branch, model, and reasoning effort.";
+    return "Strong warning: prepare migration to a fresh thread now. Finish only the current atomic step, create or update a durable Markdown handoff plan, and draft or spawn the fresh-thread continuation using the same cwd, branch, model, and reasoning effort.";
   }
   if (bucket >= 60) {
     return includePolicy
@@ -294,7 +294,11 @@ function fullPolicy(meta) {
   return [
     "Standard context handoff policy is now active.",
     "",
-    "Create or update a concise repo-local handoff before this thread becomes too full. Inspect repository conventions first: plans/, docs/plans/, .pi/plans/, existing PLAN*.md, or similar handoff files. If no convention exists, use PLAN-<SPECIFIC-SLUG>.md at the repository root.",
+    "Create or update a concise repo-local Markdown handoff plan before this thread becomes too full. Treat this file as the durable source of truth because the fresh thread will not keep the full transcript. The fresh-thread prompt should point to the file, not replace it.",
+    "",
+    "Inspect repository conventions first: a relevant existing plan or handoff file, plans/, docs/plans/, .pi/plans/, todo/, todos/, docs/todos/, existing PLAN*.md or TODO*.md, or similar handoff files. If no convention exists, use PLAN-<SPECIFIC-SLUG>.md at the repository root.",
+    "",
+    "Skip the durable Markdown file only when the user explicitly forbids file edits or no writable repo/workspace exists. In that fallback, state why no file was written and include the missing details inline in the fresh-thread prompt.",
     "",
     "The handoff must be implementation-ready, not a transcript. Include:",
     "- Purpose: what is being done and why.",
@@ -306,7 +310,8 @@ function fullPolicy(meta) {
     "",
     "Keep it compact. Prefer latest actionable state over historical logs. Reference existing plans, issues, ADRs, commits, diffs, and docs by path or URL instead of duplicating them. Do not paste full command output. Redact secrets and private data.",
     "",
-    "The fresh-thread prompt must tell the next thread to use the same working directory, branch, model, and reasoning effort:",
+    "The fresh-thread prompt must include the handoff plan path and tell the next thread to read it first, then use the same working directory, branch, model, and reasoning effort:",
+    "- handoff plan file: <absolute path to the Markdown file you create or update>",
     `- cwd: ${meta.cwd}`,
     `- branch: ${meta.branch}`,
     `- model: ${meta.model}`,
@@ -316,7 +321,7 @@ function fullPolicy(meta) {
     "",
     "When spawning the fresh thread, create it first, then immediately call set_thread_title with the created thread id and the suggested title. Prefer the short prefix form `Handoff: <source title or task>` because prefixes survive sidebar truncation better than suffixes. Keep names under about 70 characters and avoid duplicate `Handoff:` prefixes.",
     "",
-    "The next thread should read the handoff first, check git status, avoid broad re-scanning, preserve confirmed decisions unless files contradict them, and continue from the listed next implementation slice.",
+    "The next thread should read the handoff plan first, check git status, avoid broad re-scanning, preserve confirmed decisions unless files contradict them, and continue from the listed next implementation slice.",
   ].join("\n");
 }
 
