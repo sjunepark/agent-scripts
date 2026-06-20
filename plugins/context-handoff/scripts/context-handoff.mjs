@@ -3,11 +3,12 @@ import { execFileSync } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 
 const THRESHOLDS = [50, 60, 70, 80];
 const MAX_STATE_SESSIONS = 100;
+const MAX_HANDOFF_TITLE_LENGTH = 72;
 const DEFAULT_STATE_DIR = join(homedir(), ".codex", "context-handoff");
 
 function isRecord(value) {
@@ -187,7 +188,7 @@ function readThreadMetadataFromState(sessionId) {
   const dbPath = firstNonEmpty(process.env.CODEX_CONTEXT_HANDOFF_DB) ?? join(codexHome, "state_5.sqlite");
   try {
     const sql = [
-      "select model, reasoning_effort, git_branch",
+      "select *",
       "from threads",
       `where id = ${sqlString(sessionId)}`,
       "limit 1",
@@ -202,6 +203,27 @@ function readThreadMetadataFromState(sessionId) {
   } catch {
     return {};
   }
+}
+
+function compactTitle(value) {
+  const title = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  if (!title) return undefined;
+  return title.replace(/^handoff\s*:\s*/i, "").trim() || undefined;
+}
+
+function trimTitle(value) {
+  if (value.length <= MAX_HANDOFF_TITLE_LENGTH) return value;
+  const limit = MAX_HANDOFF_TITLE_LENGTH - 3;
+  const truncated = value.slice(0, limit).trimEnd();
+  const lastSpace = truncated.lastIndexOf(" ");
+  const trimmed = lastSpace >= 24 ? truncated.slice(0, lastSpace) : truncated;
+  return `${trimmed}...`;
+}
+
+function suggestedHandoffTitle({ sourceTitle, cwd }) {
+  const fallback = cwd && cwd !== "unknown" ? basename(cwd) : "current task";
+  const base = firstNonEmpty(compactTitle(sourceTitle), fallback) ?? "current task";
+  return trimTitle(`Handoff: ${base}`);
 }
 
 function gitBranch(cwd) {
@@ -226,6 +248,8 @@ function metadata(input, sessionId) {
     branch: firstNonEmpty(row.git_branch, gitBranch(cwd)) ?? "unknown",
     model: firstNonEmpty(input.model, row.model) ?? "unknown",
     reasoningEffort: firstNonEmpty(input.reasoning_effort, input.reasoningEffort, row.reasoning_effort) ?? "unknown",
+    sourceTitle: firstNonEmpty(row.title, row.first_user_message) ?? "unknown",
+    handoffTitle: suggestedHandoffTitle({ sourceTitle: firstNonEmpty(row.title, row.first_user_message), cwd }),
   };
 }
 
@@ -287,6 +311,10 @@ function fullPolicy(meta) {
     `- branch: ${meta.branch}`,
     `- model: ${meta.model}`,
     `- reasoning_effort: ${meta.reasoningEffort}`,
+    `- source thread title: ${meta.sourceTitle}`,
+    `- suggested new thread title: ${meta.handoffTitle}`,
+    "",
+    "When spawning the fresh thread, create it first, then immediately call set_thread_title with the created thread id and the suggested title. Prefer the short prefix form `Handoff: <source title or task>` because prefixes survive sidebar truncation better than suffixes. Keep names under about 70 characters and avoid duplicate `Handoff:` prefixes.",
     "",
     "The next thread should read the handoff first, check git status, avoid broad re-scanning, preserve confirmed decisions unless files contradict them, and continue from the listed next implementation slice.",
   ].join("\n");

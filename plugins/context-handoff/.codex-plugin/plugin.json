@@ -1,6 +1,6 @@
 {
   "name": "context-handoff",
-  "version": "0.1.0+codex.20260619140652",
+  "version": "0.1.0+codex.20260620005603",
   "description": "Inject context-usage handoff guidance as Codex threads approach context pressure.",
   "author": {
     "name": "Local developer"

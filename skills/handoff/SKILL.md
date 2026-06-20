@@ -19,6 +19,7 @@ Move active work to a fresh Codex thread without carrying the old transcript for
    - Record the current working directory and repository root.
    - Record the current branch with `git rev-parse --abbrev-ref HEAD` when inside git.
    - Check `git status --short` and include only meaningful changed-file context.
+   - Capture the source thread title when the active environment exposes it; do not invent it.
    - Include model and reasoning effort only when the active environment exposes them; do not invent them.
    - Preserve user constraints, confirmed decisions, blockers, validation results, and open questions that affect continuation.
 
@@ -72,6 +73,7 @@ Omit optional sections that would be empty or obvious. Keep ordinary handoff fil
    - Tell the new thread to preserve confirmed decisions unless repository files contradict them.
    - Tell the new thread not to stage, commit, push, or open a PR unless the user asked for that.
    - Include exact open questions or blockers that should be resolved before implementation.
+   - Include the suggested new thread title when a thread will be created.
 
 Fresh-thread prompt template:
 
@@ -85,6 +87,7 @@ Context:
 - model: <current model, "current/default", or "unknown">
 - reasoning effort: <current reasoning effort, "current/default", or "unknown">
 - handoff file: <path or "none">
+- suggested new thread title: <title or "none">
 - source thread state: <one-sentence summary>
 
 Start by:
@@ -104,8 +107,12 @@ Do not stage, commit, push, create a PR, or archive anything unless explicitly a
 
 5. Create the thread when tooling is available.
    - Use the Codex app thread tool, not shell commands, for thread creation.
+   - If title-management tools are not already visible, search for `set_thread_title` before creating the thread.
+   - Choose the title before creating the thread. Prefer `Handoff: <source title>` when a useful source title exists; otherwise use `Handoff: <repo or task>`.
+   - Use a prefix, not a suffix, because the start of titles survives sidebar truncation better. Keep the name under about 70 characters, trim at a word boundary when practical, and avoid duplicate `Handoff:` prefixes.
    - Call `list_projects` first and choose the project that matches the current repository or working directory.
    - Use `create_thread` with a project target and local environment for same-checkout continuation when possible.
+   - After `create_thread` succeeds, immediately call `set_thread_title` with the created thread id and the chosen title. Do not assume `create_thread` can set the title directly.
    - Omit the `model` argument unless the user explicitly requested a model override.
    - Omit reasoning overrides unless the user explicitly requested them or the current environment exposes an exact value that should be preserved.
    - If no matching project is available, provide the fresh-thread prompt for manual use instead of creating an unrelated projectless thread.
