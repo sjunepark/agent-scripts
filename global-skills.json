@@ -12,6 +12,7 @@
       "agents": ["codex"],
       "skills": [
         "agents-md-writer",
+        "ai-code-review",
         "architecture-md-writer",
         "bug-retro",
         "change-explainer",
