@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/progress-reminder.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Checking progress reminder"
+          }
+        ]
+      }
+    ]
+  }
+}

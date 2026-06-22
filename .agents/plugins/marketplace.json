@@ -29,10 +29,10 @@
       "category": "Productivity"
     },
     {
-      "name": "context-handoff",
+      "name": "progress-reminder",
       "source": {
         "source": "local",
-        "path": "./plugins/context-handoff"
+        "path": "./plugins/progress-reminder"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -31,6 +31,14 @@ files are loaded after this file and take precedence when they conflict.
   affects future maintenance.
 - After implementation, run the most relevant validation available.
 
+## Progress Tracking
+
+- For long-running or unattended work, keep a repo-local progress Markdown file
+  current when one exists or when the task needs durable continuity.
+- Prefer existing conventions such as `PROGRESS.md`, `PLAN*.md`, `TODO*.md`,
+  `docs/plans/`, or `.pi/plans/`; keep entries concise and update decisions,
+  completed work, validation, blockers, and the next step.
+
 ## Code Defaults
 
 - Prefer simple, explicit code and clear names.
