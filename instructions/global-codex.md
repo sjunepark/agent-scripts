@@ -30,6 +30,9 @@ files are loaded after this file and take precedence when they conflict.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - After implementation, run the most relevant validation available.
+- For bug fixes, start by reproducing the bug in an E2E setting as closely
+  aligned with the end-user experience as practical, so the fix addresses the
+  real problem.
 
 ## Progress Tracking
 
@@ -48,6 +51,9 @@ files are loaded after this file and take precedence when they conflict.
 - Log decision points with useful structured context when logging is warranted.
 - Add comments for why, tradeoffs, invariants, and non-obvious flow, not for
   obvious mechanics.
+- When making technical decisions, do not give much weight to development cost.
+  Prefer quality, simplicity, robustness, scalability, and long-term
+  maintainability.
 
 ## Refactoring Defaults
 
