@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI Code Review"
-  short_description: "Review local changes with Greptile and CodeRabbit"
-  default_prompt: "Use $ai-code-review to review my current branch with Greptile and CodeRabbit, summarize the important findings, and fix critical issues."
