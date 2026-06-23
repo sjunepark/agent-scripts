@@ -30,6 +30,14 @@ files are loaded after this file and take precedence when they conflict.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - After implementation, run the most relevant validation available.
+- After finishing a reviewable implementation or editing slice, run
+  `$post-implementation-review`.
+- Use subagents for that review when the change touches shared behavior,
+  cross-module contracts, user-facing flows, security, data migration, or a
+  nontrivial refactor.
+- Apply obvious safe review fixes, then rerun the review until no obvious safe
+  findings remain or one bounded follow-up pass is complete. Report remaining
+  findings that need user judgment, larger refactoring, or confirmation.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
   aligned with the end-user experience as practical, so the fix addresses the
   real problem.
