@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Reviewer Setup"
+  short_description: "Configure Greptile and CodeRabbit review bots."
+  default_prompt: "Use $ai-reviewer-setup to add Greptile and CodeRabbit review-bot configs to this project."
