@@ -63,6 +63,15 @@
       ]
     },
     {
+      "name": "codex-lavish-global",
+      "description": "Third-party visualization and HTML artifact review skill that should be available to Codex.",
+      "source": "kunchenguid/lavish-axi",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": ["lavish"]
+    },
+    {
       "name": "manual-global",
       "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
       "install": false,
