@@ -26,3 +26,4 @@ Expose Pushover as a Codex-callable MCP tool while preserving the existing turn-
 - Hook dry-run behavior returned `{"continue":true}` for `UserPromptSubmit` and `Stop`.
 - MCP dry-run behavior exposed `pushover_notify`, `pushover_request_decision`, and `pushover_status`; notify and decision calls completed without sending Pushover messages.
 - Post-implementation review applied one safe fix: forward the optional `CODEX_PUSHOVER_*` environment overrides into the bundled MCP server config. Plugin validation and MCP status dry-run still pass.
+- Codex startup timeout diagnosed as an MCP stdio framing bug. `pushover-mcp.mjs` now emits newline-delimited JSON-RPC, and still accepts the earlier `Content-Length` framing for local compatibility tests.

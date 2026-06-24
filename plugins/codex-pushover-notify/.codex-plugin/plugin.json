@@ -1,6 +1,6 @@
 {
   "name": "codex-pushover-notify",
-  "version": "0.1.0+codex.20260624093532",
+  "version": "0.1.0+codex.20260624095753",
   "description": "Send Pushover notifications when Codex finishes a turn or needs user attention.",
   "author": {
     "name": "Local developer"

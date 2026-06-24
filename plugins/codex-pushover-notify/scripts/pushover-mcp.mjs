@@ -270,8 +270,7 @@ async function handleRequest(message) {
 }
 
 function writeMessage(message) {
-  const json = JSON.stringify(message);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(json, "utf8")}\r\n\r\n${json}`);
+  process.stdout.write(`${JSON.stringify(message)}\n`);
 }
 
 function respond(id, result) {
@@ -289,15 +288,21 @@ function respondError(id, error) {
   });
 }
 
-function headerEndIndex(buffer) {
-  return buffer.indexOf(Buffer.from("\r\n\r\n"));
-}
-
 let inputBuffer = Buffer.alloc(0);
 
-function processInputBuffer() {
+function processMessageBody(body) {
+  const message = JSON.parse(body);
+  if (!isRecord(message) || message.jsonrpc !== "2.0") return;
+  if (message.id === undefined) return;
+
+  Promise.resolve(handleRequest(message))
+    .then((result) => respond(message.id, result))
+    .catch((error) => respondError(message.id, error));
+}
+
+function processContentLengthBuffer() {
   while (true) {
-    const headerEnd = headerEndIndex(inputBuffer);
+    const headerEnd = inputBuffer.indexOf(Buffer.from("\r\n\r\n"));
     if (headerEnd === -1) return;
 
     const header = inputBuffer.subarray(0, headerEnd).toString("ascii");
@@ -314,20 +319,28 @@ function processInputBuffer() {
 
     const body = inputBuffer.subarray(bodyStart, bodyEnd).toString("utf8");
     inputBuffer = inputBuffer.subarray(bodyEnd);
-    const message = JSON.parse(body);
-    if (!isRecord(message) || message.jsonrpc !== "2.0") continue;
-    if (message.id === undefined) continue;
+    processMessageBody(body);
+  }
+}
 
-    Promise.resolve(handleRequest(message))
-      .then((result) => respond(message.id, result))
-      .catch((error) => respondError(message.id, error));
+function processLineBuffer() {
+  while (true) {
+    const newline = inputBuffer.indexOf(0x0a);
+    if (newline === -1) return;
+    const line = inputBuffer.subarray(0, newline).toString("utf8").trim();
+    inputBuffer = inputBuffer.subarray(newline + 1);
+    if (line) processMessageBody(line);
   }
 }
 
 process.stdin.on("data", (chunk) => {
   inputBuffer = Buffer.concat([inputBuffer, chunk]);
   try {
-    processInputBuffer();
+    if (inputBuffer.includes(Buffer.from("Content-Length:"))) {
+      processContentLengthBuffer();
+    } else {
+      processLineBuffer();
+    }
   } catch (error) {
     respondError(null, error);
   }
