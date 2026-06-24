@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "pushover": {
+      "command": "node",
+      "args": [
+        "./scripts/pushover-mcp.mjs"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "PUSHOVER_APP_TOKEN",
+        "PUSHOVER_API_TOKEN",
+        "PUSHOVER_USER_KEY",
+        "PUSHOVER_DEVICE",
+        "PUSHOVER_SOUND",
+        "CODEX_PUSHOVER_DATA_DIR",
+        "CODEX_PUSHOVER_STATE_FILE",
+        "CODEX_PUSHOVER_TITLE",
+        "CODEX_PUSHOVER_MESSAGE",
+        "CODEX_PUSHOVER_MIN_MS",
+        "CODEX_PUSHOVER_DEBOUNCE_MS",
+        "CODEX_PUSHOVER_DRY_RUN",
+        "CODEX_PUSHOVER_TIMEOUT_MS",
+        "CODEX_PUSHOVER_INCLUDE_CWD",
+        "CODEX_PUSHOVER_VERBOSE"
+      ]
+    }
+  }
+}
