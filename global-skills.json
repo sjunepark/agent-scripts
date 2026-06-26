@@ -63,12 +63,12 @@
       ]
     },
     {
-      "name": "codex-lavish-global",
-      "description": "Third-party visualization and HTML artifact review skill that should be available to Codex.",
+      "name": "codex-claude-lavish-global",
+      "description": "Third-party visualization and HTML artifact review skill that should be available to Codex and Claude Code.",
       "source": "kunchenguid/lavish-axi",
       "scope": "global",
       "mode": "copy",
-      "agents": ["codex"],
+      "agents": ["codex", "claude-code"],
       "skills": ["lavish"]
     },
     {
