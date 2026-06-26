@@ -29,6 +29,8 @@ files are loaded after this file and take precedence when they conflict.
 - Use the repository's existing commands and conventions.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
+- Prefer enforcing recurring agent mistakes with types, schemas, lint rules,
+  tests, or validation scripts before adding more prose to AGENTS.md.
 - After implementation, run the most relevant validation available.
 - After finishing a reviewable implementation or editing slice, run
   `$post-implementation-review`.
@@ -41,6 +43,8 @@ files are loaded after this file and take precedence when they conflict.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
   aligned with the end-user experience as practical, so the fix addresses the
   real problem.
+- For bug fixes, collect structured runtime evidence such as logs, traces,
+  error payloads, or reproduction output before speculating about the fix.
 
 ## Progress Tracking
 
