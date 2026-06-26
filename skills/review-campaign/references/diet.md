@@ -1,4 +1,4 @@
-# Pass: dead-weight
+# Pass: diet
 
 Unearned abstraction, speculative generality, and leftovers. The bar for keeping code is a current, concrete need — but the bar for *flagging removal* is verified deadness, because a false "unused" finding costs more than the weight it would save.
 

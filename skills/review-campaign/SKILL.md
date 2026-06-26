@@ -63,6 +63,10 @@ Finding fields:
 
 Invoked as `/review-campaign <mode>`; no argument means `continue`.
 
+Bootstrap guard: when `reviews/REVIEW.md` does not exist, treat an omitted
+mode or explicit `continue` as `plan`. Only `plan` bootstraps the ledger;
+`continue` must not create `reviews/REVIEW.md`.
+
 ### plan — bootstrap or replan
 
 1. Inventory: tracked-file counts per directory, languages and frameworks (e.g. Effect usage via import grep), test locations, colocated docs, existing review docs and TODO conventions.
@@ -116,6 +120,7 @@ Walk `triage + open` findings, blockers first, batched by area. Outcomes per fin
 1. `structure` — every area, by priority. Completes before any detail pass starts, so detail reviews see the post-refactor shape.
 2. `security` — trust-boundary areas only.
 3. Detail passes per area: `tests → errors → logging → effect → naming → diet → docs`.
+   The `diet` pass uses `references/diet.md` as the campaign-scoped rubric.
 
 ## Session discipline
 
