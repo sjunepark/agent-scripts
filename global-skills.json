@@ -72,6 +72,15 @@
       "skills": ["lavish"]
     },
     {
+      "name": "codex-axi-global",
+      "description": "Third-party agent-facing CLI design skill that should be available to Codex.",
+      "source": "kunchenguid/axi",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": ["axi"]
+    },
+    {
       "name": "manual-global",
       "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
       "install": false,
