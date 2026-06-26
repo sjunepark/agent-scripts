@@ -20,6 +20,21 @@ files are loaded after this file and take precedence when they conflict.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
 
+## Documentation Defaults
+
+- Treat Markdown as agent-loaded context: keep files short, current, and
+  task-scoped.
+- Use progressive disclosure for long docs: keep parent files to routing,
+  invariants, and high-signal summaries; move details into focused child docs
+  and link them.
+- Before expanding a large Markdown file, delete stale or duplicate material,
+  then split by topic or ownership instead of appending.
+- For progress, plan, and review docs, update the current state in place:
+  keep latest decisions, validation, blockers, and next action; compress or
+  archive prior run notes instead of appending session logs.
+- Prefer concise summaries plus paths to source files over pasted transcripts,
+  logs, or broad architecture dumps.
+
 ## Change Management
 
 - Treat unrelated working-tree changes as intentional.
