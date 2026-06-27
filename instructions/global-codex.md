@@ -55,6 +55,8 @@ files are loaded after this file and take precedence when they conflict.
 - Apply obvious safe review fixes, then rerun the review until no obvious safe
   findings remain or one bounded follow-up pass is complete. Report remaining
   findings that need user judgment, larger refactoring, or confirmation.
+- Use CodeRabbit as a review option when the user asks for it. It is expensive
+  (10 reviews/hour), so do not invoke it freely or for routine review passes.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
   aligned with the end-user experience as practical, so the fix addresses the
   real problem.
