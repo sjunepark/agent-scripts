@@ -3,26 +3,26 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Use $change-explainer on my unstaged changes. I don't want a file-by-file recap. Start with the big picture, then teach me the edits in the order that makes the most sense, and tell me what the behavior change implies for future work. Only show snippets if they're crucial.",
-      "expected_output": "A reviewer-oriented explanation of local diff hunks that starts with the patch purpose, establishes the smallest useful post-change mental model, then walks through conceptual changes in learning order with before/after/why contrasts where useful, maintenance implications, and snippets only when crucial.",
+      "prompt": "Use $change-explainer on my unstaged changes. I want an interactive page I can click through, not a file-by-file recap. Start with the big picture, group the edits into conceptual changes in the order that makes the most sense, and add before/after toggles only where the exact code matters.",
+      "expected_output": "The skill inspects local uncommitted changes, builds a self-contained interactive HTML doc from assets/template.html written to .change-explainer/<slug>.html (with a self-ignoring .change-explainer/.gitignore of '*'), opens it, and reports the path. The doc leads with the patch purpose and smallest useful post-change mental model, presents conceptual changes as collapsible blocks in learning order with before/after panels only where the code shape carries the decision, plus key decisions, maintenance focus, and what-to-remember. Chat reply is a short orientation, not the full walkthrough.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Walk me through the last commit like I'm reviewing it cold. I want to understand what problem this patch solves first, then how the contract changed, then how the implementation was reshaped. Keep snippets rare unless the exact code is important.",
-      "expected_output": "A commit walkthrough that teaches the patch top-down: problem and scope first, then the new contract or behavior the reader should understand, then the design and implementation decisions, using snippets only when the exact code is important.",
+      "prompt": "Build an HTML walkthrough of the last commit like I'm reviewing it cold. I want to understand the problem it solves first, then how the contract changed, then how the implementation was reshaped. Keep before/after panels rare unless the exact code matters.",
+      "expected_output": "A self-contained HTML doc for the last commit, opened in the browser and written under .change-explainer/, that teaches top-down: problem and scope in Big Picture, then contract/behavior changes, then design and implementation as numbered collapsible conceptual changes, using before/after panels only when the exact code is important.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks together, explain how they fit into the same idea, and teach me the patch in the easiest order to understand. Stay mostly descriptive unless something looks materially risky. Avoid line-by-line explanation.",
-      "expected_output": "A conceptual, reviewer-oriented explanation of a patch grouped by purpose, with clear before/after/why framing or post-change teaching, explicit mental-model building, selective evidence, and restrained judgment.",
+      "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks into conceptual changes, explain how each fits one idea, and render it as a browsable doc in the easiest order to understand. Stay mostly descriptive unless something looks materially risky.",
+      "expected_output": "A self-contained interactive HTML doc grouped by purpose rather than by file, with collapsible conceptual changes, before/after or diagram evidence used selectively, explicit mental-model building, and a Concerns section only when a material issue exists. No formal-review language unless requested.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $change-explainer and explain what's changed.",
-      "expected_output": "The skill defaults to the current repository's uncommitted change set, checks git status plus staged and unstaged diffs, includes relevant untracked files, and only asks for a specific commit, range, patch, or file pair if there are no uncommitted changes to explain.",
+      "expected_output": "The skill defaults to the current repository's uncommitted change set (git status plus staged and unstaged diffs and relevant untracked files), generates the interactive HTML doc under .change-explainer/, opens it, and only asks for a specific commit, range, patch, or file pair if there are no uncommitted changes to explain.",
       "files": []
     }
   ]

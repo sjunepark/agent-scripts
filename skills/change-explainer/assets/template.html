@@ -1,0 +1,324 @@
+<!doctype html>
+<!--
+  change-explainer template.
+  Fill the regions marked  <!-- FILL: ... -->  and duplicate the
+  "conceptual change" <details> block once per conceptual bucket.
+  Keep the <style> and <script> intact; they provide the interactivity
+  (theme toggle, expand/collapse all, TOC scroll-spy, before/after tabs,
+  copy buttons, syntax highlighting with an offline fallback).
+  The file is fully self-contained and opens directly in any browser.
+-->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title><!-- FILL: doc title, e.g. "auth session refactor" --> · change-explainer</title>
+
+<!-- Syntax highlighting (optional, degrades gracefully offline). -->
+<link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+<link id="hl-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" disabled />
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f9fafb; --text: #1a1a1a; --muted: #6b7280;
+    --accent: #2563eb; --border: #e5e7eb; --code-bg: #f6f8fa;
+    --add-bg: #e6ffec; --add-bd: #aceebb; --del-bg: #ffebe9; --del-bd: #f1aeb5;
+    --warn-bg: #fff8e1; --warn-bd: #f5d784; --warn-fg: #8a6d00;
+    --maxw: 50rem;
+  }
+  [data-theme="dark"] {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #8b949e;
+    --accent: #58a6ff; --border: #30363d; --code-bg: #161b22;
+    --add-bg: rgba(46,160,67,.18); --add-bd: rgba(46,160,67,.5);
+    --del-bg: rgba(248,81,73,.16); --del-bd: rgba(248,81,73,.5);
+    --warn-bg: rgba(187,128,9,.16); --warn-bd: rgba(187,128,9,.5); --warn-fg: #e3b341;
+  }
+
+  * { box-sizing: border-box; min-width: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Layout: sticky sidebar + content. */
+  .wrap { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: 2.5rem; max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+  nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 1.5rem 0; }
+  nav.toc .brand { font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+  nav.toc a { display: block; padding: .3rem .6rem; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; font-size: .92rem; }
+  nav.toc a:hover { color: var(--text); }
+  nav.toc a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface); }
+  nav.toc a.sub { padding-left: 1.4rem; font-size: .86rem; }
+
+  main { padding: 2.5rem 0 6rem; max-width: var(--maxw); }
+  header.doc { margin-bottom: 2.5rem; }
+  header.doc h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .5rem; letter-spacing: -.01em; }
+  .meta { display: flex; flex-wrap: wrap; gap: .4rem .9rem; color: var(--muted); font-size: .88rem; }
+  .meta code { background: var(--code-bg); padding: .05rem .35rem; border-radius: 4px; font-size: .85em; }
+
+  section { margin-bottom: 2.75rem; scroll-margin-top: 1.5rem; }
+  h2 { font-size: 1.3rem; margin: 0 0 .9rem; padding-bottom: .35rem; border-bottom: 1px solid var(--border); letter-spacing: -.01em; }
+  p { margin: .6rem 0; }
+  .lead { font-size: 1.08rem; color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Callouts (TL;DR, concerns) — used sparingly. */
+  .callout { padding: .85rem 1.1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); margin: 1rem 0; }
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
+  .callout.warn .label { color: var(--warn-fg); }
+  .callout .label { font-weight: 600; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; display: block; margin-bottom: .3rem; }
+
+  /* Conceptual change blocks. */
+  details.change { border: 1px solid var(--border); border-radius: 10px; margin: .9rem 0; overflow: hidden; background: var(--bg); }
+  details.change > summary { cursor: pointer; list-style: none; padding: .85rem 1.1rem; font-weight: 600; display: flex; align-items: center; gap: .6rem; }
+  details.change > summary::-webkit-details-marker { display: none; }
+  details.change > summary::before { content: "▶"; font-size: .7rem; color: var(--muted); transition: transform .15s; }
+  details.change[open] > summary::before { transform: rotate(90deg); }
+  details.change > summary:hover { background: var(--surface); }
+  details.change .num { color: var(--accent); font-variant-numeric: tabular-nums; }
+  details.change .body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); }
+  details.change .why { margin-top: .8rem; padding-left: .9rem; border-left: 3px solid var(--accent); color: var(--text); }
+  details.change .why .label { font-weight: 600; color: var(--accent); }
+
+  /* Before/after tabs. */
+  .ba { margin: 1rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .ba-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .ba-tab { appearance: none; border: 0; background: transparent; padding: .5rem 1rem; font: inherit; font-size: .88rem; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .ba-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .ba-tab[data-kind="before"].active { border-bottom-color: var(--del-bd); }
+  .ba-tab[data-kind="after"].active { border-bottom-color: var(--add-bd); }
+  .ba-panel[hidden] { display: none; }
+
+  /* Code. */
+  pre { margin: 0; overflow-x: auto; background: var(--code-bg); }
+  pre code { display: block; padding: .9rem 1.1rem; font: .85rem/1.55 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  p code, li code { background: var(--code-bg); padding: .05rem .35rem; border-radius: 4px; font-size: .87em; }
+  .codeblock { position: relative; }
+  .copy { position: absolute; top: .45rem; right: .45rem; appearance: none; border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 6px; padding: .2rem .5rem; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .12s; }
+  .codeblock:hover .copy { opacity: 1; }
+  .copy:hover { color: var(--text); }
+  /* Inline diff coloring for unified snippets. */
+  .diff .add { display: block; background: var(--add-bg); }
+  .diff .del { display: block; background: var(--del-bg); }
+
+  figure.diagram { margin: 1.2rem 0; }
+  figure.diagram pre { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; line-height: 1.4; }
+  figure.diagram figcaption { color: var(--muted); font-size: .85rem; margin-top: .4rem; }
+
+  ul.tight { margin: .5rem 0; padding-left: 1.2rem; }
+  ul.tight li { margin: .3rem 0; }
+
+  /* Floating controls. */
+  .controls { position: fixed; top: 1rem; right: 1rem; display: flex; gap: .4rem; z-index: 10; }
+  .controls button { appearance: none; border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 7px; padding: .35rem .6rem; font-size: .78rem; cursor: pointer; }
+  .controls button:hover { color: var(--text); border-color: var(--accent); }
+
+  @media (max-width: 52rem) {
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    nav.toc { position: static; height: auto; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+    nav.toc a { display: inline-block; }
+    .controls { position: static; justify-content: flex-end; padding: 1rem 1.5rem 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button id="toggle-all" type="button">Expand all</button>
+  <button id="toggle-theme" type="button">Dark</button>
+</div>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <div class="brand">change-explainer</div>
+    <!-- FILL: one link per section below; keep ids in sync with the sections. -->
+    <a href="#big-picture">Big Picture</a>
+    <a href="#how">How the Change Works</a>
+    <!-- FILL: optional sub-links per conceptual change -->
+    <a href="#decisions">Key Decisions</a>
+    <a href="#maintenance">Reviewer &amp; Maintenance</a>
+    <a href="#remember">What to Remember</a>
+    <a href="#concerns">Concerns</a>
+  </nav>
+
+  <main>
+    <header class="doc">
+      <h1><!-- FILL: short title naming the change's purpose --></h1>
+      <div class="meta">
+        <span><!-- FILL: source, e.g. --><code>working tree (uncommitted)</code></span>
+        <span><!-- FILL: scope, e.g. -->4 files · +128 −37</span>
+        <span class="muted"><!-- FILL: generated date/branch --></span>
+      </div>
+    </header>
+
+    <section id="big-picture">
+      <h2>Big Picture</h2>
+      <p class="lead"><!-- FILL: one or two sentences on what this change is trying to do and where it matters. --></p>
+      <div class="callout">
+        <span class="label">TL;DR</span>
+        <!-- FILL: the single most important takeaway. -->
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How the Change Works</h2>
+      <p class="muted">Each block is one conceptual change, ordered for understanding — not by file.</p>
+
+      <!-- BEGIN conceptual change (duplicate this <details> per bucket; number them). -->
+      <details class="change" open>
+        <summary><span class="num">1.</span> <!-- FILL: name the technical decision, not the file --></summary>
+        <div class="body">
+          <p><!-- FILL: prose explanation — what the system now does and how these edits fit one idea. --></p>
+
+          <!-- Optional before/after. Omit when prose alone is enough. -->
+          <div class="ba" data-ba>
+            <div class="ba-tabs">
+              <button class="ba-tab active" data-kind="before" type="button">Before</button>
+              <button class="ba-tab" data-kind="after" type="button">After</button>
+            </div>
+            <div class="ba-panel" data-pane="before">
+              <div class="codeblock"><button class="copy" type="button">Copy</button>
+                <pre><code class="language-ts"><!-- FILL: old code, or "n/a (new code)" --></code></pre>
+              </div>
+            </div>
+            <div class="ba-panel" data-pane="after" hidden>
+              <div class="codeblock"><button class="copy" type="button">Copy</button>
+                <pre><code class="language-ts"><!-- FILL: new code --></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="why"><span class="label">Why it matters:</span> <!-- FILL: the consequence for behavior, contracts, or callers. --></div>
+        </div>
+      </details>
+      <!-- END conceptual change. -->
+
+      <!-- Optional diagram when flow/ownership is easier seen than described. -->
+      <figure class="diagram">
+        <pre>
+<!-- FILL or remove:
+Before: Route ─▶ Repo
+After:  Route ─▶ Service ─▶ Repo
+-->
+        </pre>
+        <figcaption><!-- FILL: one line explaining the diagram. --></figcaption>
+      </figure>
+    </section>
+
+    <section id="decisions">
+      <h2>Key Decisions</h2>
+      <ul class="tight">
+        <!-- FILL: the few abstractions, invariants, or contracts that make the change make sense. -->
+        <li></li>
+      </ul>
+    </section>
+
+    <section id="maintenance">
+      <h2>Reviewer &amp; Maintenance Focus</h2>
+      <ul class="tight">
+        <!-- FILL: consequences for usage, compatibility, testing, future edits; important tradeoffs/risks. -->
+        <li></li>
+      </ul>
+    </section>
+
+    <section id="remember">
+      <h2>What to Remember</h2>
+      <p><!-- FILL: the new mental model in one short paragraph or a couple tight points. --></p>
+    </section>
+
+    <!-- Include only if there is a material concern; otherwise delete this section and its TOC link. -->
+    <section id="concerns">
+      <h2>Concerns</h2>
+      <div class="callout warn">
+        <span class="label">Worth a closer look</span>
+        <!-- FILL: critical/important correctness, regression, contract, security, or data concern. -->
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+
+    // Theme: restore, toggle, swap highlight.js stylesheet.
+    var lightCss = document.getElementById('hl-light');
+    var darkCss = document.getElementById('hl-dark');
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      if (lightCss) lightCss.disabled = t === 'dark';
+      if (darkCss) darkCss.disabled = t !== 'dark';
+      var btn = document.getElementById('toggle-theme');
+      if (btn) btn.textContent = t === 'dark' ? 'Light' : 'Dark';
+    }
+    var saved;
+    try { saved = localStorage.getItem('ce-theme'); } catch (e) {}
+    applyTheme(saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    var themeBtn = document.getElementById('toggle-theme');
+    if (themeBtn) themeBtn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('ce-theme', next); } catch (e) {}
+    });
+
+    // Expand / collapse all conceptual changes.
+    var allBtn = document.getElementById('toggle-all');
+    if (allBtn) allBtn.addEventListener('click', function () {
+      var items = document.querySelectorAll('details.change');
+      var anyClosed = Array.prototype.some.call(items, function (d) { return !d.open; });
+      items.forEach(function (d) { d.open = anyClosed; });
+      allBtn.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+    });
+
+    // Before/after tabs.
+    document.querySelectorAll('[data-ba]').forEach(function (ba) {
+      var tabs = ba.querySelectorAll('.ba-tab');
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var kind = tab.getAttribute('data-kind');
+          tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
+          ba.querySelectorAll('.ba-panel').forEach(function (p) {
+            p.hidden = p.getAttribute('data-pane') !== kind;
+          });
+        });
+      });
+    });
+
+    // Copy buttons.
+    document.querySelectorAll('.copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.parentElement.querySelector('code');
+        if (!code) return;
+        var done = function () { var o = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = o; }, 1200); };
+        if (navigator.clipboard) navigator.clipboard.writeText(code.innerText).then(done, done);
+      });
+    });
+
+    // TOC scroll-spy.
+    var links = {};
+    document.querySelectorAll('nav.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1); if (id) links[id] = a;
+    });
+    if (window.IntersectionObserver) {
+      var spy = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          var a = links[e.target.id]; if (!a) return;
+          if (e.isIntersecting) {
+            Object.keys(links).forEach(function (k) { links[k].classList.remove('active'); });
+            a.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-10% 0px -75% 0px' });
+      Object.keys(links).forEach(function (id) { var el = document.getElementById(id); if (el) spy.observe(el); });
+    }
+
+    // Syntax highlighting (no-op if the CDN did not load).
+    window.addEventListener('load', function () {
+      if (window.hljs) try { hljs.highlightAll(); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>
