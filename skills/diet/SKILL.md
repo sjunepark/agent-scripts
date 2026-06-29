@@ -17,6 +17,8 @@ Do not assume code came from an LLM or agent. Judge the code on its merits. If t
 
 Do not force deletions. Explicit, readable, well-bounded code is often worth keeping even when it is not minimal.
 
+The goal is not fewer lines. The goal is fewer obligations: fewer concepts, states, branches, compatibility promises, and surfaces to preserve.
+
 ## Scope
 
 Use this skill when the user's main concern is excess code weight, speculative flexibility, or bolted-on design.
@@ -39,6 +41,14 @@ Treat these principles as guides, not dogma:
 - **Prefer integration over appending**: solve the problem in the existing design when possible instead of adding side channels, one-off adapters, or parallel flows.
 - **Keep readability-oriented explicitness**: a small helper, wrapper, or object can be worth its cost when it clarifies naming, boundaries, or invariants.
 
+## Judgment Guardrails
+
+- First separate **essential complexity** from **accidental complexity**. Essential complexity comes from the domain, external contracts, data lifecycle, failure modes, security, performance, or user workflow. Accidental complexity comes from implementation machinery that current behavior does not require.
+- Before recommending removal, identify what would stop working, what tests or contracts would need to change, and whether the behavior is public, persisted, migrated, or used by another subsystem. If local evidence cannot answer that, put the item in Bucket II.
+- Treat compatibility layers, migration fields, fallbacks, aliases, and dual-read or dual-write paths as justified only when there is a current rollout, external contract, or documented migration window. Otherwise, they are usually Bucket II candidates.
+- Prefer simplification in this order: delete unused or speculative code; inline pass-through wrappers; make generic code specific to the current use; split diverging cases instead of adding flags or modes; redesign only when local simplification would leave the underlying weight intact.
+- A longer direct implementation can be leaner than a shorter abstraction when it creates fewer concepts, jumps, configuration paths, and preserved states.
+
 ## Workflow
 
 1. Anchor the review in the real code.
@@ -53,6 +63,7 @@ Treat these principles as guides, not dogma:
   - what current behavior depends on this?
   - what concrete maintenance cost does it remove?
   - would the code be clearer if this were inlined, deleted, or made more specific?
+  - what replacement shape would remain after simplification: deleted, inlined, made specific, merged into an existing path, or split into explicit paths?
 
 3. Look for weight-gain patterns.
 - Extra JSON fields, DTO properties, DB columns, or config keys that current behavior barely uses.
@@ -99,7 +110,7 @@ Use this structure when reporting:
 - For each item, include:
   - what seems overweight
   - why it does not appear to earn its cost today
-  - the smallest reasonable simplification direction
+  - the smallest reasonable simplification direction and resulting code shape
   - the main tradeoff only if it matters
 
 ### Bucket II — Worth Discussing
