@@ -23,7 +23,8 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 
 3. Create or update with `gh`.
    - Prefer `gh pr create --base <base> --head <branch> --title <title> --body-file <file>` so multiline bodies and bot commands are preserved exactly.
-   - Add `--draft` when validation is incomplete, the user calls the work WIP, or the PR is meant for early visibility rather than review.
+   - Create a ready-for-review PR by default. Add `--draft` only when the user asks for a draft, the user calls the work WIP, repo instructions require drafts for this case, or the PR is explicitly meant for early visibility rather than review.
+   - When validation is incomplete, keep the PR ready by default and state the missing validation plainly in the body. Use a draft only when the incomplete validation makes the PR intentionally not ready for review.
    - Use `--reviewer`, `--label`, `--assignee`, and `--milestone` only when requested or clearly supported by repo convention.
    - After creation or edit, verify with `gh pr view --json url,number,title,state,baseRefName,headRefName,isDraft,labels`.
 
