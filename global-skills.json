@@ -11,6 +11,7 @@
       "mode": "copy",
       "agents": ["codex"],
       "skills": [
+        "address-pr-feedback",
         "agents-md-writer",
         "architecture-md-writer",
         "bug-retro",
@@ -33,6 +34,7 @@
       "mode": "copy",
       "agents": ["claude-code", "pi"],
       "skills": [
+        "address-pr-feedback",
         "agents-md-writer",
         "architecture-md-writer",
         "change-explainer",
