@@ -2,3 +2,5 @@ interface:
   display_name: "Diet"
   short_description: "Find unearned code weight and complexity."
   default_prompt: "Use $diet to review code for unearned maintenance obligations, separating high-confidence simplifications from tradeoffs while preserving explicit code that pays for itself."
+policy:
+  allow_implicit_invocation: false

@@ -1,9 +1,13 @@
 ---
 name: post-implementation-review
-description: "Run a bounded post-implementation review of completed code or document changes, applying obvious safe Bucket I fixes, rechecking until no Bucket I items remain when practical, and using subagents when they materially improve review coverage. Use after an implementation, refactor, plan slice, bug fix, or uncommitted change set needs review for regressions, missed invariants, validation gaps, small safe corrections, and Bucket II decisions without persistent workflow automation."
+description: "Manual standalone post-implementation review procedure; prefer code-review as the automatic review entry point."
+disable-model-invocation: true
 ---
 
 # Post-Implementation Review
+
+Prefer `code-review` as the automatic code review entry point. This skill
+remains available as a standalone procedure for explicit invocation.
 
 Review the completed implementation, apply obvious safe Bucket I fixes by
 default, and make a bounded best-effort to keep rechecking until no Bucket I

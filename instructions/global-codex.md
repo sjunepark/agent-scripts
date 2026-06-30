@@ -48,7 +48,12 @@ files are loaded after this file and take precedence when they conflict.
   tests, or validation scripts before adding more prose to AGENTS.md.
 - After implementation, run the most relevant validation available.
 - After finishing a reviewable implementation or editing slice, run
-  `$post-implementation-review`.
+  `$code-review`.
+- Use its implementation-review path by default: inspect the diff, apply
+  obvious safe Bucket I fixes, recheck, and validate.
+- Include the diet lens when the change adds abstractions, wrappers,
+  schema/config surface, compatibility paths, modes, flags, generic layers, or
+  otherwise seems heavier than necessary.
 - Use subagents for that review when the change touches shared behavior,
   cross-module contracts, user-facing flows, security, data migration, or a
   nontrivial refactor.

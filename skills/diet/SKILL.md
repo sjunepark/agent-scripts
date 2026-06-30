@@ -1,11 +1,15 @@
 ---
 name: diet
-description: "Review code for unearned weight, overengineering, and bolted-on design. Use when code seems overbuilt, helper-heavy, schema-heavy, field-heavy, wrapper-heavy, future-proofed, or bandaged on, or when the user asks what can be deleted, collapsed, inlined, questioned, put on a diet, trimmed, or made leaner."
+description: "Manual standalone lens for unearned code weight; prefer code-review as the automatic review entry point."
+disable-model-invocation: true
 ---
 
 # Diet
 
 Review code for **unearned weight**.
+
+Prefer `code-review` as the automatic code review entry point. This skill
+remains available as a standalone lens for explicit invocation.
 
 The core question is:
 
