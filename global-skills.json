@@ -17,6 +17,7 @@
         "bug-retro",
         "change-explainer",
         "code-review",
+        "create-pr",
         "doc-comment-writer",
         "explore-repo",
         "interview",
@@ -40,6 +41,7 @@
         "architecture-md-writer",
         "change-explainer",
         "code-review",
+        "create-pr",
         "doc-comment-writer",
         "interview",
         "merge-branch",
@@ -91,6 +93,10 @@
         {
           "name": "auto-review",
           "agents": ["claude-code"]
+        },
+        {
+          "name": "baton",
+          "agents": []
         },
         {
           "name": "context7-mcp",
