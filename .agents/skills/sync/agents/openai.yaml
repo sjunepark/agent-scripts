@@ -1,4 +1,4 @@
 interface:
   display_name: "Sync"
-  short_description: "Install selected repo skills from the GitHub skills subpath"
-  default_prompt: "Use this skill to install selected published skills from the current repository onto the current machine with bunx skills, using https://github.com/sjunepark/agent-scripts/tree/main/skills and defaulting to explicit --skill <name> with --copy -g -a claude-code -a pi unless the user explicitly wants a different target set."
+  short_description: "Commit and push skill changes, then install selected repo skills from the GitHub skills subpath"
+  default_prompt: "Use this skill to commit and push intended skill changes, then install selected published skills from the current repository onto the current machine with bunx skills, using https://github.com/sjunepark/agent-scripts/tree/main/skills and defaulting to explicit --skill <name> with --copy -g -a claude-code -a pi -y unless the user explicitly wants a different target set."

@@ -10,10 +10,10 @@ Before calling anything unused: grep imports *and* indirect references — templ
 
 - **Unearned abstraction.** Interfaces with one implementation and no second in sight, factories that build one thing, layers that only pass through, wrappers adding nothing over the callee. Inline them.
 - **Speculative generality.** Options and parameters never passed, config flags never set, generics with one instantiation, "extensible" registries with one entry and no plan.
-- **Dual paths past their transition.** Compatibility shims, old-and-new implementations both alive, dual-read/dual-write with the migration finished. This repo wants one clear path — name which one and what removes the other.
+- **Dual paths past their transition.** Compatibility shims, old-and-new implementations both alive, dual-read/dual-write with the migration finished. Name which path stays and what removes the other.
 - **Schema minimalism.** DB columns, JSON fields, contract properties not used by current behavior (trace each to a reader). Applies hardest in db schemas and shared contracts.
 - **Leftovers.** Unused exports/files, commented-out blocks with a live replacement, stale TODO comments, debug scaffolding, dependencies used trivially or not at all (check against the repo's manifests and lockfiles).
-- **Wrong-direction abstraction.** Clever indirection where simple redundancy would read better — this repo explicitly accepts small redundancy for stateless collaborators. Flag the abstraction, not the duplication.
+- **Wrong-direction abstraction.** Clever indirection where simple redundancy would read better — small redundancy for stateless collaborators is acceptable. Flag the abstraction, not the duplication.
 
 ## Do not flag
 

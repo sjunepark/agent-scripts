@@ -20,7 +20,7 @@ Judge shape, not lines. Outputs beyond findings: the area's `## Map` (responsibi
 
 - Stylistic depth or grouping preferences without a concrete cost (misplacement, sync-edit burden, leaked internals).
 - Speculative reorganization of stable code that nothing new will join.
-- Small redundancy that keeps modules independent — this repo prefers it to clever sharing.
+- Small redundancy that keeps modules independent — prefer it to clever sharing.
 
 ## Severity and tier
 

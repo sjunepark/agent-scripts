@@ -1,44 +1,19 @@
 ---
 name: change-explainer
-description: "Explain a code or document change set as a self-contained interactive HTML doc for reviewers and maintainers, focusing on design, decisions, contracts, tradeoffs, and maintenance implications. Use to understand a git diff, unstaged or staged changes, a commit, a commit range, a PR patch, or two versions of a file as a browsable page with collapsible conceptual changes, before/after toggles, and navigation."
+description: "Explain a code or document change set as a self-contained interactive HTML doc for reviewers and maintainers. Use to understand a git diff (pasted, staged, or unstaged), a commit or commit range, a PR patch, or two versions of a file or document."
 ---
 
 # Change Explainer
 
-Teach the change, not the patch mechanics — and deliver it as an interactive HTML doc the reader can open in a browser, navigate, and expand at their own pace.
+Teach the change, not the patch mechanics — a concept-first, interactive HTML doc the reader can open in a browser, navigate, and expand at their own pace.
 
-The goal is to help a reviewer or maintainer understand:
-- what problem or purpose the change addresses
-- what changed at the design, responsibility, or contract level
-- what the relevant part of the system now does after the change
-- how the important edits fit together into one technical decision
-- how control flow, data flow, ownership, or contracts changed
-- what tradeoffs, risks, or maintenance consequences matter
-- what mental model the reader should carry forward
-
-This is an explanatory skill, not an implementer tutorial and not a formal code review. Do not explain syntax or line-by-line execution unless asked. Offer judgment only when the change introduces a material issue or an important tradeoff the reader should know about.
-
-The medium is the difference from a plain prose answer: an HTML doc invites richer visual evidence than a terminal reply. Syntax-highlighted before/after panels, collapsible conceptual changes, a navigable table of contents, and small diagrams are encouraged where they aid comprehension — while the explanation stays concept-first, never a file-by-file or hunk-by-hunk tour.
-
-## What this produces
-
-A single self-contained `.html` file (inline CSS/JS, no server, works offline) written to `.change-explainer/` in the working directory, then opened in the browser. The reader gets a navigable page; you give a short orientation in chat with the path.
-
-## First-Class Inputs
-
-Handle these as normal entry points:
-- `git diff`, unstaged or staged local changes
-- a commit, or a commit range
-- a PR patch or review diff
-- two versions of a file or document
-
-If the user asks for an explanation but gives no comparison target, default to the current repository's uncommitted changes (staged, unstaged, and relevant untracked files). Do not ask first — check local status. Start with `git status --short`, then inspect staged and unstaged diffs. If there are no uncommitted changes, say so plainly and ask for the commit, range, patch, or file versions to explain.
+This is an explanatory skill, not an implementer tutorial and not a formal code review. Do not explain syntax or line-by-line execution unless asked.
 
 ## Explanation principles
 
 Carry these from prose into the doc; they decide what each section says.
 
-1. **Start from the reader's question.** Identify what they want to understand, not just which files moved. Match depth to the request.
+1. **Start from the reader's question.** Identify what they want to understand, not just which files moved.
 2. **Build a mental model before hunk details.** Lead with purpose and visible behavior, then the main flow, then supporting edits.
 3. **Teach the changed system, not just the delta.** Reconstruct the smallest useful model of how the code works *after* the patch; use only the minimum "before" needed to make the change legible. Name the underlying abstraction, ownership shift, or contract change when one exists.
 4. **Group scattered hunks into a few conceptual buckets.** Name each bucket by its technical decision, not the file it touched. Split one large diff when it mixes concerns.
@@ -59,8 +34,8 @@ Fill the bundled template's sections (each maps to a region in [assets/template.
 
 ## Workflow
 
-1. **Identify the comparison unit.** Confirm whether you are explaining local changes, a commit, a range, a PR patch, or a file pair. Default to uncommitted local changes when omitted. Read the diff first, then pull in neighboring code, tests, and docs only where the diff alone does not explain behavior, ownership, or invariants.
-2. **Build the conceptual buckets** using the principles above.
+1. **Identify the comparison unit.** Confirm whether you are explaining local changes, a commit, a range, a PR patch, or a file pair. When no target is given, do not ask first — default to uncommitted changes: run `git status --short`, then inspect staged and unstaged diffs and relevant untracked files; if the tree is clean, say so and ask for a commit, range, patch, or file versions. Read the diff first, then pull in neighboring code, tests, and docs only where the diff alone does not explain behavior, ownership, or invariants.
+2. **Build the conceptual buckets** using the principles above. Done when every hunk in the diff is accounted for by a bucket; mechanical or trivial edits may share one briefly summarized bucket.
 3. **Prepare the output directory.** Create `.change-explainer/` in the working directory. Make it self-ignoring without touching the repo's tracked files: ensure `.change-explainer/.gitignore` exists containing a single line `*`. (This ignores the whole directory in any git repo and leaves no tracked diff; create the dir even when not in a git repo.)
 4. **Author the HTML from the template.** Read [assets/template.html](assets/template.html), keep its `<style>` and `<script>` intact, and replace the regions marked `<!-- FILL: ... -->`. Duplicate the conceptual-change `<details>` block once per bucket and number them. Remove any optional block (before/after panel, diagram, concerns section) you do not use, and keep the TOC links in sync with the sections you keep. Choose `language-*` classes on `<code>` to match the source language.
 5. **Write the file** to `.change-explainer/<slug>.html`, where `<slug>` is a short kebab-case name for the change (e.g. `auth-session-refactor`). Reuse the same slug when regenerating the same change so it overwrites rather than accumulates.
@@ -79,15 +54,7 @@ Fill the bundled template's sections (each maps to a region in [assets/template.
 
 ## Communication rules
 
-- Optimize for reader understanding over exhaustiveness. Prefer a coherent design explanation over a file-by-file tour.
-- Do not collapse the doc into "file A changed X, file B changed Y" without naming the concept those edits serve.
+- Optimize for reader understanding over exhaustiveness; do not collapse the doc into "file A changed X, file B changed Y" without naming the concept those edits serve.
 - Do not use review language like "finding" or "severity" unless the user wants review mode.
 - When inferring intent or tradeoffs, label it as an inference.
 - If the change is tiny or the user wants a quick look, keep the doc short — fewer sections, fewer panels. If they want deep teaching, go further into mechanisms and tradeoffs.
-
-## Example triggers
-
-- "Explain my unstaged changes as an interactive page I can click through."
-- "Build an HTML walkthrough of the last commit — big picture first, then the design decisions, with before/after for the parts that matter."
-- "I'm reviewing this PR cold. Give me a browsable doc grouped by idea, not a hunk-by-hunk recap."
-- "Compare these two file versions and explain the technical decisions, with toggles for the code that changed."

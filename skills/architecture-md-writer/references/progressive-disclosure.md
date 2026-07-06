@@ -12,8 +12,6 @@ Use the repo-root `ARCHITECTURE.md` to:
 - Point readers to the most important top-level directories and entry points.
 - Link to nested `ARCHITECTURE.md` files for subsystems that need more depth.
 
-Treat the root doc as the table of contents plus system mental model. Do not let it become a catalog of every package.
-
 ## Nested module documents
 
 Create `ARCHITECTURE.md` inside a subtree when several of these are true:
@@ -51,8 +49,6 @@ In the root doc, include a short section such as `Subsystem Architecture` or pla
 ## Failure modes
 
 - Creating nested docs for every small library.
-- Repeating the same overview text in parent and child docs.
 - Hiding key cross-system invariants only in module docs.
-- Leaving the root doc without links after deeper docs are added.
 
 When unsure, keep one document until the extra file clearly reduces confusion.

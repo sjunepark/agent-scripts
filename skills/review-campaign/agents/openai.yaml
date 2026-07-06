@@ -1,4 +1,4 @@
 interface:
   display_name: "Review Campaign"
   short_description: "Stateful whole-repo review campaign"
-  default_prompt: "Use $review-campaign to run one unit of a long-running systematic codebase review. If reviews/REVIEW.md is missing, bootstrap with plan first; otherwise read it and honor its repo profile, pick the next pending cell by phase order, load only that area's notes file and one rubric from references/, verify every claim before recording it, stamp the cell with the reviewed commit, and commit notes scoped to reviews/. Modes: plan, continue (default), status, triage, fix, sync."
+  default_prompt: "Use $review-campaign to run one unit of a long-running systematic codebase review. If reviews/REVIEW.md is missing, bootstrap with plan first; otherwise read it and honor its repo profile, pick the next stale or pending cell by phase order, load only that area's notes file and one rubric from references/, verify every claim before recording it, stamp the cell with the reviewed commit, and commit notes scoped to reviews/. Modes: plan, continue (default), status, triage, fix, sync."

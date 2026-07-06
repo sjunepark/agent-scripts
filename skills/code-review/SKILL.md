@@ -1,15 +1,9 @@
 ---
 name: code-review
-description: "Review code or completed implementation changes for correctness, regressions, validation gaps, maintainability risks, and unearned complexity. Use when the current task is code review, implementation review, review-only critique, or complexity/simplification review. Do not use merely because you are editing code."
+description: "Review code or completed implementation changes for correctness, regressions, validation gaps, maintainability risks, and unearned complexity. Use when the current task is code review, review-only critique, or complexity/simplification review. Do not use merely because you are editing code."
 ---
 
 # Code Review
-
-Review code through one entry point. Use this skill when review is the task, not
-as background narration for every edit.
-
-This skill owns review routing. Load only the references the current review
-needs.
 
 ## Workflow
 
@@ -42,9 +36,10 @@ needs.
      explicitly kept as-is.
 
 4. Report in buckets.
-   - `Bucket I - Applied Safe Fixes`: fixes applied during the pass, or `none`.
+   - `Bucket I - Applied Safe Fixes`: fixes applied during the pass, with
+     changed files and validation evidence, or `none`.
    - `Bucket II - Needs Decision`: real issues or simplifications that need
-     user judgment, or `none`.
+     user judgment, with the decision needed and the main tradeoff, or `none`.
    - `Keep As-Is`: meaningful concerns inspected and intentionally rejected,
      when useful.
    - `Validation`: commands run and results, or skipped/blocked reason.

@@ -1,11 +1,11 @@
 ---
 name: handoff-plan
-description: "Create concise implementation handoff plans from the current discussion. Use when ending a long conversation, preserving next-session implementation context, or preparing a PLAN-style document without implementing, staging, committing, or pushing."
+description: "Create a concise implementation handoff plan from the current discussion. Use when ending a long session to preserve implementation context for the next one, or when asked for a PLAN-style document without implementing, staging, committing, or pushing."
 ---
 
 # Handoff Plan
 
-Create a compact implementation handoff that a fresh session can execute without replaying the old conversation. Preserve durable decisions and immediate next work; drop transcript history and generic boilerplate.
+Create a compact implementation handoff that a fresh session can execute without replaying the old conversation.
 
 ## Workflow
 
@@ -19,7 +19,7 @@ Create a compact implementation handoff that a fresh session can execute without
    - Use the conversation as the primary source of truth.
    - Inspect the repository only as needed to make paths, commands, and constraints concrete.
    - Preserve decisions, constraints, intended behavior, naming choices, rejected alternatives, real blockers, and open questions that affect implementation.
-   - Prefer latest actionable state over historical logs, resolved uncertainty, duplicate context, or transcript-like notes.
+   - Prefer the latest actionable state over the transcript.
    - Separate confirmed decisions from assumptions and open questions.
    - Keep ordinary handoffs around 80-140 lines. Allow longer plans only when reference-heavy context is genuinely needed.
 
@@ -47,7 +47,10 @@ Short paragraph explaining what should change and why.
 
 4. Add optional sections only when they carry distinct value.
    - `## Files to inspect first`: max 3-5 files or areas, each with a reason.
-   - `## Validation`: only non-obvious focused checks, current validation blockers, or manual QA cues.
+   - `## Validation`: only non-obvious focused checks, current validation blockers, or manual QA cues — not broad `check`, `test`, `lint`, or `build` commands unless repository convention or task risk makes them specifically useful.
+     - Include only known commands likely to be useful for the next slice.
+     - Prefer placeholders over long file lists, such as `bun run lint:files -- <changed-files>`.
+     - Use at most three categories when needed: fast check, before merge, and manual QA.
    - `## Open questions`: only questions that block or materially shape the next slice.
    - `## Scope`: only non-obvious in/out boundaries.
    - `## Decisions and rejected alternatives`
@@ -55,18 +58,8 @@ Short paragraph explaining what should change and why.
    - `## Reference notes`
    - `## Progress log`: only for actual completed work, blockers, or just-run validation that affects continuation.
 
-5. Keep validation compact.
-   - Omit `Validation` when it would only restate repository conventions.
-   - Include only known commands likely to be useful for the next slice.
-   - Prefer placeholders over long file lists, such as `bun run lint:files -- <changed-files>`.
-   - Use at most three categories when needed: fast check, before merge, and manual QA.
-   - Do not list broad `check`, `test`, `lint`, or `build` commands unless repository convention or task risk makes them specifically useful.
-   - Record previous validation only when it was just run and materially affects the next session.
-
-6. Avoid predictable plan boilerplate.
-   - Do not add a dedicated `Next command` section by default.
-   - Put a concrete next command in the plan only when it is a real, non-obvious immediate action or unblocker.
-   - Do not create empty sections.
+5. Avoid predictable plan boilerplate.
+   - Add a concrete next command only when it is a real, non-obvious immediate action or unblocker; never as a dedicated `Next command` section by default.
 
 ## Final Response
 

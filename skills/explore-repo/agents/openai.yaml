@@ -1,4 +1,4 @@
 interface:
   display_name: "Explore Repo"
   short_description: "Inspect external repos from a centralized ~/.repos cache."
-  default_prompt: "Use $explore-repo when you need to inspect, clone, update, or explore an external GitHub or Git repository from a centralized ~/.repos cache instead of creating project-local temp clones."
+  default_prompt: "Use $explore-repo when you need to explore an external GitHub or Git repository from the centralized ~/.repos cache instead of creating project-local temp clones."

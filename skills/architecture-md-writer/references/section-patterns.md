@@ -1,6 +1,6 @@
 # Section Patterns
 
-Use only sections that explain stable structure. Rename or merge sections when the default labels would feel artificial.
+Use only sections that explain stable structure.
 
 ## Durable sections
 
@@ -44,20 +44,3 @@ Use only sections that explain stable structure. Rename or merge sections when t
 
 - Link major decisions whose rationale would clutter the overview.
 - Prefer a short label plus path.
-
-## What to omit
-
-- Setup, onboarding, or local development instructions.
-- Coding style, lint, or formatting rules unless they encode an architectural boundary.
-- Exhaustive class, function, or API listings.
-- Temporary implementation detail that will likely change in the next refactor.
-- Repeated rationale already captured in ADRs or design docs.
-
-## Quality checks
-
-- Can a new contributor name the major parts after one read?
-- Can they find the first file to inspect for a request or event path?
-- Can they tell which constraints are safe to change and which are not?
-- Would the document still mostly hold after a routine refactor that preserves architecture?
-
-If the answer to the last question is no, remove detail until the answer becomes yes.

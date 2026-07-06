@@ -1,6 +1,6 @@
 ---
 name: merge-branch
-description: "Manually integrate Git branch work without blind mechanical merges. Use when merging, dry-planning a merge, transplanting or refactoring branch work, resolving conflicts, preserving source-branch intent in a clean current-branch structure, or auditing a completed merge for lost intent, unsafe assumptions, and integration quality."
+description: "Manually integrate Git branch work without blind mechanical merges. Use when merging, dry-planning a merge, transplanting branch work, resolving conflicts, or auditing a completed merge."
 ---
 
 # Merge Branch
@@ -9,15 +9,12 @@ Integrate branch intent, not just patches. Prefer Git's merge machinery as a dra
 
 Use clear branch terms throughout the task: the current `HEAD` branch is the destination branch, and `<source>` is the branch being integrated into it. If the user says "target branch" ambiguously, confirm whether they mean the source branch to merge or the destination branch to receive the work.
 
-If the user asks for a dry run, merge plan, planning-only merge, or merge audit/review, use the specialized modes below instead of the default real integration workflow.
-
 ## Dry Planning Mode
 
 Use dry planning mode when the user asks to analyze or plan a branch merge without changing repository state.
 
 - Do not run `git merge`, edit files, stage changes, commit, or otherwise mutate the working tree.
 - Use read-only git inspection commands to compare destination `HEAD`, source `<source>`, and their merge base.
-- Record destination `HEAD`, source tip, and merge base.
 - Inspect likely conflicts, overlapping edits, deleted or renamed files, dependency/config/schema interactions, tests/docs impact, and areas needing user decisions.
 - Propose one or more integration strategies with concrete tradeoffs.
 - List validation that should run during the real merge, but do not run expensive or mutating validation.
@@ -35,7 +32,7 @@ First establish merge context from evidence:
 2. Determine whether the merge is uncommitted, staged, or already committed.
 3. Identify the source branch or merge parent from the user request, `MERGE_HEAD`, `ORIG_HEAD`, merge commits, reflog, or branch history.
 4. Compare the destination before the merge, source branch changes, final merge result, and conflict resolutions or manual edits.
-5. If the target, source, or base cannot be determined confidently, ask for clarification before judging intent.
+5. If the destination, source, or base cannot be determined confidently, ask for clarification before judging intent.
 
 Audit these concerns:
 
@@ -126,7 +123,7 @@ Separate confirmed defects from risks. If the merge is sound, explain why it pas
 
    - Treat the merge result as a draft, not an answer. Do not commit until conflicts are resolved, residual differences are classified, deletion greps are complete, and validation has run.
    - After starting a real merge, confirm `MERGE_HEAD` exists and matches the intended source tip. If it does not, stop and resolve the merge-shape problem before editing conflicts.
-   - Resolve conflicts by understanding both branches. Preserve current-branch behavior unless the source branch intentionally changes it. Refactor append-style conflict results into one coherent current-branch structure.
+   - Preserve current-branch behavior unless the source branch intentionally changes it. Refactor append-style conflict results into one coherent current-branch structure.
    - Ask before choosing between two plausible product behaviors.
    - Use pure manual transplant only when explicitly appropriate: partial adoption, intentionally linear history, source branch work that should not be recorded as merged, or a merge draft that would import broad unrelated history. Document why the merge-as-draft default was not used.
    - Do not integrate by cherry-picking, copying patches, squashing, or creating an ordinary independent commit unless the user explicitly requests non-convergent history or says the source branch should not be recorded as merged.
@@ -161,6 +158,7 @@ Separate confirmed defects from risks. If the merge is sound, explain why it pas
      - source behavior integrated under a different path
      - missed source behavior to fix before completion
      - intentionally rejected source behavior, with reason
+   - A residual difference is not itself a defect: do not restore obsolete files or demand exact patch equivalence when behavior legitimately landed under current-branch structure.
    - Do not report completion while any meaningful residual difference is unclassified.
 
 7. Run deletion grep audits.
@@ -175,15 +173,6 @@ Separate confirmed defects from risks. If the merge is sound, explain why it pas
 
 8. Validate.
    - Run relevant checks from existing repo scripts. Prefer targeted tests first, then broader checks when practical.
-   - In JavaScript/TypeScript repos, likely commands include:
-
-     ```bash
-     bun run check
-     bun run test
-     bun run lint
-     bun run build
-     ```
-
    - If broad checks fail because of unrelated existing issues, run targeted validation and clearly separate unrelated failures from integration failures.
 
 9. Final report.
@@ -202,9 +191,4 @@ Separate confirmed defects from risks. If the merge is sound, explain why it pas
 
 ## Guardrails
 
-- Do not commit a mechanical merge result just because conflicts are resolved.
-- Do not lose source-branch deletions during a hand transplant.
-- Do not restore obsolete files merely to make diffs look closer to the source branch when current-branch structure intentionally changed.
-- Do not claim exact patch equivalence is required when behavior legitimately landed under different paths.
-- Do not hide unresolved product choices; ask the user.
 - Do not move, force-update, or delete the source branch automatically. Convergence means the source branch tip is reachable from the destination `HEAD`; aligning branch refs requires explicit approval.

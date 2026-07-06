@@ -1,6 +1,6 @@
 ---
 name: architecture-md-writer
-description: "Create, update, review, or split ARCHITECTURE.md files that explain codebase shape, major components, runtime flow, code maps, and invariants. Use when architecture docs are missing, stale, too detailed, need nested subsystem docs, or need root-to-module architecture links."
+description: "Create, update, review, or split ARCHITECTURE.md files covering component maps, runtime flow, code maps, and invariants. Use when architecture docs are missing, stale, too detailed, or need nested subsystem docs linked from the root."
 ---
 
 # ARCHITECTURE.md Writer
@@ -30,7 +30,6 @@ Write architecture docs that give contributors a fast mental model of system sha
 - Read [references/section-patterns.md](references/section-patterns.md) when choosing sections or shaping a component map.
 
 4. Keep the document high-level and durable.
-- Document boundaries, responsibilities, execution flow, dependencies, and invariants.
 - Omit class-by-class or function-by-function catalogs.
 - Omit setup steps, coding standards, runbooks, and tutorials unless a design constraint depends on them.
 - Link ADRs for rationale and tradeoff history instead of embedding long decision logs.
@@ -39,6 +38,7 @@ Write architecture docs that give contributors a fast mental model of system sha
 5. Review for contributor usefulness.
 - Ensure a new engineer can answer: what are the major parts, where should I start tracing behavior, and what must not be broken?
 - Remove statements that would go stale after an ordinary refactor.
+- When updating an existing doc, check every remaining claim against the current code; fix or delete any that no longer hold.
 - Verify links, file paths, and parent-child architecture doc references.
 - Preserve repository terminology so readers can jump from document to code without translation.
 
@@ -50,15 +50,4 @@ Write architecture docs that give contributors a fast mental model of system sha
 - Name invariants as enforceable rules, not vague values.
 - When a module doc exists, state how it fits into the parent architecture and link back upward.
 - Treat missing ADRs as a fact to note briefly, not a reason to invent rationale.
-
-## Section Selection
-
-- Common sections include `Purpose`, `Component Map`, `Runtime Flow`, `Code Map`, `Invariants`, `Dependencies`, and `Related ADRs`.
-- Merge or rename sections when that produces a clearer document.
-- Skip sections with no durable content.
 - Favor searchable headings and concrete paths over narrative filler.
-
-## Resources
-
-- [references/section-patterns.md](references/section-patterns.md): Section heuristics, quality signals, and omission rules.
-- [references/progressive-disclosure.md](references/progressive-disclosure.md): Root-versus-module guidance and cross-linking rules.

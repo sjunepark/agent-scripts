@@ -19,32 +19,20 @@ Use `bunx skills list -g` to inspect machine-wide global installs.
 
 For the harnesses used most often in this repo:
 
-- Shared user-scope path used by Codex and many harnesses: `~/.agents/skills/`
 - Claude Code global path: `~/.claude/skills/`
 - Pi global path: `~/.pi/agent/skills/`
-- Codex user-scope path: `~/.agents/skills/`
+- Codex user-scope path (shared with many other harnesses): `~/.agents/skills/`
+- Claude Code + Pi copy-mode installs write directly to `~/.claude/skills/` and `~/.pi/agent/skills/` and keep `skills list -g` reporting `Agents: Claude Code, Pi` for those selected skills.
+- The Codex copy-mode install currently writes directly to `~/.agents/skills/`.
 
-If the same skill `name` exists in more than one discovered location, discovery can show multiple entries instead of merging them. Installs left in the shared `~/.agents/skills/` path can make `skills list -g` report many agents for one skill.
+If the same skill `name` exists in more than one discovered location, discovery can show multiple entries instead of merging them.
 
 For this repository specifically:
 
-- Use `https://github.com/sjunepark/agent-scripts/tree/main/skills` as the normal install source.
-- Prefer that GitHub subpath URL over `.` or `./skills` so installed skills can be updated across multiple machines without publishing repo-local `.agents/` or `.claude/` skills.
 - Use `./skills` only for local validation or unpublished work.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
-- Treat this repo's `skills/` directory as a published catalog, not as a manifest of skills that all belong in global installs.
-- Treat `global-skills.json` as this repo's desired machine-global install registry.
-- Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output against that registry. Use `scripts/audit-global-skills --apply` only to reinstall missing managed entries; audit-only/manual entries still need their own source handled separately.
-- Install globally useful skills by name with `--skill "$SKILL_NAME"`.
+- Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output against `global-skills.json`. Use `scripts/audit-global-skills --apply` only to reinstall missing managed entries; audit-only/manual entries still need their own source handled separately.
 - Install domain/project skills, such as `svelte`, `sveltekit`, and `ui-lab`, only in matching projects unless the user explicitly wants them globally.
-- Claude Code + Pi global installs should use `--skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y`.
-- Codex global installs are explicit and separate: use `--skill "$SKILL_NAME" --copy -g -a codex -y`.
-- Use `--skill '*'` only when the user explicitly wants every skill from this repo installed to the target agent.
-- Do not use `--all` for scoped setup. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which can override intended agent restrictions and recreate shared `~/.agents/skills` installs.
-- Claude Code + Pi copy-mode installs write directly to `~/.claude/skills/` and `~/.pi/agent/skills/` and keep `skills list -g` reporting `Agents: Claude Code, Pi` for those selected skills.
-- The Codex copy-mode install currently writes directly to `~/.agents/skills/`.
-- Do not leave this repo's published machine-global installs in `~/.agents/skills/` unless the user explicitly wants Codex user-scope/global sharing.
-- If the user asks for a global install, add `-g`; that writes to user-level directories, not repo-local `.agents/` or `.claude/`.
 
 ## Practical recipes
 
@@ -56,8 +44,6 @@ bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --li
 
 ### Add one published repo skill to Claude Code + Pi globally
 
-Commit and push first if the skill was just edited locally.
-
 ```bash
 SKILL_NAME="merge-branch"
 git add "skills/$SKILL_NAME"
@@ -68,16 +54,12 @@ bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --sk
 
 ### Add selected published repo skills to Claude Code + Pi globally
 
-Commit and push first if the published repo skills were edited locally and those edits should be included in the reinstall.
-
 ```bash
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill agents-md-writer --copy -g -a claude-code -a pi -y
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill change-explainer --copy -g -a claude-code -a pi -y
 ```
 
 ### Add one selected published repo skill to Codex globally
-
-Commit and push first if the published repo skills were edited locally and those edits should be included in the reinstall.
 
 ```bash
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill change-explainer --copy -g -a codex -y

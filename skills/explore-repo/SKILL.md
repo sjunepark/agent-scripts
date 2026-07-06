@@ -1,11 +1,11 @@
 ---
 name: explore-repo
-description: "Inspect, clone, update, and explore external GitHub or Git repositories from a centralized local cache. Use when Codex needs to examine source code from another repository, compare behavior against upstream, inspect version-specific implementation details, or delegate large external repo exploration without creating project-local .tmp clones."
+description: "Explore external GitHub or Git repositories from a centralized local cache. Use when reading another repository's source (including a pinned version, tag, or ref), comparing behavior against upstream, or delegating large external-repo exploration without creating project-local .tmp clones."
 ---
 
 # Explore Repo
 
-Inspect external source from a stable cache outside the current project. Keep repo clones reusable, isolated from the active worktree, and safe from accidental destructive updates.
+Inspect external source from a stable cache outside the current project.
 
 ## Workflow
 
@@ -34,7 +34,7 @@ Inspect external source from a stable cache outside the current project. Keep re
   git -C ~/.repos/github.com/<owner>/<repo> remote -v
   ```
 
-- If the clone is dirty, do not reset, clean, pull, checkout, or overwrite it. Report the dirty state and either inspect read-only or create a separate worktree under `~/.repos/.worktrees/`.
+- If the clone is dirty, do not reset, clean, pull, checkout, or overwrite it without explicit user approval. Report the dirty state and either inspect read-only or create a separate worktree under `~/.repos/.worktrees/`.
 - If the clone is clean and current source is acceptable, update with:
 
   ```bash
@@ -61,7 +61,6 @@ Inspect external source from a stable cache outside the current project. Keep re
 5. Explore with focused reads.
 - Use `rg`, `rg --files`, `git grep`, `git log`, and narrow file reads before opening broad source files.
 - Delegate broad or independent exploration to subagents when available. Prefer simple, fast models such as `gpt-5.4-mini`, or `gpt-5.5` with reasoning effort low, for default source scans. Use `gpt-5.5` with reasoning effort medium/high when the subagent must understand complex logic, architecture, cross-module behavior, or subtle implementation tradeoffs. Ask for concise findings, supporting paths, refs, and minimal quoted code.
-- Keep the main thread focused on synthesis and decisions, not raw source dumps.
 
 6. Use worktrees for experiments.
 - Keep cached clones read-only by default.
@@ -77,13 +76,11 @@ Inspect external source from a stable cache outside the current project. Keep re
 7. Report the result.
 - Cite the cache path, remote URL, inspected ref, and relevant files or symbols.
 - Separate direct source observations from inference.
-- Keep the answer scoped to the user's question.
 
 ## Guardrails
 
 - Do not create or update project-local ignore rules just to hide external clones.
-- Do not mutate a dirty cached clone without explicit user approval.
-- Do not delete cached repos or worktrees unless the user asks for cleanup.
+- Do not delete cached repos unless the user asks for cleanup.
 - Do not wire cached external repos into the current project as dependencies.
 - Do not paste large source files into the answer.
 

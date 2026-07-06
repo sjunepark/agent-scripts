@@ -1,11 +1,11 @@
 ---
 name: bug-retro
-description: "Analyze a bug, failure, regression, or failing test as an engineering postmortem. Use when identifying root cause, design smell, prevention refactors, fixes already applied, and remaining recommended work without editing files unless the user explicitly asks."
+description: "Run an engineering postmortem on a bug or failure — root cause, design-signal classification, and prevention refactors. Use when the user asks for a bug retro or root-cause analysis."
 ---
 
 # Bug Retro
 
-Analyze bugs as concise engineering retrospectives, not just fix summaries. Focus on cause, design signal, robust prevention, and what should happen next.
+Analyze bugs as concise engineering retrospectives, not just fix summaries.
 
 If the target is missing or ambiguous, infer it from the current conversation, failing test, error output, recent edits, or referenced files. Ask only when multiple plausible targets would materially change the analysis.
 
@@ -36,7 +36,7 @@ If the target is missing or ambiguous, infer it from the current conversation, f
      - `[recommended now]` for next work that is not yet implemented.
      - `[deferred]` for worthwhile work that should not be done now.
      - `[discussion only]` for ideas needing product, domain, or maintainability decisions.
-   - Explain what invariant or boundary each option strengthens, how it prevents the bug class, benefits, tradeoffs, and effort/risk/payoff.
+   - Explain what invariant or boundary each option strengthens, how it prevents the bug class, and the effort/risk/payoff tradeoff.
    - Prefer making invalid states unrepresentable over defensive patches.
 
 4. Keep the retro read-only unless edits are explicitly requested.
@@ -68,4 +68,4 @@ If the target is missing or ambiguous, infer it from the current conversation, f
 ## Open questions, if any
 ```
 
-Be direct and specific. Avoid vague advice like "add more tests" unless naming the exact behavior or invariant to protect.
+Avoid vague advice like "add more tests" unless naming the exact behavior or invariant to protect.

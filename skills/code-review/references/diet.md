@@ -12,9 +12,7 @@ many helpers, wrappers, schema fields, columns, options, generic layers, or
 appended paths that solve the task by adding machinery instead of integrating
 with the existing design.
 
-Do not assume code came from an LLM or agent. Judge the code on its merits. Do
-not force deletions. Explicit, readable, well-bounded code is often worth
-keeping even when it is not minimal.
+Do not assume code came from an LLM or agent. Judge the code on its merits.
 
 ## Review Posture
 
@@ -85,6 +83,10 @@ keeping even when it is not minimal.
    - Appended code paths, special cases, or side channels that solve one feature
      without cleaning up the underlying path.
    - Data models shaped for imagined futures rather than today's behavior.
+   - Callers still need to know internal details the abstraction claimed to
+     hide.
+   - Code that became harder to follow because it optimized for hypothetical
+     later work instead of today's path.
 
 4. Keep the bar high.
    - Do not call something waste just because it is abstract.
@@ -93,23 +95,7 @@ keeping even when it is not minimal.
    - Do not manufacture findings. A valid conclusion is that the code is already
      lean enough.
 
-## Review Standard
-
-Strong signals that code may deserve a diet:
-
-- A field, column, option, or hook exists mostly for future flexibility, and
-  current behavior barely touches it.
-- A helper, wrapper, or abstraction adds another jump without improving naming,
-  ownership, invariants, or real reuse.
-- Callers still need to know internal details the abstraction claimed to hide.
-- A supposedly shared helper now branches by flag, type, mode, or conditionals
-  to serve diverging cases.
-- One concept requires repeated mapping or translation layers mostly to preserve
-  a generic design.
-- The fix was appended alongside the existing design instead of integrated into
-  it, and that workaround is likely to spread.
-- The code became harder to follow because it optimized for hypothetical later
-  work instead of today's path.
+## Weak Signals
 
 Weak signals that often do not justify action by themselves:
 
@@ -119,7 +105,6 @@ Weak signals that often do not justify action by themselves:
 - A small object groups related data in a way that makes invariants easier to
   see.
 - The code is explicit rather than clever.
-- A bit of duplication is cheaper than a shared abstraction.
 
 ## Output Contribution
 
