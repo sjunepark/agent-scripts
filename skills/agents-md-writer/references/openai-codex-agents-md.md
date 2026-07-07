@@ -23,6 +23,7 @@ Last checked: 2026-03-06
 
 - Ignore empty files.
 - Stop loading project files when aggregate bytes reach `project_doc_max_bytes` (default `32768` bytes).
+- Use Markdown only; no required schema.
 
 ## Config Knobs
 
@@ -48,11 +49,3 @@ codex --cd /path/to/subdir --ask-for-approval never "Show which instruction file
 Then inspect logs:
 - `~/.codex/log/codex-tui.log`
 - `~/.codex/sessions/<date>/session-*.jsonl`
-
-## Writing Guidance to Apply
-
-- Keep AGENTS.md short, scoped, and actionable.
-- Prefer exact commands and repo-specific constraints.
-- Co-locate subtree guidance near the code it governs.
-- Avoid duplicating large architecture text that the model can infer from code quickly.
-- Use Markdown only; no required schema.

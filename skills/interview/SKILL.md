@@ -1,19 +1,11 @@
 ---
 name: interview
-description: "Interview the user to recover the intention their prompt left out and to clarify ambiguous points before doing the task. Use only when the user explicitly asks to be interviewed or asks for clarifying questions about their request; do not self-trigger on ambiguous prompts. Recovers intent and constraints; does not front-load technical decisions."
+description: "Interview the user to recover the intention their prompt left out and to clarify ambiguous points before doing the task. Use only when the user explicitly asks to be interviewed or asks for clarifying questions about their request; do not self-trigger on ambiguous prompts."
 ---
 
 # Interview
 
 A prompt is a compressed version of what the user actually wants. The motivation, scope boundaries, quality bar, and success criteria often live only in their head. Recover that omitted intention by asking, instead of guessing it or papering over it with technical decisions.
-
-The interview succeeds when you can state the user's intent in a way they would endorse. It does not need to produce a full spec, and it must not turn into an upfront technical design session.
-
-## Core Job
-
-- Recover the intent the prompt left out: motivation, desired outcome, scope, constraints, success criteria, priorities.
-- Resolve ambiguities whose answers change what you would build or do.
-- Confirm the recovered intent with the user, then carry it into the task.
 
 ## Calibrate the Interview
 
@@ -71,13 +63,6 @@ Prefer the user's own words in the readback; introduce new terms only when they 
 
 ## Non-Goals
 
-- Not an upfront technical design session or a requirements waterfall.
 - Not a stall: do not interview instead of working when a safe default exists.
 - Not permission-seeking; "should I proceed?" is not an interview question.
 - Not a completeness quiz; do not walk every question domain by checklist.
-
-## Example Triggers
-
-- "$interview I want a dashboard for my team."
-- "Interview me about this feature before you start."
-- "Ask me questions until you understand what I actually want."

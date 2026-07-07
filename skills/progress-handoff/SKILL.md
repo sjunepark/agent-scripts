@@ -1,11 +1,11 @@
 ---
 name: progress-handoff
-description: "Create concise implementation handoff documents from the current discussion. Use when ending a long session, preserving next-session progress context, or preparing a PLAN-style handoff without implementing, staging, committing, or pushing."
+description: "Create concise implementation handoff documents from the current discussion. Use when ending a long session or preparing a PLAN-style handoff for the next session, without implementing, staging, committing, or pushing."
 ---
 
 # Progress Handoff
 
-Create a concise implementation handoff from the current discussion. This is for ending a long discussion and preparing a fresh implementation session; do not implement code, stage files, commit, or push.
+Do not implement code, stage files, commit, or push; only produce the handoff plan.
 
 ## Workflow
 
@@ -49,22 +49,15 @@ Short paragraph explaining what should change and why.
 
 4. Add optional sections only when they carry distinct next-session value.
    - `## Files to inspect first`: max 3-5 files or areas, each with a reason.
-   - `## Validation`: only non-obvious focused checks, current validation blockers, or manual QA cues.
+   - `## Validation`: only non-obvious focused checks, current validation blockers, or manual QA cues. Include only commands known from the repository or discussion and likely useful for the next slice; prefer placeholders such as `bun run lint:files -- <changed-files>`; do not copy full command output into the plan.
    - `## Open questions`: only questions that block or materially shape the next slice.
    - `## Scope`: only non-obvious in/out boundaries.
    - `## Decisions and rejected alternatives`
    - `## Risks and edge cases`
    - `## Reference notes`
-   - `## Progress log`: only for actual completed work, blockers, or just-run validation that affects continuation.
+   - `## Progress log`: only for actual completed work, blockers, or just-run validation that affects continuation. Collapse or remove older progress detail once `Current state` captures what future sessions need.
 
-5. Keep validation and history compact.
-   - Omit `Validation` when it would only restate repository conventions or list obvious broad checks.
-   - Include only commands known from the repository or discussion and likely to be useful for the next slice.
-   - Prefer placeholders over expanded path lists, such as `bun run lint:files -- <changed-files>`.
-   - Do not copy full command output into the plan.
-   - Collapse or remove older progress detail once `Current state` captures what future sessions need.
-
-6. Avoid predictable plan boilerplate.
+5. Avoid predictable plan boilerplate.
    - Do not add a dedicated `Next command` section by default.
    - Include a concrete next command in the plan only when it is the real, non-obvious immediate action or unblocker.
    - Do not create empty sections.

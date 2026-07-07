@@ -1,22 +1,15 @@
 ---
 name: ui-lab
-description: "Build or extend a lightweight in-app UI Lab for web apps: a dev-only route that renders real production UI states with deterministic fixtures shared by UI tests and excluded from production builds."
+description: "Build or extend a lightweight in-app UI Lab: a dev-only route rendering real production UI states from deterministic fixtures shared with UI tests. Use when the user asks for a UI lab, scenario gallery, or Storybook-like in-app preview; wants to see a dialog, panel, or hard-to-reach UI state without clicking through the app; wants fixtures shared between a visual review page and UI tests; or is adding scenarios to an existing lab."
 ---
 
 # UI Lab
 
 A UI Lab is a small dev-only page inside a web app that renders real production UI in deterministic scenarios. It is for states that are hard or slow to reach by clicking through the live app: expired auth, empty/error states, long-content overflow, loading/success/failure panels, large tables, dialogs, popovers, and similar product surfaces.
 
-Keep it lightweight. This is not Storybook, not a design-system primitive catalog, and not a new app framework. Start with the smallest useful path: scenario definitions, a registry, a shared host, one lab route, and a smoke test. Add polish only when the scenario set grows.
+Keep it lightweight. Start with the smallest useful path and add polish only when the scenario set grows.
 
-Adapt naming and APIs to the target framework, build tool, router, and test runner. The architecture is portable; the code shape is not.
-
-## When to use
-
-- "Set up a UI lab / scenario gallery / in-app Storybook-like preview."
-- "Let me preview this dialog, panel, or UI state without clicking through the app."
-- "Share fixtures between a visual review page and UI/component/browser tests."
-- Extending an existing lab with a new scenario group or state.
+Adapt naming and APIs to the target framework, build tool, router, and test runner.
 
 Not for: a real Storybook/Ladle install the user explicitly wants; a full design-system catalog; backend-only work.
 
@@ -75,7 +68,7 @@ Skip states that are genuinely live-only, and leave a short comment explaining w
 ## Build order
 
 1. Confirm the app's framework, router, build/dev flag, provider setup, and UI test runner.
-2. Find existing test fixtures, domain builders, mock data, and provider/test utilities.
+2. Find existing test fixtures, domain builders, mock data, and provider/test utilities; reuse them in scenario fixtures instead of inventing parallel mock data.
 3. Add the scenario contract, shared host, manual registry, and duplicate-id validation.
 4. Wire the dev-only lab route without changing the normal app boot path.
 5. Add 1–2 useful scenario groups end to end.
@@ -84,4 +77,4 @@ Skip states that are genuinely live-only, and leave a short comment explaining w
 
 ## Validate
 
-Run the repository's normal checks over touched files: type-check, lint, format, production build, and the relevant UI/component/browser tests. The smoke test passing is the contract that scenarios remain reusable outside the lab shell.
+Run the repository's normal checks over touched files: type-check, lint, format, production build, and the relevant UI/component/browser tests.

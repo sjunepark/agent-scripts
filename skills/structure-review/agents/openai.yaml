@@ -1,4 +1,4 @@
 interface:
   display_name: "Structure Review"
   short_description: "Review code for both unnecessary complexity and insufficient organization."
-  default_prompt: "Use $structure-review when you need to judge whether code is overbuilt, speculative, too flat, or poorly organized. Check for over-structure (speculative abstractions, unused fields, premature genericity) and under-structure (flat directories mixing unrelated concerns, modules with blurred responsibilities). Preserve readability-oriented structure when it clearly helps comprehension, naming, or boundaries."
+  default_prompt: "Use $structure-review when you need to judge whether code is overbuilt, speculative, too flat, or poorly organized."

@@ -1,19 +1,18 @@
 ---
 name: sveltekit
-description: "Build, review, refactor, and debug modern SvelteKit apps. Use for routes, `+page/+layout/+server`, `load`, form actions, hooks, cookies, auth, invalidation, SSR, hydration, navigation, and URL/server/client state boundaries, even for small bugfixes or features."
+description: "SvelteKit apps — build, review, refactor, and debug. Use for routes (`+page/+layout/+server`), `load`, form actions, hooks, cookies, auth, invalidation, SSR, hydration, navigation, and URL/server/client state boundaries, even for small bugfixes or features."
 ---
 
 # SvelteKit
 
-Work from current SvelteKit idioms. Optimize for route and data flows that stay correct under SSR, hydration, navigation, and progressive enhancement.
+Optimize for route and data flows that stay correct under SSR, hydration, navigation, and progressive enhancement.
 
-Do not spend time explaining basic framework syntax unless the user asks. Focus on boundaries, best practices, gotchas, and the shortest correct implementation.
+Focus on boundaries, best practices, gotchas, and the shortest correct implementation.
 
 ## Scope
 
 Use this skill when the hard part is app-level or route-level behavior.
 
-- Reach for this skill for `load`, actions, `+server.*`, hooks, cookies, auth, SSR or hydration behavior, invalidation, route state, and server/client boundaries.
 - If the task is mostly about component internals, runes, snippets, local state, or styling, use the `svelte` skill.
 
 ## Workflow
@@ -45,11 +44,12 @@ Use this skill when the hard part is app-level or route-level behavior.
 - Keep `load` side-effect free. Fetch, read, and derive there; mutate in actions, endpoints, or other server handlers.
 - Use the `fetch` provided by SvelteKit inside `load` so cookies, auth, SSR inlining, and internal request shortcuts work correctly.
 - Prefer returning typed, already-shaped data from `load` instead of pushing reshaping work into every consumer.
-- Minimize serialized data. Anything returned from server `load` becomes part of the SSR payload and may be visible to the client.
+- Minimize serialized data. Anything returned from server `load` becomes part of the SSR payload — visible to the client and paid for in HTML size and hydration time. Shape returns to what the route renders.
 - Use generated `$types` helpers like `PageProps`, `LayoutProps`, and route-specific load/action types.
 - Use `page.data` when parent layouts need child data, but do not create hidden coupling casually.
-- Use `parent()` deliberately. Call other independent async work first to avoid accidental waterfalls.
-- Use `depends()` and targeted invalidation when automatic reruns are insufficient. Do not scatter `invalidateAll()` as a default refresh strategy.
+- Use `parent()` deliberately and start independent async work first; route-level waterfalls come from avoidable sequential `await`s and `parent()` ordering.
+- Keep layout `load`s lean; do not fetch data that most child routes never use.
+- Use `depends()` and targeted invalidation when automatic reruns are insufficient.
 - Do not store request-specific data in shared modules. Mutable module state can leak across users on the server.
 
 ## Actions, Forms, and Endpoints
@@ -78,7 +78,7 @@ Use this skill when the hard part is app-level or route-level behavior.
 - Keep disposable UI state in the component if losing it on reload is fine.
 - Use snapshots when ephemeral UI state should survive history navigation without becoming URL or server state.
 - If state is shared only within one rendered subtree, prefer context over module-level singletons.
-- Remember that route components are often preserved across navigation. If a value should reset on route change, key the subtree or derive it from `page.url` instead of assuming a remount.
+- Avoid over-centralizing state; prefer URL or page data when they explain route behavior more directly.
 
 ## SSR and Hydration Gotchas
 
@@ -87,23 +87,12 @@ Use this skill when the hard part is app-level or route-level behavior.
 - Prefer stable SSR markup that upgrades in the browser over branching into incompatible markup.
 - Critical interactions should still work before hydration when possible. Prefer real links and forms for important user actions, or render clear disabled/loading affordances for JS-only controls.
 - Universal `load` runs on the server for SSR and then again in the browser for hydration. Do not put server-only assumptions there.
-- Large or over-broad server `load` returns can bloat HTML, slow hydration, and expose data you never render. Shape the data to what the route actually needs.
 
 ## Navigation and Invalidation
 
-- Use links and forms in ways that let the router help you. Avoid imperative navigation when `href` or a native form already expresses the flow.
-- Use `goto` only when navigation is genuinely imperative.
-- Invalidate the narrowest dependency you can after mutations.
-- Do not use `invalidateAll()` as a reflex when one dependency or URL key would do.
-- Remember that rerunning a `load` updates props but does not recreate the component. Use `afterNavigate`, derived state, or `{#key ...}` when reset semantics matter.
-
-## Performance and Review Heuristics
-
-- Watch for oversized layout loads that fetch data unrelated to most children.
-- Watch for route-level waterfalls caused by avoidable sequential `await`s or unnecessary `await parent()` ordering.
-- Watch for over-fetching in server `load` that inflates SSR payloads with data the page never renders.
-- Watch for hidden auth or cookie bugs caused by putting trusted logic in universal `load` or client code.
-- Watch for over-centralized state that makes route behavior harder to reason about than URL or page data would.
+- Use `goto` only when navigation is genuinely imperative; prefer `href` and native forms that already express the flow.
+- After mutations, invalidate the narrowest dependency you can — not `invalidateAll()` as a reflex when one dependency or URL key would do.
+- Route components are reused across navigation, and rerunning a `load` updates props without recreating the component. When reset semantics matter, key the subtree with `{#key ...}`, derive from `page.url`, or use `afterNavigate`.
 
 ## Debugging Checklist
 
@@ -117,7 +106,6 @@ Use this skill when the hard part is app-level or route-level behavior.
 
 ## Migration and Compatibility
 
-- For older code, prefer local consistency plus small targeted improvements over mixing too many old and new patterns in one file.
 - Use current names and helpers on compatible versions, such as `$app/state` over older store-based access and `PageProps`/`LayoutProps` where available.
 - Keep version-sensitive features behind compatibility checks. Some features depend on specific Svelte or SvelteKit versions or config options.
 

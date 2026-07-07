@@ -1,6 +1,6 @@
 ---
 name: teach
-description: "Teach how code, a subsystem, architecture area, feature flow, module, API/data boundary, or relevant technical concept works for reviewers and maintainers. Use when the user asks to understand code or concepts; focus on design, responsibilities, contracts, data flow, invariants, tradeoffs, and maintenance implications, not syntax or line-by-line execution. Use `change-explainer` for diffs, commits, or patches."
+description: "Teach how code, a subsystem, feature flow, or a relevant technical concept works for reviewers and maintainers. Use when the user asks to understand code or a concept at the design level, not syntax or line-by-line execution. Use `change-explainer` for diffs, commits, or patches."
 ---
 
 # Teach
@@ -37,38 +37,18 @@ Handle these as normal teaching targets:
 - a data model or state flow
 - a library or framework behavior that is directly relevant to the code
 
-If the user is actually asking about a diff, commit, PR patch, or file-to-file comparison, use `change-explainer` instead.
-
 ## Core Behavior
 
 1. Start from the learner's question.
 - Identify what the user is trying to understand, not just which files are nearby.
-- Match the explanation depth to the request.
 - If the user asks a broad question, narrow it to the smallest coherent mental model first.
 
 2. Build a mental model before details.
-- Begin with purpose, role, and boundaries.
-- Then explain the main flow, ownership, and contract relationships.
-- Then drill into only the mechanisms, edge cases, and invariants needed to understand the design.
-- Avoid starting with line-by-line code reading unless the user explicitly wants that.
+- Begin with purpose, role, and boundaries; then flow, ownership, and contracts; drill into mechanisms, edge cases, and invariants only as needed to understand the design.
 
-3. Use snippets only when they are crucial evidence.
-- Snippets are rare by default.
-- Include a snippet only when the exact code shape is important or crucial to understanding the concept.
-- Prefer prose, compact pseudocode, or a small diagram when the design can be explained without quoting code.
-- When a snippet is necessary, embed a short, focused excerpt directly in the response.
-- Start each snippet with a comment that names the file path it came from.
-- Do not force the user back into the editor just to follow the explanation.
+3. Snippets are rare by default — the Snippet Rules below govern when and how.
 
-4. Use ASCII diagrams when structure is easier to see than describe.
-- Add a small diagram when it materially improves understanding of:
-  - control flow
-  - data flow
-  - component or module relationships
-  - state transitions
-  - layered architecture or request lifecycles
-- Keep diagrams compact, readable, and ASCII-only.
-- Do not add a diagram if prose already makes the point clear.
+4. Use ASCII diagrams when structure is easier to see than describe — the Diagram Rules below govern when and how.
 
 5. Teach relationships, not isolated facts.
 - Explain who calls what, who owns what, and where decisions happen.
@@ -94,37 +74,30 @@ If the user is actually asking about a diff, commit, PR patch, or file-to-file c
 - Start from entry points, exported symbols, route handlers, public interfaces, or the main flow the user is asking about.
 - Then read supporting helpers, data structures, and tests only as needed.
 - Pull in docs such as `AGENTS.md`, `ARCHITECTURE.md`, or nearby notes when they materially change the explanation.
+- Done when you can trace the main flow end to end and name every contract or boundary it crosses without guessing; if you cannot, keep reading.
 
 3. Organize the lesson as reviewer context.
-- Prefer an order like:
-  - what this part exists to do
-  - where it sits in the system
-  - the main runtime or data flow
-  - the key contracts, ownership boundaries, or abstractions
-  - invariants, edge cases, tradeoffs, and maintenance implications
+- Follow the Output Shape order below.
 - Reorder the material so the explanation is easy to understand, not so it mirrors file order.
 
 4. Teach with selective evidence.
 - For each important point, use prose first.
-- Add a snippet only when the exact code is important or crucial to understanding the concept.
-- Prefer a compact ASCII diagram or pseudocode summary when it explains ownership, flow, or contracts more clearly than syntax.
 - Connect any evidence back to the larger mental model.
 
 5. Close the loop.
 - Summarize the model the user should now have.
 - Mention the most important thing to remember about the design.
-- If there is a major confusing or fragile area, call it out directly.
 
 ## Snippet Rules
 
 - Snippets are rare by default.
-- Include a snippet only when prose would make the concept ambiguous or hide a crucial technical decision.
+- Embed the excerpt directly in the response; do not force the user back into the editor to follow the explanation.
+- Include a snippet only when the exact code is load-bearing for the concept — when prose would make it ambiguous or hide a crucial decision.
 - Good reasons to include a snippet include an exact contract shape, condition, data shape, boundary, state transition, or API that the reader must see to understand the design.
 - Do not include snippets just to prove that a file exists, restate syntax, or walk through routine implementation detail.
 - Use fenced code blocks for necessary snippets.
 - Put the source file path in the first line of the snippet as a comment.
 - Match the comment style to the language when practical, for example `// src/dashboard/load.ts` or `# backend/jobs/sync.py`.
-- If the language is unclear, use a neutral comment style or label the snippet in surrounding prose.
 - Keep snippets narrowly scoped to the mechanism or contract being taught.
 - Prefer signatures, conditions, branching points, state transitions, and interface boundaries over long contiguous code.
 - When a relationship matters more than the exact syntax, summarize the flow in prose or pseudocode instead of quoting code.
@@ -142,7 +115,7 @@ This shows the boundary clearly: the function does orchestration, not heavy busi
 
 ## Diagram Rules
 
-- Use diagrams only when they make the lesson easier to understand.
+- Add a diagram only when it materially improves understanding of control flow, data flow, component relationships, state transitions, or layered architecture/request lifecycles.
 - Use compact ASCII diagrams that render clearly in plain Markdown.
 - Do not use Mermaid.
 - Keep them small and purpose-built for one idea.
@@ -171,8 +144,6 @@ Use this shape unless the user asks for something else:
 
 ### How It Works
 - Explain the main flow in logical learning order.
-- Add a snippet only when the exact code is crucial to understanding the concept.
-- Add a compact ASCII diagram if it makes the flow or relationships clearer.
 - Focus on roles, boundaries, contracts, ownership, and movement of control or data.
 
 ### Key Decisions
@@ -193,30 +164,16 @@ Use this shape unless the user asks for something else:
 ## Communication Rules
 
 - Optimize for reviewer understanding, not exhaustiveness.
-- Prefer a coherent design explanation over a file-by-file tour.
+- Match depth to the request: stay brief and practical for tiny targets or overview asks; go deeper into mechanisms, decisions, and tradeoffs when the user wants deeper teaching.
 - Do not default to path or line references as the primary navigation aid.
-- Do not teach syntax, line-by-line behavior, or implementation-writing technique unless explicitly requested.
-- Do not include code snippets unless they are important or crucial to understanding the concept.
-- Do not dump every related file into the answer.
 - Label inferences as inferences when the code does not prove intent directly.
-- If the user seems to want a concise overview or the target is tiny, stay brief and practical.
-- If the user clearly wants deeper teaching, go further into mechanisms, design decisions, and tradeoffs.
 
 ## Non-Goals
 
 Do not use this skill as the default choice for:
-- diff, commit, or patch explanation
+- diff, commit, patch, or file-to-file comparison explanation
 - formal code review
 - task-status catch-up for the current session
 - broad external-library research disconnected from the current code
 
 Use `change-explainer` for change-focused teaching, `briefing` for task-state recovery, and review-oriented skills when the user is asking for critique rather than understanding.
-
-## Example Triggers
-
-- "Teach me how this feature works from a maintainer's perspective."
-- "Explain this subsystem so I can understand the design and responsibilities."
-- "I want to learn the request flow from the route down to the database. Only show snippets if they're crucial."
-- "Teach me this flow with a diagram if that would make it easier to follow."
-- "Teach me this module in a logical order, not file order."
-- "Help me understand how this library is being used here and why the code is structured this way."

@@ -1,4 +1,4 @@
 interface:
   display_name: "Create PR"
-  short_description: "Create pull requests with review-bot controls."
+  short_description: "Create or update pull requests with review-bot controls."
   default_prompt: "Use $create-pr to open a focused GitHub PR and decide whether CodeRabbit or Greptile reviews should run."

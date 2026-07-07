@@ -1,18 +1,16 @@
 ---
 name: ai-reviewer-setup
-description: "Set up or update Greptile and CodeRabbit AI code review configuration in a project. Use when adding root greptile.json or .coderabbit.yaml files, tuning PR auto-review behavior, restricting Greptile to PRs targeting main, excluding generated files or bots, or documenting installation steps for these review bots."
+description: "Set up or update Greptile and CodeRabbit AI code review configuration in a project. Use when adding root greptile.json or .coderabbit.yaml files, tuning PR auto-review behavior, restricting Greptile by PR target branch, excluding generated files or bots, or documenting installation steps for these review bots."
 ---
 
 # AI Reviewer Setup
 
-Use this skill to add repo-local Greptile and CodeRabbit configuration without pretending repository files install or authorize the services. Keep the setup low-noise, reviewable, and explicit about any dashboard or GitHub App work the user still needs to do.
-
 ## Workflow
 
 1. Inspect the project before editing.
-   - Check `git status --short` and do not overwrite unrelated user changes.
+   - Check `git status --short` for pre-existing changes.
    - Look for existing `greptile.json`, `.coderabbit.yaml`, `.coderabbit.yml`, `.github/`, agent docs, style guides, generated-output directories, bot usage, and current branch/default-branch evidence.
-   - Merge with existing config files. Do not replace working settings wholesale.
+   - Merge into existing config files rather than replacing working settings wholesale.
 
 2. Confirm service installation boundaries.
    - Greptile needs the GitHub/GitLab integration enabled and the repository selected for review.
@@ -36,21 +34,15 @@ Use this skill to add repo-local Greptile and CodeRabbit configuration without p
 5. Add or update Greptile.
    - Use `greptile.json` in the repository root.
    - Greptile reads settings from the PR source branch.
-   - To satisfy "Greptile should run only for PRs in main", configure PR target-branch filtering:
-
-```json
-{
-  "includeBranches": ["main"]
-}
-```
-
-   - Keep `includeBranches: ["main"]` unless the user explicitly asks for additional target branches.
-   - Do not rely on `excludeBranches` alone for the main-only requirement.
+   - To restrict Greptile reviews to PRs targeting the repo's default branch, configure PR target-branch filtering with `includeBranches` set to the default branch discovered in step 1.
+   - Keep `includeBranches` limited to that default branch unless the user explicitly asks for additional target branches.
+   - Do not rely on `excludeBranches` alone for target-branch restrictions.
+   - Replace `<default-branch>` in examples with the discovered branch before writing `greptile.json`.
    - Prefer a compact, high-signal Greptile config such as:
 
 ```json
 {
-  "includeBranches": ["main"],
+  "includeBranches": ["<default-branch>"],
   "triggerOnUpdates": false,
   "triggerOnDrafts": false,
   "strictness": 2,
@@ -64,7 +56,6 @@ Use this skill to add repo-local Greptile and CodeRabbit configuration without p
 6. Add Greptile options only when earned by the project.
    - Use `ignorePatterns` as a newline-separated `.gitignore`-style string for generated, vendored, build, coverage, snapshot, or lockfile paths that should not be reviewed.
    - Use `customContext.files` when the repository already has style guides, architecture docs, or agent instructions that should guide reviews.
-   - Use `triggerOnUpdates: true` only when the team wants Greptile reviews after each new commit and accepts the added review volume.
    - Use `skipReview: "AUTOMATIC"` only when the team wants Greptile to run from manual `@greptileai` triggers instead of automatic PR-open reviews.
    - Use `statusCheck: true` only when the team wants a GitHub status check. Do not configure branch protection or merge-blocking checks unless the user asks.
 
@@ -105,8 +96,6 @@ chat:
    - Add `reviews.path_filters` exclusions only for paths that actually exist or are clearly generated.
    - Add `reviews.path_instructions` for real subsystem-specific review rules, not generic language advice.
    - Keep `request_changes_workflow: false` unless the user wants CodeRabbit to request changes.
-   - Keep `reviews.auto_review.auto_incremental_review: false` unless the user explicitly wants automatic re-reviews after each push.
-   - Use `reviews.auto_review.auto_pause_after_reviewed_commits: 1` or `2` as a compromise only when automatic incremental reviews should stay enabled but stop quickly on busy branches.
    - Avoid pre-merge checks in `error` mode unless the user explicitly wants CodeRabbit to block merges.
 
 9. Validate before finishing.

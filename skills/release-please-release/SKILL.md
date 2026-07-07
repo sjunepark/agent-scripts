@@ -1,11 +1,11 @@
 ---
 name: release-please-release
-description: "Prepare, audit, set up, and review Release Please-managed releases. Use when the user asks to add Release Please, or when a repo uses Release Please and the user asks to prepare a release, review or merge a Release Please PR, classify SemVer impact, check breaking changes, choose Conventional Commit messages, or document release criteria. Release work requires verified Release Please ownership; setup requires an explicit setup request."
+description: "Release Please release management. Use when the user asks to add Release Please, or when a repo using Release Please needs a release prepared, a Release Please PR reviewed or merged, SemVer or breaking-change impact classified, or Conventional Commit messages chosen."
 ---
 
 # Release Please Release
 
-Guide Release Please-owned versioning, changelog, tag, and release work. Treat Release Please as the release authority only after verifying local evidence.
+Guide Release Please-owned versioning, changelog, tag, and release work.
 
 ## Hard Gates
 
@@ -40,8 +40,7 @@ Before any authorized side-effecting release step, state the exact version numbe
 
 - Classify release impact from public/user-facing contracts, not just code volume.
 - Treat possible breaking changes as decision points. Call them out plainly; ask when compatibility intent is ambiguous.
-- Use repository docs and local agent instructions first. Do not invent release commands.
-- Validate with documented CI/test/build commands. For release-specific checks, use read-only commands or documented dry-runs unless the user has authorized write effects.
+- Do not invent release commands; use only those documented in repository docs and local agent instructions.
 - Do not assume `docs:`, `refactor:`, `chore:`, or dependency commits produce releases; inspect Release Please config and docs.
 - For implementation tasks, report the likely Release Please impact and propose the intended Conventional Commit message when relevant.
 
@@ -68,15 +67,15 @@ Before any authorized side-effecting release step, state the exact version numbe
    - Do not edit generated release PR files unless reviewing a generated PR or doing an explicit manual fallback.
 
 5. Validate.
-   - Run documented typecheck/test/build commands and safe release validation checks.
+   - Run documented typecheck/test/build commands; for release-specific checks, use read-only commands or documented dry-runs unless the user has authorized write effects.
    - Confirm CI gates, publishing permissions, tag/version consistency, and required secrets when release automation is in scope.
 
 6. Handle authorized automation.
    - If the user authorizes Release Please automation, wait for the relevant workflow and Release Please PR.
    - Review the PR before recommending merge: version bump, changelog, release notes, component scope, breaking-change notes, CI status, and downstream workflows triggered after merge.
-   - Stop before merge unless the user authorizes merging that specific PR and confirms the exact release version after seeing the review summary.
+   - Request the Block Side Effects version confirmation after presenting the review summary.
 
-7. Report.
+7. Report, leading with the release classification or merge-readiness answer.
    - Recommended SemVer bump and evidence.
    - Required commit-message or release-config changes.
    - Breaking-change migration notes, if any.
@@ -111,8 +110,4 @@ Use repository contract docs as the authoritative checklist when present.
 
 When the user explicitly asks to add Release Please, inspect package/language, existing release docs, CI, publishing flow, secrets, branch protection, package manager, tag conventions, and current changelog/version files before proposing config.
 
-Make setup changes only where the repository expects release automation to live. Update release docs and agent instructions when they define release ownership or manual fallback steps. Do not commit credentials or assume publishing permissions exist.
-
-## Response Style
-
-Be concise and decision-oriented. Lead with the release classification or merge-readiness answer, then evidence, blockers, and next actions. When uncertain, ask focused questions about product intent or compatibility guarantees rather than guessing.
+Make setup changes only where the repository expects release automation to live. Update release docs and agent instructions when they define release ownership or manual fallback steps. Do not assume publishing permissions exist.

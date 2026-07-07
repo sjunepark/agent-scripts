@@ -1,6 +1,6 @@
 ---
 name: review-campaign
-description: "Long-running systematic codebase review with a persistent ledger in reviews/. Use to plan review areas, continue the next review pass, check campaign status, triage findings with the user, apply auto-tier fixes, or absorb base-branch drift into the campaign. Modes: plan, continue, status, triage, fix, sync (default continue)."
+description: "Long-running systematic codebase review with a persistent ledger in reviews/. Use to plan review areas (plan), continue the next review pass (continue, default), check campaign status (status), triage findings with the user (triage), apply auto-tier fixes (fix), or absorb base-branch drift (sync)."
 ---
 
 # Review Campaign
@@ -90,7 +90,7 @@ Run when the base branch has moved while the campaign branch reviewed against an
 1. Read `reviews/REVIEW.md` **only** (not the whole ledger).
 2. Pick the next cell: stale (`~`) cells in the current phase first, then by phase order and area priority. Within detail phases, finish one area's columns (left to right) before moving to the next area.
 3. Read that area's file (create from template if missing) and the one rubric for the pass. Load nothing else.
-4. Review per the rubric. Verify every claim before writing it (read the code path, run the git history check, grep the usage) — findings are acted on later without re-verification. For stale cells, scope to `git diff <sha>..HEAD -- <paths>` plus existing findings: mark `obsolete` where the code is gone or rewritten past recognition, repoint `where:` refs that merely moved, then review the delta. Never silently drop a finding.
+4. Review the area's configured paths per the rubric. Verify every claim before writing it (read the code path, run the git history check, grep the usage) — findings are acted on later without re-verification. For stale cells, scope to `git diff <sha>..HEAD -- <paths>` plus existing findings: mark `obsolete` where the code is gone or rewritten past recognition, repoint `where:` refs that merely moved, then review the delta. Never silently drop a finding.
 5. Write findings (dedup first — see session discipline), append a pass-log line, stamp the cell `✓ <HEAD sha7>`, update the next-up pointer.
 6. Commit the notes: `review(<area>): <pass> pass notes`. Notes commits touch only `reviews/`; rubric sharpenings belong in the skill's source repo, not the target repo.
 7. Report: cell finished, finding counts by severity, blockers called out explicitly, open auto-tier count, next cell. If the matrix has no pending cells, report the campaign complete and suggest a final triage and milestone merge.
@@ -113,14 +113,13 @@ Fixes ride the campaign branch, so run fix sessions near milestones and keep clu
 
 ### triage — requires the user
 
-Walk `triage + open` findings, blockers first, batched by area. Outcomes per finding: **accept** (export per the profile with id, mark `accepted`), **reject** (one-line reason to `decisions.md`, mark `rejected`), or **retier to auto** (user says it's obvious). Close by appending all decisions to `decisions.md`, and when a phase column is complete, propose the milestone merge per the profile's branch model.
+Walk `triage + open` findings, blockers first, batched by area. Outcomes per finding: **accept** (export per the profile with id, mark `accepted`), **reject** (mark `rejected` with a one-line reason), or **retier to auto** (user says it's obvious). Close by appending all decisions to `decisions.md`, and when a phase column is complete, propose the milestone merge per the profile's branch model.
 
 ## Phase order
 
 1. `structure` — every area, by priority. Completes before any detail pass starts, so detail reviews see the post-refactor shape.
 2. `security` — trust-boundary areas only.
 3. Detail passes per area: `tests → errors → logging → effect → naming → diet → docs`.
-   The `diet` pass uses `references/diet.md` as the campaign-scoped rubric.
 
 ## Session discipline
 
@@ -145,4 +144,4 @@ Default is `triage`. Mark `auto` only when **all** hold:
 
 Goal prompt: `Run /review-campaign repeatedly until it reports the matrix complete or a blocker finding. Every few sessions run /review-campaign status; run sync when it reports base drift. Stop and surface blockers immediately.`
 
-Cadence: review sessions run unattended; `triage` runs only with the user; merge the campaign branch at milestones (phase complete or after a triage batch), which also carries exported work items and auto fixes. Run `status` every few sessions; run `sync` when it reports base drift, and always before a milestone merge.
+Cadence: review sessions run unattended; merge the campaign branch at milestones (phase complete or after a triage batch) — the merge also carries exported work items and auto-fixes.

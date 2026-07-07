@@ -8,40 +8,24 @@ disable-model-invocation: true
 
 Review code for **unearned weight**.
 
-Prefer `code-review` as the automatic code review entry point. This skill
-remains available as a standalone lens for explicit invocation.
-
 The core question is:
 
 > What in this code does not earn its maintenance cost today?
 
-This skill is not a general architecture or folder-layout review. It is a simplification review for code that feels heavier than the problem requires: too many helpers, wrappers, schema fields, columns, options, generic layers, or appended paths that solve the task by adding more machinery instead of integrating with the existing design.
+This skill is not a general architecture or folder-layout review. It is a simplification review for code that feels heavier than the problem requires: too many helpers, wrappers, schema fields, columns, options, generic layers, or appended paths that solve the task by adding more machinery instead of integrating with the existing design. Do not drift into folder, directory, or module reorganization unless that is central to the weight problem or the user explicitly asked for it.
 
-Do not assume code came from an LLM or agent. Judge the code on its merits. If the user mentions vibe-coded or agent-written changes, treat that only as context for the review lens, not as evidence.
+Do not assume code came from an LLM or agent. If the user mentions vibe-coded or agent-written changes, treat that only as context for the review lens, not as evidence.
 
 Do not force deletions. Explicit, readable, well-bounded code is often worth keeping even when it is not minimal.
 
 The goal is not fewer lines. The goal is fewer obligations: fewer concepts, states, branches, compatibility promises, and surfaces to preserve.
-
-## Scope
-
-Use this skill when the user's main concern is excess code weight, speculative flexibility, or bolted-on design.
-
-Prefer this skill over broader design or structure review when the user asks things like:
-- is this overengineered?
-- what can we remove?
-- do we need these helpers / wrappers / fields / columns?
-- this patch feels bandaged on; what is the real issue?
-- can you trim this down without losing clarity?
-
-Do **not** drift into folder, directory, or module reorganization unless that is central to the weight problem or the user explicitly asked for it.
 
 ## Review Posture
 
 Treat these principles as guides, not dogma:
 - **YAGNI**: do not keep machinery only for hypothetical future cases.
 - **AHA / rule of three**: avoid hasty abstractions; duplicate twice before extracting the wrong shared layer.
-- **Duplication can be cheaper than the wrong abstraction** when a shared helper now needs flags, modes, or branching to serve diverging cases.
+- **Duplication can be cheaper than the wrong abstraction.**
 - **Prefer integration over appending**: solve the problem in the existing design when possible instead of adding side channels, one-off adapters, or parallel flows.
 - **Keep readability-oriented explicitness**: a small helper, wrapper, or object can be worth its cost when it clarifies naming, boundaries, or invariants.
 
@@ -50,7 +34,7 @@ Treat these principles as guides, not dogma:
 - First separate **essential complexity** from **accidental complexity**. Essential complexity comes from the domain, external contracts, data lifecycle, failure modes, security, performance, or user workflow. Accidental complexity comes from implementation machinery that current behavior does not require.
 - Before recommending removal, identify what would stop working, what tests or contracts would need to change, and whether the behavior is public, persisted, migrated, or used by another subsystem. If local evidence cannot answer that, put the item in Bucket II.
 - Treat compatibility layers, migration fields, fallbacks, aliases, and dual-read or dual-write paths as justified only when there is a current rollout, external contract, or documented migration window. Otherwise, they are usually Bucket II candidates.
-- Prefer simplification in this order: delete unused or speculative code; inline pass-through wrappers; make generic code specific to the current use; split diverging cases instead of adding flags or modes; redesign only when local simplification would leave the underlying weight intact.
+- Prefer simplification in this order — the simplification ladder: delete unused or speculative code; inline pass-through wrappers; make generic code specific to the current use; merge appended paths into the existing design; split diverging cases instead of adding flags or modes; redesign only when local simplification would leave the underlying weight intact.
 - A longer direct implementation can be leaner than a shorter abstraction when it creates fewer concepts, jumps, configuration paths, and preserved states.
 
 ## Workflow
@@ -62,34 +46,24 @@ Treat these principles as guides, not dogma:
   - code that mainly exists for hypothetical future flexibility
   - code that was appended as a workaround instead of integrated cleanly
 
-2. Ask what each extra piece buys **now**.
+1. Ask what each extra piece buys **now**.
 - For every helper, wrapper, field, column, option, mode, schema entry, or abstraction layer, ask:
   - what current behavior depends on this?
   - what concrete maintenance cost does it remove?
-  - would the code be clearer if this were inlined, deleted, or made more specific?
-  - what replacement shape would remain after simplification: deleted, inlined, made specific, merged into an existing path, or split into explicit paths?
+  - which rung of the simplification ladder applies, and what code shape remains after it?
 
-3. Look for weight-gain patterns.
-- Extra JSON fields, DTO properties, DB columns, or config keys that current behavior barely uses.
-- Helpers or wrappers that mostly forward calls or rename things without improving boundaries, reuse, or invariants.
-- Shared helpers that now need booleans, enums, "mode" parameters, or branching to cover multiple cases.
-- Generic abstractions with only one real path.
-- Translation or mapping layers added mainly to preserve genericity.
-- Extension points, hooks, strategy objects, or configuration surfaces with no concrete second use.
-- Appended code paths, special cases, or side channels that solve one feature without cleaning up the underlying seam.
-- Data models shaped for imagined futures rather than today's behavior.
+1. Check the change against every strong signal in Review Standard, and note each signal that fires.
 
-4. Keep the bar high.
-- Do not call something waste just because it is abstract.
-- Do not punish code for being explicit.
+1. Keep the bar high.
 - Do not recommend broad redesign when a narrow simplification is enough.
 - Do not manufacture findings. A valid conclusion is that the code is already lean enough.
 
 ## Review Standard
 
 Treat these as strong signals that code may deserve a diet:
-- A field, column, option, or hook exists mostly for future flexibility, and current behavior barely touches it.
+- A field, column, option, config key, or hook exists mostly for future flexibility, and current behavior barely touches it.
 - A helper, wrapper, or abstraction adds another jump without improving naming, ownership, invariants, or real reuse.
+- A generic abstraction, extension point, or strategy surface has only one real path and no concrete second use.
 - Callers still need to know internal details the abstraction claimed to hide.
 - A supposedly shared helper now branches by flag, type, mode, or conditionals to serve diverging cases.
 - One concept requires repeated mapping or translation layers mostly to preserve a generic design.
@@ -118,7 +92,7 @@ Use this structure when reporting:
   - the main tradeoff only if it matters
 
 ### Bucket II — Worth Discussing
-- Put findings here when there are real tradeoffs, unclear constraints, or multiple plausible directions.
+- Put findings here when there are real tradeoffs, unclear constraints, multiple plausible directions, or the concern is plausible but weakly supported — do not overstate confidence.
 - For each item, include:
   - what seems overweight or bandaged on
   - what decision or missing constraint makes it uncertain
@@ -141,23 +115,3 @@ Use this structure when reporting:
 - Prefer small embedded snippets over editor-style line references when code evidence matters.
 - Put the source file path on the first line of each snippet as a comment.
 - Keep snippets tight: helper signatures, schema shapes, wrapper layers, flags, mode switches, and appended branches are usually enough.
-
-## Communication Rules
-
-- Be direct and specific.
-- Default to the smallest useful recommendation.
-- Prioritize real maintenance cost over aesthetic minimalism.
-- Preserve code that is explicit, readable, and earning its keep.
-- If the best answer is to leave the code alone, say so plainly.
-- If a concern is plausible but weakly supported, put it in Bucket II or Keep As-Is rather than overstating confidence.
-
-## Example Triggers
-
-- "Is this overengineered?"
-- "Can you put this code on a diet?"
-- "What can we delete without losing clarity?"
-- "Do we actually need these helpers and wrappers?"
-- "This schema feels too big for what the feature does."
-- "Review this diff for bandage code or speculative flexibility."
-- "Did we add too many fields / columns / config options here?"
-- "This works, but it feels heavier than it should be."
