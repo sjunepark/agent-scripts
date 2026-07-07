@@ -46,15 +46,15 @@ Treat these principles as guides, not dogma:
   - code that mainly exists for hypothetical future flexibility
   - code that was appended as a workaround instead of integrated cleanly
 
-2. Ask what each extra piece buys **now**.
+1. Ask what each extra piece buys **now**.
 - For every helper, wrapper, field, column, option, mode, schema entry, or abstraction layer, ask:
   - what current behavior depends on this?
   - what concrete maintenance cost does it remove?
   - which rung of the simplification ladder applies, and what code shape remains after it?
 
-3. Check the change against every strong signal in Review Standard, and note each signal that fires.
+1. Check the change against every strong signal in Review Standard, and note each signal that fires.
 
-4. Keep the bar high.
+1. Keep the bar high.
 - Do not recommend broad redesign when a narrow simplification is enough.
 - Do not manufacture findings. A valid conclusion is that the code is already lean enough.
 

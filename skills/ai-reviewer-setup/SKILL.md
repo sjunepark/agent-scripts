@@ -1,6 +1,6 @@
 ---
 name: ai-reviewer-setup
-description: "Set up or update Greptile and CodeRabbit AI code review configuration in a project. Use when adding root greptile.json or .coderabbit.yaml files, tuning PR auto-review behavior, restricting Greptile to PRs targeting main, excluding generated files or bots, or documenting installation steps for these review bots."
+description: "Set up or update Greptile and CodeRabbit AI code review configuration in a project. Use when adding root greptile.json or .coderabbit.yaml files, tuning PR auto-review behavior, restricting Greptile by PR target branch, excluding generated files or bots, or documenting installation steps for these review bots."
 ---
 
 # AI Reviewer Setup
@@ -34,14 +34,15 @@ description: "Set up or update Greptile and CodeRabbit AI code review configurat
 5. Add or update Greptile.
    - Use `greptile.json` in the repository root.
    - Greptile reads settings from the PR source branch.
-   - To restrict Greptile reviews to PRs targeting main, configure PR target-branch filtering with `includeBranches: ["main"]`.
-   - Keep `includeBranches: ["main"]` unless the user explicitly asks for additional target branches.
-   - Do not rely on `excludeBranches` alone for the main-only requirement.
+   - To restrict Greptile reviews to PRs targeting the repo's default branch, configure PR target-branch filtering with `includeBranches` set to the default branch discovered in step 1.
+   - Keep `includeBranches` limited to that default branch unless the user explicitly asks for additional target branches.
+   - Do not rely on `excludeBranches` alone for target-branch restrictions.
+   - Replace `<default-branch>` in examples with the discovered branch before writing `greptile.json`.
    - Prefer a compact, high-signal Greptile config such as:
 
 ```json
 {
-  "includeBranches": ["main"],
+  "includeBranches": ["<default-branch>"],
   "triggerOnUpdates": false,
   "triggerOnDrafts": false,
   "strictness": 2,

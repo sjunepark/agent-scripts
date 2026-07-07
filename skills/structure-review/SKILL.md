@@ -19,7 +19,7 @@ Over-structure (speculative abstractions, premature genericity) hurts because it
   - speculative or low-value structure added mostly for hypothetical future use
 - Done when every changed file is read and classified into one of these categories.
 
-2. Look for over-structure signals.
+1. Look for over-structure signals.
 - Extra DB columns, JSON fields, DTO properties, config keys, or hooks that current behavior barely touches.
 - Helpers or wrappers that add another jump without improving naming, reuse, invariants, or boundaries.
 - Callers still needing to know internal details the abstraction claimed to hide.
@@ -33,7 +33,7 @@ Over-structure (speculative abstractions, premature genericity) hurts because it
 
 Done when every changed file and directory has been checked against each signal.
 
-3. Look for under-structure signals.
+1. Look for under-structure signals.
 - A directory has 10+ files spanning three or more unrelated concerns with no subdirectory grouping.
 - A module's public surface mixes capabilities a caller must mentally filter to find the one they need.
 - Files that always change together live far apart in the tree while unrelated files are adjacent.
@@ -43,7 +43,7 @@ Done when every changed file and directory has been checked against each signal.
 
 Done when every changed file and directory has been checked against each signal.
 
-4. Check whether the structure earns its keep.
+1. Check whether the structure earns its keep.
 Ask what the extra layer buys now:
 - clearer names or call sites
 - a stronger type boundary
@@ -55,7 +55,7 @@ Ask what the extra layer buys now:
 
 If the answer is weak or hypothetical, treat it as a simplification candidate.
 
-5. Keep the change bar high.
+1. Keep the change bar high.
 - Do not recommend removal just because something is abstract.
 - Do not recommend nesting just because a directory has many files.
 - Do not punish code for being explicit.

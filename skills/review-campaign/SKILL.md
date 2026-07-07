@@ -144,4 +144,4 @@ Default is `triage`. Mark `auto` only when **all** hold:
 
 Goal prompt: `Run /review-campaign repeatedly until it reports the matrix complete or a blocker finding. Every few sessions run /review-campaign status; run sync when it reports base drift. Stop and surface blockers immediately.`
 
-Cadence: review sessions run unattended; merge the campaign branch at milestones (phase complete or after a triage batch) — the merge also carries exported work items and auto fixes.
+Cadence: review sessions run unattended; merge the campaign branch at milestones (phase complete or after a triage batch) — the merge also carries exported work items and auto-fixes.

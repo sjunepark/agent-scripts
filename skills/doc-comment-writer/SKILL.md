@@ -13,7 +13,7 @@ Add doc comments that help the next developer understand purpose, contract, cons
 - Infer the language's normal doc comment form and follow the file's existing style and comment density.
 - Inspect nearby types, tests, callers, or sibling files only when needed to understand public behavior or an important invariant.
 
-2. Decide what actually needs documentation.
+1. Decide what actually needs documentation.
 - Consider a file-level comment first when a file has a real module-level responsibility, boundary, or usage pattern that is not obvious from the filename and exports alone.
 - Prioritize the Good Targets and skip the Poor Targets listed below.
 - Add comments where a future reader would otherwise need to inspect internal logic to answer "what is this for?" or "what must stay true?"
@@ -21,19 +21,19 @@ Add doc comments that help the next developer understand purpose, contract, cons
 - If a file does not need new doc comments, say so instead of forcing low-value edits.
 - Done when every exported or public symbol in scope, plus the file header, has an explicit document-or-skip decision.
 
-3. Write for future readers, not for the current diff.
+1. Write for future readers, not for the current diff.
 - Explain inputs, outputs, side effects, failure modes, lifecycle expectations, or invariants when they matter.
 - Capture why a boundary exists, what a caller can rely on, and what would be easy to misuse.
 - Mention tradeoffs or intentionally surprising behavior when that context will age well.
 - Avoid describing step-by-step implementation details that will go stale after a refactor.
 
-4. Keep comments lean and local.
+1. Keep comments lean and local.
 - Keep file-level comments short and structural: explain the file's role, boundaries, or why related pieces live together.
 - Prefer one strong doc comment over several weak inline comments.
 - Keep wording tight; use full sentences only when they carry real information.
 - Use inline comments only when a local invariant or subtle branch needs explanation beyond what a doc comment can carry.
 
-5. Check the result against a high bar.
+1. Check the result against a high bar.
 - Remove any restatement that survived — a comment that only echoes the name, type, or obvious return value.
 - Remove generic filler such as "Helper function" or "Represents X" unless the next sentence adds real contract information.
 - Ensure each new comment would still be useful if the reader never opened the function body.

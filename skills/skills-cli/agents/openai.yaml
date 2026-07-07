@@ -1,4 +1,4 @@
 interface:
   display_name: "Skills CLI"
   short_description: "Manage agent skills via skills.sh CLI"
-  default_prompt: "Use this skill to install, list, update, remove, and troubleshoot skills with bunx skills for Codex, Claude Code, and Pi."
+  default_prompt: "Use this skill to install, list, update, remove, and troubleshoot skills with bunx skills for Codex, Claude Code, and Pi. For this repo's published skills, follow the remote skills/ source and the scope/agent rules documented in SKILL.md and references/cli.md."
