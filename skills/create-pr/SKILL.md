@@ -25,6 +25,7 @@ Create focused PRs that reviewers and review bots can act on without extra clari
    - Prefer `gh pr create --base <base> --head <branch> --title <title> --body-file <file>` so multiline bodies and bot commands are preserved exactly.
    - Create a ready-for-review PR by default. Add `--draft` only when the user asks for a draft, the user calls the work WIP, repo instructions require drafts for this case, or the PR is explicitly meant for early visibility rather than review. Incomplete validation alone does not justify a draft.
    - Use `--reviewer`, `--label`, `--assignee`, and `--milestone` only when requested or clearly supported by repo convention.
+   - Treat review-bot opt-in labels as bot execution controls, not routine PR metadata.
    - After creation or edit, verify with `gh pr view --json url,number,title,state,baseRefName,headRefName,isDraft,labels`.
 
 ## AI Review Decision
@@ -43,7 +44,7 @@ Use these PR-time controls:
 - Opt in when auto-review is disabled by config with a configured `reviews.auto_review.labels` label or exact `reviews.auto_review.description_keyword` in the PR body. CodeRabbit labels can trigger reviews even when `enabled: false`.
 - Skip through existing config-aware signals such as configured `ignore_title_keywords` or negative labels in `reviews.auto_review.labels`.
 
-Treat a CodeRabbit trigger comment as spending review quota. Do not post one unless the user asked for it or confirmed the review decision.
+Treat a CodeRabbit trigger comment, opt-in label, or description keyword as spending review quota. Do not add or post one unless the user asked for it, confirmed the review decision, or the repository has a clear trusted workflow/policy that auto-applies it for this PR. When an org uses a maintainer-consent label such as `coderabbit-review`, do not add that label just because the PR is ready; leave it absent unless this PR is explicitly approved for CodeRabbit.
 
 ### Greptile
 
