@@ -3,26 +3,26 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Use $change-explainer on my unstaged changes. I want an interactive page I can click through, not a file-by-file recap. Start with the big picture, group the edits into conceptual changes in the order that makes the most sense, and add before/after toggles only where the exact code matters.",
-      "expected_output": "The skill inspects local uncommitted changes, builds a self-contained interactive HTML doc from assets/template.html written to .change-explainer/<slug>.html (with a self-ignoring .change-explainer/.gitignore of '*'), opens it, and reports the path. The doc leads with the patch purpose and smallest useful post-change mental model, presents conceptual changes as collapsible blocks in learning order with before/after panels only where the code shape carries the decision, plus key decisions, maintenance focus, and what-to-remember. Chat reply is a short orientation, not the full walkthrough.",
+      "prompt": "Use $change-explainer on my unstaged changes. I want an interactive page I can click through, not a file-by-file recap. Start with the big picture, group the edits into conceptual changes in the order that makes the most sense, and keep it visual — I only want code where the exact code matters.",
+      "expected_output": "The skill inspects local uncommitted changes, builds a self-contained interactive HTML doc from assets/template.html written to .change-explainer/<slug>.html (with a self-ignoring .change-explainer/.gitignore of '*'), opens it, and reports the path. The doc leads with the patch purpose, a TL;DR, and an SVG overview diagram; conceptual changes are collapsed blocks with an always-visible skim sentence, with bodies leading with a visual (diagram, walkthrough, table, or before/after toggle) when the visual carries the idea, and code excerpts only where the code shape carries the decision. Key decisions, maintenance focus, and what-to-remember follow. Chat reply is a short orientation, not the full walkthrough.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Build an HTML walkthrough of the last commit like I'm reviewing it cold. I want to understand the problem it solves first, then how the contract changed, then how the implementation was reshaped. Keep before/after panels rare unless the exact code matters.",
-      "expected_output": "A self-contained HTML doc for the last commit, opened in the browser and written under .change-explainer/, that teaches top-down: problem and scope in Big Picture, then contract/behavior changes, then design and implementation as numbered collapsible conceptual changes, using before/after panels only when the exact code is important.",
+      "prompt": "Build an HTML walkthrough of the last commit like I'm reviewing it cold. I want to understand the problem it solves first, then how the contract changed, then how the implementation was reshaped. Diagrams over prose where possible; code only if it's essential.",
+      "expected_output": "A self-contained HTML doc for the last commit, opened in the browser and written under .change-explainer/, that teaches top-down: problem and scope in Big Picture with an overview diagram, then contract/behavior changes, then design and implementation as numbered collapsed conceptual changes whose skim sentences alone give the full story. Flow-heavy changes use the guided walkthrough or before/after diagram toggle; code panels appear rarely and only where the exact code is important.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "I pasted a PR patch below. Don't just list the changes. Cluster related hunks into conceptual changes, explain how each fits one idea, and render it as a browsable doc in the easiest order to understand. Stay mostly descriptive unless something looks materially risky.",
-      "expected_output": "A self-contained interactive HTML doc grouped by purpose rather than by file, with collapsible conceptual changes, before/after or diagram evidence used selectively, explicit mental-model building, and a Concerns section only when a material issue exists. No formal-review language unless requested.",
+      "expected_output": "A self-contained interactive HTML doc grouped by purpose rather than by file, skimmable when fully collapsed (TL;DR, overview diagram, skim sentence per change), with theme-aware SVG diagrams, walkthroughs, or tables as the primary evidence and code used selectively, explicit mental-model building, and a Concerns section only when a material issue exists. No formal-review language unless requested.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $change-explainer and explain what's changed.",
-      "expected_output": "The skill defaults to the current repository's uncommitted change set (git status plus staged and unstaged diffs and relevant untracked files), generates the interactive HTML doc under .change-explainer/, opens it, and only asks for a specific commit, range, patch, or file pair if there are no uncommitted changes to explain.",
+      "expected_output": "The skill defaults to the current repository's uncommitted change set (git status plus staged and unstaged diffs and relevant untracked files), generates the visual-first interactive HTML doc under .change-explainer/, opens it, and only asks for a specific commit, range, patch, or file pair if there are no uncommitted changes to explain.",
       "files": []
     }
   ]

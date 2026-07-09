@@ -1,12 +1,15 @@
 <!doctype html>
 <!--
   change-explainer template.
-  Fill the regions marked  <!-- FILL: ... -->  and duplicate the
+  Fill the regions marked "FILL:" (in comments or placeholder attributes) and duplicate the
   "conceptual change" <details> block once per conceptual bucket.
   Keep the <style> and <script> intact; they provide the interactivity
-  (theme toggle, expand/collapse all, TOC scroll-spy, before/after tabs,
-  copy buttons, syntax highlighting with an offline fallback).
-  The file is fully self-contained and opens directly in any browser.
+  (theme toggle, expand/collapse all, TOC scroll-spy, walkthrough
+  step-through, before/after tabs, term tooltips, copy buttons).
+  A COMPONENT LIBRARY of optional visual blocks sits at the bottom of
+  the "How the Change Works" section — copy what you use into the
+  change blocks, then delete the library. The file is fully
+  self-contained and opens directly in any browser.
 -->
 <html lang="en" data-theme="light">
 <head>
@@ -14,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title><!-- FILL: doc title, e.g. "auth session refactor" --> · change-explainer</title>
 
-<!-- Syntax highlighting (optional, degrades gracefully offline). -->
+<!-- Syntax highlighting for the rare code panel (optional, degrades gracefully offline). -->
 <link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
 <link id="hl-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" disabled />
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -25,6 +28,7 @@
     --accent: #2563eb; --border: #e5e7eb; --code-bg: #f6f8fa;
     --add-bg: #e6ffec; --add-bd: #aceebb; --del-bg: #ffebe9; --del-bd: #f1aeb5;
     --warn-bg: #fff8e1; --warn-bd: #f5d784; --warn-fg: #8a6d00;
+    --tip-shadow: 0 4px 16px rgba(0,0,0,.1);
     --maxw: 50rem;
   }
   [data-theme="dark"] {
@@ -33,6 +37,7 @@
     --add-bg: rgba(46,160,67,.18); --add-bd: rgba(46,160,67,.5);
     --del-bg: rgba(248,81,73,.16); --del-bd: rgba(248,81,73,.5);
     --warn-bg: rgba(187,128,9,.16); --warn-bd: rgba(187,128,9,.5); --warn-fg: #e3b341;
+    --tip-shadow: 0 4px 16px rgba(0,0,0,.5);
   }
 
   * { box-sizing: border-box; min-width: 0; }
@@ -70,19 +75,60 @@
   .callout.warn .label { color: var(--warn-fg); }
   .callout .label { font-weight: 600; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; display: block; margin-bottom: .3rem; }
 
-  /* Conceptual change blocks. */
+  /* Conceptual change blocks: skim line always visible, detail behind expansion. */
   details.change { border: 1px solid var(--border); border-radius: 10px; margin: .9rem 0; overflow: hidden; background: var(--bg); }
-  details.change > summary { cursor: pointer; list-style: none; padding: .85rem 1.1rem; font-weight: 600; display: flex; align-items: center; gap: .6rem; }
+  details.change > summary { cursor: pointer; list-style: none; padding: .8rem 1.1rem .75rem; }
   details.change > summary::-webkit-details-marker { display: none; }
-  details.change > summary::before { content: "▶"; font-size: .7rem; color: var(--muted); transition: transform .15s; }
-  details.change[open] > summary::before { transform: rotate(90deg); }
   details.change > summary:hover { background: var(--surface); }
+  details.change > summary .head { display: flex; align-items: baseline; gap: .55rem; font-weight: 600; }
+  details.change > summary .head::before { content: "▶"; font-size: .65rem; color: var(--muted); transition: transform .15s; align-self: center; }
+  details.change[open] > summary .head::before { transform: rotate(90deg); }
+  details.change > summary .skim { display: block; margin: .3rem 0 0 1.35rem; color: var(--muted); font-weight: 400; font-size: .92rem; line-height: 1.5; }
   details.change .num { color: var(--accent); font-variant-numeric: tabular-nums; }
-  details.change .body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); }
+  details.change .body { padding: .2rem 1.1rem 1.1rem; border-top: 1px solid var(--border); }
   details.change .why { margin-top: .8rem; padding-left: .9rem; border-left: 3px solid var(--accent); color: var(--text); }
   details.change .why .label { font-weight: 600; color: var(--accent); }
 
-  /* Before/after tabs. */
+  /* Diagrams: inline SVG, theme-aware via the classes below. */
+  figure.diagram { margin: 1.2rem 0; }
+  figure.diagram svg { width: 100%; height: auto; display: block; }
+  figure.diagram figcaption { color: var(--muted); font-size: .85rem; margin-top: .45rem; }
+  svg .sn { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  svg .sn.hi { stroke: var(--accent); stroke-width: 2; }
+  svg .sn.add { fill: var(--add-bg); stroke: var(--add-bd); }
+  svg .sn.del { fill: var(--del-bg); stroke: var(--del-bd); }
+  svg .se { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  svg .se.hi { stroke: var(--accent); stroke-width: 2; }
+  svg .st { fill: var(--text); font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  svg .st.sub { fill: var(--muted); font-weight: 400; font-size: 12.5px; }
+  svg .st.hi { fill: var(--accent); }
+  svg .sd { fill: var(--muted); }          /* arrowhead */
+  svg .sd.hi { fill: var(--accent); }
+
+  /* Guided walkthrough: step pills drive a panel and dim-focus the SVG above. */
+  .walk { margin: 1.2rem 0; }
+  .walk-steps { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0 .5rem; }
+  .walk-step { appearance: none; font: inherit; font-size: .85rem; border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 999px; padding: .28rem .8rem; cursor: pointer; }
+  .walk-step:hover { color: var(--text); border-color: var(--accent); }
+  .walk-step.active { color: var(--accent); border-color: var(--accent); background: var(--surface); font-weight: 600; }
+  .walk-panel { min-height: 3.2rem; font-size: .95rem; }
+  .walk-panel[hidden] { display: none; }
+  .walk svg.focused [data-step] { opacity: .35; transition: opacity .15s; }
+  .walk svg.focused [data-step].hot { opacity: 1; }
+
+  /* Term tooltips: hover/focus definitions for jargon. */
+  .term { position: relative; border-bottom: 1px dotted var(--muted); cursor: help; }
+  .term > .tip { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + .5rem); width: max-content; max-width: 20rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .7rem; font-size: .82rem; font-weight: 400; line-height: 1.5; color: var(--text); box-shadow: var(--tip-shadow); opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5; }
+  .term:hover > .tip, .term:focus > .tip { opacity: 1; }
+
+  /* Comparison tables: light rules, no cell grid. */
+  .tablewrap { overflow-x: auto; margin: 1rem 0; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  table.cmp th, table.cmp td { padding: .45rem .7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  table.cmp th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+  table.cmp code { background: var(--code-bg); padding: .05rem .3rem; border-radius: 4px; font-size: .92em; }
+
+  /* Before/after tabs — panels may hold a diagram, a table, or (rarely) code. */
   .ba { margin: 1rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   .ba-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
   .ba-tab { appearance: none; border: 0; background: transparent; padding: .5rem 1rem; font: inherit; font-size: .88rem; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
@@ -90,22 +136,18 @@
   .ba-tab[data-kind="before"].active { border-bottom-color: var(--del-bd); }
   .ba-tab[data-kind="after"].active { border-bottom-color: var(--add-bd); }
   .ba-panel[hidden] { display: none; }
+  .ba-panel figure.diagram { margin: 0; padding: 1rem; }
 
-  /* Code. */
+  /* Code — rare; only when the exact code shape carries the decision. */
   pre { margin: 0; overflow-x: auto; background: var(--code-bg); }
   pre code { display: block; padding: .9rem 1.1rem; font: .85rem/1.55 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
-  p code, li code { background: var(--code-bg); padding: .05rem .35rem; border-radius: 4px; font-size: .87em; }
+  p code, li code, td code { background: var(--code-bg); padding: .05rem .35rem; border-radius: 4px; font-size: .87em; }
   .codeblock { position: relative; }
   .copy { position: absolute; top: .45rem; right: .45rem; appearance: none; border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 6px; padding: .2rem .5rem; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .12s; }
   .codeblock:hover .copy { opacity: 1; }
   .copy:hover { color: var(--text); }
-  /* Inline diff coloring for unified snippets. */
   .diff .add { display: block; background: var(--add-bg); }
   .diff .del { display: block; background: var(--del-bg); }
-
-  figure.diagram { margin: 1.2rem 0; }
-  figure.diagram pre { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; line-height: 1.4; }
-  figure.diagram figcaption { color: var(--muted); font-size: .85rem; margin-top: .4rem; }
 
   ul.tight { margin: .5rem 0; padding-left: 1.2rem; }
   ul.tight li { margin: .3rem 0; }
@@ -158,59 +200,183 @@
       <p class="lead"><!-- FILL: one or two sentences on what this change is trying to do and where it matters. --></p>
       <div class="callout">
         <span class="label">TL;DR</span>
-        <!-- FILL: the single most important takeaway. -->
+        <!-- FILL: the single most important takeaway, one or two sentences. -->
       </div>
+
+      <!-- Overview diagram (standard): the change's flow, pipeline, or ownership shift as SVG.
+           Use the svg classes: .sn node, .se edge, .st text (.sub/.hi variants), .sd arrowhead.
+           Give each SVG's <marker> a unique id. Adjust viewBox height to fit your content. -->
+      <figure class="diagram">
+        <svg viewBox="0 0 760 150" role="img" aria-label="FILL: one-line alt text">
+          <defs>
+            <marker id="arr-overview" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="sd"/>
+            </marker>
+          </defs>
+          <!-- FILL: replace this 3-node example with the real overview. -->
+          <rect class="sn" x="16" y="45" width="180" height="60" rx="10"/>
+          <text class="st" x="106" y="70" text-anchor="middle">Input</text>
+          <text class="st sub" x="106" y="90" text-anchor="middle">what enters</text>
+          <line class="se" x1="196" y1="75" x2="266" y2="75" marker-end="url(#arr-overview)"/>
+          <rect class="sn hi" x="270" y="45" width="200" height="60" rx="10"/>
+          <text class="st hi" x="370" y="70" text-anchor="middle">The change</text>
+          <text class="st sub" x="370" y="90" text-anchor="middle">what it does</text>
+          <line class="se" x1="470" y1="75" x2="540" y2="75" marker-end="url(#arr-overview)"/>
+          <rect class="sn" x="544" y="45" width="200" height="60" rx="10"/>
+          <text class="st" x="644" y="70" text-anchor="middle">Output</text>
+          <text class="st sub" x="644" y="90" text-anchor="middle">what leaves</text>
+        </svg>
+        <figcaption><!-- FILL: one line explaining the diagram. --></figcaption>
+      </figure>
     </section>
 
     <section id="how">
       <h2>How the Change Works</h2>
-      <p class="muted">Each block is one conceptual change, ordered for understanding — not by file.</p>
+      <p class="muted">Each block is one conceptual change, ordered for understanding — not by file. Skim the closed blocks first; expand for the mechanism.</p>
 
-      <!-- BEGIN conceptual change (duplicate this <details> per bucket; number them). -->
-      <details class="change" open>
-        <summary><span class="num">1.</span> <!-- FILL: name the technical decision, not the file --></summary>
+      <!-- BEGIN conceptual change (duplicate this <details> per bucket; number them; keep collapsed). -->
+      <details class="change">
+        <summary>
+          <span class="head"><span class="num">1.</span> <span><!-- FILL: name the technical decision, not the file --></span></span>
+          <span class="skim"><!-- FILL: one-sentence takeaway a skimmer gets without expanding. --></span>
+        </summary>
         <div class="body">
-          <p><!-- FILL: prose explanation — what the system now does and how these edits fit one idea. --></p>
+          <!-- Lead with the strongest visual for this change; copy it from the
+               COMPONENT LIBRARY below (diagram, walkthrough, before/after toggle, or table). -->
 
-          <!-- Optional before/after. Omit when prose alone is enough. -->
-          <div class="ba" data-ba>
-            <div class="ba-tabs">
-              <button class="ba-tab active" data-kind="before" type="button">Before</button>
-              <button class="ba-tab" data-kind="after" type="button">After</button>
-            </div>
-            <div class="ba-panel" data-pane="before">
-              <div class="codeblock"><button class="copy" type="button">Copy</button>
-                <pre><code class="language-ts"><!-- FILL: old code, or "n/a (new code)" --></code></pre>
-              </div>
-            </div>
-            <div class="ba-panel" data-pane="after" hidden>
-              <div class="codeblock"><button class="copy" type="button">Copy</button>
-                <pre><code class="language-ts"><!-- FILL: new code --></code></pre>
-              </div>
-            </div>
-          </div>
+          <p><!-- FILL: at most two short paragraphs — what the system now does and how these edits fit one idea. Reference code as path:line instead of pasting it. --></p>
 
           <div class="why"><span class="label">Why it matters:</span> <!-- FILL: the consequence for behavior, contracts, or callers. --></div>
         </div>
       </details>
       <!-- END conceptual change. -->
 
-      <!-- Optional diagram when flow/ownership is easier seen than described. -->
+      <!-- ================= COMPONENT LIBRARY =================
+           Copy these into change blocks as the leading visual, then
+           DELETE the whole library. Every component is optional. -->
+
+      <!-- Component: guided walkthrough — a multi-step flow the reader clicks
+           through. Tag SVG elements with data-step="1|2|..."; each pill shows its
+           panel and spotlights matching SVG elements. 3–7 steps. Keep marker
+           and panel ids unique if you use more than one walkthrough. -->
+      <div class="walk" data-walk>
+        <figure class="diagram">
+          <svg viewBox="0 0 760 140" role="img" aria-label="FILL: walkthrough alt text">
+            <defs>
+              <marker id="arr-walk1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" class="sd"/>
+              </marker>
+            </defs>
+            <g data-step="1">
+              <rect class="sn" x="16" y="40" width="200" height="60" rx="10"/>
+              <text class="st" x="116" y="65" text-anchor="middle">Step 1 node</text>
+              <text class="st sub" x="116" y="85" text-anchor="middle">detail</text>
+            </g>
+            <line data-step="2" class="se" x1="216" y1="70" x2="276" y2="70" marker-end="url(#arr-walk1)"/>
+            <g data-step="2">
+              <rect class="sn" x="280" y="40" width="200" height="60" rx="10"/>
+              <text class="st" x="380" y="65" text-anchor="middle">Step 2 node</text>
+              <text class="st sub" x="380" y="85" text-anchor="middle">detail</text>
+            </g>
+            <line data-step="3" class="se" x1="480" y1="70" x2="540" y2="70" marker-end="url(#arr-walk1)"/>
+            <g data-step="3">
+              <rect class="sn" x="544" y="40" width="200" height="60" rx="10"/>
+              <text class="st" x="644" y="65" text-anchor="middle">Step 3 node</text>
+              <text class="st sub" x="644" y="85" text-anchor="middle">detail</text>
+            </g>
+          </svg>
+        </figure>
+        <div class="walk-steps">
+          <button class="walk-step" data-step="1" type="button" aria-controls="walk1-panel-1">1 · <!-- FILL: step name --></button>
+          <button class="walk-step" data-step="2" type="button" aria-controls="walk1-panel-2">2 · <!-- FILL --></button>
+          <button class="walk-step" data-step="3" type="button" aria-controls="walk1-panel-3">3 · <!-- FILL --></button>
+        </div>
+        <div class="walk-panel" id="walk1-panel-1" data-step="1"><!-- FILL: what happens at this step, ≤2 sentences. --></div>
+        <div class="walk-panel" id="walk1-panel-2" data-step="2" hidden><!-- FILL --></div>
+        <div class="walk-panel" id="walk1-panel-3" data-step="3" hidden><!-- FILL --></div>
+      </div>
+
+      <!-- Component: plain SVG diagram — one flow or data shape with no step interaction. -->
       <figure class="diagram">
-        <pre>
-<!-- FILL or remove:
-Before: Route ─▶ Repo
-After:  Route ─▶ Service ─▶ Repo
--->
-        </pre>
+        <svg viewBox="0 0 760 130" role="img" aria-label="FILL: diagram alt text">
+          <defs>
+            <marker id="arr-diagram1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="sd"/>
+            </marker>
+          </defs>
+          <!-- FILL: replace this example with the real flow or data shape. -->
+          <rect class="sn" x="16" y="35" width="200" height="60" rx="10"/>
+          <text class="st" x="116" y="60" text-anchor="middle">Source</text>
+          <text class="st sub" x="116" y="80" text-anchor="middle">what starts it</text>
+          <line class="se" x1="216" y1="65" x2="276" y2="65" marker-end="url(#arr-diagram1)"/>
+          <rect class="sn hi" x="280" y="35" width="200" height="60" rx="10"/>
+          <text class="st hi" x="380" y="60" text-anchor="middle">Change</text>
+          <text class="st sub" x="380" y="80" text-anchor="middle">what shifts</text>
+          <line class="se" x1="480" y1="65" x2="540" y2="65" marker-end="url(#arr-diagram1)"/>
+          <rect class="sn" x="544" y="35" width="200" height="60" rx="10"/>
+          <text class="st" x="644" y="60" text-anchor="middle">Result</text>
+          <text class="st sub" x="644" y="80" text-anchor="middle">what changes</text>
+        </svg>
         <figcaption><!-- FILL: one line explaining the diagram. --></figcaption>
       </figure>
+
+      <!-- Component: before/after toggle. Panels hold a figure.diagram (preferred)
+           or a table; use code only when the exact code shape carries the decision. -->
+      <div class="ba" data-ba>
+        <div class="ba-tabs">
+          <button class="ba-tab active" data-kind="before" type="button">Before</button>
+          <button class="ba-tab" data-kind="after" type="button">After</button>
+        </div>
+        <div class="ba-panel" data-pane="before">
+          <figure class="diagram">
+            <svg viewBox="0 0 760 120" role="img" aria-label="FILL: before structure diagram"><!-- FILL: the old structure --></svg>
+          </figure>
+        </div>
+        <div class="ba-panel" data-pane="after" hidden>
+          <figure class="diagram">
+            <svg viewBox="0 0 760 120" role="img" aria-label="FILL: after structure diagram"><!-- FILL: the new structure --></svg>
+          </figure>
+        </div>
+      </div>
+
+      <!-- Component: comparison table — options, conventions, old-vs-new contracts. -->
+      <div class="tablewrap">
+        <table class="cmp">
+          <thead><tr><th><!-- FILL --></th><th><!-- FILL --></th><th><!-- FILL --></th></tr></thead>
+          <tbody>
+            <tr><td><!-- FILL --></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Component: term tooltip (inline, inside prose). Keep the tip ≤2 sentences. -->
+      <p>… <span class="term" tabindex="0">jargon term<span class="tip"><!-- FILL: short definition --></span></span> …</p>
+
+      <!-- Component: code panel — RARE. Only when the exact code shape carries the
+           decision and no diagram or sentence can. Tight excerpt, not a whole function. -->
+      <div class="ba" data-ba>
+        <div class="ba-tabs">
+          <button class="ba-tab active" data-kind="before" type="button">Before</button>
+          <button class="ba-tab" data-kind="after" type="button">After</button>
+        </div>
+        <div class="ba-panel" data-pane="before">
+          <div class="codeblock"><button class="copy" type="button">Copy</button>
+            <pre><code class="language-ts"><!-- FILL: old code, or "n/a (new code)" --></code></pre>
+          </div>
+        </div>
+        <div class="ba-panel" data-pane="after" hidden>
+          <div class="codeblock"><button class="copy" type="button">Copy</button>
+            <pre><code class="language-ts"><!-- FILL: new code --></code></pre>
+          </div>
+        </div>
+      </div>
+      <!-- =============== END COMPONENT LIBRARY =============== -->
     </section>
 
     <section id="decisions">
       <h2>Key Decisions</h2>
       <ul class="tight">
-        <!-- FILL: the few abstractions, invariants, or contracts that make the change make sense. -->
+        <!-- FILL: the few abstractions, invariants, or contracts that make the change make sense — one line each: bolded decision, then one clause of consequence. -->
         <li></li>
       </ul>
     </section>
@@ -218,7 +384,7 @@ After:  Route ─▶ Service ─▶ Repo
     <section id="maintenance">
       <h2>Reviewer &amp; Maintenance Focus</h2>
       <ul class="tight">
-        <!-- FILL: consequences for usage, compatibility, testing, future edits; important tradeoffs/risks. -->
+        <!-- FILL: consequences for usage, compatibility, testing, future edits; important tradeoffs/risks. Use a comparison table instead if it reads better. -->
         <li></li>
       </ul>
     </section>
@@ -270,6 +436,33 @@ After:  Route ─▶ Service ─▶ Repo
       var anyClosed = Array.prototype.some.call(items, function (d) { return !d.open; });
       items.forEach(function (d) { d.open = anyClosed; });
       allBtn.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+    });
+
+    // Guided walkthroughs: step pills drive a detail panel and spotlight the SVG.
+    document.querySelectorAll('[data-walk]').forEach(function (walk) {
+      var steps = walk.querySelectorAll('.walk-step');
+      var panels = walk.querySelectorAll('.walk-panel');
+      var svg = walk.querySelector('svg');
+      function activate(id) {
+        steps.forEach(function (s) {
+          var active = s.getAttribute('data-step') === id;
+          s.classList.toggle('active', active);
+          s.setAttribute('aria-expanded', active ? 'true' : 'false');
+          if (active) s.setAttribute('aria-current', 'step');
+          else s.removeAttribute('aria-current');
+        });
+        panels.forEach(function (p) { p.hidden = p.getAttribute('data-step') !== id; });
+        if (svg) {
+          svg.classList.add('focused');
+          svg.querySelectorAll('[data-step]').forEach(function (el) {
+            el.classList.toggle('hot', el.getAttribute('data-step') === id);
+          });
+        }
+      }
+      steps.forEach(function (s) {
+        s.addEventListener('click', function () { activate(s.getAttribute('data-step')); });
+      });
+      if (steps.length) activate(steps[0].getAttribute('data-step'));
     });
 
     // Before/after tabs.
