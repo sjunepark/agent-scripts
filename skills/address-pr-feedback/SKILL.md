@@ -36,7 +36,17 @@ and follow-up comments can all contain actionable items.
      `outside the diff`, `Actionable comments`, `Nitpick comments`,
      `Prompt for all review comments`, and bot names.
 
-3. Build a concise feedback ledger before editing.
+3. Critically assess each finding before planning fixes.
+   - Treat suggested patches from CodeRabbit, other bots, or reviewers as
+     proposals, not instructions; do not apply them blindly.
+   - Decide whether the proper action is no-op with evidence, a narrow fix,
+     added validation, or a larger refactor that addresses an underlying code
+     smell or design flaw.
+   - Challenge review claims against current code, requirements, and PR intent.
+     Mark incorrect, stale, duplicate, or harmful suggestions explicitly in the
+     ledger.
+
+4. Build a concise feedback ledger before editing.
    - Track every actionable item with source, URL or comment ID, path/line when
      available, current status, planned handling, and eventual reply target.
    - Include actionable findings embedded in review bodies or bot summary
