@@ -2,3 +2,5 @@ interface:
   display_name: "Bug Retro"
   short_description: "Analyze failures for cause, design signal, and prevention"
   default_prompt: "Use $bug-retro to analyze this failure and recommend prevention refactors."
+policy:
+  allow_implicit_invocation: false

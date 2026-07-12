@@ -1,4 +1,4 @@
 interface:
   display_name: "Teach"
-  short_description: "Teach code, flows, and architecture through design decisions, contracts, tradeoffs, and maintenance implications"
-  default_prompt: "Use teach when the user wants to understand code, a subsystem, a flow, an architecture area, or a relevant library or framework concept at the design level — mental model, contracts, data flow, tradeoffs, and maintenance implications, not syntax or line-by-line execution. Prefer change-explainer for diffs, commits, and patches."
+  short_description: "Teach existing code through design and contracts"
+  default_prompt: "Use $teach to explain this existing codebase, subsystem, architecture, or feature flow through its responsibilities, contracts, data flow, invariants, and tradeoffs."

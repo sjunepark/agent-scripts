@@ -1,6 +1,6 @@
 ---
 name: teach
-description: "Teach how code, a subsystem, feature flow, or a relevant technical concept works for reviewers and maintainers. Use when the user asks to understand code or a concept at the design level, not syntax or line-by-line execution. Use `change-explainer` for diffs, commits, or patches."
+description: "Teach an existing codebase, subsystem, architecture, or feature flow to reviewers and maintainers. Use for a requested design-level mental model of responsibilities, contracts, data flow, invariants, and tradeoffs. Do not use for quick factual questions, implementation requests, library examples, diffs, commits, or patches."
 ---
 
 # Teach
