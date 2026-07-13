@@ -59,13 +59,15 @@ the prompt. Usually write one to three short paragraphs containing only:
 - the few authoritative plan documents to follow;
 - verified state or a completion condition only when needed to disambiguate the plans;
 - a direction to follow applicable `AGENTS.md`, preserve unrelated changes, keep plans current,
-  and perform repository-required validation and review.
+  and perform repository-required validation and review;
+- a requirement to make coherent local commits as meaningful, passing units finish, with
+  messages that state what changed and why, including non-obvious decisions needed later.
 
 Leave implementation steps, file inventories, design guidance, invariants, test matrices,
-commands, git choreography, and status recaps to the goal-running agent and cited repository
-documents. Include an omitted detail only when the plans do not contain it and the goal would
-otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain choices into
-instructions.
+commands, detailed git choreography, and status recaps to the goal-running agent and cited
+repository documents. Include an omitted detail only when the plans do not contain it and the
+goal would otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain
+choices into instructions.
 
 Before responding, verify that the prompt is actionable without this conversation and that
 this run made no repository write, goal change, git mutation, or external publication.

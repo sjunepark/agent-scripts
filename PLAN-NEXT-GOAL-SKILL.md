@@ -13,7 +13,8 @@ Next action: none. Publication or global installation remains a separately autho
   when only ordinary-turn work remains.
 - Generated prompts point the next agent to authoritative plans and `AGENTS.md` instead of
   restating implementation steps, file inventories, invariants, test matrices, commands, or
-  git choreography.
+  detailed git choreography. They still require coherent local commits as meaningful passing
+  units finish, with messages that state what changed and why, including non-obvious decisions.
 - A post-revision forward test against `../creo-valuation` selected the whole remaining M0
   milestone instead of only Slice 4B.3 and produced a two-paragraph prompt without writing to
   the target repository.
@@ -103,12 +104,13 @@ Return:
 Keep the generated prompt to one to three short paragraphs in the normal case. Name the
 outcome, stopping boundary, and few authoritative plan documents, then direct the next agent to
 follow `AGENTS.md`, preserve unrelated changes, keep plans current, and use repository-required
-validation and review. Add detail only when it is absent from the plans and essential to avoid
-ambiguity or unsafe work.
+validation and review. Require coherent local commits as meaningful passing units finish and
+commit messages that state what changed and why, including non-obvious decisions. Add detail
+only when it is absent from the plans and essential to avoid ambiguity or unsafe work.
 
 Do not copy plan content into the prompt. Leave implementation steps, detailed design rules,
-file lists, acceptance matrices, commands, git workflow, and progress recaps to the goal-running
-agent and repository documents. Do not invent a token budget.
+file lists, acceptance matrices, commands, detailed git workflow, and progress recaps to the
+goal-running agent and repository documents. Do not invent a token budget.
 
 ### 4. Remain read-only
 
@@ -162,6 +164,8 @@ unearned prompt boilerplate.
   `/goal` is not warranted when no such outcome exists.
 - Its output can be pasted into a new `/goal` session without manual reconstruction.
 - It delegates execution detail to the active plans, `AGENTS.md`, and the goal-running agent.
+- It requires progressive, coherent local commits with messages that state what changed, why,
+  and any non-obvious decisions needed to understand each completed unit later.
 - It remains read-only and does not overlap the execution responsibilities of existing
   progress skills.
 - Its `SKILL.md` and metadata are concise, valid, and free of repository-specific assumptions.
@@ -197,6 +201,8 @@ globally install the skill as part of this ticket unless separately requested.
 - Revised the boundary and prompt contract after user feedback. A fresh read-only run against
   Creo Valuation selected all remaining M0 work—Slices 4B.3–4B.6, Slice 5, and the refixing
   representation check—and routed the goal through existing plans in two short paragraphs.
+- Restored one concise change-management requirement: commit meaningful passing units as work
+  progresses and state what changed, why, and any non-obvious decisions in each message.
 - Validation passed via isolated `PyYAML` for `quick_validate.py`, `scripts/validate-skills`,
   direct and full `bunx skills add ... --list` checks, and git whitespace checks.
 - The bounded implementation review with the diet lens found no remaining correctness or
