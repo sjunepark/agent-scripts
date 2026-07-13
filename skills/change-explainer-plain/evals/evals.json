@@ -1,0 +1,47 @@
+{
+  "skill_name": "change-explainer-plain",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $change-explainer-plain on my unstaged changes. I barely know this repository, so teach me what area I am looking at before you explain the diff. Give me one concrete before/after example and define the project terms you need.",
+      "expected_output": "A direct Markdown response that inspects local uncommitted changes plus the minimum README, architecture, entry-point, and neighboring code needed to teach a cold reader. It starts with the project and changed-area baseline, gives a realistic Before/Now/Result story, defines recurring project terms, teaches one to four behavior-changing ideas, and ends with useful source anchors and maintenance evidence. It creates and opens no HTML, Markdown, diagram, or other explanation artifact and does not modify the repository.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Use $change-explainer-plain to walk me through the last commit like I am reviewing this project cold. First tell me what the project and changed subsystem do. Then show a real scenario that failed or behaved differently before, what happens now, and only then teach the mechanism.",
+      "expected_output": "A self-contained conversational explanation whose opening supplies enough project and subsystem baseline to understand the change and earns every specialized term before relying on it. One concrete scenario forms the learning spine; later Markdown sections progressively explain one to four mechanisms, source locations, invariants, compatibility, and proof. The answer is returned entirely in chat without writing or opening artifacts.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I pasted a PR patch below. Explain it with $change-explainer-plain for someone who knows programming but not our architecture or domain. Group related hunks, keep the main story small, and stay descriptive unless something is materially risky.",
+      "expected_output": "A direct Markdown explanation grouped by behavior rather than file. It reconstructs the smallest useful baseline from available context, defines domain and architecture vocabulary, explains a concrete old-versus-new scenario, and promotes only one to four behavior-changing ideas. Supporting mechanical, documentation, migration, and test hunks remain accounted for in later source or maintenance details. Concerns appear only for material issues, and no artifact is created.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $change-explainer-plain and explain what's changed.",
+      "expected_output": "The skill defaults to the current repository's uncommitted change set, inspecting git status, staged and unstaged diffs, and relevant untracked files before asking for a target. It follows the cold-reader scaffold and responds directly in Markdown. It asks for a commit, range, patch, or file pair only when the working tree has nothing to explain, and never creates an explanation artifact.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Use $change-explainer-plain on this commit. I own this subsystem, so keep the project primer very short and focus on the contract and maintenance consequences.",
+      "expected_output": "A direct expert-oriented response with a shortened project baseline and inline definitions only where needed. It still states the old and new mental models and practical consequence before implementation detail, then emphasizes contract changes, source entry points, compatibility, tests, tradeoffs, and future-edit rules. It does not force a long beginner primer, decorative visual, or file artifact.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Use $change-explainer-plain on this one-line validation fix. I am new to the project, but please do not inflate a tiny change. The request handler changed from `return save(request)` to `if (!request.id) throw new Error(\"id required\"); return save(request)`.",
+      "expected_output": "A compact direct response that gives only the baseline needed to understand the validation rule, one concrete Before/Now/Result example, the practical consequence, and any material compatibility concern. It points to relevant source evidence when available without adding a decorative diagram, repetitive sections, or an artifact.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Compare these two versions of a policy document with $change-explainer-plain. Assume I have never read the policy and teach the changed meaning before listing edits. Old §4: `Expense reports submitted after 17:00 are reviewed the next business day.` New §4: `Expense reports submitted at or after 16:00 are reviewed the next business day, except travel-emergency reports.`",
+      "expected_output": "A beginner-first response in Markdown that states the document's purpose, locates the changed section, gives a concrete old-versus-new policy scenario, defines policy terms, and groups changes by meaning. Source evidence uses sections or pages rather than code paths, implementation-only language and visuals are omitted, and no file is created.",
+      "files": []
+    }
+  ]
+}

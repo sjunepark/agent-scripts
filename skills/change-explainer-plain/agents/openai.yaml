@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Explainer Plain"
+  short_description: "Explain changes directly in concise Markdown"
+  default_prompt: "Use $change-explainer-plain to explain the requested change directly in this conversation for a cold reader, defaulting to current uncommitted changes when I do not name a target."
+policy:
+  allow_implicit_invocation: false
