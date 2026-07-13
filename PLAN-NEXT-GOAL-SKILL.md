@@ -6,21 +6,27 @@ Next action: none. Publication or global installation remains a separately autho
 
 ## Current state
 
-- `skills/next-goal` is implemented as a concise, read-only procedural skill with generated
-  OpenAI metadata and manual-only invocation policy.
+- `skills/next-goal` is a read-only, manually invoked skill that chooses work substantial
+  enough to benefit from `/goal` and returns a concise routing prompt.
+- It treats plan slices as building blocks rather than default stopping boundaries. It prefers
+  an active phase, milestone, or several connected slices and says `/goal` is not warranted
+  when only ordinary-turn work remains.
+- Generated prompts point the next agent to authoritative plans and `AGENTS.md` instead of
+  restating implementation steps, file inventories, invariants, test matrices, commands, or
+  git choreography.
+- A post-revision forward test against `../creo-valuation` selected the whole remaining M0
+  milestone instead of only Slice 4B.3 and produced a two-paragraph prompt without writing to
+  the target repository.
 - No scripts, references, assets, or eval file were added; the judgment-heavy workflow does
   not need them, and this repository has no evaluation runner for `evals/evals.json`.
-- Three disposable-repository forward tests covered a clear active plan, stale plan claims,
-  and an ambiguous dirty worktree. Each produced a self-contained goal-sized prompt, retained
-  repository-specific constraints, and made no writes.
 - Skill validation, catalog validation, direct and full local-source listing, and whitespace
   checks pass.
 
 ## Purpose
 
 Create a manually invoked `$next-goal` skill that inspects a repository's plans and current
-state, selects an appropriately substantial next implementation outcome, and emits a
-self-contained prompt to paste after `/goal` in a fresh Codex session.
+state, selects an appropriately substantial next implementation outcome, and emits a concise
+prompt that routes a fresh `/goal` session through the repository's existing plans.
 
 The skill is a read-only handoff generator. It does not execute the work, create a goal,
 change a plan, or mutate the target repository.
@@ -29,8 +35,8 @@ change a plan, or mutate the target repository.
 
 Use the repository's existing skills instead of duplicating their responsibilities:
 
-- `progress-run` supplies the rule for selecting the broadest connected slice that remains
-  bounded, reviewable, and validated.
+- `progress-run` executes one substantial connected plan slice; `next-goal` instead chooses a
+  larger persistent-execution boundary that may contain several such slices.
 - `progress-handoff` supplies fresh-session handoff principles, but writes a durable plan;
   `next-goal` instead returns a prompt in the response.
 - `progress-doc` supplies the requirement to verify plan claims against repository evidence.
@@ -48,7 +54,7 @@ Start the skill with the installed OpenAI `skill-creator` initializer. Do not ad
 scripts, assets, or references unless a concrete need emerges. Scope selection is primarily
 judgment-heavy guidance; prefer a concise `SKILL.md` over machinery.
 
-## Required workflow
+## Durable behavior
 
 ### 1. Establish the real current state
 
@@ -63,31 +69,28 @@ If no plan exists, infer the next outcome from repository instructions, current 
 and recent history. Ask a question only when multiple choices would materially change the
 outcome or no safe, unblocked implementation goal can be selected.
 
-### 2. Select one goal-sized outcome
+### 2. Select a substantial outcome
 
-Choose the broadest connected implementation scope that remains coherent, reviewable, and
-validatable. Prefer work that shares a phase, subsystem, ownership seam, files, decision
-context, or validation suite.
+Choose the largest useful outcome a persistent agent can pursue autonomously. Prefer a whole
+active phase or milestone, or several adjacent plan slices with settled requirements. Do not
+stop at a plan heading merely because it names a reviewable slice.
 
 A good goal:
 
-- ends in one concrete, demonstrable artifact or behavior;
-- can progress through multiple coherent passing commits;
-- has settled enough requirements to proceed autonomously;
-- includes small prerequisites needed to make the outcome real;
-- has a crisp stopping condition and an obvious next adjacent goal.
+- reaches a concrete, demonstrable project or user outcome;
+- is materially larger than one ordinary interactive turn;
+- benefits from persistent execution across multiple checkpoints;
+- has a crisp stopping condition and an obvious next excluded milestone.
 
 Split before:
 
-- an unrelated phase or independently useful outcome;
-- multiple independent high-risk seams or new dependencies;
-- a data migration, security boundary, platform commitment, or external coordination step;
-- a product or compatibility decision not implied by repository evidence;
-- a whole roadmap or milestone whose pieces cannot be reviewed coherently.
+- a genuine unresolved product or technical decision;
+- required external authorization or coordination;
+- a real blocker or materially unrelated next milestone.
 
-Do not select a single tiny checkbox when adjacent work is naturally connected. Do not select
-an entire roadmap merely because `/goal` can run for a long time. Explain the recommended
-maximum boundary and name meaningful work deliberately left for the next goal.
+Treat slices and checklist items as planning units rather than default goal boundaries. Fold in
+naturally connected later work. If no substantial unblocked outcome remains, report that
+`/goal` is not warranted instead of manufacturing a small prompt.
 
 ### 3. Generate the fresh-session prompt
 
@@ -97,38 +100,15 @@ Return:
 2. One copy-paste prompt intended as the body entered after `/goal`.
 3. A short statement of the next excluded area, when useful.
 
-The generated prompt must be self-contained; assume the new session has none of the current
-conversation. Include:
+Keep the generated prompt to one to three short paragraphs in the normal case. Name the
+outcome, stopping boundary, and few authoritative plan documents, then direct the next agent to
+follow `AGENTS.md`, preserve unrelated changes, keep plans current, and use repository-required
+validation and review. Add detail only when it is absent from the plans and essential to avoid
+ambiguity or unsafe work.
 
-- the concrete objective and completion artifact;
-- authoritative repository documents and relevant paths to read first;
-- verified current state without relying on brittle commit hashes unless they are necessary;
-- explicit in-scope work and non-goals;
-- settled invariants, dependency rules, and decision constraints supported by repository
-  evidence;
-- acceptance criteria and repository-native validation commands;
-- the duty to keep the active plan or progress document current;
-- a stopping condition and the next deferred boundary;
-- instructions to inspect and preserve pre-existing changes.
-
-Require the goal-running session to:
-
-- capture its own starting git ref before editing so final review and whitespace checks cover
-  progressively committed work as well as the remaining worktree diff;
-- make local commits as coherent, passing slices complete;
-- stage explicit paths and never sweep unrelated changes into a commit;
-- use conventional, descriptive commit subjects consistent with the repository;
-- run applicable focused validation and the repository's final validation;
-- follow repository-specific review instructions discovered in `AGENTS.md`, including skills
-  such as `$code-review` when required;
-- on successful completion, leave all completed goal-owned work committed while preserving
-  any pre-existing dirty state; if blocked, report partial or uncommitted work rather than
-  committing a failing slice;
-- avoid pushing, opening a PR, merging, or performing other external publication unless the
-  user separately authorizes it.
-
-Do not invent a token budget. Include one only when the user explicitly requests a budget.
-Do not require an initially clean worktree or erase existing changes.
+Do not copy plan content into the prompt. Leave implementation steps, detailed design rules,
+file lists, acceptance matrices, commands, git workflow, and progress recaps to the goal-running
+agent and repository documents. Do not invent a token budget.
 
 ### 4. Remain read-only
 
@@ -144,9 +124,9 @@ While producing the prompt, do not:
 
 - Name and folder: `next-goal`.
 - Suggested display name: `Next Goal`.
-- Suggested short description: `Build a fresh-session implementation goal`.
-- The default prompt should explicitly invoke `$next-goal` and ask for a copy-paste `/goal`
-  prompt.
+- Short description: `Choose a substantial implementation goal`.
+- The default prompt explicitly invokes `$next-goal` and asks for a concise, substantial
+  `/goal` prompt.
 - Set `policy.allow_implicit_invocation: false` so this user-invoked workflow does not compete
   with `progress-run`, `progress-handoff`, or ordinary planning requests.
 - Keep all trigger guidance in the `SKILL.md` frontmatter description and keep the body
@@ -166,9 +146,10 @@ answer. Cover at least:
 
 For each result, verify that:
 
-- the chosen scope is larger than a trivial checkbox but smaller than an incoherent roadmap;
-- the prompt is actionable without access to the originating conversation;
-- inclusions, exclusions, commits, validation, plan updates, and stop conditions are explicit;
+- the chosen scope is substantial enough to warrant persistent `/goal` execution;
+- adjacent plan slices are included unless a genuine boundary prevents it;
+- the prompt is actionable through its repository references without copying their details;
+- the normal prompt is one to three short paragraphs;
 - repository-specific instructions survive into the prompt without generic hardcoding;
 - the skill performed no writes or goal creation.
 
@@ -177,9 +158,10 @@ unearned prompt boilerplate.
 
 ## Acceptance criteria
 
-- The skill reliably chooses one evidence-backed, goal-sized implementation outcome.
+- The skill reliably chooses one evidence-backed, substantial implementation outcome or says
+  `/goal` is not warranted when no such outcome exists.
 - Its output can be pasted into a new `/goal` session without manual reconstruction.
-- It preserves dirty-tree and publication boundaries and requests progressive local commits.
+- It delegates execution detail to the active plans, `AGENTS.md`, and the goal-running agent.
 - It remains read-only and does not overlap the execution responsibilities of existing
   progress skills.
 - Its `SKILL.md` and metadata are concise, valid, and free of repository-specific assumptions.
@@ -190,7 +172,7 @@ unearned prompt boilerplate.
 Run:
 
 ```sh
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/next-goal
+uv run --with pyyaml python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/next-goal
 scripts/validate-skills
 bunx skills add ./skills/next-goal --list
 bunx skills add ./skills --list
@@ -212,8 +194,11 @@ globally install the skill as part of this ticket unless separately requested.
   end-to-end CSV error-reporting phase; the stale-plan case recognized completed config work;
   the dirty/ambiguous case selected the active API plan while preserving the experimental
   overlap as a decision gate. Fixture status checks confirmed no writes.
+- Revised the boundary and prompt contract after user feedback. A fresh read-only run against
+  Creo Valuation selected all remaining M0 work—Slices 4B.3–4B.6, Slice 5, and the refixing
+  representation check—and routed the goal through existing plans in two short paragraphs.
 - Validation passed via isolated `PyYAML` for `quick_validate.py`, `scripts/validate-skills`,
   direct and full `bunx skills add ... --list` checks, and git whitespace checks.
-- The bounded implementation review with the diet lens found no correctness or complexity
-  issues; one safe wording fix clarified why the optional eval file was omitted.
+- The bounded implementation review with the diet lens found no remaining correctness or
+  complexity issues after synchronizing the forward-test and validation evidence.
 - Next slice: none; the planned skill slice is complete.

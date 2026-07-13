@@ -1,6 +1,6 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Build a fresh-session implementation goal"
-  default_prompt: "Use $next-goal to inspect this repository and return a copy-paste prompt for /goal in a fresh session."
+  short_description: "Choose a substantial implementation goal"
+  default_prompt: "Use $next-goal to inspect this repository and return a concise prompt for a substantial /goal."
 policy:
   allow_implicit_invocation: false

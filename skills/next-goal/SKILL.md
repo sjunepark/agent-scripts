@@ -1,48 +1,47 @@
 ---
 name: next-goal
-description: "Build an evidence-backed, self-contained implementation prompt to paste after /goal in a fresh Codex session. Use only when the user explicitly invokes $next-goal to choose the next goal-sized outcome from repository plans and current state."
+description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then return a concise prompt to paste after /goal in a fresh Codex session. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
 ---
 
 # Next Goal
 
-Generate a fresh-session implementation handoff. Keep this run read-only: inspect the
-repository and return a prompt, but leave files, plans, goals, git state, and external systems
-unchanged.
+Generate a short fresh-session routing prompt. Keep this run read-only: inspect the repository
+and return a prompt, but leave files, plans, goals, git state, and external systems unchanged.
 
 ## 1. Establish current state
 
-1. Read every `AGENTS.md` that applies to the likely work area.
-2. Resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff document.
-   Honor a user-named document; otherwise use repository conventions, links, status markers,
-   and recent history. When no plan exists, infer candidates from instructions, code, tests,
-   and history.
-3. Inspect git status and recent history, then read only enough implementation and validation
-   evidence to verify plan claims, prerequisites, and completed work. Treat unrelated changes
-   as intentional and retain enough detail for the generated prompt to protect them.
-4. Ask only when multiple plausible choices would materially change the outcome or no safe,
-   unblocked goal can be supported by evidence.
+1. Read applicable `AGENTS.md` files and resolve the authoritative active `PLAN`, `TODO`,
+   `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow
+   repository conventions and links. When no plan exists, infer candidates from instructions,
+   code, tests, and history.
+2. Inspect git status and recent history, then read only enough implementation and validation
+   evidence to detect stale plan claims, completed work, real prerequisites, and blockers.
+3. Ask only when plausible choices would materially change the outcome or no safe, unblocked
+   goal can be supported by evidence.
 
 This step is complete when one real next outcome and its constraints are verified against the
 repository rather than merely repeated from a plan.
 
 ## 2. Select the goal boundary
 
-Choose the broadest connected implementation outcome that is still coherent, reviewable, and
-validatable. Group work that shares a phase, subsystem, ownership seam, files, decisions, or
-validation suite, including small prerequisites needed to make the outcome real.
+Choose the largest useful outcome that a persistent goal-running agent can pursue autonomously.
+Treat named slices and checklist items as planning units, not default stopping boundaries.
+Prefer completing an active phase or milestone, or several adjacent slices, when their
+requirements are settled in the same plans. A goal may span subsystems and multiple coherent
+commits when they lead to one meaningful project state.
 
-The selected goal must:
+The selected boundary must:
 
-- end in one concrete, demonstrable artifact or behavior;
-- support multiple coherent passing commits when the work warrants them;
-- have settled requirements and a crisp completion condition;
-- stop before an independently useful phase, unrelated high-risk seam, new external
-  coordination, or a product, migration, security, dependency, platform, or compatibility
-  decision not settled by repository evidence.
+- be materially larger than work suited to one ordinary interactive turn;
+- reach a concrete, demonstrable project or user outcome rather than only a prerequisite or
+  internal seam;
+- contain enough settled work to benefit from persistent execution across multiple checkpoints;
+- stop at a genuine unresolved decision, external authorization, blocker, or materially
+  unrelated next milestone—not merely at the next plan heading or reviewable slice.
 
-Name the maximum recommended boundary and the next meaningful excluded area. The boundary is
-complete when it is larger than a stray checkbox, smaller than an incoherent roadmap, and can
-be reviewed and validated as one outcome.
+First absorb naturally connected work that follows a small candidate. If no substantial
+unblocked boundary remains, say that `/goal` is not warranted yet instead of manufacturing a
+small goal. Name the recommended maximum boundary and the next meaningful excluded area.
 
 ## 3. Write the fresh-session prompt
 
@@ -53,35 +52,20 @@ Return, in this order:
    `/goal`. Assume the new session has none of this conversation.
 3. **Next excluded area** — one short statement when it clarifies the stopping boundary.
 
-Make the prompt self-contained and concrete. Include:
+Use existing repository documents as the detailed specification instead of copying them into
+the prompt. Usually write one to three short paragraphs containing only:
 
-- the objective and completion artifact;
-- authoritative documents and relevant paths to read first;
-- verified current state without brittle commit hashes unless a hash is essential;
-- explicit in-scope work, non-goals, invariants, dependency rules, and evidence-backed
-  decision constraints;
-- acceptance criteria and repository-native focused and final validation commands;
-- the duty to keep the active plan or progress document current;
-- the stopping condition and next deferred boundary;
-- instructions to inspect and preserve all pre-existing changes.
+- the outcome and stopping boundary;
+- the few authoritative plan documents to follow;
+- verified state or a completion condition only when needed to disambiguate the plans;
+- a direction to follow applicable `AGENTS.md`, preserve unrelated changes, keep plans current,
+  and perform repository-required validation and review.
 
-Require the goal-running session to:
-
-- capture its starting git ref before editing so final review and whitespace checks cover
-  both progressively committed work and the remaining worktree diff;
-- make local commits as coherent passing slices finish, using descriptive conventional
-  subjects consistent with the repository;
-- stage explicit goal-owned paths and keep unrelated changes out of commits;
-- run applicable focused validation, final repository validation, and repository-specific
-  review instructions found in `AGENTS.md`, including named review skills;
-- finish successfully with all completed goal-owned work committed while preserving the
-  starting dirty state; when blocked, report partial or failing work without committing a
-  failing slice;
-- leave pushing, pull requests, merging, releases, and other publication to separate user
-  authorization.
-
-Include a token budget only when the user supplies one. Do not turn uncertain choices into
-instructions; surface a blocking decision instead.
+Leave implementation steps, file inventories, design guidance, invariants, test matrices,
+commands, git choreography, and status recaps to the goal-running agent and cited repository
+documents. Include an omitted detail only when the plans do not contain it and the goal would
+otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain choices into
+instructions.
 
 Before responding, verify that the prompt is actionable without this conversation and that
 this run made no repository write, goal change, git mutation, or external publication.
