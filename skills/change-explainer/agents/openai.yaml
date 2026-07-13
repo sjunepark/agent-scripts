@@ -1,6 +1,6 @@
 interface:
   display_name: "Change Explainer"
-  short_description: "Teach changes as beginner-first interactive HTML lessons"
-  default_prompt: "Use $change-explainer to explain the requested change to me as a cold reader who knows programming but may not know this project or document. Orient me to the whole and the changed area, use one concrete Before → Now → Result story, define essential vocabulary before using it, and reveal mechanisms, source locations, and maintainer detail progressively in a self-contained HTML page. If I did not name a target, use the current repository's uncommitted changes."
+  short_description: "Explain changes directly in concise Markdown"
+  default_prompt: "Use $change-explainer to explain the requested change directly in this conversation for a cold reader, defaulting to current uncommitted changes when I do not name a target."
 policy:
   allow_implicit_invocation: false
