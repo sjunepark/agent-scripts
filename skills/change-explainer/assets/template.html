@@ -2,12 +2,12 @@
 <!--
   change-explainer template.
   Fill the regions marked "FILL:" (in comments or placeholder attributes) and duplicate the
-  "conceptual change" <details> block once per conceptual bucket.
+  "conceptual change" <details> block once per core idea.
   Keep the <style> and <script> intact; they provide the interactivity
   (theme toggle, expand/collapse all, TOC scroll-spy, walkthrough
-  step-through, before/after tabs, term tooltips, copy buttons).
+  step-through, before/after tabs, copy buttons).
   A COMPONENT LIBRARY of optional visual blocks sits at the bottom of
-  the "How the Change Works" section — copy what you use into the
+  the "How It Works" section — copy what you use into the
   change blocks, then delete the library. The file is fully
   self-contained and opens directly in any browser.
 -->
@@ -15,7 +15,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title><!-- FILL: doc title, e.g. "auth session refactor" --> · change-explainer</title>
+<title><!-- FILL: plain-language outcome, e.g. "Sessions now survive server restarts" --> · change-explainer</title>
 
 <!-- Syntax highlighting for the rare code panel (optional, degrades gracefully offline). -->
 <link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
@@ -28,7 +28,6 @@
     --accent: #2563eb; --border: #e5e7eb; --code-bg: #f6f8fa;
     --add-bg: #e6ffec; --add-bd: #aceebb; --del-bg: #ffebe9; --del-bd: #f1aeb5;
     --warn-bg: #fff8e1; --warn-bd: #f5d784; --warn-fg: #8a6d00;
-    --tip-shadow: 0 4px 16px rgba(0,0,0,.1);
     --maxw: 50rem;
   }
   [data-theme="dark"] {
@@ -37,7 +36,6 @@
     --add-bg: rgba(46,160,67,.18); --add-bd: rgba(46,160,67,.5);
     --del-bg: rgba(248,81,73,.16); --del-bd: rgba(248,81,73,.5);
     --warn-bg: rgba(187,128,9,.16); --warn-bd: rgba(187,128,9,.5); --warn-fg: #e3b341;
-    --tip-shadow: 0 4px 16px rgba(0,0,0,.5);
   }
 
   * { box-sizing: border-box; min-width: 0; }
@@ -65,11 +63,26 @@
 
   section { margin-bottom: 2.75rem; scroll-margin-top: 1.5rem; }
   h2 { font-size: 1.3rem; margin: 0 0 .9rem; padding-bottom: .35rem; border-bottom: 1px solid var(--border); letter-spacing: -.01em; }
+  h3 { font-size: 1rem; margin: 1.35rem 0 .55rem; letter-spacing: -.005em; }
   p { margin: .6rem 0; }
   .lead { font-size: 1.08rem; color: var(--text); }
   .muted { color: var(--muted); }
 
-  /* Callouts (TL;DR, concerns) — used sparingly. */
+  /* Beginner orientation: context ladder, visible vocabulary, concrete story. */
+  .context, .vocab { margin: 1rem 0; }
+  .context > div, .vocab > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+  .context > div:first-child, .vocab > div:first-child { border-top: 1px solid var(--border); }
+  .context dt, .vocab dt { font-weight: 600; }
+  .context dd, .vocab dd { margin: 0; }
+  .context code, .vocab code { background: var(--code-bg); padding: .05rem .3rem; border-radius: 4px; font-size: .9em; }
+  .story { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .story > div { border-top: 3px solid var(--border); padding-top: .65rem; }
+  .story > div.now { border-top-color: var(--accent); }
+  .story > div.result { border-top-color: var(--add-bd); }
+  .story .label { display: block; color: var(--muted); font-size: .78rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .story p { margin: .35rem 0 0; }
+
+  /* Callouts (one-sentence takeaway, concerns) — used sparingly. */
   .callout { padding: .85rem 1.1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); margin: 1rem 0; }
   .callout.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
   .callout.warn .label { color: var(--warn-fg); }
@@ -116,11 +129,6 @@
   .walk svg.focused [data-step] { opacity: .35; transition: opacity .15s; }
   .walk svg.focused [data-step].hot { opacity: 1; }
 
-  /* Term tooltips: hover/focus definitions for jargon. */
-  .term { position: relative; border-bottom: 1px dotted var(--muted); cursor: help; }
-  .term > .tip { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + .5rem); width: max-content; max-width: 20rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .7rem; font-size: .82rem; font-weight: 400; line-height: 1.5; color: var(--text); box-shadow: var(--tip-shadow); opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5; }
-  .term:hover > .tip, .term:focus > .tip { opacity: 1; }
-
   /* Comparison tables: light rules, no cell grid. */
   .tablewrap { overflow-x: auto; margin: 1rem 0; }
   table.cmp { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -162,6 +170,8 @@
     nav.toc { position: static; height: auto; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
     nav.toc a { display: inline-block; }
     .controls { position: static; justify-content: flex-end; padding: 1rem 1.5rem 0; }
+    .story { grid-template-columns: 1fr; gap: .75rem; }
+    .context > div, .vocab > div { grid-template-columns: 1fr; gap: .15rem; }
   }
 </style>
 </head>
@@ -176,18 +186,19 @@
   <nav class="toc" aria-label="Contents">
     <div class="brand">change-explainer</div>
     <!-- FILL: one link per section below; keep ids in sync with the sections. -->
-    <a href="#big-picture">Big Picture</a>
-    <a href="#how">How the Change Works</a>
-    <!-- FILL: optional sub-links per conceptual change -->
-    <a href="#decisions">Key Decisions</a>
-    <a href="#maintenance">Reviewer &amp; Maintenance</a>
+    <a href="#start">Start Here</a>
+    <a href="#overview">What Changed</a>
+    <a href="#how">How It Works</a>
+    <!-- FILL: optional sub-links for the one to four core ideas -->
     <a href="#remember">What to Remember</a>
+    <a href="#where">Where to Look</a>
+    <a href="#maintenance">Reviewer &amp; Maintenance</a>
     <a href="#concerns">Concerns</a>
   </nav>
 
   <main>
     <header class="doc">
-      <h1><!-- FILL: short title naming the change's purpose --></h1>
+      <h1><!-- FILL: what the reader can now do, or the concrete failure that no longer happens --></h1>
       <div class="meta">
         <span><!-- FILL: source, e.g. --><code>working tree (uncommitted)</code></span>
         <span><!-- FILL: scope, e.g. -->4 files · +128 −37</span>
@@ -195,17 +206,46 @@
       </div>
     </header>
 
-    <section id="big-picture">
-      <h2>Big Picture</h2>
-      <p class="lead"><!-- FILL: one or two sentences on what this change is trying to do and where it matters. --></p>
-      <div class="callout">
-        <span class="label">TL;DR</span>
-        <!-- FILL: the single most important takeaway, one or two sentences. -->
+    <section id="start">
+      <h2>Start Here</h2>
+      <p class="lead"><!-- FILL: the project or document's purpose, in one sentence with no internal vocabulary. --></p>
+
+      <!-- Context ladder: establish each level before introducing the change. -->
+      <dl class="context">
+        <div><dt>What this is</dt><dd><!-- FILL: the project, product, or document's purpose with no local terminology. --></dd></div>
+        <div><dt>Where we are</dt><dd><!-- FILL: the area's job using everyday roles; define any unavoidable term in this sentence. --></dd></div>
+        <div><dt>What changed</dt><dd><!-- FILL: old behavior → new behavior in plain words, without code or architecture names. --></dd></div>
+      </dl>
+
+      <h3>One Concrete Example</h3>
+      <div class="story" role="group" aria-label="Before, now, and result">
+        <div><span class="label">Before</span><p><!-- FILL: a realistic run/request and the old behavior or failure, using only plain words. --></p></div>
+        <div class="now"><span class="label">Now</span><p><!-- FILL: what happens in the same scenario after the change, still using plain words. --></p></div>
+        <div class="result"><span class="label">Result</span><p><!-- FILL: the practical benefit or new guarantee, with no new terminology. --></p></div>
       </div>
 
-      <!-- Overview diagram (standard): the change's flow, pipeline, or ownership shift as SVG.
-           Use the svg classes: .sn node, .se edge, .st text (.sub/.hi variants), .sd arrowhead.
-           Give each SVG's <marker> a unique id. Adjust viewBox height to fit your content. -->
+      <!-- Keep for non-trivial changes. Use 3–6 recurring, essential terms. Delete
+           for a tiny change whose vocabulary is already ordinary. Definitions here
+           must make later headings and diagrams understandable on their own. -->
+      <h3>Words You'll See</h3>
+      <dl class="vocab">
+        <div><dt><!-- FILL: plain term or code name --></dt><dd><!-- FILL: one-sentence role in this project. --></dd></div>
+        <div><dt><!-- FILL: term --></dt><dd><!-- FILL: role --></dd></div>
+        <div><dt><!-- FILL: term --></dt><dd><!-- FILL: role --></dd></div>
+      </dl>
+    </section>
+
+    <section id="overview">
+      <h2>What Changed</h2>
+      <div class="callout">
+        <span class="label">In one sentence</span>
+        <!-- FILL: old behavior → new behavior → practical consequence, in plain language. -->
+      </div>
+
+      <!-- Optional overview diagram: keep when the change has a meaningful flow,
+           sequence, structure, or ownership shift; otherwise delete this figure.
+           Primary labels are roles/actions the reader already knows. Put optional identifiers
+           in .st.sub labels. Give each SVG marker a unique id. -->
       <figure class="diagram">
         <svg viewBox="0 0 760 150" role="img" aria-label="FILL: one-line alt text">
           <defs>
@@ -213,43 +253,43 @@
               <path d="M0,0 L10,5 L0,10 z" class="sd"/>
             </marker>
           </defs>
-          <!-- FILL: replace this 3-node example with the real overview. -->
+          <!-- FILL: replace this role-first example with the real overview. -->
           <rect class="sn" x="16" y="45" width="180" height="60" rx="10"/>
-          <text class="st" x="106" y="70" text-anchor="middle">Input</text>
-          <text class="st sub" x="106" y="90" text-anchor="middle">what enters</text>
+          <text class="st" x="106" y="70" text-anchor="middle">Caller starts a run</text>
+          <text class="st sub" x="106" y="90" text-anchor="middle">optional code name</text>
           <line class="se" x1="196" y1="75" x2="266" y2="75" marker-end="url(#arr-overview)"/>
           <rect class="sn hi" x="270" y="45" width="200" height="60" rx="10"/>
-          <text class="st hi" x="370" y="70" text-anchor="middle">The change</text>
-          <text class="st sub" x="370" y="90" text-anchor="middle">what it does</text>
+          <text class="st hi" x="370" y="70" text-anchor="middle">Changed responsibility</text>
+          <text class="st sub" x="370" y="90" text-anchor="middle">optional code name</text>
           <line class="se" x1="470" y1="75" x2="540" y2="75" marker-end="url(#arr-overview)"/>
           <rect class="sn" x="544" y="45" width="200" height="60" rx="10"/>
-          <text class="st" x="644" y="70" text-anchor="middle">Output</text>
-          <text class="st sub" x="644" y="90" text-anchor="middle">what leaves</text>
+          <text class="st" x="644" y="70" text-anchor="middle">Reader-visible result</text>
+          <text class="st sub" x="644" y="90" text-anchor="middle">practical consequence</text>
         </svg>
-        <figcaption><!-- FILL: one line explaining the diagram. --></figcaption>
+        <figcaption><!-- FILL: read the diagram aloud in one plain sentence. --></figcaption>
       </figure>
     </section>
 
     <section id="how">
-      <h2>How the Change Works</h2>
-      <p class="muted">Each block is one conceptual change, ordered for understanding — not by file. Skim the closed blocks first; expand for the mechanism.</p>
+      <h2>How It Works</h2>
+      <p class="muted">The closed summaries continue the example above. Expand a core idea for its mechanism; source locations come later.</p>
 
-      <!-- BEGIN conceptual change (duplicate this <details> per bucket; number them; keep collapsed). -->
+      <!-- BEGIN core idea (duplicate for one to four ideas; number them; keep collapsed). -->
       <details class="change">
         <summary>
-          <span class="head"><span class="num">1.</span> <span><!-- FILL: name the technical decision, not the file --></span></span>
-          <span class="skim"><!-- FILL: one-sentence takeaway a skimmer gets without expanding. --></span>
+          <span class="head"><span class="num">1.</span> <span><!-- FILL: plain-language outcome, not a file or unexplained abstraction --></span></span>
+          <span class="skim"><!-- FILL: reconnect to the concrete example and state what now happens. --></span>
         </summary>
         <div class="body">
           <!-- Lead with the strongest visual for this change; copy it from the
                COMPONENT LIBRARY below (diagram, walkthrough, before/after toggle, or table). -->
 
-          <p><!-- FILL: at most two short paragraphs — what the system now does and how these edits fit one idea. Reference code as path:line instead of pasting it. --></p>
+          <p><!-- FILL: reconnect to the prior baseline, then explain one mechanism. Use role before identifier and leave source locations for Where to Look. --></p>
 
           <div class="why"><span class="label">Why it matters:</span> <!-- FILL: the consequence for behavior, contracts, or callers. --></div>
         </div>
       </details>
-      <!-- END conceptual change. -->
+      <!-- END core idea. -->
 
       <!-- ================= COMPONENT LIBRARY =================
            Copy these into change blocks as the leading visual, then
@@ -296,7 +336,8 @@
         <div class="walk-panel" id="walk1-panel-3" data-step="3" hidden><!-- FILL --></div>
       </div>
 
-      <!-- Component: plain SVG diagram — one flow or data shape with no step interaction. -->
+      <!-- Component: plain SVG diagram — one flow or data shape with no step interaction.
+           Replace generic labels with reader-known roles; identifiers belong on .st.sub lines. -->
       <figure class="diagram">
         <svg viewBox="0 0 760 130" role="img" aria-label="FILL: diagram alt text">
           <defs>
@@ -320,8 +361,8 @@
         <figcaption><!-- FILL: one line explaining the diagram. --></figcaption>
       </figure>
 
-      <!-- Component: before/after toggle. Panels hold a figure.diagram (preferred)
-           or a table; use code only when the exact code shape carries the decision. -->
+      <!-- Component: before/after toggle. Panels hold a role-first figure.diagram
+           (preferred) or a table; use code only when the exact shape carries the contract. -->
       <div class="ba" data-ba>
         <div class="ba-tabs">
           <button class="ba-tab active" data-kind="before" type="button">Before</button>
@@ -344,13 +385,10 @@
         <table class="cmp">
           <thead><tr><th><!-- FILL --></th><th><!-- FILL --></th><th><!-- FILL --></th></tr></thead>
           <tbody>
-            <tr><td><!-- FILL --></td><td></td><td></td></tr>
+            <tr><td><!-- FILL --></td><td><!-- FILL --></td><td><!-- FILL --></td></tr>
           </tbody>
         </table>
       </div>
-
-      <!-- Component: term tooltip (inline, inside prose). Keep the tip ≤2 sentences. -->
-      <p>… <span class="term" tabindex="0">jargon term<span class="tip"><!-- FILL: short definition --></span></span> …</p>
 
       <!-- Component: code panel — RARE. Only when the exact code shape carries the
            decision and no diagram or sentence can. Tight excerpt, not a whole function. -->
@@ -373,25 +411,35 @@
       <!-- =============== END COMPONENT LIBRARY =============== -->
     </section>
 
-    <section id="decisions">
-      <h2>Key Decisions</h2>
+    <section id="remember">
+      <h2>What to Remember</h2>
       <ul class="tight">
-        <!-- FILL: the few abstractions, invariants, or contracts that make the change make sense — one line each: bolded decision, then one clause of consequence. -->
-        <li></li>
+        <li><strong>Before:</strong> <!-- FILL: the old mental model in plain words. --></li>
+        <li><strong>Now:</strong> <!-- FILL: the new mental model in the same vocabulary. --></li>
+        <li><strong>Because:</strong> <!-- FILL: the reason or practical guarantee. --></li>
       </ul>
+    </section>
+
+    <section id="where">
+      <h2>Where to Look</h2>
+      <p class="muted">Use this after the story makes sense. Each row is an entry point, not a list of every edited location.</p>
+      <div class="tablewrap">
+        <table class="cmp">
+          <thead><tr><th>Concept</th><th>Role</th><th>Location</th></tr></thead>
+          <tbody>
+            <tr><td><!-- FILL: concept already taught above --></td><td><!-- FILL: what this source owns or proves --></td><td><code><!-- FILL: path:line, section, or page --></code></td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section id="maintenance">
-      <h2>Reviewer &amp; Maintenance Focus</h2>
+      <h2>Reviewer &amp; Maintenance Details</h2>
       <ul class="tight">
-        <!-- FILL: consequences for usage, compatibility, testing, future edits; important tradeoffs/risks. Use a comparison table instead if it reads better. -->
-        <li></li>
+        <!-- FILL: decisions, compatibility, testing evidence, migration breadth,
+             tradeoffs, and future-edit rules. Define any new advanced term inline. -->
+        <li><!-- FILL: one maintainer-facing detail. Duplicate only for distinct details. --></li>
       </ul>
-    </section>
-
-    <section id="remember">
-      <h2>What to Remember</h2>
-      <p><!-- FILL: the new mental model in one short paragraph or a couple tight points. --></p>
     </section>
 
     <!-- Include only if there is a material concern; otherwise delete this section and its TOC link. -->
