@@ -38,15 +38,14 @@ Always install with the skills CLI from the published source — the GitHub `ski
 
 6. Reinstall or update the intended selected skills from the remote source onto this machine.
 - Treat this repo's `skills/` directory as a catalog, not as a global install manifest.
-- Default: machine-global Claude Code + Pi install, targeting selected skills by name in copy mode: `bunx skills add "<skills-subpath-url>" --skill <skill-name> --copy -g -a claude-code -a pi -y`. Use another target set only when the user explicitly asks.
+- Default: machine-global all-agent install, targeting selected skills by name in copy mode: `bunx skills add "<skills-subpath-url>" --skill <skill-name> --copy -g -a '*' -y`. Narrow the agent set only when the user explicitly asks.
 - Treat re-running this remote `skills add` command as the reinstall/update path for the current machine.
-- Use `--skill '*'` only when the user explicitly asks to install every published repo skill. Do not use `--all` for scoped setup. In the current `skills` CLI, `--all` expands to both `--skill '*'` and `--agent '*'`, which overrides the Claude Code + Pi agent restriction and recreates shared `~/.agents/skills` installs.
-- Use shared `~/.agents/skills` installs only when the user explicitly wants universal multi-harness sharing.
+- Use `--skill '*'` only when the user explicitly asks to install every published repo skill. Do not use `--all`: it expands to both `--skill '*'` and `--agent '*'`, sweeping in the entire catalog instead of keeping the requested skill selection.
 - If the user asks for a project install instead, omit `-g` and only narrow agents if requested.
 
 7. Verify the result.
 - Run `bunx skills list` for project scope or `bunx skills list -g` for global scope.
-- For a scoped machine-global setup, confirm the selected skill listing shows `Agents: Claude Code, Pi`, not a broad shared-agent set.
+- For the default machine-global setup, confirm the selected skill resolves from `~/.agents/skills` and lists the supported agents broadly. For a user-requested narrow setup, confirm only those agents appear.
 - Report the commit hash when a commit was created, the pushed branch, and that the installed skills now come from the remote-backed source, not the local working tree.
 - If the install command overwrote existing skills, say so explicitly in the summary.
 
@@ -61,6 +60,6 @@ git add skills/merge-branch/SKILL.md
 git commit -m "docs: update skill workflow"
 git push
 bunx skills add "$SKILLS_URL" --list
-bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
+bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a '*' -y
 bunx skills list -g
 ```
