@@ -1,6 +1,6 @@
 ---
 name: address-pr-feedback
-description: "Address existing GitHub PR feedback end to end. Use when asked to act on reviewer or bot feedback on a pull request — fixing it locally, pushing follow-up commits, and replying to each comment or thread with what was handled."
+description: "Address existing GitHub PR feedback end to end for one pull request or a stacked PR chain. Use when asked to act on reviewer or bot feedback, fix it locally, push follow-up commits, reply to each comment or thread, or process dependent PRs upstream-to-downstream through review and merge."
 ---
 
 # Address PR Feedback
@@ -9,6 +9,13 @@ Handle an existing GitHub PR from review intake through local fixes, validation,
 push, and reviewer-facing replies. Treat PR feedback as broader than inline
 threads: review bodies, issue comments, bot summaries, "outside diff" sections,
 and follow-up comments can all contain actionable items.
+
+If the task covers multiple dependent or stacked PRs, read
+[`references/stacked-prs.md`](references/stacked-prs.md) before changing any PR
+base or branch. Use that orchestration workflow to select and prepare one PR at
+a time, then apply the intake, fix, reply, and per-PR completion checks below
+to the current PR. Defer the user-facing completion response until the entire
+selected stack satisfies the reference's completion gate.
 
 ## Intake
 

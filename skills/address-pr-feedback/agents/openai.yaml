@@ -1,4 +1,4 @@
 interface:
   display_name: "Address PR Feedback"
-  short_description: "Fix PR feedback and reply with outcomes."
-  default_prompt: "Use $address-pr-feedback to address all review feedback on this PR and report how each item was handled."
+  short_description: "Fix PR feedback, including stacked PR chains."
+  default_prompt: "Use $address-pr-feedback to address all review feedback on this PR or stacked PR chain and report how each item was handled."
