@@ -60,8 +60,9 @@ the prompt. Usually write one to three short paragraphs containing only:
 - verified state or a completion condition only when needed to disambiguate the plans;
 - a direction to follow applicable `AGENTS.md`, preserve unrelated changes, keep plans current,
   and perform repository-required validation and review;
-- a requirement to make coherent local commits as meaningful, passing units finish, with
-  messages that state what changed and why, including non-obvious decisions needed later.
+- a requirement to commit incrementally throughout the run as meaningful, passing units finish;
+  do not defer all commits until goal completion or collapse the run into one final commit. Make
+  each message state what changed and why, including non-obvious decisions needed later.
 
 Leave implementation steps, file inventories, design guidance, invariants, test matrices,
 commands, detailed git choreography, and status recaps to the goal-running agent and cited
