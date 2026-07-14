@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: "Create or update GitHub pull requests with gh. Use when drafting a PR title/body, choosing draft versus ready state, or deciding whether CodeRabbit or Greptile reviews run, are skipped, or are manually triggered."
+description: "Create or update GitHub pull requests with gh. Use when drafting a PR title/body, choosing draft versus ready state, handling stacked PR branches and bases, or deciding whether CodeRabbit or Greptile reviews run, are skipped, or are manually triggered."
 ---
 
 # Create PR
@@ -13,6 +13,7 @@ Create focused PRs that reviewers and review bots can act on without extra clari
    - Check current branch, upstream, uncommitted changes, existing PR status, base branch evidence, relevant diff, commits, and validation output.
    - If uncommitted changes are part of the intended PR, stop and ask whether to commit them first.
    - If a PR already exists for the branch, update it instead of creating a duplicate.
+   - For a stacked PR, read [references/stacked-prs.md](references/stacked-prs.md) before creating branches or PRs. Confirm the integration branch, parent sequence, and landing order before proceeding.
 
 2. Draft the PR from evidence.
    - Use the repo's PR template when present, but remove irrelevant prompts.
@@ -78,5 +79,6 @@ Translate the answer into concrete PR actions.
 After opening or updating the PR:
 
 - Report the PR URL, base/head, draft status, and any reviewer/label assignments.
+- For a stacked PR, report its position, dependency, integration branch, and next landing action.
 - State exactly what happened with CodeRabbit and Greptile: defaulted, disabled, opt-in label/body keyword used, manual trigger posted, or config change needed but not made.
 - If bot comments were requested, post them with `gh pr comment <number-or-url> --body '<command>'` only after the PR exists.
