@@ -2,6 +2,13 @@
 
 Use a dedicated integration branch as the stack's safety boundary. The preferred name is `staging/<stack-name>`; follow an equivalent repository convention when one exists. A per-stack branch keeps unrelated work isolated better than a shared `staging` branch.
 
+If the repository uses `dev` as an alternative integration base to `main`, fetch
+both remote branches and verify that `origin/dev` and `origin/main` resolve to
+the same commit before building the stack. Do not assume `dev` is current: if
+the tips differ, stop and report that `dev` must be synchronized or that the
+stack needs an explicitly chosen base. Do not update, merge, or rewrite `dev`
+without separate authorization.
+
 ## Build the stack
 
 1. Create `staging/<stack-name>` from the repository's normal protected base, usually the default branch, before creating any slice branches.

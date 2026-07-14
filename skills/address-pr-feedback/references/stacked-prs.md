@@ -10,6 +10,11 @@ PR reaches a concrete blocker.
 - Work on one PR at a time. Merge it before preparing its downstream PR.
 - Put the stack behind a staging branch before merging the first PR when its
   base is the repository's default or protected integration branch.
+- When `dev` is used as an alternative integration base to `main`, fetch both
+  remote branches and verify that `origin/dev` and `origin/main` resolve to the
+  same commit. If the tips differ, stop and report that `dev` must be
+  synchronized or that the stack needs an explicitly chosen base. Do not
+  update, merge, or rewrite `dev` without separate authorization.
 - Leave the completed staging branch for the user. Never merge it into the
   original base or delete it as part of this workflow.
 - Avoid explicitly deleting stack head branches. Record immutable head SHAs and
