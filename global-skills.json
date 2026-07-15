@@ -85,6 +85,15 @@
       "skills": ["browser-use"]
     },
     {
+      "name": "codex-agent-browser-global",
+      "description": "Official agent-browser skill for browser automation from Codex.",
+      "source": "https://github.com/vercel-labs/agent-browser",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": ["agent-browser"]
+    },
+    {
       "name": "manual-global",
       "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
       "install": false,

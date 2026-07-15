@@ -22,15 +22,23 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Browser Interaction
 
-- In Codex CLI, use `browser-use` for browser interaction.
-- Prefer its default connection to the user's running Chrome so existing tabs
-  and authenticated profile state remain available. If it cannot connect, run
-  `browser-use --doctor`, then ask the user to enable remote debugging at
-  `chrome://inspect/#remote-debugging` and approve any Chrome permission popup.
-- Use existing SSO when Chrome is already signed in. Stop for passwords, MFA,
-  consent, or an ambiguous account choice so the user can take over.
-- In the ChatGPT desktop app, use the built-in Chrome integration for browser
-  interaction.
+- Use browser tools only when the task requires an actual browser: interacting
+  with rendered UI, using an existing authenticated session, or visually
+  verifying browser behavior.
+- Do not open a browser merely because a request includes a URL. Prefer the
+  relevant CLI, API, or connector; for GitHub repositories, issues, pull
+  requests, Actions runs, checks, and logs, use `gh` by default.
+- Use `agent-browser` by default for browser interaction, automation,
+  extraction, screenshots, and testing that do not require the user's existing
+  Chrome state.
+- Use `browser-use` only when the task requires the user's running Chrome,
+  including its open tabs, profile, cookies, authenticated sessions, or
+  extensions, or direct user participation. Warn before actions may open,
+  activate, or navigate tabs or shift browser focus.
+- Use `chrome:control-chrome` only when the user explicitly requests it and it
+  is available in the current session. Do not select it automatically.
+- After choosing the tool, load its skill and follow its instructions for how
+  to use it.
 
 ## Documentation Defaults
 
