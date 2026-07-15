@@ -22,12 +22,13 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Browser Interaction
 
-- In Codex CLI, use `agent-browser` for browser interaction.
-- Use headed mode when authentication or another human handoff requires the
-  user to see or control the browser. Keep the authenticated state in a named
-  `--session` with `--restore`, or in a dedicated persistent `--profile`, so
-  automation can resume after OAuth, SSO, mobile approval, 2FA, or similar
-  flows.
+- In Codex CLI, use `browser-use` for browser interaction.
+- Prefer its default connection to the user's running Chrome so existing tabs
+  and authenticated profile state remain available. If it cannot connect, run
+  `browser-use --doctor`, then ask the user to enable remote debugging at
+  `chrome://inspect/#remote-debugging` and approve any Chrome permission popup.
+- Use existing SSO when Chrome is already signed in. Stop for passwords, MFA,
+  consent, or an ambiguous account choice so the user can take over.
 - In the ChatGPT desktop app, use the built-in Chrome integration for browser
   interaction.
 

@@ -76,6 +76,15 @@
       "skills": ["axi"]
     },
     {
+      "name": "codex-browser-use-global",
+      "description": "Official Browser Use skill for browser interaction from Codex.",
+      "source": "https://github.com/browser-use/browser-use",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": ["browser-use"]
+    },
+    {
       "name": "manual-global",
       "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
       "install": false,
