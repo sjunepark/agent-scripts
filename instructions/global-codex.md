@@ -10,11 +10,8 @@ files are loaded after this file and take precedence when they conflict.
 - Expand only when the task, risk, or tradeoff justifies it.
 - Avoid repetition, padding, long recaps, and generic advice.
 
-## Context Building
+## Subagents
 
-- Start from the repo root, nearby docs, and relevant entry points.
-- Load only the files needed for the current task.
-- Prefer installed source and primary docs over memory when behavior matters.
 - Use subagents for broad reconnaissance or independent work that would
   otherwise bloat the main thread.
 - Ask subagents for concise findings, evidence, changed files, and validation
@@ -37,8 +34,6 @@ files are loaded after this file and take precedence when they conflict.
   activate, or navigate tabs or shift browser focus.
 - Use `chrome:control-chrome` only when the user explicitly requests it and it
   is available in the current session. Do not select it automatically.
-- After choosing the tool, load its skill and follow its instructions for how
-  to use it.
 
 ## Documentation Defaults
 
@@ -60,26 +55,15 @@ files are loaded after this file and take precedence when they conflict.
 - Treat unrelated working-tree changes as intentional.
 - Do not delete, reset, restore, checkout, or clean up files you did not create
   without explicit confirmation.
-- Keep change surfaces tight and reviewable.
-- Use the repository's existing commands and conventions.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,
   tests, or validation scripts before adding more prose to AGENTS.md.
-- After implementation, run the most relevant validation available.
 - After finishing a reviewable implementation or editing slice, run
   `$code-review`.
-- Use its implementation-review path by default: inspect the diff, apply
-  obvious safe Bucket I fixes, recheck, and validate.
-- Include the diet lens when the change adds abstractions, wrappers,
-  schema/config surface, compatibility paths, modes, flags, generic layers, or
-  otherwise seems heavier than necessary.
 - Use subagents for that review when the change touches shared behavior,
   cross-module contracts, user-facing flows, security, data migration, or a
   nontrivial refactor.
-- Apply obvious safe review fixes, then rerun the review until no obvious safe
-  findings remain or one bounded follow-up pass is complete. Report remaining
-  findings that need user judgment, larger refactoring, or confirmation.
 - Use CodeRabbit as a review option when the user asks for it. It is expensive
   (10 reviews/hour), so do not invoke it freely or for routine review passes.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
@@ -98,9 +82,7 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Code Defaults
 
-- Prefer simple, explicit code and clear names.
 - Make invalid states unrepresentable with the simplest practical types.
-- Keep responsibility boundaries clear.
 - Model errors explicitly and avoid broad catch-all handling without context.
 - Log decision points with useful structured context when logging is warranted.
 - Add comments for why, tradeoffs, invariants, and non-obvious flow, not for
