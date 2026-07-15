@@ -111,16 +111,21 @@ change in its diff.
 
 ### 2. Ensure one review from each service
 
-Inspect reviews, issue comments, and prior trigger comments before posting
-anything. Record the current head SHA with the evidence.
+Inspect reviews, PR-body and issue-comment reactions with actor identities, and
+prior trigger comments before posting anything. Record the current head SHA
+with the evidence.
 
 - CodeRabbit is satisfied by a completed bot-authored review or final summary.
   A processing/status comment is only in-progress evidence. If neither review
   nor prior trigger exists, post exactly one `@coderabbitai full review` PR
   comment.
-- Codex is satisfied by its standard GitHub review. If neither review nor prior
-  trigger exists, post exactly one `@codex review` PR comment. The exact trigger
-  comes from the OpenAI Codex GitHub review documentation.
+- Codex is satisfied by its standard GitHub review or by a 👍 (`+1`) reaction
+  from `chatgpt-codex-connector[bot]`, which means the review completed with no
+  findings. A 👀 (`eyes`) reaction from that account on the PR body or an
+  `@codex review` comment means the review was accepted or is in progress. In
+  either reaction state, do not retrigger. If no review, Codex reaction, or
+  prior trigger exists, post exactly one `@codex review` PR comment. The exact
+  trigger comes from the OpenAI Codex GitHub review documentation.
 - A previous trigger without a completed review means wait for that request or
   diagnose its failure; it does not authorize a second trigger.
 - A completed no-findings review satisfies the requirement. Do not require a

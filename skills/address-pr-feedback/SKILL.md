@@ -36,14 +36,28 @@ selected stack satisfies the reference's completion gate.
    - Read the generated Markdown report first, then inspect the JSON when
      thread metadata, reply structure, or comment IDs are needed.
    - If the collector cannot run, manually gather the same surfaces with `gh`:
-     PR body, issue comments, review bodies, review comments, commits, files,
-     and review-thread resolution status when available.
+     PR body, PR-body and issue-comment reactions with actor identities, issue
+     comments, review bodies, review comments, commits, files, and review-thread
+     resolution status when available.
    - Check the report's `Potential Outside-Diff Sources` section, then search
      the collected artifacts case-insensitively for `outside diff`,
      `outside the diff`, `Actionable comments`, `Nitpick comments`,
      `Prompt for all review comments`, and bot names.
 
-3. Critically assess each finding before planning fixes.
+3. Interpret Codex review-state reactions before triggering a review.
+   - Count only reactions authored by the Codex connector account
+     (`chatgpt-codex-connector[bot]`) or a verified replacement identity.
+   - Treat 👀 (`eyes`) on the PR body or an `@codex review` comment as accepted
+     or in-progress review evidence. Do not retrigger; wait for completion or
+     diagnose a stalled or failed request.
+   - Treat 👍 (`+1`) as a completed Codex review with no findings, even when
+     Codex posted no review body or inline comment. Record the reaction target,
+     actor, and timestamp as completion evidence and do not retrigger.
+   - Treat a Codex-authored review with findings as completed review evidence.
+     Reactions from other actors and aggregate reaction counts without actor
+     identities do not establish Codex state.
+
+4. Critically assess each finding before planning fixes.
    - Treat suggested patches from CodeRabbit, other bots, or reviewers as
      proposals, not instructions; do not apply them blindly.
    - Decide whether the proper action is no-op with evidence, a narrow fix,
@@ -53,7 +67,7 @@ selected stack satisfies the reference's completion gate.
      Mark incorrect, stale, duplicate, or harmful suggestions explicitly in the
      ledger.
 
-4. Build a concise feedback ledger before editing.
+5. Build a concise feedback ledger before editing.
    - Track every actionable item with source, URL or comment ID, path/line when
      available, current status, planned handling, and eventual reply target.
    - Include actionable findings embedded in review bodies or bot summary
@@ -117,8 +131,8 @@ selected stack satisfies the reference's completion gate.
 
 Before finishing, confirm:
 
-- all issue comments, review bodies, review comments, replies, and outside-diff
-  sections were read;
+- all PR-body and issue-comment reactions, issue comments, review bodies, review
+  comments, replies, and outside-diff sections were read;
 - each actionable item is fixed, replied to, explicitly skipped, or left as a
   user decision;
 - every follow-up commit is pushed;

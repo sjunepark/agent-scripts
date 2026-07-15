@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect GitHub PR feedback surfaces into local JSON and Markdown files."""
+"""Collect GitHub PR feedback and review-state reactions into local reports."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ OUTSIDE_DIFF_RE = re.compile(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Collect issue comments, reviews, review comments, and review bodies for a GitHub PR."
+        description="Collect comments, reviews, threads, and review-state reactions for a GitHub PR."
     )
     parser.add_argument(
         "target",
@@ -115,6 +115,8 @@ def collect_pr(owner: str, repo: str, number: int) -> dict[str, Any]:
     base = f"repos/{owner}/{repo}"
     pr = gh_json(["api", f"{base}/pulls/{number}"])
     issue_comments = gh_json(["api", f"{base}/issues/{number}/comments", "--paginate"])
+    issue_comments = ensure_list(issue_comments)
+    collect_comment_reactions(base, issue_comments)
     reviews = gh_json(["api", f"{base}/pulls/{number}/reviews", "--paginate"])
     review_comments = gh_json(["api", f"{base}/pulls/{number}/comments", "--paginate"])
     commits = gh_json(["api", f"{base}/pulls/{number}/commits", "--paginate"])
@@ -126,13 +128,27 @@ def collect_pr(owner: str, repo: str, number: int) -> dict[str, Any]:
         "repository": f"{owner}/{repo}",
         "number": number,
         "pr": pr,
-        "issue_comments": ensure_list(issue_comments),
+        "pr_reactions": ensure_list(
+            gh_json(["api", f"{base}/issues/{number}/reactions", "--paginate"])
+        ),
+        "issue_comments": issue_comments,
         "reviews": ensure_list(reviews),
         "review_comments": ensure_list(review_comments),
         "review_threads": review_threads,
         "commits": ensure_list(commits),
         "files": ensure_list(files),
     }
+
+
+def collect_comment_reactions(base: str, comments: list[dict[str, Any]]) -> None:
+    for comment in comments:
+        comment_id = comment.get("id")
+        if not comment_id:
+            comment["reaction_details"] = []
+            continue
+        comment["reaction_details"] = ensure_list(
+            gh_json(["api", f"{base}/issues/comments/{comment_id}/reactions", "--paginate"])
+        )
 
 
 def collect_review_threads(owner: str, repo: str, number: int) -> dict[str, Any]:
@@ -275,6 +291,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "## Counts",
         "",
         f"- Issue comments: {len(payload['issue_comments'])}",
+        f"- PR body reactions: {len(payload['pr_reactions'])}",
+        f"- Issue comment reactions: {sum(len(item.get('reaction_details') or []) for item in payload['issue_comments'])}",
         f"- Reviews: {len(payload['reviews'])}",
         f"- Review comments and replies: {len(payload['review_comments'])}",
         f"- Review threads from GraphQL: {len(payload['review_threads'].get('nodes') or [])}"
@@ -297,6 +315,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         lines.append("- None detected by keyword search.")
     lines.append("")
 
+    lines.extend(render_review_state_reactions(payload))
     lines.extend(render_pr_body(pr))
     lines.extend(render_commits(payload["commits"]))
     lines.extend(render_files(payload["files"]))
@@ -305,6 +324,32 @@ def render_markdown(payload: dict[str, Any]) -> str:
     lines.extend(render_review_comments(payload["review_comments"]))
     lines.extend(render_review_threads(payload["review_threads"]))
     return "\n".join(lines).rstrip() + "\n"
+
+
+def render_review_state_reactions(payload: dict[str, Any]) -> list[str]:
+    lines = ["## Review State Reactions", ""]
+    reactions: list[tuple[str, str | None, dict[str, Any]]] = [
+        ("PR body", payload["pr"].get("html_url"), reaction)
+        for reaction in payload["pr_reactions"]
+    ]
+    for comment in payload["issue_comments"]:
+        target = f"Issue comment {comment.get('id')} by {author(comment)}"
+        reactions.extend(
+            (target, comment.get("html_url"), reaction)
+            for reaction in comment.get("reaction_details") or []
+        )
+
+    if not reactions:
+        return lines + ["_No PR body or issue comment reactions._", ""]
+
+    for target, url, reaction in reactions:
+        content = reaction.get("content") or "unknown"
+        lines.append(
+            f"- {reaction_symbol(content)} `{content}` by {author(reaction)} on {target} "
+            f"at {reaction.get('created_at') or 'unknown time'}: {url or 'URL unavailable'}"
+        )
+    lines.append("")
+    return lines
 
 
 def render_pr_body(pr: dict[str, Any]) -> list[str]:
@@ -473,6 +518,19 @@ def author(item: dict[str, Any]) -> str:
 def nested_author(item: dict[str, Any]) -> str:
     user = item.get("author") or {}
     return user.get("login") or "unknown"
+
+
+def reaction_symbol(content: str) -> str:
+    return {
+        "+1": "👍",
+        "-1": "👎",
+        "laugh": "😄",
+        "confused": "😕",
+        "heart": "❤️",
+        "hooray": "🎉",
+        "rocket": "🚀",
+        "eyes": "👀",
+    }.get(content, "❔")
 
 
 def ref_name(ref: dict[str, Any] | None) -> str:
