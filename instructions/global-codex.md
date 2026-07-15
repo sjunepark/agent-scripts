@@ -20,6 +20,17 @@ files are loaded after this file and take precedence when they conflict.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
 
+## Browser Interaction
+
+- In Codex CLI, use `agent-browser` for browser interaction.
+- Use headed mode when authentication or another human handoff requires the
+  user to see or control the browser. Keep the authenticated state in a named
+  `--session` with `--restore`, or in a dedicated persistent `--profile`, so
+  automation can resume after OAuth, SSO, mobile approval, 2FA, or similar
+  flows.
+- In the ChatGPT desktop app, use the built-in Chrome integration for browser
+  interaction.
+
 ## Documentation Defaults
 
 - Treat Markdown as agent-loaded context: keep files short, current, and
