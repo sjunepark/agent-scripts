@@ -1,4 +1,4 @@
 interface:
   display_name: "AGENTS.md Writer"
-  short_description: "Create or edit concise, high-signal AGENTS.md guidance."
-  default_prompt: "Use $agents-md-writer whenever changing AGENTS.md or related agent-instruction files in this repository."
+  short_description: "Design and audit instruction hierarchies"
+  default_prompt: "Use $agents-md-writer to design or audit this repository’s agent-instruction hierarchy."

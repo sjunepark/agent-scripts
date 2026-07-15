@@ -1,86 +1,48 @@
 ---
 name: agents-md-writer
-description: "Create, edit, or review AGENTS.md files for agentic coding tools. Use when migrating legacy instruction files, defining nested overrides in monorepos, or debugging tool discovery and precedence behavior."
+description: "Audit and redesign AGENTS.md and tool-specific instruction hierarchies. Use when instruction creation or editing involves nested scopes, conflict resolution, legacy or cross-tool migration, bloat reduction, or discovery and precedence debugging."
 ---
 
 # AGENTS.md Writer
 
-Edit AGENTS.md guidance to be short, specific, and executable. Prefer repository facts over generic advice.
+Treat agent instructions as a hierarchy of durable, scoped guidance rather than
+as general project documentation.
 
 ## Workflow
 
-1. Identify target tools and audit instruction sources.
-- Detect which agentic tools must read the file (for example Codex, OpenCode, Claude Code, Cursor).
-- List every instruction file in scope — repo root and nested, including tool-specific alternatives — before editing.
-- Read the matching tool docs for discovery/precedence behavior before editing.
-- Read [references/openai-codex-agents-md.md](references/openai-codex-agents-md.md) only when Codex behavior matters: discovery order, overrides, fallback filenames, byte limits, verification commands.
+1. Define the operation and target tools.
+   - Identify the requested mode: design, audit, restructure, migration, or discovery debugging.
+   - Identify every target tool and the instruction surfaces it recognizes.
+   - When behavior depends on supported filenames, discovery, precedence, overrides, size limits, or reload timing, consult current official tool documentation before deciding. For Codex, start with the [official AGENTS.md guide](https://developers.openai.com/codex/guides/agents-md/).
+   - Finish with an explicit list of target tools, instruction surfaces, and questions the work must resolve.
 
-1. Prefer edit-in-place over scaffolding.
-- Start from the closest existing instruction file and keep diffs minimal.
-- Create a new file only when guidance is missing for a scope or precedence must change.
+2. Inventory the effective hierarchy.
+   - List global, repository-root, nested, and tool-specific instruction sources in scope, including legacy files during migrations.
+   - Record which tool loads each source, its scope, its load order, and any duplicate or conflicting guidance.
+   - Continue until every candidate instruction source for each target tool is accounted for.
 
-1. Collect project facts before writing.
-- Read package manager scripts, CI workflows, linters/formatters, and test commands.
-- Extract only commands and constraints that are true in the current repository.
-- Treat instruction text as a patch for recurring failures agents cannot resolve from code discovery; add nothing else.
+3. Ground proposed guidance in repository evidence.
+   - Inspect the relevant package scripts, CI workflows, formatter and linter configuration, test commands, and authoritative project docs.
+   - Trace every proposed rule to a non-obvious repository fact, recurring failure or review comment, hard constraint, or explicit team decision.
+   - Prefer code structure, types, schemas, linters, tests, or hooks when they can enforce the behavior directly.
+   - Finish with evidence and an intended scope for every proposed addition.
 
-1. Draft the smallest useful change.
-- Use imperative bullets with concrete commands and paths.
-- Cover the sections in the Recommended Skeleton below.
-- If a behavior can be fixed in codebase structure/tooling, prefer that over adding instruction text.
+4. Design placement deliberately.
+   - Keep shared guidance at the broadest intended scope within the authorized target. Reserve user-global files for explicitly personal or global guidance.
+   - Where a target tool supports nesting, place subtree-specific guidance at the closest scope that needs it.
+   - Edit the closest suitable existing file. Create a new file only when guidance is missing for a scope or precedence must change.
+   - Keep cross-tool guidance in a common file only when every target tool reads it; otherwise use each tool's recognized surface.
+   - For Codex, use `AGENTS.override.md` only when replacing the same directory's `AGENTS.md` is intentional. Verify other tools' override behavior independently.
+   - Resolve each duplicate or conflict to one authoritative location whenever tool support allows it.
 
-1. Place overrides intentionally.
-- Put shared defaults at repo root.
-- Put subproject-specific guidance near the subtree it governs.
-- Use `AGENTS.override.md` only when replacing same-directory `AGENTS.md` is intentional.
-- Keep cross-tool guidance in common files; isolate tool-specific quirks to clearly labeled sections.
+5. Make the smallest useful edit.
+   - Write imperative rules with exact commands and paths.
+   - Link to authoritative README or architecture docs instead of repeating explanatory detail; retain concise routing, invariants, and execution-critical context.
+   - State hard safety and approval boundaries explicitly; phrase ordinary guidance as the desired behavior.
+   - Keep the diff limited to the intended scopes, with every added line justified by the evidence collected above.
 
-1. Verify and tighten.
-- Remove duplicates from README or docs unless needed for execution.
-- Remove vague guidance.
-- Ensure each rule is observable, testable, or clearly enforceable.
-- Validate behavior from repo root and a nested subdirectory with each target tool when possible.
-
-## Authoring Rules
-
-- Encode hard constraints: security boundaries, data policies, migration safeguards, approval gates.
-- Keep architecture prose brief; link docs by path; cut summaries tools can infer from source in seconds.
-- Resolve conflicts explicitly so nearest-file precedence is unambiguous.
-- Avoid "pink elephant" phrasing (for example broad "do not use X") unless required for safety/compliance.
-
-## Recommended Skeleton
-
-```md
-# AGENTS.md
-
-## Setup commands
-- Install deps: `...`
-- Start dev env: `...`
-
-## Build and test
-- Full checks: `...`
-- Fast checks for touched package: `...`
-
-## Code conventions
-- Formatter/linter commands: `...`
-- Framework or language constraints: `...`
-
-## Change expectations
-- Add or update tests for changed behavior.
-- Update docs in `...` when public APIs change.
-
-## Safety and approvals
-- Do not ...
-- Ask before ...
-
-## Tool-specific notes (optional)
-- Codex: ...
-- OpenCode: ...
-```
-
-## Debug Discovery
-
-- Use each target tool's introspection or dry-run command to report active instruction files.
-- Compare behavior from repo root and a nested subdirectory to confirm precedence.
-- If source attribution is unclear, inspect tool logs/session traces when available.
-- If instructions are missing, verify filename support, precedence rules, non-empty files, size limits, and restart requirements.
+6. Verify the effective result.
+   - Re-read the combined instruction chain in each target tool's documented load order and check for contradictions or stale commands.
+   - When hierarchy or discovery changed, inspect active instruction sources from the repository root and a representative nested directory using each tool's supported introspection or dry-run path.
+   - Report any tool behavior that could not be verified instead of presenting it as fact.
+   - Finish only when each target tool's active files, precedence, and resulting guidance are verified or explicitly reported as unverified for every changed scope.
