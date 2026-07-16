@@ -52,8 +52,9 @@ Return, in this order:
    `/goal`. Assume the new session has none of this conversation.
 3. **Next excluded area** — one short statement when it clarifies the stopping boundary.
 
-Use existing repository documents as the detailed specification instead of copying them into
-the prompt. Usually write one to three short paragraphs containing only:
+Make the prompt self-contained as a routing instruction, not as a detailed specification. Point
+to existing repository documents for detailed guidance; do not summarize or duplicate their
+contents. Usually write one to three short paragraphs containing only:
 
 - the outcome and stopping boundary;
 - the few authoritative plan documents to follow;
