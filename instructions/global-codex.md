@@ -49,6 +49,9 @@ files are loaded after this file and take precedence when they conflict.
   archive prior run notes instead of appending session logs.
 - Prefer concise summaries plus paths to source files over pasted transcripts,
   logs, or broad architecture dumps.
+- In Markdown, doc comments, and other durable documentation, avoid hard-coded
+  counts and similarly volatile facts, such as numbers of files or tests;
+  describe the invariant or point to the source of truth instead.
 
 ## Change Management
 
