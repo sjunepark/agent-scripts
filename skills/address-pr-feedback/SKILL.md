@@ -46,6 +46,11 @@ workflow's completion gate.
      `Prompt for all review comments`, and bot names.
 
 3. Gate action on active Codex and CodeRabbit reviews.
+   - Treat manual review requests as one-time PR-level gates, not per-push
+     gates. Never trigger either service for incremental follow-up pushes made
+     while addressing feedback. If a review starts automatically, wait for it
+     and handle its findings; otherwise continue with the feedback already
+     collected.
    - Determine each service's state for the latest head commit from the freshly
      collected reactions, trigger comments, status comments, reviews, and final
      summaries. Inspect PR checks or status contexts when those artifacts do
