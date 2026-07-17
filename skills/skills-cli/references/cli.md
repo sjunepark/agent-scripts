@@ -29,99 +29,23 @@ If the same skill `name` exists in more than one discovered location, discovery 
 
 For this repository specifically:
 
+- Use `https://github.com/sjunepark/agent-scripts/tree/main/skills` for published installs, not the repository root or current working tree, so updates can flow across machines without exposing repo-local `.agents/` and `.claude/` skills.
 - Use `./skills` only for local validation or unpublished work.
+- Treat `skills/` as a catalog. Select the intended global skill with `--skill <name>` rather than installing the whole catalog by default.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
 - Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output against `global-skills.json`. Use `scripts/audit-global-skills --apply` only to reinstall missing managed entries; audit-only/manual entries still need their own source handled separately.
 - Install domain/project skills, such as `svelte`, `sveltekit`, and `ui-lab`, only in matching projects unless the user explicitly wants them globally.
+- Use shared `~/.agents/skills/` installs only for intentional multi-harness sharing; they can make `skills list -g` report many agents for one skill.
 
-## Practical recipes
+## Command lookup
 
-### Inspect this repo as a remote skill source
-
-```bash
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --list
-```
-
-### Add one published repo skill to Claude Code + Pi globally
-
-```bash
-SKILL_NAME="merge-branch"
-git add "skills/$SKILL_NAME"
-git commit -m "update $SKILL_NAME"
-git push origin main
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
-```
-
-### Add selected published repo skills to Claude Code + Pi globally
-
-```bash
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill agents-md-writer --copy -g -a claude-code -a pi -y
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill change-explainer --copy -g -a claude-code -a pi -y
-```
-
-### Add one selected published repo skill to Codex globally
-
-```bash
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill change-explainer --copy -g -a codex -y
-```
-
-### Move selected shared repo skills to Claude Code + Pi only
-
-Use this when older installs in `~/.agents/skills/` or other global agent
-directories make `skills list -g` report many agents for a skill that should be
-scoped to Claude Code + Pi.
-
-```bash
-SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
-SELECTED_SKILLS=(
-  agents-md-writer
-  change-explainer
-)
-
-bunx skills remove "${SELECTED_SKILLS[@]}" -g -y
-bunx skills add "$SKILLS_URL" --skill agents-md-writer --copy -g -a claude-code -a pi -y
-bunx skills add "$SKILLS_URL" --skill change-explainer --copy -g -a claude-code -a pi -y
-bunx skills list -g
-```
-
-### Add one external skill to Claude Code + Pi globally
-
-Use the same copy-mode pattern for non-repo skills when you also want `skills list -g` to show only `Claude Code, Pi` for those installs.
-
-```bash
-bunx skills add vercel-labs/skills --skill find-skills --copy -g -a claude-code -a pi -y
-```
-
-### List current installs
-
-```bash
-bunx skills list
-bunx skills list -g
-bunx skills list -g -a pi
-bunx skills list -g -a claude-code
-```
-
-### Remove a skill globally from both agents
-
-```bash
-bunx skills remove find-skills -g -a claude-code -a pi -y
-```
-
-### Check and update installed skills
-
-```bash
-bunx skills check
-bunx skills update
-```
-
-### Bootstrap from project lock file
-
-```bash
-bunx skills experimental_install
-```
-
-### Sync node_modules-provided skills
-
-```bash
-bunx skills experimental_sync
-```
+- Add a source: `bunx skills add <package-or-url>`
+- Add one selected skill: `bunx skills add <source> --skill <name> -a <agent> [-g] -y`
+- List installs: `bunx skills list [-g] [-a <agent>]`
+- Find skills: `bunx skills find [query]`
+- Remove installs: `bunx skills remove [skill...] [-g] [-a <agent>]`
+- Check for updates: `bunx skills check`
+- Apply updates: `bunx skills update`
+- Initialize a skill: `bunx skills init [name]`
+- Restore from the project lock file: `bunx skills experimental_install`
+- Sync `node_modules`-provided skills: `bunx skills experimental_sync`

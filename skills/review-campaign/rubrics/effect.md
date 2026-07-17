@@ -1,4 +1,4 @@
-# Pass: effect
+# Effect Pass Rubric
 
 Applies to areas the ledger marks effect-applicable. Judge against current idioms, not memory.
 

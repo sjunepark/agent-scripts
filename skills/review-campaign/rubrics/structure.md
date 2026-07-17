@@ -1,4 +1,4 @@
-# Pass: structure
+# Structure Pass Rubric
 
 Judge shape, not lines. Outputs beyond findings: the area's `## Map` (responsibilities, dependency direction, public surface), keep-as-is verdicts so later passes don't re-litigate, and row-split proposals when the area is too big for one detail session.
 

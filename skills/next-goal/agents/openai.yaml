@@ -1,6 +1,6 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Choose a goal with PR and no-PR prompts"
-  default_prompt: "Use $next-goal to inspect this repository and return two concise /goal prompts, one with PR delivery and one without PR creation."
+  short_description: "Choose a substantial implementation goal"
+  default_prompt: "Use $next-goal to inspect this repository, decide whether a substantial /goal is warranted, and only then return concise PR-delivery and no-PR prompt variants."
 policy:
   allow_implicit_invocation: false

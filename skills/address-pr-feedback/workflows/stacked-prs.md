@@ -111,25 +111,20 @@ change in its diff.
 
 ### 2. Ensure one review from each service
 
-Inspect reviews, PR-body and issue-comment reactions with actor identities, and
-prior trigger comments before posting anything. Record the current head SHA
-with the evidence.
+Run the parent skill's feedback collection and active-review gate to classify
+existing CodeRabbit and Codex evidence for the current head SHA before posting
+anything. The parent intake rules are the source of truth for bot identities,
+reaction meanings, and completed versus in-progress state.
 
-- CodeRabbit is satisfied by a completed bot-authored review or final summary.
-  A processing/status comment is only in-progress evidence. If neither review
-  nor prior trigger exists, post exactly one `@coderabbitai full review` PR
-  comment.
-- Codex is satisfied by its standard GitHub review or by a 👍 (`+1`) reaction
-  from `chatgpt-codex-connector[bot]`, which means the review completed with no
-  findings. A 👀 (`eyes`) reaction from that account on the PR body or an
-  `@codex review` comment means the review was accepted or is in progress. In
-  either reaction state, do not retrigger. If no review, Codex reaction, or
-  prior trigger exists, post exactly one `@codex review` PR comment. The exact
-  trigger comes from the OpenAI Codex GitHub review documentation.
-- A previous trigger without a completed review means wait for that request or
-  diagnose its failure; it does not authorize a second trigger.
-- A completed no-findings review satisfies the requirement. Do not require a
-  comment when the reviewer explicitly found nothing.
+- Require one completed review from each service for the current PR. A
+  completed no-findings review satisfies this requirement.
+- If CodeRabbit has neither completed or in-progress evidence nor a prior
+  trigger, post exactly one `@coderabbitai full review` PR comment.
+- If Codex has neither completed or in-progress evidence nor a prior trigger,
+  post exactly one `@codex review` PR comment. Confirm the exact trigger against
+  the OpenAI Codex GitHub review documentation when needed.
+- Treat a previous trigger without a completed review as the request to wait
+  for or diagnose; it does not authorize another trigger.
 
 Wait until both reviews complete or explicitly fail. When a service is not
 installed, does not react, reports an authorization/configuration error, or
@@ -138,8 +133,9 @@ instead of merging without that review.
 
 ### 3. Address the complete feedback surface
 
-Run the parent skill's intake, local fix loop, and reply workflow for the current
-PR after both required reviews are available. Include all human feedback and
+After both required reviews are available, complete the parent skill's intake
+by assessing every finding and building the feedback ledger, then run its local
+fix loop and reply workflow for the current PR. Include all human feedback and
 all bot feedback, not only CodeRabbit and Codex findings.
 
 After each push, refresh comments, reviews, threads, and checks. Add any

@@ -16,7 +16,27 @@
 - When creating a new skill, start from `https://github.com/openai/skills/tree/main/skills/.system/skill-creator`.
 - Keep `SKILL.md` as the entry point for each skill.
 - Keep OpenAI/Codex-facing metadata in `agents/openai.yaml`.
-- Put supplemental docs in `references/` and add only files that are actually referenced from `SKILL.md`.
+- Keep `SKILL.md` frontmatter portable to the Agent Skills specification; put
+  client-specific interface and invocation policy in that client's metadata
+  file instead of adding custom top-level fields. Use one-line scalar values
+  and, when needed, a one-level string mapping under `metadata` so the local
+  dependency-free validator can parse the frontmatter strictly. Quote metadata
+  values and any scalar more complex than a simple word or phrase.
+- Name bundled directories for what they contain: `workflows/` or `modes/`
+  for alternate procedures, `rubrics/`, `lenses/`, or `checklists/` for
+  evaluation criteria, `guides/` for topic-specific instruction, `recipes/`
+  for operational examples, `cases/` for scenario-specific material,
+  `templates/` for agent-read output shapes, and `references/` for lookup
+  documentation. Keep copied output resources in `assets/`.
+- Keep universally required steps and rules in `SKILL.md`. Link every bundled
+  agent-read Markdown file directly from `SKILL.md`, name every other runtime
+  file such as a script or copied asset by its exact relative path, and state
+  when to use it; a directory name alone does not expose its contents. Keep
+  those resources one directory level from `SKILL.md` and avoid
+  resource-to-resource routing. Interface metadata in `agents/` and test
+  fixtures in `evals/` do not need runtime pointers.
+- Keep bundled skill files self-contained; do not use symlinks or links to
+  absolute paths outside the skill directory.
 - Keep the directory name and the `name:` field in `SKILL.md` aligned.
 
 ## Skill install scope
@@ -91,7 +111,7 @@
   unpublished work, or explicitly requested temporary development testing.
 - Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
-- When converting shared `~/.agents/skills` installs to scoped Claude Code + Pi installs, remove only the affected skill names globally first, then reinstall the intended selected skills from the GitHub `skills/` subpath in copy mode. Keep the concrete command sequence in `skills/skills-cli/references/cli.md`.
+- When converting shared `~/.agents/skills` installs to scoped Claude Code + Pi installs, remove only the affected skill names globally first, then reinstall the intended selected skills from the GitHub `skills/` subpath in copy mode. Keep the concrete command sequence in `skills/skills-cli/recipes/install-and-migrate.md`.
 
 ## Editing expectations
 - Prefer editing an existing skill in place over adding new top-level conventions.

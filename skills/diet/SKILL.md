@@ -1,7 +1,6 @@
 ---
 name: diet
 description: "Manual standalone lens for unearned code weight; prefer code-review as the automatic review entry point."
-disable-model-invocation: true
 ---
 
 # Diet

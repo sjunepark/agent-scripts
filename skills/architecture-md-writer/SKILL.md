@@ -14,7 +14,9 @@ Write architecture docs that give contributors a fast mental model of system sha
 - Treat the root `ARCHITECTURE.md` as the system map, not the full encyclopedia.
 - Add nested `ARCHITECTURE.md` files only when a subtree has enough independent structure, lifecycle, or constraints to justify its own page.
 - When adding a nested doc, update the parent doc to link to it and explain its scope in one line.
-- Read [references/progressive-disclosure.md](references/progressive-disclosure.md) when deciding where to split content.
+- When deciding whether to split, merge, add, or remove architecture documents,
+  read [guides/document-topology.md](guides/document-topology.md) before changing
+  the document topology.
 
 2. Build context from stable code structure.
 - Read existing docs only to recover boundaries, terminology, and decision history.
@@ -27,7 +29,9 @@ Write architecture docs that give contributors a fast mental model of system sha
 - Prefer concrete file and directory starting points over exhaustive inventories.
 - Use a small ASCII diagram only when it shortens explanation; do not use Mermaid.
 - Choose section names that fit the system instead of forcing a rigid template.
-- Read [references/section-patterns.md](references/section-patterns.md) when choosing sections or shaping a component map.
+- When drafting a new document, reorganizing sections, or choosing how to
+  present components, runtime flow, code paths, or invariants, read
+  [guides/section-patterns.md](guides/section-patterns.md) before drafting.
 
 4. Keep the document high-level and durable.
 - Omit class-by-class or function-by-function catalogs.

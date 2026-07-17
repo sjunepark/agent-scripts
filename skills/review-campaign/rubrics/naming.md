@@ -1,4 +1,4 @@
-# Pass: naming
+# Naming Pass Rubric
 
 The test is at the point of use: does the call site read correctly without opening the definition? Naming is a design tool here, not cosmetics — a wrong name misleads every future reader and agent session.
 

@@ -1,4 +1,4 @@
-# Pass: docs
+# Docs Pass Rubric
 
 Docs are read by agents as much as humans here — a stale claim misleads every future session, in every worktree. Scope per row: area rows review their colocated docs (README, ARCHITECTURE.md, AGENTS.md); the `docs` row reviews the `docs/` tree and root-level documents.
 

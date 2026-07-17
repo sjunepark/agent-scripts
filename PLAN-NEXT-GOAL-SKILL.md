@@ -18,8 +18,9 @@ Next action: none. Publication or global installation remains a separately autho
 - A post-revision forward test against `../creo-valuation` selected the whole remaining M0
   milestone instead of only Slice 4B.3 and produced a two-paragraph prompt without writing to
   the target repository.
-- No scripts, references, assets, or eval file were added; the judgment-heavy workflow does
-  not need them, and this repository has no evaluation runner for `evals/evals.json`.
+- Goal selection remains in `SKILL.md`; the PR/no-PR prompt contract now lives in
+  `prompts/delivery-variants.md` and loads only after `/goal` is warranted. No scripts, assets,
+  or eval file are needed, and this repository has no evaluation runner for `evals/evals.json`.
 - Skill validation, catalog validation, direct and full local-source listing, and whitespace
   checks pass.
 
@@ -47,13 +48,15 @@ Do not hardcode Creo Valuation, M0, manifests, SQLite, or any other one-reposito
 ## Deliverables
 
 - [x] `skills/next-goal/SKILL.md`
+- [x] `skills/next-goal/prompts/delivery-variants.md`
 - [x] `skills/next-goal/agents/openai.yaml`
 - [x] Evaluation decision: omit `evals/evals.json` because the repository has no workflow that
   runs it
 
-Start the skill with the installed OpenAI `skill-creator` initializer. Do not add a README,
-scripts, assets, or references unless a concrete need emerges. Scope selection is primarily
-judgment-heavy guidance; prefer a concise `SKILL.md` over machinery.
+Start the skill with the installed OpenAI `skill-creator` initializer. Keep scope selection's
+judgment-heavy guidance in `SKILL.md`; disclose the delivery-variant branch rather than loading
+it when no substantial goal is available. Do not add a README, scripts, assets, or evals without
+a concrete need.
 
 ## Durable behavior
 
@@ -168,7 +171,8 @@ unearned prompt boilerplate.
   and any non-obvious decisions needed to understand each completed unit later.
 - It remains read-only and does not overlap the execution responsibilities of existing
   progress skills.
-- Its `SKILL.md` and metadata are concise, valid, and free of repository-specific assumptions.
+- Its `SKILL.md`, disclosed prompt contract, and metadata are concise, valid, and free of
+  repository-specific assumptions.
 - All forward tests and repository validation pass.
 
 ## Validation

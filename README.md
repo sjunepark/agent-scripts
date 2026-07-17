@@ -7,6 +7,11 @@ This repository treats `skills/` as the distributable source. Repo-local
 `.agents/` and `.claude/` directories are working configuration for this repo,
 not the published package layout.
 
+Bundled directory names describe their contents; `references/` has no special
+loading behavior. Progressive disclosure comes from explicit, conditional
+links in each `SKILL.md` to focused resources such as workflows, guides,
+rubrics, recipes, or factual references.
+
 ## Layout
 
 - `AGENTS.md`: maintenance instructions for this repository.
@@ -35,6 +40,11 @@ Use `$progress-run` for the next clear slice from a plan and `$code-review`
 for a bounded review pass that applies only obvious safe fixes;
 `$post-implementation-review` is the user-invoked manual fallback.
 
+`diet` and `post-implementation-review` intentionally remain standalone
+manual fallbacks even though `code-review` carries equivalent lenses. Published
+skills can be installed independently, so keep those overlapping rules aligned
+rather than linking one installed skill to a sibling that may be absent.
+
 ## Validation
 
 Validate the published skills before committing:
@@ -42,6 +52,11 @@ Validate the published skills before committing:
 ```bash
 scripts/validate-skills
 ```
+
+This checks the repository's strict, dependency-free frontmatter subset, local
+links, and direct `SKILL.md` pointers for every bundled runtime file;
+`agents/` metadata and `evals/` fixtures are excluded from runtime-pointer
+checks.
 
 Audit this machine's global skills against the desired registry:
 

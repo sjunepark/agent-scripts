@@ -6,10 +6,24 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const skillsRoot = path.join(root, "skills");
 const errors = [];
+const warnings = [];
 const names = new Map();
+const runtimePointerExemptDirectories = new Set(["agents", "evals"]);
+const allowedFrontMatterFields = new Set([
+  "allowed-tools",
+  "compatibility",
+  "description",
+  "license",
+  "metadata",
+  "name",
+]);
 
 function fail(file, message) {
   errors.push(`${path.relative(root, file)}: ${message}`);
+}
+
+function warn(file, message) {
+  warnings.push(`${path.relative(root, file)}: ${message}`);
 }
 
 function readSkillDirs() {
@@ -39,39 +53,227 @@ function parseFrontMatter(file, content) {
     return null;
   }
 
-  return lines.slice(1, end);
+  const fields = new Map();
+  const metadata = new Map();
+  let acceptsMetadataEntries = false;
+
+  for (const [index, line] of lines.slice(1, end).entries()) {
+    const lineNumber = index + 2;
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+
+    if (/^[ \t]/.test(line)) {
+      if (!acceptsMetadataEntries) {
+        fail(file, `unexpected indentation on front matter line ${lineNumber}`);
+        continue;
+      }
+
+      const nested = line.match(/^  ([A-Za-z0-9_.-]+):[ \t]*(.*)$/);
+      if (!nested) {
+        fail(file, `metadata line ${lineNumber} must use two-space key: value syntax`);
+        continue;
+      }
+      if (metadata.has(nested[1])) {
+        fail(file, `duplicate metadata key on line ${lineNumber}: ${nested[1]}`);
+        continue;
+      }
+
+      const value = parseScalar(file, nested[2], `metadata.${nested[1]}`, lineNumber);
+      if (value?.style === "plain") {
+        fail(file, `metadata.${nested[1]} on line ${lineNumber} must be quoted`);
+      } else if (value !== null) {
+        metadata.set(nested[1], value);
+      }
+      continue;
+    }
+
+    acceptsMetadataEntries = false;
+    const topLevel = line.match(/^([A-Za-z0-9_-]+):[ \t]*(.*)$/);
+    if (!topLevel) {
+      fail(file, `invalid front matter syntax on line ${lineNumber}`);
+      continue;
+    }
+
+    const [, key, rawValue] = topLevel;
+    if (fields.has(key)) {
+      fail(file, `duplicate front matter field on line ${lineNumber}: ${key}`);
+      continue;
+    }
+
+    if (key === "metadata") {
+      if (rawValue) {
+        fail(file, "metadata must be a one-level string mapping");
+      }
+      fields.set(key, { value: metadata, style: "mapping" });
+      acceptsMetadataEntries = true;
+      continue;
+    }
+
+    const parsed = parseScalar(file, rawValue, key, lineNumber);
+    if (parsed !== null) fields.set(key, parsed);
+  }
+
+  return fields;
 }
 
-function fieldValue(lines, field) {
-  const prefix = `${field}:`;
-  const line = lines.find((candidate) => candidate.startsWith(prefix));
-  if (!line) return "";
+function parseScalar(file, rawValue, field, lineNumber) {
+  const raw = rawValue.trim();
+  if (!raw) return { value: "", style: "plain" };
 
-  return line
-    .slice(prefix.length)
-    .trim()
-    .replace(/^["']|["']$/g, "");
+  if (raw.startsWith('"')) {
+    try {
+      const value = JSON.parse(raw);
+      if (typeof value !== "string") throw new Error("not a string");
+      return { value, style: "double-quoted" };
+    } catch {
+      fail(file, `${field} on line ${lineNumber} is not a valid double-quoted string`);
+      return null;
+    }
+  }
+
+  if (raw.startsWith("'")) {
+    if (!raw.endsWith("'") || raw.length < 2) {
+      fail(file, `${field} on line ${lineNumber} is not a valid single-quoted string`);
+      return null;
+    }
+    const inner = raw.slice(1, -1);
+    if (/(^|[^'])'(?:[^']|$)/.test(inner)) {
+      fail(file, `${field} on line ${lineNumber} must escape single quotes by doubling them`);
+      return null;
+    }
+    return { value: inner.replace(/''/g, "'"), style: "single-quoted" };
+  }
+
+  if (!/^[A-Za-z][A-Za-z0-9 _./@+()-]*$/.test(raw)) {
+    fail(file, `${field} on line ${lineNumber} must be quoted or use a simple plain-string value`);
+    return null;
+  }
+
+  return { value: raw, style: "plain" };
+}
+
+function validateFrontMatterFields(file, fields) {
+  for (const field of fields.keys()) {
+    if (!allowedFrontMatterFields.has(field)) {
+      fail(file, `unsupported Agent Skills front matter field: ${field}`);
+    }
+  }
+}
+
+function localLinkTargets(content) {
+  const targets = [];
+  const linkPattern = /\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+"[^"]*")?\s*\)/g;
+  let match;
+
+  while ((match = linkPattern.exec(content)) !== null) {
+    targets.push(match[1] || match[2]);
+  }
+
+  return targets;
+}
+
+function resolvedLocalTarget(skillDir, rawTarget) {
+  if (!rawTarget || rawTarget.startsWith("#")) {
+    return null;
+  }
+  if (rawTarget.startsWith("/") || /^file:/i.test(rawTarget)) {
+    return { rawTarget, absolutePath: true };
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(rawTarget)) return null;
+
+  const encodedPath = rawTarget.split("#")[0].split("?")[0];
+  let decodedPath;
+  try {
+    decodedPath = decodeURIComponent(encodedPath);
+  } catch {
+    return { rawTarget, invalidEncoding: true };
+  }
+
+  const absolute = path.resolve(skillDir, decodedPath);
+  const relative = path.relative(skillDir, absolute).split(path.sep).join("/");
+  return { rawTarget, absolute, relative };
+}
+
+function normalizedLocalLinkTargets(skillDir, content) {
+  const targets = new Set();
+  for (const rawTarget of localLinkTargets(content)) {
+    const resolved = resolvedLocalTarget(skillDir, rawTarget);
+    if (resolved && !resolved.invalidEncoding) targets.add(resolved.relative);
+  }
+  return targets;
 }
 
 function validateLocalLinks(file, content) {
   const skillDir = path.dirname(file);
-  const linkPattern = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
-  let match;
-
-  while ((match = linkPattern.exec(content)) !== null) {
-    const rawTarget = match[1].split("#")[0];
-    if (
-      !rawTarget ||
-      rawTarget.startsWith("#") ||
-      rawTarget.startsWith("/") ||
-      /^[a-z][a-z0-9+.-]*:/i.test(rawTarget)
-    ) {
+  for (const rawTarget of localLinkTargets(content)) {
+    const resolved = resolvedLocalTarget(skillDir, rawTarget);
+    if (!resolved) continue;
+    if (resolved.absolutePath) {
+      fail(file, `linked file must use a relative path inside the skill: ${rawTarget}`);
+      continue;
+    }
+    if (resolved.invalidEncoding) {
+      fail(file, `linked path has invalid URL encoding: ${rawTarget}`);
+      continue;
+    }
+    if (resolved.relative === ".." || resolved.relative.startsWith("../")) {
+      fail(file, `linked file must stay inside the skill directory: ${rawTarget}`);
       continue;
     }
 
-    const target = path.resolve(skillDir, rawTarget);
-    if (!fs.existsSync(target)) {
+    if (!fs.existsSync(resolved.absolute)) {
       fail(file, `linked file does not exist: ${rawTarget}`);
+    }
+  }
+}
+
+function hasExactPathMention(content, relative) {
+  const escaped = relative.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const boundary = new RegExp(
+    `(^|[\\s\`"'(])${escaped}(?=$|[\\s\`"',):;!?]|\\.(?=$|[\\s)]))`,
+    "m",
+  );
+  return boundary.test(content);
+}
+
+function readFilesRecursively(directory) {
+  const files = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const target = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) {
+      fail(target, "symlinks are not portable bundled skill resources");
+    } else if (entry.isDirectory()) {
+      files.push(...readFilesRecursively(target));
+    } else if (entry.isFile()) {
+      files.push(target);
+    }
+  }
+
+  return files;
+}
+
+function validateResourcePointers(file, content) {
+  const skillDir = path.dirname(file);
+  const linkTargets = normalizedLocalLinkTargets(skillDir, content);
+
+  for (const resource of readFilesRecursively(skillDir)) {
+    const relative = path.relative(skillDir, resource).split(path.sep).join("/");
+    if (relative === "SKILL.md") continue;
+
+    const [topLevelDirectory] = relative.split("/");
+    if (runtimePointerExemptDirectories.has(topLevelDirectory)) continue;
+
+    const depth = relative.split("/").length;
+    if (depth > 2) {
+      warn(resource, "bundled runtime resources should stay one level deep from SKILL.md");
+    }
+
+    if (path.extname(resource).toLowerCase() === ".md") {
+      if (!linkTargets.has(relative)) {
+        fail(resource, `agent-loaded Markdown must be linked directly from SKILL.md as ${relative}`);
+      }
+    } else if (!linkTargets.has(relative) && !hasExactPathMention(content, relative)) {
+      fail(resource, `bundled runtime resource must be named directly in SKILL.md as ${relative}`);
     }
   }
 }
@@ -86,13 +288,25 @@ for (const skillDir of readSkillDirs()) {
   }
 
   const content = fs.readFileSync(file, "utf8");
+  const lineCount = content.replace(/\r\n/g, "\n").split("\n").length;
+  if (lineCount > 500) {
+    warn(file, `SKILL.md has ${lineCount} lines; keep it under the recommended 500-line limit`);
+  }
+
   const frontMatter = parseFrontMatter(file, content);
   if (!frontMatter) continue;
+  validateFrontMatterFields(file, frontMatter);
 
-  const name = fieldValue(frontMatter, "name");
+  const name = frontMatter.get("name")?.value || "";
   if (!name) {
     fail(file, "front matter must include non-empty name");
   } else {
+    if (name.length > 64) {
+      fail(file, "name must be at most 64 characters");
+    }
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) {
+      fail(file, "name must contain lowercase letters, numbers, and single hyphens only");
+    }
     if (name !== dirName) {
       fail(file, `name must match directory (${dirName})`);
     }
@@ -102,15 +316,21 @@ for (const skillDir of readSkillDirs()) {
     names.set(name, existing);
   }
 
-  if (
-    !frontMatter.some((line) =>
-      /^description:\s*"[^"]+"\s*$/.test(line)
-    )
-  ) {
+  const descriptionField = frontMatter.get("description");
+  const description = descriptionField?.value || "";
+  if (!description || descriptionField.style !== "double-quoted") {
     fail(file, "front matter must include a non-empty quoted description");
+  } else if (description.length > 1024) {
+    fail(file, "description must be at most 1024 characters");
+  }
+
+  const compatibility = frontMatter.get("compatibility")?.value;
+  if (compatibility !== undefined && (compatibility.length === 0 || compatibility.length > 500)) {
+    fail(file, "compatibility must contain 1-500 characters");
   }
 
   validateLocalLinks(file, content);
+  validateResourcePointers(file, content);
 }
 
 for (const [name, files] of names.entries()) {
@@ -127,6 +347,13 @@ if (errors.length > 0) {
     console.error(`- ${error}`);
   }
   process.exit(1);
+}
+
+if (warnings.length > 0) {
+  console.warn("Skill validation warnings:");
+  for (const warning of warnings) {
+    console.warn(`- ${warning}`);
+  }
 }
 
 console.log(`Validated ${names.size} skills.`);

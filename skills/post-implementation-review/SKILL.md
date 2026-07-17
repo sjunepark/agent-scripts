@@ -1,7 +1,6 @@
 ---
 name: post-implementation-review
 description: "Post-implementation review run manually as a standalone procedure; prefer code-review as the automatic review entry point."
-disable-model-invocation: true
 ---
 
 # Post-Implementation Review

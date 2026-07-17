@@ -1,4 +1,4 @@
-# Pass: errors
+# Errors Pass Rubric
 
 Expected failures are modeled and routed; invariant violations crash loudly; nothing disappears. Language-aware: Effect error channel / typed results in TS, wrapped `error` returns in Go.
 

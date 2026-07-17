@@ -1,4 +1,4 @@
-# Progressive Disclosure
+# Document Topology
 
 Use a layered architecture doc set when one file would otherwise have to choose between being too vague and too detailed.
 

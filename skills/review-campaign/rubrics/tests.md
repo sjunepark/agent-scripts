@@ -1,4 +1,4 @@
-# Pass: tests
+# Tests Pass Rubric
 
 The question is not "is there coverage" but "do the tests earn their keep": critical paths proven, failures diagnosable, suite designed rather than accreted. Tests are executable specs — user-facing and integration level preferred, implementation-coupled tests suspect.
 

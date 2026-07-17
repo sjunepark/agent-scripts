@@ -1,4 +1,4 @@
-# Pass: security
+# Security Pass Rubric
 
 Trust-boundary areas only (set in REVIEW.md applicability). Every finding needs an attack story — who reaches this surface with what, and what they gain. Checklist items without a path are noise, not findings.
 

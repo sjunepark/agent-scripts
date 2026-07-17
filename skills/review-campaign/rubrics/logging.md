@@ -1,4 +1,4 @@
-# Pass: logging
+# Logging Pass Rubric
 
 North star: in production, logs are the primary debugging tool. Pick the area's three most plausible incidents and ask: could you localize the cause from logs alone — no debugger, no repro? Review against those incidents, not against a checklist of log lines.
 

@@ -21,7 +21,8 @@ description: "Review code or completed implementation changes for correctness, r
 
 2. Run the implementation gate when reviewing completed work, current
    uncommitted changes, or any code review where correctness, regressions, or
-   validation matter. Read [references/implementation-review.md](references/implementation-review.md).
+   validation matter. Read
+   [lenses/implementation-review.md](lenses/implementation-review.md).
    - Continue once material issues, obvious safe fixes, validation gaps, and
      remaining decision points have been checked.
 
@@ -30,7 +31,7 @@ description: "Review code or completed implementation changes for correctness, r
    coupling, cohesion, or testability. Also add it when the review target
    creates or reshapes a module or public contract, changes dependency
    direction, or spreads one behavior across ownership boundaries. Read
-   [references/design.md](references/design.md).
+   [lenses/design.md](lenses/design.md).
    - Keep the implementation gate alone for a routine local edit that does not
      alter system shape.
    - Continue once the target's responsibilities, interfaces, dependencies,
@@ -40,7 +41,7 @@ description: "Review code or completed implementation changes for correctness, r
    deletion, trimming, wrappers, helpers, schema/config surface, compatibility
    paths, modes, flags, generic layers, or bolted-on design. Also add it when
    the review target itself introduces those surfaces. Read
-   [references/diet.md](references/diet.md).
+   [lenses/diet.md](lenses/diet.md).
    - Do not load the diet lens for a routine small edit with no complexity
      signal unless the user asked for that lens.
    - Continue once unearned complexity candidates are either reported or
