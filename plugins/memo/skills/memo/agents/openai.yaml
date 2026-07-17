@@ -1,0 +1,6 @@
+interface:
+  display_name: "Memo"
+  short_description: "Save and restore selective session memos"
+  default_prompt: "Use $memo to save the current session's working state."
+policy:
+  allow_implicit_invocation: false
