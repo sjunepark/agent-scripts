@@ -1,11 +1,11 @@
 ---
 name: next-goal
-description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then, when /goal is warranted, return two concise prompts for a fresh Codex session: one requiring PR delivery and one prohibiting PR creation. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
+description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then, when /goal is warranted, recommend PR delivery or no-PR aggregation based on expected change size and return both fresh-session prompt variants. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
 ---
 
 # Next Goal
 
-Select a substantial next goal and, only when `/goal` is warranted, generate two short fresh-session routing prompts. Keep this run read-only: inspect the repository and return the result, but leave files, plans, goals, git state, and external systems unchanged.
+Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate both short fresh-session routing prompts. Keep this run read-only: inspect the repository and return the result, but leave files, plans, goals, git state, and external systems unchanged.
 
 ## 1. Establish Current State
 
