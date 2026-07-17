@@ -30,6 +30,10 @@ Prefer completing an active phase or milestone, or several adjacent slices, when
 requirements are settled in the same plans. A goal may span subsystems and multiple coherent
 commits when they lead to one meaningful project state.
 
+Treat PR boundaries as delivery checkpoints within that large goal, not as reasons to shrink or
+stop it. The goal-running agent should finish the selected boundary through sequential PRs rather
+than turn each PR into a separate `/goal`.
+
 The selected boundary must:
 
 - be materially larger than work suited to one ordinary interactive turn;
@@ -61,15 +65,28 @@ contents. Usually write one to three short paragraphs containing only:
 - verified state or a completion condition only when needed to disambiguate the plans;
 - a direction to follow applicable `AGENTS.md`, preserve unrelated changes, keep plans current,
   and perform repository-required validation and review;
-- a requirement to commit incrementally throughout the run as meaningful, passing units finish;
-  do not defer all commits until goal completion or collapse the run into one final commit. Make
-  each message state what changed and why, including non-obvious decisions needed later.
+- a requirement to split implementation into the fewest substantial, cohesive PRs that keep each
+  review manageable. Combine small or tightly coupled slices instead of making one PR per plan
+  item, but do not let the whole large goal accumulate into one oversized PR;
+- a non-production integration branch policy: use the repository's established branch such as
+  `dev`, or create a temporary integration branch when none exists. For each PR, create a fresh
+  working branch from the current integration branch and target the PR back to it. Do not mutate
+  `main` or open or merge PRs targeting it. Production promotion is outside the goal; leave the
+  integration branch intact for that later workflow;
+- a per-PR completion loop: after opening each PR, invoke `$address-pr-feedback`, wait for active
+  Codex and CodeRabbit reviews, address all feedback and follow-ups, resolve every review thread,
+  and confirm required validation and checks. Merge only then, update the integration branch, and
+  create the next working branch from that merged state. Do not create stacked or dependent PRs,
+  start downstream work before the current PR merges, or leave an unreviewed final tail;
+- a requirement to commit incrementally within each PR as meaningful, passing units finish; do
+  not defer all commits until goal completion or collapse the run into one final commit. Make each
+  message state what changed and why, including non-obvious decisions needed later.
 
 Leave implementation steps, file inventories, design guidance, invariants, test matrices,
-commands, detailed git choreography, and status recaps to the goal-running agent and cited
-repository documents. Include an omitted detail only when the plans do not contain it and the
-goal would otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain
-choices into instructions.
+commands, git details beyond the required branch and PR lifecycle, and status recaps to the
+goal-running agent and cited repository documents. Include an omitted detail only when the plans
+do not contain it and the goal would otherwise be ambiguous or unsafe. Do not invent a token
+budget or turn uncertain choices into instructions.
 
 Before responding, verify that the prompt is actionable without this conversation and that
 this run made no repository write, goal change, git mutation, or external publication.
