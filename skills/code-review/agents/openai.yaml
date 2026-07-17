@@ -1,4 +1,4 @@
 interface:
   display_name: "Code Review"
-  short_description: "Review code with correctness and diet lenses"
-  default_prompt: "Use $code-review to review the current implementation, apply obvious safe Bucket I fixes when appropriate, validate, and include the diet lens when the code adds unearned complexity."
+  short_description: "Review code with implementation, design, and diet lenses"
+  default_prompt: "Use $code-review to review the current implementation, apply obvious safe Bucket I fixes, validate, and add architecture/design or diet lenses when relevant."

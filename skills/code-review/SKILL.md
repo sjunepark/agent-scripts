@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review code or completed implementation changes for correctness, regressions, validation gaps, maintainability risks, and unearned complexity. Use when the current task is code review, review-only critique, or complexity/simplification review. Do not use merely because you are editing code."
+description: "Review code or completed implementation changes for correctness, regressions, validation gaps, architecture and code-design fit, maintainability risks, and unearned complexity. Use when the current task is code review, architecture/design critique, review-only critique, or complexity/simplification review. Do not use merely because you are editing code."
 ---
 
 # Code Review
@@ -8,8 +8,8 @@ description: "Review code or completed implementation changes for correctness, r
 ## Workflow
 
 1. Establish scope and edit policy.
-   - If the user names files, a branch, a commit, a PR patch, or a diff, review
-     that target.
+   - If the user names files, a directory, a module or subsystem, a branch, a
+     commit, a PR patch, or a diff, review that target.
    - If no target is named and the repository has uncommitted changes, default
      to the current uncommitted change set.
    - If no target is named and no review target can be inferred, ask for the
@@ -25,7 +25,18 @@ description: "Review code or completed implementation changes for correctness, r
    - Continue once material issues, obvious safe fixes, validation gaps, and
      remaining decision points have been checked.
 
-3. Add the diet lens when the user asks about overengineering, simplification,
+3. Add the design lens when the user asks about architecture, code design,
+   module responsibilities, interfaces, seams, dependency direction,
+   coupling, cohesion, or testability. Also add it when the review target
+   creates or reshapes a module or public contract, changes dependency
+   direction, or spreads one behavior across ownership boundaries. Read
+   [references/design.md](references/design.md).
+   - Keep the implementation gate alone for a routine local edit that does not
+     alter system shape.
+   - Continue once the target's responsibilities, interfaces, dependencies,
+     affected consumers, and relevant architecture decisions have been checked.
+
+4. Add the diet lens when the user asks about overengineering, simplification,
    deletion, trimming, wrappers, helpers, schema/config surface, compatibility
    paths, modes, flags, generic layers, or bolted-on design. Also add it when
    the review target itself introduces those surfaces. Read
@@ -35,7 +46,7 @@ description: "Review code or completed implementation changes for correctness, r
    - Continue once unearned complexity candidates are either reported or
      explicitly kept as-is.
 
-4. Report in buckets.
+5. Report in buckets.
    - `Bucket I - Applied Safe Fixes`: fixes applied during the pass, with
      changed files and validation evidence, or `none`.
    - `Bucket II - Needs Decision`: real issues or simplifications that need
