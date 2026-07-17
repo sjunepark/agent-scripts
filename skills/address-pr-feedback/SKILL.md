@@ -44,18 +44,33 @@ selected stack satisfies the reference's completion gate.
      `outside the diff`, `Actionable comments`, `Nitpick comments`,
      `Prompt for all review comments`, and bot names.
 
-3. Interpret Codex review-state reactions before triggering a review.
+3. Gate action on active Codex and CodeRabbit reviews.
+   - Determine each service's state for the latest head commit from the freshly
+     collected reactions, trigger comments, status comments, reviews, and final
+     summaries. Inspect PR checks or status contexts when those artifacts do
+     not make the current state clear.
    - Count only reactions authored by the Codex connector account
      (`chatgpt-codex-connector[bot]`) or a verified replacement identity.
    - Treat 👀 (`eyes`) on the PR body or an `@codex review` comment as accepted
-     or in-progress review evidence. Do not retrigger; wait for completion or
-     diagnose a stalled or failed request.
+     or in-progress review evidence.
    - Treat 👍 (`+1`) as a completed Codex review with no findings, even when
      Codex posted no review body or inline comment. Record the reaction target,
      actor, and timestamp as completion evidence and do not retrigger.
    - Treat a Codex-authored review with findings as completed review evidence.
-     Reactions from other actors and aggregate reaction counts without actor
+   - Treat a CodeRabbit processing or status message that says a review is
+     underway as in-progress evidence; treat its completed review or final
+     summary as completed evidence.
+   - Reactions from other actors and aggregate reaction counts without actor
      identities do not establish Codex state.
+   - While either service has an active review, wait and rerun the collector at
+     a reasonable interval. Begin assessment, ledger creation, checkout, edits,
+     pushes, and replies only after every observed active review completes and
+     the feedback surface has been refreshed. An active signal consumes the
+     current request; wait instead of triggering the service again.
+   - Keep intake blocked when an active review explicitly fails or stalls beyond
+     a reasonable task wait window; diagnose and report the review failure. If
+     neither service has an active review, proceed with the feedback already
+     available; this gate does not require triggering an absent review.
 
 4. Critically assess each finding before planning fixes.
    - Treat suggested patches from CodeRabbit, other bots, or reviewers as
@@ -98,7 +113,9 @@ selected stack satisfies the reference's completion gate.
    - Leave broader design decisions for the user unless the PR feedback
      clearly requires them.
 6. Push the branch after local validation passes or after a completed bounded
-   group when the task is long-running and remote visibility matters.
+   group when the task is long-running and remote visibility matters. Refresh
+   the feedback surface after each push and re-enter the intake review gate if
+   Codex or CodeRabbit starts another review.
 
 ## Reply Workflow
 
@@ -131,6 +148,8 @@ selected stack satisfies the reference's completion gate.
 
 Before finishing, confirm:
 
+- no Codex or CodeRabbit review remains active, and the feedback surface was
+  refreshed after the latest review completed;
 - all PR-body and issue-comment reactions, issue comments, review bodies, review
   comments, replies, and outside-diff sections were read;
 - each actionable item is fixed, replied to, explicitly skipped, or left as a
