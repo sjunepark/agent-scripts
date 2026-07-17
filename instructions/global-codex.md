@@ -66,6 +66,8 @@ files are loaded after this file and take precedence when they conflict.
   nontrivial refactor.
 - Use CodeRabbit as a review option when the user asks for it. It is expensive
   (10 reviews/hour), so do not invoke it freely or for routine review passes.
+- Prefer preserving individual commits when merging pull requests; do not
+  squash by default.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
   aligned with the end-user experience as practical, so the fix addresses the
   real problem.
