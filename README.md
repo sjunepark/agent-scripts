@@ -44,6 +44,9 @@ for a bounded review pass that applies only obvious safe fixes;
 manual fallbacks even though `code-review` carries equivalent lenses. Published
 skills can be installed independently, so keep those overlapping rules aligned
 rather than linking one installed skill to a sibling that may be absent.
+Their OpenAI metadata disables implicit invocation; other clients receive the
+portable `SKILL.md`, where manual-only behavior remains descriptive rather than
+using client-specific frontmatter.
 
 ## Validation
 
@@ -54,9 +57,10 @@ scripts/validate-skills
 ```
 
 This checks the repository's strict, dependency-free frontmatter subset, local
-links, and direct `SKILL.md` pointers for every bundled runtime file;
-`agents/` metadata and `evals/` fixtures are excluded from runtime-pointer
-checks.
+links from `SKILL.md`, and direct `SKILL.md` pointers for every bundled runtime
+file; `agents/` metadata and `evals/` fixtures are excluded from runtime-pointer
+checks. Runtime Markdown pointers use inline links; wrap destinations containing
+whitespace or parentheses in angle brackets.
 
 Audit this machine's global skills against the desired registry:
 

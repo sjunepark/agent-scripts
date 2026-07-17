@@ -38,8 +38,8 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 
 Before creating a PR, inspect `.coderabbit.yaml`, `.coderabbit.yml`, and
 `greptile.json` if present. If the user does not specify and the PR is ready for
-human review, select the normal ready-PR policy and let repository configuration
-or service defaults govern the remaining reviews. If the PR is draft, noisy,
+human review, apply `coderabbit-review` and let repository configuration or
+service defaults govern the remaining reviews. If the PR is draft, noisy,
 generated, dependency-only, or materially validation-incomplete, suppress
 automatic bot reviews when a low-risk PR-level control exists.
 
@@ -61,7 +61,7 @@ When the user wants a choice or review cost/noise is material, ask for a compact
 
 ```text
 AI review handling for this PR?
-- default: allow configured reviews for a normal ready PR
+- default: apply `coderabbit-review` and let remaining CodeRabbit/Greptile config decide
 - disable: suppress automatic reviews where PR-level controls allow it
 - manual: create the PR without automatic review, then trigger selected bots by comment when requested
 - run: allow automatic review and optionally post manual trigger comments after creation

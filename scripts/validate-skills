@@ -9,6 +9,15 @@ const errors = [];
 const warnings = [];
 const names = new Map();
 const runtimePointerExemptDirectories = new Set(["agents", "evals"]);
+const ambiguousPlainScalars = new Set([
+  "false",
+  "no",
+  "null",
+  "off",
+  "on",
+  "true",
+  "yes",
+]);
 const allowedFrontMatterFields = new Set([
   "allowed-tools",
   "compatibility",
@@ -34,7 +43,13 @@ function readSkillDirs() {
 
   return fs
     .readdirSync(skillsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => {
+      if (entry.isSymbolicLink()) {
+        fail(path.join(skillsRoot, entry.name), "symlinks are not portable skill directories");
+        return false;
+      }
+      return entry.isDirectory();
+    })
     .map((entry) => path.join(skillsRoot, entry.name))
     .sort();
 }
@@ -147,6 +162,9 @@ function parseScalar(file, rawValue, field, lineNumber) {
     fail(file, `${field} on line ${lineNumber} must be quoted or use a simple plain-string value`);
     return null;
   }
+  if (ambiguousPlainScalars.has(raw.toLowerCase())) {
+    fail(file, `${field} on line ${lineNumber} must be quoted to remain a string across YAML parsers`);
+  }
 
   return { value: raw, style: "plain" };
 }
@@ -161,6 +179,7 @@ function validateFrontMatterFields(file, fields) {
 
 function localLinkTargets(content) {
   const targets = [];
+  // The repository deliberately supports a small, dependency-free inline-link subset.
   const linkPattern = /\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+"[^"]*")?\s*\)/g;
   let match;
 
@@ -175,7 +194,7 @@ function resolvedLocalTarget(skillDir, rawTarget) {
   if (!rawTarget || rawTarget.startsWith("#")) {
     return null;
   }
-  if (rawTarget.startsWith("/") || /^file:/i.test(rawTarget)) {
+  if (rawTarget.startsWith("/") || /^file:/i.test(rawTarget) || path.win32.isAbsolute(rawTarget)) {
     return { rawTarget, absolutePath: true };
   }
   if (/^[a-z][a-z0-9+.-]*:/i.test(rawTarget)) return null;
@@ -270,7 +289,10 @@ function validateResourcePointers(file, content) {
 
     if (path.extname(resource).toLowerCase() === ".md") {
       if (!linkTargets.has(relative)) {
-        fail(resource, `agent-loaded Markdown must be linked directly from SKILL.md as ${relative}`);
+        fail(
+          resource,
+          `agent-loaded Markdown must use a direct inline link from SKILL.md as ${relative}`,
+        );
       }
     } else if (!linkTargets.has(relative) && !hasExactPathMention(content, relative)) {
       fail(resource, `bundled runtime resource must be named directly in SKILL.md as ${relative}`);
@@ -327,6 +349,11 @@ for (const skillDir of readSkillDirs()) {
   const compatibility = frontMatter.get("compatibility")?.value;
   if (compatibility !== undefined && (compatibility.length === 0 || compatibility.length > 500)) {
     fail(file, "compatibility must contain 1-500 characters");
+  }
+  for (const field of ["allowed-tools", "license"]) {
+    if (frontMatter.has(field) && !frontMatter.get(field).value) {
+      fail(file, `${field} must be a non-empty string when present`);
+    }
   }
 
   validateLocalLinks(file, content);

@@ -21,6 +21,7 @@ Use this skill when the hard part is app-level or route-level behavior. If the t
 2. Choose the server/client boundary before writing code.
    - Put server-only work in `+page.server.*`, `+layout.server.*`, `+server.*`, hooks, or `$lib/server/*`.
    - Put reusable view logic in components or `$lib`, not route files.
+   - Keep request-specific mutable state out of shared modules so server state cannot leak across users.
    - Keep route flow obvious: params, URL, cookies, and locals -> load or action -> typed props -> component.
 
 3. Solve data flow before UI details.
@@ -39,7 +40,7 @@ Use this skill when the hard part is app-level or route-level behavior. If the t
 ## Topic guides
 
 - When changing route files, `load`, parent data, dependency tracking, or serialization, read [guides/load-routing.md](guides/load-routing.md).
-- When implementing a mutation, form action, progressive enhancement, or API endpoint, read [guides/forms-endpoints.md](guides/forms-endpoints.md).
+- When implementing a form, mutation, progressive enhancement, or API endpoint, read [guides/forms-endpoints.md](guides/forms-endpoints.md).
 - When handling hooks, authentication, cookies, secrets, or request-local identity, read [guides/auth-cookies.md](guides/auth-cookies.md).
 - When placing state or changing navigation, invalidation, history, or reset behavior, read [guides/state-navigation.md](guides/state-navigation.md).
 - When browser-only code, server rendering, hydration, or pre-hydration interaction is involved, read [guides/ssr-hydration.md](guides/ssr-hydration.md).

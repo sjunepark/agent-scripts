@@ -10,7 +10,7 @@ description: "Manage skills with the skills CLI for Codex, Claude Code, and Pi. 
 1. Inspect current state with `bunx skills list` for project scope and `bunx skills list -g` for global scope.
    - In this repository, use `scripts/audit-global-skills` to compare machine-global installs against `global-skills.json`, the desired machine-global registry.
 2. Use `bunx skills find <query>` or `bunx skills add <source> --list` to discover options.
-   - When choosing a source, scope, or agent target, read [references/cli.md](references/cli.md) for the CLI's accepted inputs and install-location facts.
+   - When choosing a command, source, scope, or agent target—including initializing a skill—read [references/cli.md](references/cli.md) for the CLI's accepted inputs and install-location facts.
 3. Install with explicit scope, skill selection, and agent targeting.
    - Before installing or reinstalling a published skill, or moving a shared install to agent-specific paths, read [recipes/install-and-migrate.md](recipes/install-and-migrate.md) and use the matching recipe.
 4. Verify with the matching scope command that the skill is listed and `Agents:` shows exactly the intended agents.

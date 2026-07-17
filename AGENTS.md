@@ -29,12 +29,16 @@
   `templates/` for agent-read output shapes, and `references/` for lookup
   documentation. Keep copied output resources in `assets/`.
 - Keep universally required steps and rules in `SKILL.md`. Link every bundled
-  agent-read Markdown file directly from `SKILL.md`, name every other runtime
-  file such as a script or copied asset by its exact relative path, and state
-  when to use it; a directory name alone does not expose its contents. Keep
-  those resources one directory level from `SKILL.md` and avoid
-  resource-to-resource routing. Interface metadata in `agents/` and test
-  fixtures in `evals/` do not need runtime pointers.
+  agent-read Markdown file directly from `SKILL.md` with an inline Markdown
+  link, name every other runtime file such as a script or copied asset by its
+  exact relative path, and state when to use it; a directory name alone does
+  not expose its contents. Wrap inline-link destinations containing whitespace
+  or parentheses in angle brackets. Do not use reference-style links for
+  runtime pointers, and avoid link-like examples in fenced code because the
+  dependency-free validator scans inline-link syntax literally. Keep those
+  resources one directory level from `SKILL.md` and avoid resource-to-resource
+  routing. Interface metadata in `agents/` and test fixtures in `evals/` do not
+  need runtime pointers.
 - Keep bundled skill files self-contained; do not use symlinks or links to
   absolute paths outside the skill directory.
 - Keep the directory name and the `name:` field in `SKILL.md` aligned.
