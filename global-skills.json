@@ -23,8 +23,8 @@
         "harmonize-docs",
         "interview",
         "merge-branch",
-        "progress-handoff",
-        "progress-run",
+        "progress",
+        "record",
         "review-campaign",
         "teach"
       ]
@@ -46,8 +46,8 @@
         "doc-comment-writer",
         "interview",
         "merge-branch",
-        "progress-handoff",
-        "progress-run",
+        "progress",
+        "record",
         "review-campaign",
         "teach"
       ]

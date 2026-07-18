@@ -74,7 +74,8 @@
 - Prefer exact command names without extensions for `bin/` commands.
 
 ## Working commands
-- Use `$progress-run` to execute the next clear slice from a plan or handoff file.
+- When explicitly invoked, use `$progress` to organize, orient to, continue,
+  or hand off repo-local plans and tasks.
 - Use `$code-review` after implementation to run one bounded review pass, apply
   obvious safe fixes, validate, and include the diet lens when the change adds
   avoidable complexity.

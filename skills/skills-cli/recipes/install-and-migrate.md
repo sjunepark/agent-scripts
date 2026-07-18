@@ -39,6 +39,21 @@ Use the same copy-mode pattern for non-repo skills when `skills list -g` should 
 bunx skills add vercel-labs/skills --skill find-skills --copy -g -a claude-code -a pi -y
 ```
 
+## Consolidate retired progress skills into progress
+
+Use this after the replacement commit is pushed so the remote catalog contains
+`progress` and no longer publishes the retired skills.
+
+```bash
+SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
+
+bunx skills remove progress-doc progress-handoff progress-run -g -y
+bunx skills add "$SKILLS_URL" --skill progress --copy -g -a codex -y
+bunx skills add "$SKILLS_URL" --skill progress --copy -g -a claude-code -a pi -y
+bunx skills list -g
+scripts/audit-global-skills
+```
+
 ## Move selected shared repo skills to Claude Code and Pi only
 
 Use this when older installs in `~/.agents/skills/` or other global agent directories make `skills list -g` report many agents for a skill that should be scoped to Claude Code and Pi.

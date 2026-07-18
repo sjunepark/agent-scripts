@@ -36,8 +36,9 @@ Expose stable cross-repo commands from `bin/`, not `scripts/`. There are no
 stable shared commands published by this repository right now; prefer skills for
 agent workflows.
 
-Use `$progress-run` for the next clear slice from a plan and `$code-review`
-for a bounded review pass that applies only obvious safe fixes;
+Use `$progress` when explicitly invoked to organize, orient to, continue,
+or hand off repo-local plans and tasks. Use `$code-review` for a bounded review
+pass that applies only obvious safe fixes.
 `$post-implementation-review` is the user-invoked manual fallback.
 
 `diet` and `post-implementation-review` intentionally remain standalone

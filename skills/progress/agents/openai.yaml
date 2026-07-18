@@ -1,0 +1,7 @@
+interface:
+  display_name: "Progress"
+  short_description: "Keep roadmaps, plans, and tasks actionable"
+  default_prompt: "Use $progress to reconcile the current work and recommend the next action."
+
+policy:
+  allow_implicit_invocation: false

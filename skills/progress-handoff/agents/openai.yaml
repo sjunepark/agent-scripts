@@ -1,6 +1,0 @@
-interface:
-  display_name: "Progress Handoff"
-  short_description: "Create concise next-session handoff plans"
-  default_prompt: "Use $progress-handoff to create a concise implementation handoff for the next session."
-policy:
-  allow_implicit_invocation: false

@@ -37,11 +37,9 @@ change a plan, or mutate the target repository.
 
 Use the repository's existing skills instead of duplicating their responsibilities:
 
-- `progress-run` executes one substantial connected plan slice; `next-goal` instead chooses a
-  larger persistent-execution boundary that may contain several such slices.
-- `progress-handoff` supplies fresh-session handoff principles, but writes a durable plan;
-  `next-goal` instead returns a prompt in the response.
-- `progress-doc` supplies the requirement to verify plan claims against repository evidence.
+- `progress` organizes, reviews, continues, and hands off ordinary repo-local work;
+  `next-goal` instead chooses a larger persistent-execution boundary and returns a prompt
+  without changing the repository.
 
 Do not hardcode Creo Valuation, M0, manifests, SQLite, or any other one-repository concept.
 
@@ -133,7 +131,7 @@ While producing the prompt, do not:
 - The default prompt explicitly invokes `$next-goal` and asks for a concise, substantial
   `/goal` prompt.
 - Set `policy.allow_implicit_invocation: false` so this user-invoked workflow does not compete
-  with `progress-run`, `progress-handoff`, or ordinary planning requests.
+  with `progress` or ordinary planning requests.
 - Keep all trigger guidance in the `SKILL.md` frontmatter description and keep the body
   procedural and concise.
 
@@ -169,8 +167,7 @@ unearned prompt boilerplate.
 - It delegates execution detail to the active plans, `AGENTS.md`, and the goal-running agent.
 - It requires progressive, coherent local commits with messages that state what changed, why,
   and any non-obvious decisions needed to understand each completed unit later.
-- It remains read-only and does not overlap the execution responsibilities of existing
-  progress skills.
+- It remains read-only and does not overlap `progress` execution responsibilities.
 - Its `SKILL.md`, disclosed prompt contract, and metadata are concise, valid, and free of
   repository-specific assumptions.
 - All forward tests and repository validation pass.

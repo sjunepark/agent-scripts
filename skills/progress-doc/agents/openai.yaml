@@ -1,4 +1,0 @@
-interface:
-  display_name: "Progress Doc"
-  short_description: "Review progress docs against repository evidence"
-  default_prompt: "Use $progress-doc to review PLAN.md and explain what is done, left, or stale."
