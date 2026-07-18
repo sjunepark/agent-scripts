@@ -103,6 +103,9 @@ structure.
 - Re-read the final documents together rather than reviewing only the diff.
 - Search for old paths, renamed terms, stale commands, duplicated claims,
   conflicting statuses, broken references, and append-style sediment.
+- Review durable documentation for hard-coded counts and other volatile facts,
+  such as numbers of files or tests. Replace them with stable invariants or
+  pointers to the source of truth.
 - Recheck current-state claims against repository evidence and active-plan
   claims against confirmed intent.
 - Run available documentation, link, example, and repository validation that is
