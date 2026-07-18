@@ -1,0 +1,6 @@
+interface:
+  display_name: "Harmonize Docs"
+  short_description: "Harmonize repository docs and active plans"
+  default_prompt: "Use $harmonize-docs to reconcile and harmonize all active documentation and plans in this repository."
+policy:
+  allow_implicit_invocation: false
