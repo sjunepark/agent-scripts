@@ -101,10 +101,6 @@
       "scope": "global",
       "skills": [
         {
-          "name": "auto-review",
-          "agents": ["claude-code"]
-        },
-        {
           "name": "baton",
           "agents": []
         },

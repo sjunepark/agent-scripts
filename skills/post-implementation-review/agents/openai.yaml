@@ -1,6 +1,0 @@
-interface:
-  display_name: "Post-Implementation Review"
-  short_description: "Review changes and apply obvious fixes"
-  default_prompt: "Use $post-implementation-review to review my current implementation, leverage subagents when useful, apply obvious Bucket I fixes, and recheck until no Bucket I items remain."
-policy:
-  allow_implicit_invocation: false

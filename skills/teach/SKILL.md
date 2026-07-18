@@ -76,5 +76,4 @@ Include this section only when something materially affects understanding. Descr
 ## Routing
 
 - Use `change-explainer` for diff-, commit-, patch-, or file-comparison teaching.
-- Use `briefing` for current task-state recovery.
 - Use a review-oriented skill when the user wants critique rather than understanding.

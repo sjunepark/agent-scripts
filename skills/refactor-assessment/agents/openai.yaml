@@ -1,4 +1,0 @@
-interface:
-  display_name: "Refactor Assessment"
-  short_description: "Decide whether a fix warrants broader refactoring"
-  default_prompt: "Use $refactor-assessment to decide whether this fix should stay local or become a broader refactor."

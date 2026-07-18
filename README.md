@@ -39,15 +39,6 @@ agent workflows.
 Use `$progress` when explicitly invoked to organize, orient to, continue,
 or hand off repo-local plans and tasks. Use `$code-review` for a bounded review
 pass that applies only obvious safe fixes.
-`$post-implementation-review` is the user-invoked manual fallback.
-
-`diet` and `post-implementation-review` intentionally remain standalone
-manual fallbacks even though `code-review` carries equivalent lenses. Published
-skills can be installed independently, so keep those overlapping rules aligned
-rather than linking one installed skill to a sibling that may be absent.
-Their OpenAI metadata disables implicit invocation; other clients receive the
-portable `SKILL.md`, where manual-only behavior remains descriptive rather than
-using client-specific frontmatter.
 
 ## Validation
 

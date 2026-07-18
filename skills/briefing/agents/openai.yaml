@@ -1,6 +1,0 @@
-interface:
-  display_name: "Briefing"
-  short_description: "Manual task-scoped briefing for current code and context"
-  default_prompt: "Use $briefing only when the user explicitly asks for a briefing or catch-up. Give a concise, task-scoped view of the current task, relevant code, what matters now, and the decision context without overwhelming detail."
-policy:
-  allow_implicit_invocation: false
