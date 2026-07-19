@@ -1,6 +1,6 @@
 ---
 name: interview
-description: "Interview the user to resolve consequential open items from the preceding conversation or the prompt that invokes $interview, then act on the confirmed decisions. Use only when the user explicitly invokes $interview or asks to be interviewed about findings or questions; do not self-trigger."
+description: "Brief and interview the user to resolve consequential open items from the preceding conversation or the prompt that invokes $interview, then act on the confirmed decisions. Use only when the user explicitly invokes $interview or asks to be interviewed about findings or questions; do not self-trigger."
 ---
 
 # Interview
@@ -18,14 +18,23 @@ Treat unresolved findings and questions from the relevant preceding conversation
 
 Only user-owned items enter the interview. A recommendation strong enough that a responsible implementer should simply take it is not a user decision.
 
-## Discuss at Reviewer Altitude
+## Brief, Then Ask
 
 Work through a small group of tightly related user-owned decisions at a time:
 
-1. Give the concise background needed to decide: relevant evidence, dependencies, stakes, and tradeoffs.
-2. Recommend an answer when the evidence supports a meaningful preference. If the recommendation is clearly dominant, reclassify the item as implementer-owned instead of asking.
-3. Ask focused questions whose answers resolve the group. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
-4. Follow an answer only when it conflicts with another decision, remains materially ambiguous, or exposes a consequential prerequisite. Resolve prerequisites before downstream decisions, and stop when the remaining choices belong to the implementer.
+1. Infer the user's relevant knowledge from the conversation. Default to a reviewer who understands the goal but not the subsystem's mechanics.
+2. Re-synthesize a self-contained decision brief, even when the evidence appeared earlier. The user should not need to scroll, inspect source files, or understand unexplained jargon.
+3. Explain the minimum needed to decide in plain language:
+   - the decision-relevant concept, with unfamiliar terms defined on first use;
+   - what is true now and why the issue exists;
+   - why the decision belongs to the user;
+   - how the realistic options differ in user or product outcomes and durable maintenance obligations;
+   - the recommendation, why it wins, and what condition would favor another option.
+   Translate implementation facts into reviewer-level consequences. Include one concrete example when the choice changes an API, workflow, or other user-visible behavior.
+4. Ask focused questions only after the brief establishes that mental model. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
+5. Follow an answer only when it conflicts with another decision, remains materially ambiguous, or exposes a consequential prerequisite. Resolve prerequisites before downstream decisions, and stop when the remaining choices belong to the implementer.
+
+A decision brief is complete when a reviewer can state what is being decided, why it matters, and what users or maintainers would experience under each option without reading the underlying implementation.
 
 ## Check Consequential Blind Spots
 
