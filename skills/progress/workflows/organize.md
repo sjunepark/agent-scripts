@@ -4,14 +4,18 @@ Use this branch to change the work system without implementing product work.
 
 ## Establish the Index
 
-1. Inventory existing root plans, roadmaps, task lists, and linked item files.
-2. Adopt an existing root `ROADMAP.md` or `PLAN.md` only when it already routes
-   current, scheduled, and unscheduled work through the core model. Otherwise
-   propose an explicit mapping into one root index plus `plans/` and `tasks/`,
-   then ask before moving files or replacing links. Preserve every active item
-   during the migration.
-3. When no convention exists, create root `ROADMAP.md`. Create `plans/` and
-   `tasks/` when their first items are captured.
+1. Inventory roadmaps, plan and task directories, task lists, and linked item
+   files. Resolve the ordinary or worktree-specific planning scope before
+   choosing anything to edit.
+2. Adopt an existing index only when it already routes current, scheduled, and
+   unscheduled work through the core model. Otherwise propose an explicit
+   mapping into the selected scope's index and item directories. Ask before
+   moving files or replacing links unless the user already authorized that
+   migration. Preserve every active item during the migration.
+3. When no convention exists, create the selected scope's roadmap. Create its
+   plan and task directories when their first items are captured. For ordinary
+   work these are `ROADMAP.md`, `plans/`, and `tasks/`; parallel work uses the
+   isolated paths selected during resolution.
 4. Use this minimal index shape:
 
 ```markdown
@@ -31,11 +35,12 @@ _None._
 ```
 
 Use a numbered list of links for plans and a bullet list of links for tasks.
-Use one link under `Current` during ordinary single-worktree work.
+Use at most one link under `Current` in each index.
 
 ## Create Work Items
 
-Create each item from this minimum shape:
+Create each item in the selected scope's plan or task directory from this
+minimum shape:
 
 ```markdown
 # <Outcome-oriented title>
@@ -54,9 +59,10 @@ Create each item from this minimum shape:
 ```
 
 Add optional sections only when they change future execution. Keep a requested
-piece of work in `tasks/` when it can be chosen at any time. Put it in `plans/`
-when the user wants it placed in the project sequence. For example, a scheduled
-authentication replacement is a plan; an anytime empty-state polish is a task.
+piece of work in the selected task directory when it can be chosen at any time.
+Put it in the selected plan directory when the user wants it placed in the
+project sequence. For example, a scheduled authentication replacement is a
+plan; an anytime empty-state polish is a task.
 
 ## Apply Lifecycle Changes
 
@@ -66,11 +72,13 @@ authentication replacement is a plan; an anytime empty-state polish is a task.
   to the front of the plan queue and an interrupted task to the task pool.
 - **Reorder:** edit only the numbered plan links. Treat the order as intention,
   not as a dependency claim.
-- **Schedule:** move a task file into `plans/`. If it is current, update only
-  its `Current` link; otherwise insert its sole link at the user-selected plan
-  position. Ask for the position when it was not implied.
-- **Unschedule:** move a plan file into `tasks/`. If it is current, update only
-  its `Current` link; otherwise return its sole link to the unordered pool.
+- **Schedule:** move a task file into the same scope's plan directory. If it is
+  current, update only its `Current` link; otherwise insert its sole link at
+  the user-selected plan position. Ask for the position when it was not
+  implied.
+- **Unschedule:** move a plan file into the same scope's task directory. If it
+  is current, update only its `Current` link; otherwise return its sole link to
+  the unordered pool.
 - **Complete:** summarize the achieved outcome under `Current state`, set
   `Next action` to `None — complete`, and remove the active link. Leave
   `Current` empty rather than starting unrelated work automatically.
