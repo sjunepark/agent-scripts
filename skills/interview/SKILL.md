@@ -1,68 +1,46 @@
 ---
 name: interview
-description: "Interview the user to recover the intention their prompt left out and to clarify ambiguous points before doing the task. Use only when the user explicitly asks to be interviewed or asks for clarifying questions about their request; do not self-trigger on ambiguous prompts."
+description: "Interview the user to resolve consequential open items from the preceding conversation or the prompt that invokes $interview, then act on the confirmed decisions. Use only when the user explicitly invokes $interview or asks to be interviewed about findings or questions; do not self-trigger."
 ---
 
 # Interview
 
-A prompt is a compressed version of what the user actually wants. The motivation, scope boundaries, quality bar, and success criteria often live only in their head. Recover that omitted intention by asking, instead of guessing it or papering over it with technical decisions.
+Treat unresolved findings and questions from the relevant preceding conversation, plus any items named in the same prompt as `$interview`, as a decision agenda. Clear it at reviewer altitude, while leaving implementation details and strongly preferred answers to the implementer.
 
-## Calibrate the Interview
+## Build and Triage the Agenda
 
-An explicit invocation does not mean every part of the request is ambiguous. Scale the interview to the actual ambiguity and the cost of misunderstanding:
+1. Gather every unresolved finding or open question from the preceding conversation that the invocation refers to and from the invoking prompt itself. Honor any scope the current prompt sets, then group tightly related items.
+2. Inspect the relevant conversation, workspace, and other available evidence. Finding facts is the agent's job; ask the user only for judgment they need to own.
+3. Classify every agenda item:
+   - **Implementer-owned:** an implementation detail or an item with a strongly preferred answer. Choose the answer and state the intended handling briefly.
+   - **User-owned:** multiple reasonable answers remain and the choice materially affects direction, scope, user-visible behavior, an external contract, risk, or review policy.
+   - **Deferred:** the user intentionally leaves the item open. Record what remains unresolved and, when useful, what would unblock it.
 
-- Focus questions where interpretations genuinely diverge: multiple reasonable readings that lead to meaningfully different work, or missing motivation that would change the approach.
-- Go deeper where misreading would be expensive: large changes, hard-to-reverse actions, outward-facing results.
-- If the request is already well specified, say so and go straight to a short readback with at most a question or two.
-- Do not manufacture questions to justify the invocation.
+Only user-owned items enter the interview. A recommendation strong enough that a responsible implementer should simply take it is not a user decision.
 
-## What to Ask About
+## Discuss at Reviewer Altitude
 
-Intent-level questions are the job:
+Work through a small group of tightly related user-owned decisions at a time:
 
-- Motivation: what prompted this now; what problem it solves; what happens if it is not done.
-- Outcome: what done looks like; who or what consumes the result; how the user will judge it.
-- Scope: what is in and out; this instance or the whole class; what must not change.
-- Constraints: hard requirements, compatibility, quality bar, appetite (quick patch versus proper fix).
-- Priorities: which way to lean when tradeoffs bite.
-- Hidden context: prior attempts, known landmines, strong opinions the user already holds.
+1. Give the concise background needed to decide: relevant evidence, dependencies, stakes, and tradeoffs.
+2. Recommend an answer when the evidence supports a meaningful preference. If the recommendation is clearly dominant, reclassify the item as implementer-owned instead of asking.
+3. Ask focused questions whose answers resolve the group. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
+4. Follow an answer only when it conflicts with another decision, remains materially ambiguous, or exposes a consequential prerequisite. Resolve prerequisites before downstream decisions, and stop when the remaining choices belong to the implementer.
 
-Technical decisions are not the job:
+## Check Consequential Blind Spots
 
-- Do not ask the user to pre-decide stacks, libraries, patterns, naming, file layout, or algorithms.
-- Decide those during the work with normal judgment, or ask just-in-time when one genuinely blocks progress.
-- Exception: ask upfront when a technical choice is really the user's to own — externally visible, hard to reverse, or one they signaled an opinion about.
+After clearing the agenda, make one bounded pass for consequential issues neither side raised. Admit an issue only if it could materially change direction, scope, user-visible behavior, an external contract, or risk exposure. Leave minor issues and ordinary implementation concerns with the implementer. If no issue meets the bar, move directly to the readback.
 
-## How to Ask
+## Confirm, Then Act
 
-1. Look first, then ask. Extract everything the prompt, conversation, and obvious context already answer. Never ask what you can look up.
-2. Anchor briefly. Open with one or two sentences on what you already understood and where the load-bearing gaps are, so questions read as grounded rather than generic.
-3. Ask in small rounds of 2-4 questions, highest-leverage first. A question earns its slot only if its answer changes what you would do.
-4. Pick the form per question:
-   - Enumerable answers: use the agent's structured question tool when one exists; offer genuinely different options, put your best-guess default first, and keep an escape hatch for "none of these".
-   - Open-ended intent, such as "what prompted this?": ask in plain language. Do not force options onto motivation questions; pre-baked options bias the answer.
-   - No question widget available: ask numbered plain-text questions.
-5. Ask one thing per question, phrased neutrally. Do not lead toward the answer you hope for.
-6. Follow surprises. An answer that contradicts your assumption matters more than your planned next question.
+Give one compact decision readback that accounts for every original item and any admitted blind spot as:
 
-## When to Stop
+- a confirmed decision,
+- an implementer-owned action, or
+- an explicit deferral.
 
-Keep interviewing until confident, not until a question count runs out. Confident means you could state the user's goal, motivation, scope, and success criteria and expect them to endorse the statement.
+Include rationale only where it preserves an important tradeoff, and label remaining assumptions. Ask for one confirmation of the complete decision set. Corrections update the affected items before confirming the revised set.
 
-- Continue when an answer surprised you, two answers conflict, or the readback got corrected.
-- Stop when new answers no longer change your understanding and the remaining unknowns are implementation-level or cheap to reverse.
+Use the confirmed readback as the gate for action. Then carry the decisions into the original task. When the user requested only an interview, the confirmed readback is the deliverable.
 
-## Readback, Then Proceed
-
-1. Restate the recovered intent compactly: goal, motivation, in scope, out of scope, success criteria.
-2. Label explicit assumptions for anything deliberately left open.
-3. Ask for confirmation or correction. On correction, adjust and re-confirm only the corrected part.
-4. On confirmation, proceed with the original task carrying the confirmed intent. When the user asked only for the interview, the confirmed readback is the deliverable.
-
-Prefer the user's own words in the readback; introduce new terms only when they sharpen the statement.
-
-## Non-Goals
-
-- Not a stall: do not interview instead of working when a safe default exists.
-- Not permission-seeking; "should I proceed?" is not an interview question.
-- Not a completeness quiz; do not walk every question domain by checklist.
+The interview is complete when every agenda item is accounted for and no consequential user-owned decision remains unresolved; it does not need to visit every possible branch.
