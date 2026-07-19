@@ -106,6 +106,10 @@
           "agents": []
         },
         {
+          "name": "context7-cli",
+          "agents": ["codex"]
+        },
+        {
           "name": "context7-mcp",
           "agents": ["codex", "claude-code"]
         },
