@@ -1,6 +1,6 @@
 interface:
   display_name: "Interview"
-  short_description: "Brief every item and resolve open decisions"
-  default_prompt: "Use $interview to brief me on every important open item from our preceding conversation and this prompt, ask where my judgment is needed, confirm one decision readback, then act."
+  short_description: "Brief options and resolve open decisions"
+  default_prompt: "Use $interview to brief me on every important open item and its credible options, ask where my judgment is needed, confirm one decision readback, then act."
 policy:
   allow_implicit_invocation: false

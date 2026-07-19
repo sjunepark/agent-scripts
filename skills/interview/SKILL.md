@@ -1,6 +1,6 @@
 ---
 name: interview
-description: "Brief every consequential open item, interview the user where their judgment is needed, and act on the confirmed decisions. Use unresolved items from the preceding conversation or the prompt that invokes $interview. Use only when the user explicitly invokes $interview or asks to be interviewed; do not self-trigger."
+description: "Brief every consequential open item and its credible options, interview the user where their judgment is needed, and act on the confirmed decisions. Use unresolved items from the preceding conversation or the prompt that invokes $interview. Use only when the user explicitly invokes $interview or asks to be interviewed; do not self-trigger."
 ---
 
 # Interview
@@ -27,16 +27,16 @@ Work through a small group of tightly related agenda items at a time:
 3. Explain the minimum needed to understand or decide the item in plain language:
    - the decision-relevant concept, with unfamiliar terms defined on first use;
    - what is true now and why the issue exists;
-   - why it matters to users, the product, risk, or future maintenance;
-   - the recommended disposition and why.
+   - why it matters to users, the product, risk, or future maintenance.
    Translate implementation facts into reviewer-level consequences. Include one concrete example when the choice changes an API, workflow, or other user-visible behavior. Use the shortest explanation that establishes the mental model.
-4. Resolve according to ownership:
-   - **Implementer-owned:** explain why the chosen answer is strongly preferred and state the intended action without asking the user to choose.
+4. Present the option set, then resolve according to ownership:
+   - **Implementer-owned:** state the chosen answer and why it is strongly preferred. Briefly name the strongest credible alternatives, giving each one concise line for its main consequence and the condition that would make it appropriate. Then state the intended action without asking the user to choose.
    - **User-owned:** explain how the realistic options differ in outcomes and durable obligations, why the recommendation wins, and what condition would favor another option. Then ask a focused question. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
    - **Deferred:** explain what remains unknown, why resolution is premature, and what would unblock it.
+   Limit option sets to credible directions with meaningfully different outcomes. When constraints leave one viable direction, state the constraint and move on.
 5. Follow an answer only when it conflicts with another decision, remains materially ambiguous, or exposes a consequential prerequisite. Resolve prerequisites before downstream decisions, and stop when the remaining choices belong to the implementer.
 
-Place the brief before the first question or confirmation. Treat classification labels, recommendations, and the decision readback as summaries that follow the brief. Advance only when every agenda item has enough context for a reviewer to explain the issue, its importance, and the effect of its disposition without reading the underlying implementation; for user-owned items, the reviewer must also understand the effect of each realistic option.
+Place the brief before the first question or confirmation. Treat classification labels, recommendations, and the decision readback as summaries that follow the brief. Advance only when every resolvable item has enough context for a reviewer to explain the issue, its importance, the recommendation, and the credible outcome-distinct alternatives—or the constraint that leaves one viable direction—without reading the underlying implementation; for user-owned items, the reviewer must also understand the effect of each realistic option well enough to choose.
 
 ## Check Consequential Blind Spots
 
