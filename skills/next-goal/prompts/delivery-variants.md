@@ -20,7 +20,8 @@ Usually write one to three short paragraphs per variant containing only:
 - the outcome and stopping boundary;
 - the few authoritative plan documents to follow;
 - verified state or a completion condition only when needed to disambiguate the plans;
-- a direction to follow applicable `AGENTS.md`, preserve unrelated changes, keep plans current, and perform repository-required validation and review;
+- an explicit `$progress` invocation to keep the repository's authoritative work queue current throughout execution, including blockers and completion. Treat each progress slice as an internal checkpoint and continue `/goal` until the recommended boundary is complete;
+- a direction to follow applicable `AGENTS.md`, preserve unrelated changes, and perform repository-required validation and review;
 - a requirement to commit incrementally as meaningful, passing units finish; do not defer all commits until goal completion or collapse the run into one final commit. Make each message state what changed and why, including non-obvious decisions needed later.
 
 ## Delivery Recommendation
@@ -48,4 +49,4 @@ Require completing the selected boundary through implementation, validation, rep
 
 Leave implementation steps, file inventories, design guidance, invariants, test matrices, commands, git details beyond the selected variant's required delivery lifecycle, and status recaps to the goal-running agent and cited repository documents. Include an omitted detail only when the plans do not contain it and the goal would otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain choices into instructions.
 
-Verify that the recommendation follows the expected review-surface rule and that both prompts are actionable without the conversation and preserve exactly the same goal boundary and completion contract.
+Verify that the recommendation follows the expected review-surface rule and that both prompts are actionable without the conversation, explicitly invoke `$progress`, treat its slices as checkpoints inside `/goal`, and preserve exactly the same goal boundary and completion contract.

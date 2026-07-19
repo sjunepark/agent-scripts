@@ -1,6 +1,6 @@
 interface:
   display_name: "Next Goal"
   short_description: "Choose a substantial implementation goal"
-  default_prompt: "Use $next-goal to inspect this repository, decide whether a substantial /goal is warranted, recommend PR delivery or later aggregation based on expected change size, and return both copy-paste variants."
+  default_prompt: "Use $next-goal to decide whether a substantial /goal is warranted and, when it is, return both delivery variants with $progress tracking."
 policy:
   allow_implicit_invocation: false

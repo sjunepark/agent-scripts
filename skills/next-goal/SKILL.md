@@ -1,15 +1,15 @@
 ---
 name: next-goal
-description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then, when /goal is warranted, recommend PR delivery or no-PR aggregation based on expected change size and return both fresh-session prompt variants. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
+description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then, when /goal is warranted, recommend PR delivery or no-PR aggregation and return both fresh-session prompt variants with $progress tracking. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
 ---
 
 # Next Goal
 
-Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate both short fresh-session routing prompts. Keep this run read-only: inspect the repository and return the result, but leave files, plans, goals, git state, and external systems unchanged.
+Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate both short fresh-session routing prompts. Keep this selection run read-only: inspect the repository and return the result, but leave files, plans, goals, git state, and external systems unchanged. Put `$progress` tracking in the generated prompts so the goal-running session, not this selection run, owns durable planning state.
 
 ## 1. Establish Current State
 
-1. Read applicable `AGENTS.md` files and resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow repository conventions and links. When no plan exists, infer candidates from instructions, code, tests, and history.
+1. Read applicable `AGENTS.md` files and resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow repository conventions and links. When concurrent worktrees or scoped roadmaps exist, select the current worktree's planning namespace; read other scopes only for an explicitly requested aggregate goal. When no plan exists, infer candidates from instructions, code, tests, and history.
 2. Inspect git status and recent history, then read only enough implementation and validation evidence to detect stale plan claims, completed work, real prerequisites, and blockers.
 3. Ask only when plausible choices would materially change the outcome or no safe, unblocked goal can be supported by evidence.
 
