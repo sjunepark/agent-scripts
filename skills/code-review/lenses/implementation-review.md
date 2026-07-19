@@ -5,11 +5,21 @@
 1. Inspect the review target.
    - Check `git status --short` when reviewing a repository change set.
    - Inspect relevant diffs and nearby code needed to judge the change.
+   - Read any user-named or directly governing issue, roadmap, specification,
+     ADR, or migration plan. Map its relevant goals, constraints, and non-goals
+     to the implementation under review.
 
 2. Review for material issues.
-   - Check correctness, state/lifecycle ordering, validation and invariants,
-     type/schema fit, ownership boundaries, integration contracts, tests, and
-     user-visible regressions.
+   - Check intent and requirements coverage, unintended scope, correctness,
+     state/lifecycle and concurrency ordering, validation and invariants,
+     type/schema fit, ownership boundaries, integration contracts, error
+     behavior, tests, and user-visible regressions.
+   - Where the target exposes them, check security and privacy, persisted-data
+     and migration safety, compatibility, performance and resource bounds,
+     operational diagnosability, documentation, and accessibility.
+   - Continue once each relevant stated outcome and each material risk exposed
+     by the changed behavior has implementation or validation evidence, a
+     finding, or an explicit residual-risk note.
 
 3. Use subagents when useful.
    - Use the lightest review shape that materially improves confidence: often
@@ -33,9 +43,12 @@
      compatibility, churn, or risk judgment.
    - After Bucket I edits, re-inspect the new diff and affected code paths. If
      new Bucket I items appear, apply them and recheck again.
-   - Keep going while useful until no Bucket I items remain, only Bucket II
-     decisions remain, validation/scope/context blocks safe continuation, or
-     another pass would become repetitive, broad, or speculative.
+   - When the edit policy forbids edits, record Bucket I items as `proposed`
+     and continue the bounded review without modifying files.
+   - Keep going while useful until every Bucket I item is applied or recorded
+     as `proposed`, only Bucket II decisions remain,
+     validation/scope/context blocks safe continuation, or another pass would
+     become repetitive, broad, or speculative.
    - Batch related Bucket I work that shares files, modules, ownership
      boundaries, or state domains when safe.
    - Do not apply removals of intentional-looking code unless the artifact is

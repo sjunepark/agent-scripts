@@ -1,8 +1,9 @@
 # Architecture and Code-Design Lens
 
 Judge whether the review target fits the surrounding system, not only whether
-its lines work. Expand from the reviewed change or named area to the whole
-codebase only when the user asks for that scope.
+its lines work. Scope ordinary reviews to affected modules and consumers. When
+the system lens is active, follow its intent map across affected areas; expand
+beyond those consequences only when the user asks for a whole-codebase review.
 
 ## Workflow
 
