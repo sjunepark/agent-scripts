@@ -1,6 +1,6 @@
 ---
 name: interview
-description: "Brief and interview the user to resolve consequential open items from the preceding conversation or the prompt that invokes $interview, then act on the confirmed decisions. Use only when the user explicitly invokes $interview or asks to be interviewed about findings or questions; do not self-trigger."
+description: "Brief every consequential open item, interview the user where their judgment is needed, and act on the confirmed decisions. Use unresolved items from the preceding conversation or the prompt that invokes $interview. Use only when the user explicitly invokes $interview or asks to be interviewed; do not self-trigger."
 ---
 
 # Interview
@@ -9,32 +9,34 @@ Treat unresolved findings and questions from the relevant preceding conversation
 
 ## Build and Triage the Agenda
 
-1. Gather every unresolved finding or open question from the preceding conversation that the invocation refers to and from the invoking prompt itself. Honor any scope the current prompt sets, then group tightly related items.
+1. Gather every item named or scoped by the invoking prompt. From the otherwise relevant preceding conversation, add only unresolved findings or questions that could materially affect direction, scope, user-visible behavior, an external contract, risk, or review policy. Then group tightly related items.
 2. Inspect the relevant conversation, workspace, and other available evidence. Finding facts is the agent's job; ask the user only for judgment they need to own.
 3. Classify every agenda item:
    - **Implementer-owned:** an implementation detail or an item with a strongly preferred answer. Choose the answer and state the intended handling briefly.
    - **User-owned:** multiple reasonable answers remain and the choice materially affects direction, scope, user-visible behavior, an external contract, risk, or review policy.
    - **Deferred:** the user intentionally leaves the item open. Record what remains unresolved and, when useful, what would unblock it.
 
-Only user-owned items enter the interview. A recommendation strong enough that a responsible implementer should simply take it is not a user decision.
+Only user-owned items receive decision questions. Every agenda item receives a reviewer brief before its disposition. Classification determines who decides, not whether the user receives context.
 
-## Brief, Then Ask
+## Brief Every Item, Then Ask
 
-Work through a small group of tightly related user-owned decisions at a time:
+Work through a small group of tightly related agenda items at a time:
 
 1. Infer the user's relevant knowledge from the conversation. Default to a reviewer who understands the goal but not the subsystem's mechanics.
-2. Re-synthesize a self-contained decision brief, even when the evidence appeared earlier. The user should not need to scroll, inspect source files, or understand unexplained jargon.
-3. Explain the minimum needed to decide in plain language:
+2. Re-synthesize a self-contained reviewer brief for every item, including implementer-owned items, even when the evidence appeared earlier. The user should not need to scroll, inspect source files, or understand unexplained jargon.
+3. Explain the minimum needed to understand or decide the item in plain language:
    - the decision-relevant concept, with unfamiliar terms defined on first use;
    - what is true now and why the issue exists;
-   - why the decision belongs to the user;
-   - how the realistic options differ in user or product outcomes and durable maintenance obligations;
-   - the recommendation, why it wins, and what condition would favor another option.
-   Translate implementation facts into reviewer-level consequences. Include one concrete example when the choice changes an API, workflow, or other user-visible behavior.
-4. Ask focused questions only after the brief establishes that mental model. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
+   - why it matters to users, the product, risk, or future maintenance;
+   - the recommended disposition and why.
+   Translate implementation facts into reviewer-level consequences. Include one concrete example when the choice changes an API, workflow, or other user-visible behavior. Use the shortest explanation that establishes the mental model.
+4. Resolve according to ownership:
+   - **Implementer-owned:** explain why the chosen answer is strongly preferred and state the intended action without asking the user to choose.
+   - **User-owned:** explain how the realistic options differ in outcomes and durable obligations, why the recommendation wins, and what condition would favor another option. Then ask a focused question. Use a structured question tool for genuinely enumerable choices when available; otherwise use numbered plain text.
+   - **Deferred:** explain what remains unknown, why resolution is premature, and what would unblock it.
 5. Follow an answer only when it conflicts with another decision, remains materially ambiguous, or exposes a consequential prerequisite. Resolve prerequisites before downstream decisions, and stop when the remaining choices belong to the implementer.
 
-A decision brief is complete when a reviewer can state what is being decided, why it matters, and what users or maintainers would experience under each option without reading the underlying implementation.
+Place the brief before the first question or confirmation. Treat classification labels, recommendations, and the decision readback as summaries that follow the brief. Advance only when every agenda item has enough context for a reviewer to explain the issue, its importance, and the effect of its disposition without reading the underlying implementation; for user-owned items, the reviewer must also understand the effect of each realistic option.
 
 ## Check Consequential Blind Spots
 
@@ -48,7 +50,7 @@ Give one compact decision readback that accounts for every original item and any
 - an implementer-owned action, or
 - an explicit deferral.
 
-Include rationale only where it preserves an important tradeoff, and label remaining assumptions. Ask for one confirmation of the complete decision set. Corrections update the affected items before confirming the revised set.
+Include rationale only where it preserves an important tradeoff, and label remaining assumptions. Ask for confirmation of the complete decision set in one response. A reply that unambiguously approves only some items confirms those items; a question, qualification, or correction keeps the affected items unresolved. Ask only for confirmation or correction of the unresolved remainder.
 
 Use the confirmed readback as the gate for action. Then carry the decisions into the original task. When the user requested only an interview, the confirmed readback is the deliverable.
 
