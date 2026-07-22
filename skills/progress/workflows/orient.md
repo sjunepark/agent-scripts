@@ -2,13 +2,18 @@
 
 Use this read-only branch to regain context or audit stale planning claims.
 
-1. Resolve the selected scope's index and read all linked item files. If no
-   index exists, report that fact and recommend initialization without
-   creating files. During parallel work, keep other worktree namespaces out of
-   scope unless the user requests a cross-worktree status report.
+1. Resolve the selected scope's index. If no index exists, report that fact and
+   recommend initialization without creating files. During parallel work, keep
+   other worktree namespaces out of scope unless the user requests a
+   cross-worktree status report. With an active goal, recover and test its
+   terminal state before opening linked project-item contents; otherwise read
+   the linked files required by the requested orientation.
 2. For an ordinary orientation, verify the current item and first queued plan
    against relevant code, tests, git status, and recent history. Scan the
-   remaining links for obvious contradictions or missing targets.
+   remaining links for obvious contradictions or missing targets. With an
+   active goal, report goal current/next separately from project current/next
+   and classify any proposed transition before recommending it. Do not open an
+   excluded project item's contents when the goal is already terminal.
 3. For an explicit audit, verify every in-scope item and classify it as:
    `current`, `queued`, `available`, `blocked`, `complete`, or `stale`.
 4. Keep document claims distinct from verified repository evidence. A stale

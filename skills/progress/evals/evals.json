@@ -1,0 +1,154 @@
+{
+  "skill_name": "progress",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $progress in goal mode to continue the active goal autonomously. Keep the project roadmap accurate and take the next action.",
+      "expected_output": "The agent loads goals/publication-foundation.md before selecting work, classifies the current integrated review as outside the contract, marks the goal complete, retains the review as Current in ROADMAP, and returns without reading further into or implementing the review. It does not create a review branch or PR.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/goals/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use $progress in goal mode. The contract includes results A and B. A is complete, B is now Current, and C remains queued outside the goal. Continue.",
+      "expected_output": "The transition check classifies B as included and proceeds. The agent does not complete prematurely after A and does not treat C as included merely because it follows B.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use $progress in goal mode. An included review is complete and produced a new remediation plan X. X is valuable but no original completion condition requires it. The roadmap now makes X Current.",
+      "expected_output": "The agent classifies X as outside, records it in project state without implementation, and completes or continues only the remaining original contract. It does not absorb X because the review created it.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $progress in goal mode. While implementing included result A, the agent discovers a small schema migration without which A's required validation cannot pass.",
+      "expected_output": "The agent identifies the smallest bounded migration as necessary, states the completion condition it supports, includes it without changing the semantic outcome, and avoids generalizing the exception into unrelated migration cleanup.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Use $progress in goal mode. A finding would improve trustworthiness but changes the architecture and adds a new acceptance program not named by the contract.",
+      "expected_output": "The agent classifies the finding as ambiguous or materially expansive, persists the blocker, and requests explicit user direction before implementation.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Use $progress in goal mode after context compaction. The conversational summary says only to keep following ROADMAP, while one active goal file in this planning scope contains a narrower contract.",
+      "expected_output": "The agent loads the durable goal file, treats it as authorization, and ignores the summary's broader queue-based implication. Its next action remains inside the recovered contract.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Use $progress in goal mode, but the prompt's goal-state path is missing and two active goal files exist in this planning scope. ROADMAP has a clear Current item.",
+      "expected_output": "The agent fails closed and asks which exact contract applies. It does not use ROADMAP Current or conversational fragments to choose a goal.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Use $progress in goal mode. The user explicitly says: add result X to this goal because it is now required for release. Continue after recording the change.",
+      "expected_output": "The agent appends an authorized amendment containing the substance and effect of the user's instruction, retains the original contract, updates effective status, and may proceed with X after a boundary check.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Use $progress in goal mode. The final included PR merged and all checks passed. ROADMAP now points at an appealing unblocked follow-up plan.",
+      "expected_output": "The agent updates the retained goal file to complete, commits and pushes only terminal goal and truthful project-planning metadata directly on the preflighted integration branch, and returns before creating another work branch or PR. The commit contains no code or expanded scope; the follow-up may remain Current without becoming goal work.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/goals/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Use $progress in goal mode in one of two concurrent worktrees. Each worktree has a scoped roadmap and active goal, and the other worktree just changed its Current item.",
+      "expected_output": "The agent reads and updates only goals/<current-scope>/<slug>.md and the current worktree's planning namespace. The other worktree's queue and contract cannot change this goal's membership.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Use $progress to continue the current work after context compaction. The prior conversational prompt is unavailable.",
+      "expected_output": "The agent detects the one active goal file in the resolved ordinary planning scope without requiring the words goal mode, recovers its closed contract, classifies the roadmap's integrated review as outside, completes the goal, and returns without implementing the review or inferring authority from Current.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/goals/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Use $progress to capture an unscheduled Documentation Polish task for later. This is project-queue bookkeeping only: leave the active goal untouched and do not start implementation.",
+      "expected_output": "The agent selects the ordinary organize workflow, creates one task item and one roadmap Tasks link, and performs no goal boundary classification or implementation. The active goal file remains byte-for-byte unchanged; capturing project work does not add it to goal scope.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/goals/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Use $progress in goal mode to initialize the contract in generated-goal-prompt.md, persist its resumable state, and stop before implementation.",
+      "expected_output": "The agent creates goals/publication-foundation.md, copies the full Goal contract block byte-for-byte under Original contract including Goal state, Resume invariant, and Delivery, adds only mutable execution status around it, and persists the initialized state without starting implementation.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/generated-goal-prompt.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Continue the established persistent /goal after context compaction. The original conversational prompt is unavailable. Proceed autonomously from durable repository state.",
+      "expected_output": "The agent honors the established resume invariant without requiring the user to repeat $progress, recovers the one active goal file before selecting work, classifies the roadmap's integrated review as outside, durably completes the goal, and does not begin the review.",
+      "files": [
+        "evals/fixtures/scope-cascade-resume/AGENTS.md",
+        "evals/fixtures/scope-cascade-resume/ROADMAP.md",
+        "evals/fixtures/scope-cascade-resume/goals/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/publication-foundation.md",
+        "evals/fixtures/scope-cascade-resume/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade-resume/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Use $progress to hand off the current project work. The repository happens to keep product strategy under goals/.",
+      "expected_output": "The agent ignores goals/product-objectives.md for implicit dispatch because it lacks the durable execution-contract schema, selects the ordinary handoff workflow, and updates only the cache-reliability project handoff. It does not enter goal mode or fail closed.",
+      "files": [
+        "evals/fixtures/ordinary-goals-directory/AGENTS.md",
+        "evals/fixtures/ordinary-goals-directory/ROADMAP.md",
+        "evals/fixtures/ordinary-goals-directory/goals/product-objectives.md",
+        "evals/fixtures/ordinary-goals-directory/plans/cache-reliability.md"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Use $progress in goal mode to continue the active goal. Project Current has already advanced independently.",
+      "expected_output": "The agent recovers goals/launch-path.md before opening a candidate plan, selects and classifies Renderer Rollout from goal status as included, and reads/continues that plan. It does not select or open the excluded assurance review merely because ROADMAP marks it Current.",
+      "files": [
+        "evals/fixtures/midgoal-queue-drift/AGENTS.md",
+        "evals/fixtures/midgoal-queue-drift/ROADMAP.md",
+        "evals/fixtures/midgoal-queue-drift/goals/launch-path.md",
+        "evals/fixtures/midgoal-queue-drift/plans/excluded-assurance-review.md",
+        "evals/fixtures/midgoal-queue-drift/plans/renderer-rollout.md"
+      ]
+    }
+  ]
+}

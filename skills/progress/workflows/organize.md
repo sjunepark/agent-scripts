@@ -68,8 +68,10 @@ plan; an anytime empty-state polish is a task.
 
 - **Capture:** create the item file and add one index link. Infer plan versus
   task from scheduling intent; ask only when that intent is genuinely unclear.
-- **Start:** move the selected link into `Current`. Return an interrupted plan
-  to the front of the plan queue and an interrupted task to the task pool.
+  With an active goal, capturing the item does not add it to goal scope.
+- **Start:** with an active goal, run its boundary check before moving the
+  selected link into `Current`. Return an interrupted plan to the front of the
+  plan queue and an interrupted task to the task pool.
 - **Reorder:** edit only the numbered plan links. Treat the order as intention,
   not as a dependency claim.
 - **Schedule:** move a task file into the same scope's plan directory. If it is
@@ -81,7 +83,9 @@ plan; an anytime empty-state polish is a task.
   the unordered pool.
 - **Complete:** summarize the achieved outcome under `Current state`, set
   `Next action` to `None — complete`, and remove the active link. Leave
-  `Current` empty rather than starting unrelated work automatically.
+  `Current` empty rather than starting unrelated work automatically. With an
+  active goal, complete the goal when its terminal condition now holds; do not
+  promote the next project item into goal status.
 
 Preserve useful content when adopting or moving existing files. Finish only
 when no active item was lost and the index satisfies the invariants in

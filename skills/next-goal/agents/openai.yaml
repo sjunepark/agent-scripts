@@ -1,6 +1,7 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Choose a substantial implementation goal"
-  default_prompt: "Use $next-goal to decide whether a substantial /goal is warranted and, when it is, return both delivery variants with $progress tracking."
+  short_description: "Choose a bounded substantial implementation goal"
+  default_prompt: "Use $next-goal to decide whether a substantial /goal is warranted and return both delivery variants with a closed goal contract and $progress goal tracking."
+
 policy:
   allow_implicit_invocation: false

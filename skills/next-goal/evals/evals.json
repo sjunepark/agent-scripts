@@ -1,0 +1,44 @@
+{
+  "skill_name": "next-goal",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $next-goal to choose the next substantial goal from this repository and return both copy-paste delivery variants.",
+      "expected_output": "A read-only recommendation for the four Publication Foundation results. Both prompt bodies contain the same closed goal contract with a concrete goals/ state path, semantic included results, an observable terminal condition after publication viewer scaling, the integrated review and performance/Windows work as explicit exclusions, a bounded derived-work rule, explicit-user-only expansion authority, and a $progress recovery invariant for every resume. Each prompt treats ROADMAP as project order rather than authorization, checks every plan/branch/PR/outcome transition, fails closed when goal state is unavailable, and completes before consulting the integrated review. The PR variant preflights and persists initial and terminal goal metadata on a non-production integration branch. Only the Delivery field and delivery mechanics differ.",
+      "files": [
+        "evals/fixtures/scope-cascade/AGENTS.md",
+        "evals/fixtures/scope-cascade/ROADMAP.md",
+        "evals/fixtures/scope-cascade/plans/canonical-artifacts.md",
+        "evals/fixtures/scope-cascade/plans/evaluation-data-plane.md",
+        "evals/fixtures/scope-cascade/plans/local-preview.md",
+        "evals/fixtures/scope-cascade/plans/publication-viewer-scaling.md",
+        "evals/fixtures/scope-cascade/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use $next-goal. The settled milestone consists of plans A and B; C is the first unrelated milestone. Produce both goal prompts and make it possible for a compacted fresh session to distinguish continuing from A to B from continuing into C.",
+      "expected_output": "Both prompts explicitly include A and B as semantic members, define completion after B, name C as excluded inside the prompt, and require durable $progress goal state plus recovery on every continuation. The transition rule continues from A to B but completes before C even if C becomes Current. It does not use a maximum PR count or make every plan a separate goal.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use $next-goal in a repository with two active worktrees, each with its own scoped roadmap. Select work only for the current worktree and return both prompt variants.",
+      "expected_output": "The recommendation reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and places both identical scope contracts at a concrete goals/<scope>/<slug>.md path. The prompts state that other worktree queues and goals cannot change this goal's membership.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $next-goal for the current dev planning scope and return both copy-paste goal prompts.",
+      "expected_output": "A contract for Storage Baseline followed by Renderer Rollout, with goals/dev/<slug>.md as durable state, completion after the Launch Path rollout, Compliance Sweep explicitly excluded, and $progress recovery required on every resume inside both prompts. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
+      "files": [
+        "evals/fixtures/checkpoint-chain/AGENTS.md",
+        "evals/fixtures/checkpoint-chain/ROADMAP_DEV.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/storage-baseline.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/renderer-rollout.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/compliance-sweep.md"
+      ]
+    }
+  ]
+}

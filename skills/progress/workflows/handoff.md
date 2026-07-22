@@ -12,7 +12,9 @@ Use this branch to preserve continuation context without implementing code.
    constraints, unfinished changes, real blockers, and evidence that the next
    session cannot cheaply rediscover.
 4. Set `Next action` to the first concrete action or unresolved decision. Keep
-   checklist and validation sections only when they sharpen that action.
+   checklist and validation sections only when they sharpen that action. With
+   an active goal, name only an in-scope action; record excluded project work in
+   its own item without turning it into the goal handoff.
 5. Point `Current` at the unfinished item. If the outcome is complete, record
    completion and remove it from the active index.
 

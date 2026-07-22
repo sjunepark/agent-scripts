@@ -1,7 +1,7 @@
 interface:
   display_name: "Progress"
-  short_description: "Keep roadmaps, plans, and tasks actionable"
-  default_prompt: "Use $progress to reconcile the current work and recommend the next action."
+  short_description: "Manage queues and recover bounded goal state"
+  default_prompt: "Use $progress to reconcile project work or initialize, recover, and enforce a durable goal-scoped execution contract."
 
 policy:
   allow_implicit_invocation: false
