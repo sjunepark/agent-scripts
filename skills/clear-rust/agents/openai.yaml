@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clear Rust"
+  short_description: "Write plain, explicit, maintainable Rust"
+  default_prompt: "Use $clear-rust to write or review Rust code with plain, explicit, maintainable design."
