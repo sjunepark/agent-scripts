@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Use $next-goal to choose the next substantial goal from this repository and return both copy-paste delivery variants.",
-      "expected_output": "A read-only recommendation for the four Publication Foundation results. Both prompt bodies contain the same closed goal contract with a concrete goals/ state path, semantic included results, an observable terminal condition after publication viewer scaling, the integrated review and performance/Windows work as explicit exclusions, a bounded derived-work rule, explicit-user-only expansion authority, and a $progress recovery invariant for every resume. Each prompt treats ROADMAP as project order rather than authorization, checks every plan/branch/PR/outcome transition, fails closed when goal state is unavailable, and completes before consulting the integrated review. The PR variant preflights and persists initial and terminal goal metadata on a non-production integration branch. Only the Delivery field and delivery mechanics differ.",
+      "prompt": "Use $next-goal to choose the next substantial goal from this repository.",
+      "expected_output": "A read-only PR-delivery recommendation for exactly the four Publication Foundation results and one compact copy-paste PR prompt, followed by a one-sentence offer to provide the alternate. The prompt contains a concrete goals/ state path; pairs each semantic result with its source without turning AGENTS.md, ROADMAP, or sequencing into another result; ends after publication viewer scaling; excludes the integrated review and performance/Windows work; authorizes only necessary work with explicit-user-only expansion; invokes $progress for initialization and recovery; and keeps completion delivery-neutral. Scope transitions, integration-branch handling, goal-state persistence, and terminal mechanics are delegated to $progress rather than restated. PR creation and feedback handling are delegated to $create-pr and $address-pr-feedback.",
       "files": [
         "evals/fixtures/scope-cascade/AGENTS.md",
         "evals/fixtures/scope-cascade/ROADMAP.md",
@@ -19,19 +19,19 @@
     {
       "id": 2,
       "prompt": "Use $next-goal. The settled milestone consists of plans A and B; C is the first unrelated milestone. Produce both goal prompts and make it possible for a compacted fresh session to distinguish continuing from A to B from continuing into C.",
-      "expected_output": "Both prompts explicitly include A and B as semantic members, define completion after B, name C as excluded inside the prompt, and require durable $progress goal state plus recovery on every continuation. The transition rule continues from A to B but completes before C even if C becomes Current. It does not use a maximum PR count or make every plan a separate goal.",
+      "expected_output": "Both compact prompts pair A and B with their source plans, define completion after B, name C as excluded inside each prompt, and require durable $progress goal state plus recovery on every continuation. They delegate transition enforcement to $progress, which continues from A to B but completes before C even if C becomes Current. Their contracts are textually identical except for Delivery, and they do not use a maximum PR count or make every plan a separate goal.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "Use $next-goal in a repository with two active worktrees, each with its own scoped roadmap. Select work only for the current worktree and return both prompt variants.",
-      "expected_output": "The recommendation reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and places both identical scope contracts at a concrete goals/<scope>/<slug>.md path. The prompts state that other worktree queues and goals cannot change this goal's membership.",
+      "prompt": "Use $next-goal in a repository with two active worktrees, each with its own scoped roadmap. Select work only for the current worktree.",
+      "expected_output": "The recommendation reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and returns one recommended prompt with a concrete goals/<scope>/<slug>.md path. Its compact contract makes the current scope's semantic results authoritative and delegates recovery and transition enforcement to $progress; other worktree queues and goals cannot change membership. It offers the alternate delivery prompt in one sentence.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $next-goal for the current dev planning scope and return both copy-paste goal prompts.",
-      "expected_output": "A contract for Storage Baseline followed by Renderer Rollout, with goals/dev/<slug>.md as durable state, completion after the Launch Path rollout, Compliance Sweep explicitly excluded, and $progress recovery required on every resume inside both prompts. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
+      "expected_output": "Two compact prompts with the same contract for Storage Baseline followed by Renderer Rollout, pairing each semantic result with its source, using goals/dev/<slug>.md as durable state, completing after the Launch Path rollout, explicitly excluding Compliance Sweep, and requiring $progress recovery on every resume. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
       "files": [
         "evals/fixtures/checkpoint-chain/AGENTS.md",
         "evals/fixtures/checkpoint-chain/ROADMAP_DEV.md",
@@ -39,6 +39,34 @@
         "evals/fixtures/checkpoint-chain/plans/dev/renderer-rollout.md",
         "evals/fixtures/checkpoint-chain/plans/dev/compliance-sweep.md"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Change `Readiness: draft` to `Readiness: settled` in plans/foundation.md and commit that user-authorized planning change, then use $next-goal to choose the next substantial goal.",
+      "expected_output": "The separately authorized planning edit and commit finish first. The agent then begins a read-only goal-selection phase from the resulting status and history, makes no further repository or external mutations, and clearly separates the prerequisite commit result from the next-goal recommendation.",
+      "files": [
+        "evals/fixtures/prerequisite-mutation/AGENTS.md",
+        "evals/fixtures/prerequisite-mutation/ROADMAP.md",
+        "evals/fixtures/prerequisite-mutation/plans/foundation.md"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Use $next-goal and give me only the No PR prompt even if PR delivery is recommended.",
+      "expected_output": "The agent keeps its evidence-based delivery recommendation truthful but returns one self-contained No PR prompt as explicitly requested. It does not also emit the PR prompt or merely offer the requested alternate.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Use $next-goal. Repository evidence warrants a substantial goal but its expected diff is too small for a standalone review, so recommend No PR. Give me only the PR delivery prompt anyway.",
+      "expected_output": "The agent truthfully recommends No PR but returns one self-contained PR-delivery prompt as explicitly requested. It does not also emit the No PR prompt or replace the recommendation with PR delivery.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Use $next-goal. The only remaining unblocked work is a one-line typo fix suitable for an ordinary interactive turn.",
+      "expected_output": "The agent explains that /goal is not warranted, emits no copy-paste goal prompt, and does not offer an alternate delivery variant.",
+      "files": []
     }
   ]
 }
