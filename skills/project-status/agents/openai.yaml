@@ -1,0 +1,7 @@
+interface:
+  display_name: "Project Status"
+  short_description: "Triangulate current project state and next work"
+  default_prompt: "Use $project-status to give me a concise, evidence-backed briefing on the project and recommend what to work on next."
+
+policy:
+  allow_implicit_invocation: true
