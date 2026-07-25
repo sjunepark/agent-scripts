@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modern Rust"
+  short_description: "Use recent Rust language and toolchain features"
+  default_prompt: "Use $modern-rust to account for recent Rust releases while working on this Rust codebase."
