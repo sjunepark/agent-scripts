@@ -1,11 +1,11 @@
 ---
 name: next-goal
-description: "Choose a substantial, evidence-backed implementation goal from repository plans and current state, then, when /goal is warranted, recommend PR delivery or no-PR aggregation and return one compact fresh-session prompt with a closed execution contract and $progress goal tracking. Return the alternate delivery prompt only when explicitly requested. Use only when the user explicitly invokes $next-goal; prefer a phase, milestone, or multiple connected plan slices over a small standalone slice."
+description: "Choose a substantial, evidence-backed implementation goal and emit one compact fresh-session routing envelope with a closed scope contract, $progress recovery, and an evidence-based PR or no-PR delivery choice. Use only when the user explicitly invokes $next-goal; return alternate delivery prompts only when requested, and prefer a settled phase or milestone over a small standalone slice."
 ---
 
 # Next Goal
 
-Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate one compact fresh-session routing prompt with a closed execution contract. Generate a non-recommended delivery prompt only when the user explicitly requests that variant, alone or alongside the recommendation.
+Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate one compact fresh-session routing envelope with a closed execution contract. Generate a non-recommended delivery prompt only when the user explicitly requests that variant, alone or alongside the recommendation.
 
 Keep the goal-selection phase read-only. A combined request may separately authorize prerequisite mutation, such as committing completed planning work. Complete that distinct phase first under its applicable workflow, report it separately, and then select from the resulting repository state without further mutation. Put `$progress` goal tracking in the generated prompt so the goal-running session, not the selection phase, initializes durable goal state.
 
@@ -32,18 +32,18 @@ The selected boundary must:
 
 First absorb naturally connected work that follows a small candidate. If no substantial unblocked boundary remains, say that `/goal` is not warranted yet instead of manufacturing a small goal.
 
-Before routing, express the boundary as a closed goal contract:
+Before routing, reduce the boundary to a closed routing envelope:
 
-- **Outcome** — the semantic project or user result.
+- **Outcome** — the semantic project or user result in one sentence.
 - **Goal state** — one concrete durable path: `goals/<stable-slug>.md` for ordinary work or `goals/<scope>/<stable-slug>.md` for an isolated worktree planning scope.
-- **Included results and sources** — every authorized result named semantically and paired with the few authoritative documents that supply its implementation detail. Every entry must be a semantic result; do not turn a roadmap, `AGENTS.md`, sequencing rule, or other routing source into another included result. Paths and queue positions do not define membership.
-- **Completion** — observable conditions that end the goal after all included results, validation, review, and selected delivery work finish.
-- **Excluded work** — the first meaningful excluded area plus every explicit user exclusion needed to prevent a plausible continuation mistake.
+- **Included results and sources** — every authorized result as a short, stable semantic label paired with the few authoritative documents that supply its implementation and acceptance detail. Labels define membership; paths and queue positions do not.
+- **Completion** — one compact predicate requiring each named result to achieve its cited outcome and any applicable completion criteria, plus only cross-cutting validation, review, freshness, and delivery conditions not already carried by those sources.
+- **Excluded work** — exactly the immediate next out-of-scope milestone plus exclusions stated directly by the user. Authority supplies the complete boundary for every later, unrelated, or merely plan-documented item.
 - **Authority** — allow only the smallest bounded work necessary for an included result; record unnecessary work for later and require explicit user direction for ambiguous, expansive, or scope-enlarging work.
 - **Resume invariant** — at every resumed turn, automatic continuation,
   compaction recovery, or handoff, invoke `$progress` in goal mode and recover
   the named goal state before selecting or starting more work.
-- **Delivery** — the lifecycle used by the emitted prompt.
+- **Delivery** — the selected lifecycle and its skill routing, kept inside the contract so recovery preserves it.
 
 Treat goal membership as closed. Advancing a roadmap, changing `Current`, creating a plan, opening a branch or PR, or discovering review findings never adds work to the goal. Project planning state describes what the project should do next; the goal contract alone describes what this run is authorized to do.
 

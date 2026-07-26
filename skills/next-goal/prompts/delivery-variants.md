@@ -18,9 +18,9 @@ When the user explicitly asks for both variants, return two labeled fenced block
 - **PR delivery** — require sequential PR creation, review, and merge.
 - **No PR** — require completion without PR creation.
 
-Assume each new session has none of this conversation. Make each prompt self-contained as a routing instruction, not a detailed specification. Put exclusions inside each fenced prompt; a summary outside the prompt cannot carry authorization into the fresh session. Point to existing repository documents for implementation detail without copying their contents.
+Assume each new session has none of this conversation. Emit a closed routing envelope whose only job is to carry scope, recovery, and delivery into that session. Let cited repository documents carry requirements, design detail, acceptance criteria, commands, and checklists.
 
-Use one compact structured contract followed by no more than two short execution paragraphs: one common paragraph and one delivery-specific paragraph. Target 300–500 words inside the recommended fenced prompt. Exceed that soft range only when shortening would make scope ambiguous or unsafe.
+Use as few words as the boundary permits and cap each fenced prompt at 220 words by default. Exceed that cap only when more included results or explicit exclusions are required to keep the boundary closed and unambiguous. Emit exactly one structured contract and keep the complete delivery lifecycle inside its `Delivery` field.
 
 Use this field order:
 
@@ -32,16 +32,20 @@ Goal contract
   - <semantic result> — <source path or paths>
 - Complete when:
 - Excluded:
-- Authority: Only included results and the smallest bounded work necessary for their completion; record other work without executing it; expansion requires explicit user instruction.
-- Resume: Invoke $progress in goal mode to initialize this exact contract before initial work and recover it before every resume, automatic continuation, compaction recovery, or handoff; fail closed if recovery fails.
-- Delivery: PR delivery | No PR
+- Authority: Execute only included results and necessary supporting work; record anything else and ask before expanding.
+- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.
+- Delivery: <variant-specific lifecycle below>
 ```
 
-Pair each semantic result with its implementation source instead of repeating parallel `Sources` and `Included results` lists. Every child bullet must name an authorized semantic result. Attach a cross-cutting source to the relevant result bullets when needed; omit routing-only documents already discovered through applicable instructions and `$progress`. Never turn project order, a roadmap, or `AGENTS.md` into an included result. Express completion semantically so plan renames or decomposition cannot silently change membership. Keep it delivery-neutral by requiring the selected `Delivery` lifecycle to finish instead of copying PR or no-PR mechanics into `Complete when`.
+Keep the envelope tight:
 
-After the contract, use one common execution sentence: follow applicable `AGENTS.md` and relevant implementation skills, keep planning truthful, preserve unrelated changes, perform repository-required validation and review, and commit meaningful passing units incrementally. Do not repeat `$progress`, scope, recovery, or terminal mechanics already owned by the contract and `$progress`.
+- Write `Outcome` as one sentence.
+- Name each included result with a short semantic label and the fewest authoritative source paths. Let the sources carry implementation and acceptance detail; applicable instructions and `$progress` supply routing documents.
+- Default `Complete when` to: `Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.` Add only a missing cross-cutting terminal condition needed for this goal.
+- Populate `Excluded` from exactly two inputs: the immediate next out-of-scope milestone and exclusions stated directly by the user. Keep every later, unrelated, or merely plan-documented item implicit under `Authority`.
+- Let applicable `AGENTS.md`, `$progress`, and the delivery skills supply standard execution behavior. Add execution text only for a missing permission or invariant required in the fresh session.
 
-State each invariant once. Delegate standard PR creation and feedback mechanics to `$create-pr` and `$address-pr-feedback`; do not reproduce their workflows. When both variants are requested, keep every contract field except `Delivery` textually identical.
+When both variants are requested, keep every contract field except `Delivery` textually identical.
 
 ## Delivery Recommendation
 
@@ -54,18 +58,26 @@ When the evidence is close, choose the option that yields the fewest substantial
 
 ## PR Delivery
 
-Also require:
+Use this `Delivery` field:
 
-- use `$progress`'s PR-delivery lifecycle for integration-branch handling, goal-state persistence, and terminal bookkeeping instead of restating that lifecycle;
-- use the fewest substantial sequential PRs that keep CodeRabbit review manageable;
-- use `$create-pr` for each completed slice and `$address-pr-feedback` through review completion before merging and starting the next slice; prohibit stacked PRs, downstream work before the current merge, and an unreviewed implementation tail.
+`- Delivery: PR delivery — use $progress's PR lifecycle and the fewest sequential reviewable PRs; finish each through $create-pr and $address-pr-feedback before starting the next, including the final implementation slice.`
 
 ## No PR
 
-Require `$progress`'s no-PR delivery lifecycle and repository-required non-PR review. Preserve the result for later aggregation into a substantial reviewed PR. Prohibit PR creation and PR-only feedback workflows during this goal.
+Use this `Delivery` field:
+
+`- Delivery: No PR — use $progress's no-PR lifecycle, preserve coherent commits for later reviewed aggregation, and reserve PR creation and PR-only feedback workflows for that later delivery.`
 
 ## Final Check
 
-Leave implementation steps, file inventories, detailed design guidance, test matrices, commands, routine git mechanics, and status recaps to the goal-running agent, invoked skills, and cited repository documents. Include an omitted detail only when the plans do not contain it and the goal would otherwise be ambiguous or unsafe. Do not invent a token budget or turn uncertain choices into instructions.
+Verify that the recommendation follows the expected review-surface rule and every emitted envelope:
 
-Verify that the recommendation follows the expected review-surface rule and that every emitted prompt is actionable without the conversation, invokes `$progress` in goal mode, names a durable state path, carries the closed scope contract, fails closed on lost goal state, and stays near the soft length target. When both variants are emitted, verify that their boundaries and contracts match.
+- is actionable without the conversation;
+- names a durable state path and invokes `$progress` for initialization, recovery, and fail-closed behavior;
+- uses short semantic result labels while cited documents carry the detail;
+- includes only boundary-relevant exclusions;
+- states each invariant once;
+- keeps the complete delivery lifecycle inside the persisted `Delivery` field;
+- stays within 220 words unless boundary clarity requires more.
+
+When both variants are emitted, also verify that their boundaries and contract fields match except for `Delivery`.
