@@ -67,8 +67,6 @@ files are loaded after this file and take precedence when they conflict.
 - Use subagents for that review when the change touches shared behavior,
   cross-module contracts, user-facing flows, security, data migration, or a
   nontrivial refactor.
-- Use CodeRabbit as a review option when the user asks for it. It is expensive
-  (10 reviews/hour), so do not invoke it freely or for routine review passes.
 - Prefer preserving individual commits when merging pull requests; do not
   squash by default.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
