@@ -25,15 +25,6 @@ files are loaded after this file and take precedence when they conflict.
 - Do not open a browser merely because a request includes a URL. Prefer the
   relevant CLI, API, or connector; for GitHub repositories, issues, pull
   requests, Actions runs, checks, and logs, use `gh` by default.
-- Use `agent-browser` by default for browser interaction, automation,
-  extraction, screenshots, and testing that do not require the user's existing
-  Chrome state.
-- Use `browser-use` only when the task requires the user's running Chrome,
-  including its open tabs, profile, cookies, authenticated sessions, or
-  extensions, or direct user participation. Warn before actions may open,
-  activate, or navigate tabs or shift browser focus.
-- Use `chrome:control-chrome` only when the user explicitly requests it and it
-  is available in the current session. Do not select it automatically.
 
 ## Documentation Defaults
 

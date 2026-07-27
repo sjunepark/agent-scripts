@@ -141,42 +141,6 @@
       "skills": ["axi"]
     },
     {
-      "name": "codex-browser-use-global",
-      "description": "Official Browser Use skill for browser interaction from Codex.",
-      "source": "https://github.com/browser-use/browser-use",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["codex"],
-      "skills": ["browser-use"]
-    },
-    {
-      "name": "claude-browser-use-global",
-      "description": "Official Browser Use skill for browser interaction from Claude Code.",
-      "source": "https://github.com/browser-use/browser-use",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["claude-code"],
-      "skills": ["browser-use"]
-    },
-    {
-      "name": "codex-agent-browser-global",
-      "description": "Official agent-browser skill for browser automation from Codex.",
-      "source": "https://github.com/vercel-labs/agent-browser",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["codex"],
-      "skills": ["agent-browser"]
-    },
-    {
-      "name": "claude-agent-browser-global",
-      "description": "Official agent-browser skill for browser automation from Claude Code.",
-      "source": "https://github.com/vercel-labs/agent-browser",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["claude-code"],
-      "skills": ["agent-browser"]
-    },
-    {
       "name": "codex-baton-global",
       "description": "Baton task-management skill for Codex.",
       "source": "sjunepark/baton",
