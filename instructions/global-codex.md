@@ -28,8 +28,8 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Credentials
 
-- Before asking for a token or credential, check whether it is available
-  through an authenticated `op` CLI.
+- Prefer `op-codex` for non-interactive 1Password access; use plain `op` only
+  for personal-account access that requires user authorization.
 - Prefer `op run` with `op://` references, and never print, log, or persist
   resolved secrets.
 - When a new secret must be retained, save it with `op item create`; ask for
