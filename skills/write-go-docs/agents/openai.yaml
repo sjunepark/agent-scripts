@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Go Docs"
+  short_description: "Write concise, high-signal Go documentation"
+  default_prompt: "Use $write-go-docs to improve source-native documentation in this Go code so each comment contributes non-obvious, reader-relevant information."

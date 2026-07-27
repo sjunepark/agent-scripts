@@ -1,11 +1,11 @@
 ---
 name: doc-comment-writer
-description: "Add or improve durable, maintainer-facing doc comments without restatements or brittle details. Use for in-place source documentation of files, modules, functions, types, contracts, invariants, or non-obvious behavior."
+description: "Add, prune, or improve durable, maintainer-facing doc comments across languages. Use for language-agnostic source documentation or languages without a dedicated documentation skill."
 ---
 
 # Doc Comment Writer
 
-Add durable doc comments that help future maintainers understand purpose, contract, constraints, and non-obvious decisions without reconstructing them from implementation. A restatement merely paraphrases names, types, or straightforward control flow; omit it.
+Curate durable doc comments that help future maintainers understand purpose, contract, constraints, and non-obvious decisions without reconstructing them from implementation. A restatement merely paraphrases names, types, or straightforward control flow; omit it.
 
 ## Workflow
 
@@ -14,11 +14,12 @@ Add durable doc comments that help future maintainers understand purpose, contra
    - Inspect nearby types, tests, callers, or sibling files only when needed to understand public behavior or an important invariant.
    - Continue once the files and symbols in scope and their applicable comment syntax and style are clear.
 
-2. Make an explicit document-or-skip decision.
+2. Make an explicit keep, change, or skip decision.
    - Consider a file-level comment when the file has a responsibility, boundary, or usage pattern that is not obvious from its name and exports.
    - Add comments where a future reader would otherwise need to inspect internal logic to answer "what is this for?" or "what must stay true?"
+   - Retain an existing comment only when removing it would lose reader-relevant information. Revise stale or unclear comments and remove comments that merely narrate the declaration or implementation.
    - Leave symbols undocumented when their names, signatures, types, and context already answer those questions. If the file needs no new comments, say so instead of forcing edits.
-   - Continue once every exported or public symbol in scope, plus any relevant file header, has an explicit document-or-skip decision.
+   - Continue once every exported or public symbol and existing doc comment in scope, plus any relevant file header, has an explicit retain, add, revise, remove, or skip decision.
 
 3. Write and validate durable comments.
    - Apply every rule in Comment Standard to each new or revised comment.
@@ -34,6 +35,7 @@ Add durable doc comments that help future maintainers understand purpose, contra
 - Treat external references as exceptional. Do not cite temporary or weakly maintained artifacts such as plans, progress files, handoff notes, temporary decision logs, or issue and pull-request threads. Put durable rationale in the comment itself; cite a document only when it is an authoritative, maintained specification or contract with a stable location.
 - Avoid time-relative wording and step-by-step implementation details that will become stale after routine changes.
 - Phrase behavior inferred from code conservatively; do not invent intent or guarantees the implementation does not support.
+- When important rationale cannot be established from repository evidence, report a focused maintainer question instead of writing a speculative comment.
 - Remove generic filler and restatements. Each comment must remain useful without opening the documented symbol's implementation.
 
 ## Targeting Guide
@@ -45,4 +47,4 @@ Skip file headers that merely restate the filename, trivial accessors and wrappe
 ## Response Expectations
 
 - Keep the diff focused on documentation unless the user also asked for refactors.
-- After editing, briefly report the files or symbols documented, notable skip decisions, validation, and any code that remained too unclear to document confidently.
+- After editing, briefly report comments added, revised, or removed; notable skip decisions; validation; and focused questions for code that remained too unclear to document confidently.
