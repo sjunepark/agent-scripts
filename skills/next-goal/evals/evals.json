@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Use $next-goal to choose the next substantial goal from this repository.",
-      "expected_output": "A read-only PR-delivery recommendation for exactly the four Publication Foundation results and one copy-paste routing envelope of at most 220 words, followed by a one-sentence offer to provide the alternate. The envelope contains a concrete goals/ state path; pairs each short semantic result label with its source while leaving source detail in those documents; excludes only the integrated review as the immediate next out-of-scope milestone; authorizes only necessary work with explicit-user-only expansion; invokes $progress for initialization and recovery; and keeps completion delivery-neutral. Standard execution behavior remains owned by applicable instructions and invoked skills. The persisted Delivery field delegates lifecycle handling to $progress and PR creation and feedback to $create-pr and $address-pr-feedback.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The read-only selection recommends PR delivery through the block's Delivery field for exactly the four Publication Foundation results. The routing envelope is at most 220 words, contains a concrete goals/ state path, pairs each short semantic result label with its source while leaving source detail in those documents, excludes only the integrated review as the immediate next out-of-scope milestone, authorizes only necessary work with explicit-user-only expansion, invokes $progress for initialization and recovery, and keeps completion delivery-neutral. Standard execution behavior remains owned by applicable instructions and invoked skills. The persisted Delivery field delegates lifecycle handling to $progress and PR creation and feedback to $create-pr and $address-pr-feedback.",
       "files": [
         "evals/fixtures/scope-cascade/AGENTS.md",
         "evals/fixtures/scope-cascade/ROADMAP.md",
@@ -19,19 +19,19 @@
     {
       "id": 2,
       "prompt": "Use $next-goal. The settled milestone consists of plans A and B; C is the first unrelated milestone. Produce both goal prompts and make it possible for a compacted fresh session to distinguish continuing from A to B from continuing into C.",
-      "expected_output": "Both compact routing envelopes pair short semantic labels for A and B with their source plans, define completion after B, name C as the boundary-relevant exclusion, and require durable $progress goal state plus recovery on every continuation. They delegate transition enforcement to $progress, which continues from A to B but completes before C even if C becomes Current. Their contracts are textually identical except for the persisted Delivery field, leave plan detail in the cited sources, rely on invoked skills for standard execution behavior, and do not use a maximum PR count or make every plan a separate goal.",
+      "expected_output": "Exactly two text fenced blocks and no prose before, between, or after them. Both compact routing envelopes pair short semantic labels for A and B with their source plans, define completion after B, name C as the boundary-relevant exclusion, and require durable $progress goal state plus recovery on every continuation. They delegate transition enforcement to $progress, which continues from A to B but completes before C even if C becomes Current. Their contracts are textually identical except for the persisted Delivery field, leave plan detail in the cited sources, rely on invoked skills for standard execution behavior, and do not use a maximum PR count or make every plan a separate goal.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "Use $next-goal in a repository with two active worktrees, each with its own scoped roadmap. Select work only for the current worktree.",
-      "expected_output": "The recommendation reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and returns one recommended prompt with a concrete goals/<scope>/<slug>.md path. Its compact contract makes the current scope's semantic results authoritative and delegates recovery and transition enforcement to $progress; other worktree queues and goals cannot change membership. It offers the alternate delivery prompt in one sentence.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The selection reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and uses a concrete goals/<scope>/<slug>.md path. Its compact contract makes the current scope's semantic results authoritative and delegates recovery and transition enforcement to $progress; other worktree queues and goals cannot change membership.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $next-goal for the current dev planning scope and return both copy-paste goal prompts.",
-      "expected_output": "Two compact prompts with the same contract for Storage Baseline followed by Renderer Rollout, pairing each semantic result with its source, using goals/dev/<slug>.md as durable state, completing after the Launch Path rollout, explicitly excluding Compliance Sweep, and requiring $progress recovery on every resume. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
+      "expected_output": "Exactly two text fenced blocks and no prose before, between, or after them. The compact prompts have the same contract for Storage Baseline followed by Renderer Rollout, pair each semantic result with its source, use goals/dev/<slug>.md as durable state, complete after the Launch Path rollout, explicitly exclude Compliance Sweep, and require $progress recovery on every resume. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
       "files": [
         "evals/fixtures/checkpoint-chain/AGENTS.md",
         "evals/fixtures/checkpoint-chain/ROADMAP_DEV.md",
@@ -43,7 +43,7 @@
     {
       "id": 5,
       "prompt": "Change `Readiness: draft` to `Readiness: settled` in plans/foundation.md and commit that user-authorized planning change, then use $next-goal to choose the next substantial goal.",
-      "expected_output": "The separately authorized planning edit and commit finish first. The agent then begins a read-only goal-selection phase from the resulting status and history, makes no further repository or external mutations, and clearly separates the prerequisite commit result from the next-goal recommendation.",
+      "expected_output": "The separately authorized planning edit and commit finish first. The agent then begins a read-only goal-selection phase from the resulting status and history and makes no further repository or external mutations. If a goal is warranted, the final response is exactly one unlabeled text fenced prompt block with no prerequisite commit recap or other prose outside it.",
       "files": [
         "evals/fixtures/prerequisite-mutation/AGENTS.md",
         "evals/fixtures/prerequisite-mutation/ROADMAP.md",
@@ -53,13 +53,13 @@
     {
       "id": 6,
       "prompt": "Use $next-goal and give me only the No PR prompt even if PR delivery is recommended.",
-      "expected_output": "The agent keeps its evidence-based delivery recommendation truthful but returns one self-contained No PR prompt as explicitly requested. It does not also emit the PR prompt or merely offer the requested alternate.",
+      "expected_output": "Exactly one unlabeled text fenced block containing the self-contained No PR prompt and no prose before or after it. The agent honors the explicitly requested variant even if its evidence-based recommendation would have been PR delivery; it does not also emit the PR prompt or merely offer the requested alternate.",
       "files": []
     },
     {
       "id": 7,
       "prompt": "Use $next-goal. Repository evidence warrants a substantial goal but its expected diff is too small for a standalone review, so recommend No PR. Give me only the PR delivery prompt anyway.",
-      "expected_output": "The agent truthfully recommends No PR but returns one self-contained PR-delivery prompt as explicitly requested. It does not also emit the No PR prompt or replace the recommendation with PR delivery.",
+      "expected_output": "Exactly one unlabeled text fenced block containing the self-contained PR-delivery prompt and no prose before or after it. The agent honors the explicitly requested variant even though repository evidence would recommend No PR; it does not also emit the No PR prompt.",
       "files": []
     },
     {

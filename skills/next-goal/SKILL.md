@@ -1,13 +1,13 @@
 ---
 name: next-goal
-description: "Choose a substantial, evidence-backed implementation goal and emit one compact fresh-session routing envelope with a closed scope contract, $progress recovery, and an evidence-based PR or no-PR delivery choice. Use only when the user explicitly invokes $next-goal; return alternate delivery prompts only when requested, and prefer a settled phase or milestone over a small standalone slice."
+description: "Choose a substantial, evidence-backed implementation goal and emit one copy-ready fresh-session routing envelope with a closed scope contract, $progress recovery, and an evidence-based PR or no-PR delivery choice. Use only when the user explicitly invokes $next-goal; output only fenced prompt text when a goal is warranted, return alternate delivery prompts only when requested, and prefer a settled phase or milestone over a small standalone slice."
 ---
 
 # Next Goal
 
 Select a substantial next goal and, only when `/goal` is warranted, recommend PR delivery or later aggregation based on expected change size, then generate one compact fresh-session routing envelope with a closed execution contract. Generate a non-recommended delivery prompt only when the user explicitly requests that variant, alone or alongside the recommendation.
 
-Keep the goal-selection phase read-only. A combined request may separately authorize prerequisite mutation, such as committing completed planning work. Complete that distinct phase first under its applicable workflow, report it separately, and then select from the resulting repository state without further mutation. Put `$progress` goal tracking in the generated prompt so the goal-running session, not the selection phase, initializes durable goal state.
+Keep the goal-selection phase read-only. A combined request may separately authorize prerequisite mutation, such as committing completed planning work. Complete that distinct phase first under its applicable workflow, then select from the resulting repository state without further mutation. When selection produces a goal prompt, keep prerequisite results out of the final response so the entire response remains directly copyable into `/goal`. Put `$progress` goal tracking in the generated prompt so the goal-running session, not the selection phase, initializes durable goal state.
 
 ## 1. Establish Current State
 
@@ -51,8 +51,8 @@ Treat goal membership as closed. Advancing a roadmap, changing `Current`, creati
 
 - When `/goal` is **not warranted**, give the evidence-based reason and omit the prompt. Do not read the delivery-variant instructions.
 - Only after the evidence establishes that `/goal` **is warranted**, read and follow [prompts/delivery-variants.md](prompts/delivery-variants.md).
-- By default, return only the recommended prompt and one sentence offering the alternate delivery variant.
-- Honor an explicit request for one named delivery variant even when it differs from the recommendation; keep the recommendation truthful and label the prompt as the requested variant.
-- When the user explicitly requests both variants, put the same closed scope contract inside both prompt bodies and vary only the delivery mechanics and `Delivery` field.
+- By default, return only the recommended prompt as one unlabeled `text` fenced block. Put only the body to enter after `/goal` inside it, with no prose before or after the fence.
+- Honor an explicit request for one named delivery variant even when it differs from the evidence-based recommendation; identify the emitted variant through its `Delivery` field.
+- When the user explicitly requests both variants, return only the two `text` fenced prompt blocks, identify the variant inside each prompt's `Delivery` field, put the same closed scope contract inside both prompt bodies, and vary only the delivery mechanics and `Delivery` field.
 
-Before responding, verify that the selection phase made no repository write, goal change, git mutation, or external publication. When the request included prerequisite mutation, verify that it finished before selection began and report it separately.
+Before responding, verify that the selection phase made no repository write, goal change, git mutation, or external publication. When the request included prerequisite mutation, verify that it finished before selection began, but do not add a separate recap when emitting a goal prompt.

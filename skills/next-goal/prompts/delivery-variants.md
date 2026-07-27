@@ -4,16 +4,11 @@ Read this file only after establishing that `/goal` is warranted.
 
 ## Output Order
 
-By default, return:
+By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The selected boundary is expressed by the contract, and the evidence-based recommendation is expressed by its `Delivery` field.
 
-1. **Recommended boundary** — a short scope statement and evidence-based rationale.
-2. **Delivery recommendation** — **PR delivery** or **No PR**, with a short rationale based on the expected size of the implementation change and its CodeRabbit review surface.
-3. **Copy-paste `/goal` prompt** — one labeled fenced block for the recommended delivery, containing only the body to enter after `/goal`.
-4. One sentence offering the alternate delivery prompt on request.
+When the user explicitly requests one named delivery variant, return exactly one unlabeled `text` fenced block for that variant even if it differs from the evidence-based recommendation. Do not add an explanation of the discrepancy; the user explicitly chose the emitted delivery mechanics.
 
-When the user explicitly requests one named delivery variant, return that prompt even if it differs from the recommendation; keep the recommendation evidence-based, label the prompt as requested, and omit the default offer of another variant.
-
-When the user explicitly asks for both variants, return two labeled fenced blocks:
+When the user explicitly asks for both variants, return exactly two `text` fenced blocks and no other prose. Identify each variant through its `Delivery` field:
 
 - **PR delivery** — require sequential PR creation, review, and merge.
 - **No PR** — require completion without PR creation.
@@ -81,3 +76,5 @@ Verify that the recommendation follows the expected review-surface rule and ever
 - stays within 220 words unless boundary clarity requires more.
 
 When both variants are emitted, also verify that their boundaries and contract fields match except for `Delivery`.
+
+For every warranted goal, finally verify that the complete response consists only of the requested `text` fenced prompt block or blocks. A concise explanation is appropriate only when `/goal` is not warranted and no prompt exists to copy.
