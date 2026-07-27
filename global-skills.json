@@ -25,20 +25,55 @@
         "harmonize-docs",
         "interview",
         "merge-branch",
+        "modern-go",
+        "modern-rust",
         "next-goal",
         "progress",
+        "project-status",
         "record",
         "review-campaign",
         "teach"
       ]
     },
     {
-      "name": "claude-pi-repo-global",
-      "description": "Published repo skills that should be available to Claude Code and Pi.",
+      "name": "claude-repo-global",
+      "description": "Published repo skills that should be available to Claude Code user scope.",
       "source": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
       "scope": "global",
       "mode": "copy",
-      "agents": ["claude-code", "pi"],
+      "agents": ["claude-code"],
+      "skills": [
+        "address-pr-feedback",
+        "agents-md-writer",
+        "architecture-md-writer",
+        "bug-retro",
+        "change-explainer",
+        "clarify",
+        "clear-rust",
+        "code-review",
+        "create-pr",
+        "doc-comment-writer",
+        "explore-repo",
+        "harmonize-docs",
+        "interview",
+        "merge-branch",
+        "modern-go",
+        "modern-rust",
+        "next-goal",
+        "progress",
+        "project-status",
+        "record",
+        "review-campaign",
+        "teach"
+      ]
+    },
+    {
+      "name": "pi-repo-global",
+      "description": "Published repo skills that should be available to Pi.",
+      "source": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["pi"],
       "skills": [
         "address-pr-feedback",
         "agents-md-writer",
@@ -73,12 +108,36 @@
       ]
     },
     {
+      "name": "claude-matt-pocock-global",
+      "description": "Third-party engineering skills that should be available to Claude Code.",
+      "source": "mattpocock/skills",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
+      "fullDepth": true,
+      "skills": [
+        "codebase-design",
+        "domain-modeling",
+        "improve-codebase-architecture",
+        "writing-great-skills"
+      ]
+    },
+    {
       "name": "codex-axi-global",
       "description": "Third-party agent-facing CLI design skill that should be available to Codex.",
       "source": "kunchenguid/axi",
       "scope": "global",
       "mode": "copy",
       "agents": ["codex"],
+      "skills": ["axi"]
+    },
+    {
+      "name": "claude-axi-global",
+      "description": "Third-party agent-facing CLI design skill that should be available to Claude Code.",
+      "source": "kunchenguid/axi",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
       "skills": ["axi"]
     },
     {
@@ -91,6 +150,15 @@
       "skills": ["browser-use"]
     },
     {
+      "name": "claude-browser-use-global",
+      "description": "Official Browser Use skill for browser interaction from Claude Code.",
+      "source": "https://github.com/browser-use/browser-use",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
+      "skills": ["browser-use"]
+    },
+    {
       "name": "codex-agent-browser-global",
       "description": "Official agent-browser skill for browser automation from Codex.",
       "source": "https://github.com/vercel-labs/agent-browser",
@@ -100,19 +168,58 @@
       "skills": ["agent-browser"]
     },
     {
+      "name": "claude-agent-browser-global",
+      "description": "Official agent-browser skill for browser automation from Claude Code.",
+      "source": "https://github.com/vercel-labs/agent-browser",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
+      "skills": ["agent-browser"]
+    },
+    {
+      "name": "codex-baton-global",
+      "description": "Baton task-management skill for Codex.",
+      "source": "sjunepark/baton",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "skills": ["baton"]
+    },
+    {
+      "name": "claude-baton-global",
+      "description": "Baton task-management skill for Claude Code.",
+      "source": "sjunepark/baton",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
+      "skills": ["baton"]
+    },
+    {
+      "name": "codex-context7-cli-global",
+      "description": "Context7 CLI skill for Codex.",
+      "source": "https://github.com/upstash/context7",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["codex"],
+      "fullDepth": true,
+      "skills": ["context7-cli"]
+    },
+    {
+      "name": "claude-context7-cli-global",
+      "description": "Context7 CLI skill for Claude Code.",
+      "source": "https://github.com/upstash/context7",
+      "scope": "global",
+      "mode": "copy",
+      "agents": ["claude-code"],
+      "fullDepth": true,
+      "skills": ["context7-cli"]
+    },
+    {
       "name": "manual-global",
       "description": "Global skills whose source is not recorded here; audit presence and target agents only.",
       "install": false,
       "scope": "global",
       "skills": [
-        {
-          "name": "baton",
-          "agents": []
-        },
-        {
-          "name": "context7-cli",
-          "agents": ["codex"]
-        },
         {
           "name": "context7-mcp",
           "agents": ["codex", "claude-code"]
