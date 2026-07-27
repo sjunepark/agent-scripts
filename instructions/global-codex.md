@@ -32,6 +32,8 @@ files are loaded after this file and take precedence when they conflict.
   through an authenticated `op` CLI.
 - Prefer `op run` with `op://` references, and never print, log, or persist
   resolved secrets.
+- When a new secret must be retained, save it with `op item create`; ask for
+  the target vault when unclear.
 
 ## Documentation Defaults
 
