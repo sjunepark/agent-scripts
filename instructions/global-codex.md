@@ -64,6 +64,8 @@ files are loaded after this file and take precedence when they conflict.
   tests, or validation scripts before adding more prose to AGENTS.md.
 - After finishing a reviewable implementation or editing slice, run
   `$code-review`.
+- For incremental PR changes, do not manually trigger additional external
+  reviews such as CodeRabbit or Codex unless the user explicitly asks.
 - Use subagents for that review when the change touches shared behavior,
   cross-module contracts, user-facing flows, security, data migration, or a
   nontrivial refactor.
