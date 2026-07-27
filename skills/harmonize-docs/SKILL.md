@@ -1,14 +1,15 @@
 ---
 name: harmonize-docs
-description: "Harmonize active repository documentation and plans into one current, coherent system. Use only when the user explicitly invokes $harmonize-docs."
+description: "Harmonize active repository documentation and plans into one coherent system that distinguishes implementation reality, selected or unresolved target design, and delivery status. Use only when the user explicitly invokes $harmonize-docs."
 ---
 
 # Harmonize Docs
 
 Treat the repository's documentation as one system. Replace sediment with a
-coherent current state: each durable fact has one canonical home, each active
-plan reflects reality and remaining intent, and the documents route readers
-without contradiction.
+coherent account of present reality and future intent: each durable fact has
+one canonical home, current implementation and target design remain visibly
+distinct, each active plan reflects reality and remaining intent, and the
+documents route readers without contradiction.
 
 ## Coordination
 
@@ -46,10 +47,16 @@ in scope or outside it, with no active document left undiscovered.
   tests, commands, and repository state.
 - Recover future intent from the latest confirmed user direction and active
   plans. Distinguish unfinished intent from a false current-state claim.
+- Do not infer implementation from confident wording, present-tense design
+  prose, or an accepted architecture. A selected design and an implemented
+  system are independent states until repository evidence connects them.
 - Recover decisions and rationale from decision records and confirmed context.
   Mark genuinely unresolved intent instead of inventing it.
-- Classify material claims as verified current state, intended future state,
-  durable rationale, obsolete or duplicate material, or unresolved conflict.
+- Classify material claims along independent axes: verified implementation
+  reality; design authority such as selected, proposed, or unresolved; and
+  delivery status from the repository's planning vocabulary. A selected target
+  may be unimplemented, partially implemented, or implemented. Separately mark
+  durable rationale, obsolete or duplicate material, and unresolved conflict.
 
 Complete this step when every in-scope document has been read, every material
 claim has an evidence-backed classification, and every conflict is visible.
@@ -68,6 +75,15 @@ claim has an evidence-backed classification, and every conflict is visible.
 - Merge overlapping documents. Split a sprawling document when its parts have
   distinct audiences, ownership, scopes, or lifecycles. Keep parent documents
   concise and route detail to focused child documents.
+- Keep implementation truth and target design separately legible without
+  imposing fixed filenames or mandatory `AS-IS` and `TO-BE` sections. Target
+  architecture may remain in durable architecture or design documents when its
+  status and unimplemented boundaries are explicit. When one document spans
+  both states, use concise document or section framing, or a status map linked
+  to implementation evidence.
+- Let the repository's roadmap, active plans, or equivalent progress records
+  own delivery order, the implementation gap, progress, and next actions. Do
+  not turn an architecture status map into a second roadmap.
 - Shape active plans around current state, remaining work, blockers, decisions,
   and the next useful action. Compress completed history once its durable
   lessons and decisions have a proper home.
@@ -88,6 +104,10 @@ planned orphan or duplicate source of truth.
   durable reader value.
 - Preserve useful intent, rationale, constraints, and unresolved questions even
   when their original wording or file no longer belongs.
+- Preserve selected future design without presenting it as current behavior.
+  Use visible state framing instead of repetitive sentence-level hedging, so a
+  reader can tell what exists, which selected design boundaries remain
+  unimplemented, what remains undecided, and where delivery is tracked.
 - Update tables of contents, indexes, cross-references, links, paths, commands,
   terminology, and parent-child routing for the new topology.
 - Keep non-documentation implementation files read-only. Documentation-specific
@@ -106,8 +126,16 @@ structure.
 - Review durable documentation for hard-coded counts and other volatile facts,
   such as numbers of files or tests. Replace them with stable invariants or
   pointers to the source of truth.
-- Recheck current-state claims against repository evidence and active-plan
-  claims against confirmed intent.
+- Recheck implementation-reality and delivery-status claims against repository
+  evidence, and target-design claims against confirmed direction and decisions.
+- Audit state transitions in both directions: verified completed work must be
+  promoted into the canonical current-state account and its delivery records
+  updated; unfinished target behavior must not be promoted merely because it
+  is fully designed or scheduled.
+- Confirm that every target's implemented and unimplemented boundaries are
+  visible, every unresolved possibility remains non-authoritative, and overview
+  documents route readers to the canonical implementation-status and delivery
+  sources.
 - Run available documentation, link, example, and repository validation that is
   relevant to the changed files. Inspect the final diff and working-tree state.
 - Account for every initially discovered file and every earlier conflict.
@@ -125,5 +153,6 @@ Summarize topology changes, meaningful corrections, canonical ownership
 decisions, unresolved uncertainties, and validation results. Keep the report
 short and point to the changed documents instead of repeating their content.
 
-Complete the run when the user can see what changed, where authoritative
-information now lives, and what—if anything—still needs a decision.
+Complete the run when the user can see what changed, where current
+implementation and target design are authoritatively recorded, and what—if
+anything—still needs a decision.
