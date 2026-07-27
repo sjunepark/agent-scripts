@@ -26,6 +26,13 @@ files are loaded after this file and take precedence when they conflict.
   relevant CLI, API, or connector; for GitHub repositories, issues, pull
   requests, Actions runs, checks, and logs, use `gh` by default.
 
+## Credentials
+
+- Before asking for a token or credential, check whether it is available
+  through an authenticated `op` CLI.
+- Prefer `op run` with `op://` references, and never print, log, or persist
+  resolved secrets.
+
 ## Documentation Defaults
 
 - Treat Markdown as agent-loaded context: keep files short, current, and
