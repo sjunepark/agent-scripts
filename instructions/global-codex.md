@@ -28,12 +28,13 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Credentials
 
-- Prefer `op-codex` for non-interactive 1Password access; use plain `op` only
-  for personal-account access that requires user authorization.
-- Prefer `op run` with `op://` references, and never print, log, or persist
-  resolved secrets.
-- When a new secret must be retained, save it with `op item create`; ask for
-  the target vault when unclear.
+- Prefer `op-agent` for non-interactive 1Password access; use plain `op` only
+  for personal-account access that requires user authorization. Follow the
+  [host setup and authentication boundaries](../docs/1password.md).
+- Prefer `op-agent run` with `op://` references, and never print, log, or
+  persist resolved secrets.
+- When a new secret must be retained non-interactively, save it with
+  `op-agent item create`; ask for the target vault when unclear.
 
 ## Documentation Defaults
 

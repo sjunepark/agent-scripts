@@ -11,7 +11,7 @@ repo or public skill installs.
 
 | Layer | Owner | Examples | Sync method |
 | --- | --- | --- | --- |
-| Reusable agent assets | `agent-scripts` | `skills/`, docs, validation scripts, optional hooks | Git commit and push |
+| Reusable agent assets | `agent-scripts` | `skills/`, `bin/`, docs, validation scripts, optional hooks | Git commit and push |
 | Repo-local Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Local Codex marketplace install |
 | Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
 | Machine pointers | chezmoi | symlinks or scripts that point tools at this repo | Chezmoi source repo |
@@ -165,12 +165,14 @@ this repo's maintenance-specific rules.
 
 ## Bootstrap Order For A New Machine
 
-1. Install Codex, Claude Code, Pi, Bun, Git, and chezmoi.
+1. Install Codex, Claude Code, Pi, Bun, Git, chezmoi, and the 1Password CLI.
 2. Apply chezmoi only after resolving any pending managed-file diffs.
 3. Clone or update this repo.
-4. Run `scripts/validate-skills`.
-5. Register the repo Codex marketplace and install local repo plugins.
-6. Install published skills from the GitHub `skills/` subpath with explicit
+4. Provision `op-agent` using [the 1Password host setup](1password.md).
+5. Run `scripts/validate-skills`.
+6. Register the repo Codex marketplace and install local repo plugins.
+7. Install published skills from the GitHub `skills/` subpath with explicit
    agent targets.
-7. Apply or verify Codex stable config keys.
-8. Re-authenticate tools locally; do not copy auth files from another machine.
+8. Apply or verify Codex stable config keys.
+9. Re-authenticate other tools locally; do not copy auth files from another
+   machine.

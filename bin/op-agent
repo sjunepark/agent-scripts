@@ -1,0 +1,54 @@
+#!/bin/sh
+
+set -eu
+
+keychain_account='service-account-token'
+keychain_service='com.sjunepark.op-agent'
+legacy_keychain_account='codex-remote-host'
+legacy_keychain_service='com.openai.codex.1password-service-account'
+
+op_path=$(command -v op 2>/dev/null || true)
+if [ -z "$op_path" ]; then
+  printf '%s\n' 'error: 1Password CLI is not installed or is not on PATH'
+  printf '%s\n' 'help: install 1Password CLI, then see agent-scripts/docs/1password.md'
+  exit 1
+fi
+
+# Allow a caller's secret manager to inject a process-scoped token on hosts
+# without macOS Keychain support.
+if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+  exec "$op_path" "$@"
+fi
+
+if [ "$(uname -s)" != 'Darwin' ] || [ ! -x /usr/bin/security ]; then
+  printf '%s\n' 'error: no service-account token is available'
+  printf '%s\n' 'help: inject OP_SERVICE_ACCOUNT_TOKEN for this process; see agent-scripts/docs/1password.md'
+  exit 1
+fi
+
+if token=$(/usr/bin/security find-generic-password \
+  -a "$keychain_account" \
+  -s "$keychain_service" \
+  -w 2>/dev/null); then
+  :
+elif token=$(/usr/bin/security find-generic-password \
+  -a "$legacy_keychain_account" \
+  -s "$legacy_keychain_service" \
+  -w 2>/dev/null); then
+  :
+else
+  printf '%s\n' 'error: the 1Password service-account token is missing from macOS Keychain'
+  printf '%s\n' 'help: provision this host using agent-scripts/docs/1password.md'
+  exit 1
+fi
+
+if [ -z "$token" ]; then
+  printf '%s\n' 'error: macOS Keychain returned an empty 1Password service-account token'
+  printf '%s\n' 'help: replace the Keychain item using agent-scripts/docs/1password.md'
+  exit 1
+fi
+
+export OP_SERVICE_ACCOUNT_TOKEN="$token"
+unset token
+
+exec "$op_path" "$@"

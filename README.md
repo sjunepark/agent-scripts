@@ -32,9 +32,13 @@ data do not belong in this repository.
 
 ## Shared Commands
 
-Expose stable cross-repo commands from `bin/`, not `scripts/`. There are no
-stable shared commands published by this repository right now; prefer skills for
-agent workflows.
+Expose stable cross-repo commands from `bin/`, not `scripts/`. Prefer skills for
+agent workflows that do not need a stable executable.
+
+`bin/op-agent` provides non-interactive 1Password CLI access for any agent
+harness. It keeps the service-account token in the host's secret store rather
+than agent configuration. See [docs/1password.md](docs/1password.md) for setup
+and migration from the former `op-codex` wrapper.
 
 Use `$progress` when explicitly invoked to organize, orient to, continue,
 or hand off repo-local plans and tasks. Use `$code-review` for a bounded review
