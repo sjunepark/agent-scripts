@@ -65,8 +65,48 @@
     {
       "id": 8,
       "prompt": "Use $next-goal. The only remaining unblocked work is a one-line typo fix suitable for an ordinary interactive turn.",
-      "expected_output": "The agent explains that /goal is not warranted, emits no copy-paste goal prompt, and does not offer an alternate delivery variant.",
+      "expected_output": "The agent explains that /goal is not warranted, emits no copy-paste goal prompt, and does not offer an alternate delivery variant or planning repair despite the absence of planning files.",
       "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Use $next-goal to choose the next substantial goal. Do not assume answers to any unresolved product decisions.",
+      "expected_output": "The agent identifies the unresolved conflict and compatibility policies as planning gaps that prevent autonomous implementation, emits no fenced goal prompt, and asks the user to choose between explicitly delegating the remaining decisions within the closed workspace-import outcome or repairing planning first with $interview followed by $progress. It does not mutate planning during this read-only selection turn.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Use $next-goal to choose the next substantial goal. If planning leaves consequential decisions unresolved, I authorize the goal-running agent to decide them using its best judgment within the selected closed outcome. Return only the recommended prompt.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The prompt selects the closed workspace-import outcome and its cited source, and its Authority field explicitly authorizes the goal-running agent to resolve remaining decisions within that outcome using best judgment while still requiring user direction for scope expansion or external authority. It does not ask the user to repeat the delegation.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Use $next-goal to choose the next substantial goal. If the workspace-import plan is insufficient, I choose planning repair rather than delegating its product decisions.",
+      "expected_output": "The agent emits no goal prompt and makes no planning mutation while decisions remain. It treats the repair choice as authorization to use $interview, gives a reviewer-level brief on the conflict and compatibility policies, and asks only the consequential decision questions needed before $progress can update the plans.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Continue the $next-goal planning-repair branch I already chose. The confirmed policies are: conflicting records stop the import before any writes, and only archives from the current format version are supported. Use $progress to update authoritative planning, then rerun goal selection and return the recommended result.",
+      "expected_output": "The agent uses $progress to update the workspace-import plan with both confirmed policies and a concrete implementation next action. After that separate mutation finishes, it restarts $next-goal selection from the resulting repository state and makes no further writes. If the repaired evidence warrants a goal, the final response is exactly one unlabeled text fenced prompt block with no interview or planning-mutation recap.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
     }
   ]
 }

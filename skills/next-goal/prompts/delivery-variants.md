@@ -1,6 +1,6 @@
 # Delivery Variants
 
-Read this file only after establishing that `/goal` is warranted.
+Read this file only after establishing that `/goal` is warranted and the readiness gate has passed.
 
 ## Output Order
 
@@ -27,7 +27,7 @@ Goal contract
   - <semantic result> — <source path or paths>
 - Complete when:
 - Excluded:
-- Authority: Execute only included results and necessary supporting work; record anything else and ask before expanding.
+- Authority: <use the applicable exact authority form below>
 - Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.
 - Delivery: <variant-specific lifecycle below>
 ```
@@ -41,6 +41,16 @@ Keep the envelope tight:
 - Let applicable `AGENTS.md`, `$progress`, and the delivery skills supply standard execution behavior. Add execution text only for a missing permission or invariant required in the fresh session.
 
 When both variants are requested, keep every contract field except `Delivery` textually identical.
+
+## Authority
+
+When planning passed the readiness gate without delegation, use:
+
+`- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external authority.`
+
+When the user delegated unresolved decisions at the readiness gate, use:
+
+`- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external authority.`
 
 ## Delivery Recommendation
 
@@ -77,4 +87,4 @@ Verify that the recommendation follows the expected review-surface rule and ever
 
 When both variants are emitted, also verify that their boundaries and contract fields match except for `Delivery`.
 
-For every warranted goal, finally verify that the complete response consists only of the requested `text` fenced prompt block or blocks. A concise explanation is appropriate only when `/goal` is not warranted and no prompt exists to copy.
+Finally verify that the complete response consists only of the requested `text` fenced prompt block or blocks.

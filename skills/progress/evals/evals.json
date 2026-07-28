@@ -149,6 +149,17 @@
         "evals/fixtures/midgoal-queue-drift/plans/excluded-assurance-review.md",
         "evals/fixtures/midgoal-queue-drift/plans/renderer-rollout.md"
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "Use $progress in goal mode to continue the active workspace-import goal through its next checkpoint, then stop before product implementation.",
+      "expected_output": "The agent recovers goals/workspace-import.md and treats its immutable Authority field as explicit permission to choose the unresolved conflict and compatibility policies within the named Workspace Import result. It uses best judgment without asking the user again, records both decisions and their rationale in goal execution status, updates the authoritative plan to match with a concrete implementation next action, and advances the goal's next in-scope action. It does not add results, change completion or delivery, perform external actions, or broaden the goal.",
+      "files": [
+        "evals/fixtures/delegated-decisions/AGENTS.md",
+        "evals/fixtures/delegated-decisions/ROADMAP.md",
+        "evals/fixtures/delegated-decisions/goals/workspace-import.md",
+        "evals/fixtures/delegated-decisions/plans/workspace-import.md"
+      ]
     }
   ]
 }

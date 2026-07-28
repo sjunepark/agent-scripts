@@ -74,8 +74,10 @@ between documentation and repository state is known.
   starting every new plan, work branch, PR, review program, or independently
   reviewable outcome.
 - Allow explicitly included work and the smallest bounded work necessary for
-  an included completion condition. Record useful outside work for later. Ask
-  before ambiguous or materially expansive work.
+  an included completion condition. Honor decision authority explicitly
+  persisted in the effective contract. Record useful outside work for later.
+  Ask before ambiguous work not covered by that authority or materially
+  expansive work.
 - When the final included condition is satisfied, update both truth planes,
   complete the goal, and return before consulting the next project item.
 - If the goal contract cannot be recovered exactly, fail closed. Do not infer

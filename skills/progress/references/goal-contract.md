@@ -104,7 +104,16 @@ Action: proceed | record for later | request user direction | complete goal
 - **Outside:** useful but unnecessary work; record it in project state without
   executing it.
 - **Ambiguous:** materially changes the outcome, acceptance conditions,
-  architecture, delivery program, or risk; stop for explicit user direction.
+  architecture, delivery program, or risk without explicit decision authority
+  in the effective contract; stop for user direction.
+
+When `Authority` explicitly delegates remaining decisions within the closed
+outcome, choose consequential architecture, acceptance, or risk decisions that
+are necessary to a named included result even when its cited sources left them
+open. Use best judgment and record the decision and rationale in execution
+status. This delegation does not add results, alter the completion predicate or
+delivery, admit excluded work, expand scope, or grant external authority;
+choices with any of those effects remain ambiguous.
 
 `Current`, queue order, a new plan, an unblocked state, or a review finding is
 never contract evidence. When the completion predicate becomes true, complete
