@@ -1,6 +1,6 @@
 ---
 name: modern-rust
-description: "Modern Rust release awareness from Rust 1.72 onward. Use whenever creating, modifying, debugging, reviewing, or upgrading Rust source, tests, Cargo workspaces, manifests, build scripts, toolchain configuration, FFI, or Rust-facing APIs."
+description: "Modern Rust release awareness for any Rust source, test, Cargo workspace, manifest, build script, toolchain, FFI, upgrade, or API work from Rust 1.72 onward."
 ---
 
 # Modern Rust

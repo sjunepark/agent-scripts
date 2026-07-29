@@ -1,6 +1,6 @@
 ---
 name: progress
-description: "Manage repo-local roadmaps, ordered plans, unordered tasks, continuation, handoffs, status reviews, and durable goal-scoped execution contracts. Use when the user explicitly invokes $progress, including goal mode from a persistent /goal prompt, and when that already-established goal requires $progress recovery on continuation or resume."
+description: "Manage repo-local plans, task queues, continuation, handoffs, status, and durable goal contracts. Explicit invocation or established-goal recovery only."
 ---
 
 # Progress

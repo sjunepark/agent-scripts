@@ -1,6 +1,6 @@
 ---
 name: project-status
-description: "Triangulate a project's current state and best-supported next action from planning claims, git and implementation evidence, validation signals, and relevant GitHub work. Use when the user asks where a project stands or what to work on next."
+description: "Project status: reconcile plans, Git and implementation evidence, validation, and relevant GitHub work to report current state and the best-supported next action."
 ---
 
 # Project Status

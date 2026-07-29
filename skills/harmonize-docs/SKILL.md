@@ -1,6 +1,6 @@
 ---
 name: harmonize-docs
-description: "Harmonize active repository documentation and plans into one coherent system that distinguishes implementation reality, selected or unresolved target design, and delivery status. Use only when the user explicitly invokes $harmonize-docs."
+description: "Harmonize repository docs and plans across implementation reality, target design, and delivery status. Explicit invocation only."
 ---
 
 # Harmonize Docs

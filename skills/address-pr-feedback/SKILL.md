@@ -1,6 +1,6 @@
 ---
 name: address-pr-feedback
-description: "Address existing GitHub PR feedback end to end for one pull request or a stacked PR chain. Use when asked to act on reviewer or bot feedback, fix it locally, push follow-up commits, reply to each comment or thread, or process dependent PRs upstream-to-downstream through review and merge."
+description: "Address existing GitHub PR feedback from human or bot reviewers end to end, including stacked PR chains."
 ---
 
 # Address PR Feedback

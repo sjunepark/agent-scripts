@@ -1,6 +1,6 @@
 ---
 name: release-please-release
-description: "Release Please release management. Use when the user asks to add Release Please, or when a repo using Release Please needs a release prepared, a Release Please PR reviewed or merged, SemVer or breaking-change impact classified, or Conventional Commit messages chosen."
+description: "Release Please setup and release work: add configuration, prepare or review a release, merge its PR, classify SemVer or breaking changes, or choose Conventional Commits."
 ---
 
 # Release Please Release

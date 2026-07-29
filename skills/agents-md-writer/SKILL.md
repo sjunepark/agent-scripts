@@ -1,6 +1,6 @@
 ---
 name: agents-md-writer
-description: "Audit and redesign AGENTS.md and tool-specific instruction hierarchies. Use when instruction creation or editing involves nested scopes, conflict resolution, legacy or cross-tool migration, bloat reduction, or discovery and precedence debugging."
+description: "Design or audit AGENTS.md and tool-specific instruction hierarchies for nested scope, conflicts, legacy or cross-tool migration, bloat, discovery, or precedence failures."
 ---
 
 # AGENTS.md Writer

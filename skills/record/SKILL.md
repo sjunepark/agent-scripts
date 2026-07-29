@@ -1,6 +1,6 @@
 ---
 name: record
-description: "Maintain a distilled, temporary conversation record across a long-running session. Use only when the user explicitly invokes $record."
+description: "Keep a distilled temporary conversation record for continuity across long sessions. Explicit invocation only."
 ---
 
 # Record

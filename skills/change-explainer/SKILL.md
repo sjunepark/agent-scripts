@@ -1,6 +1,6 @@
 ---
 name: change-explainer
-description: "Explain a code or document change set directly in the conversation as a beginner-first, self-contained Markdown response, without creating or opening HTML or other artifacts. Use to understand a git diff (pasted, staged, or unstaged), a commit or commit range, a PR patch, or two versions of a file or document, especially when the reader is new to the project."
+description: "Explain a code or document diff, commit or range, PR patch, or version comparison to a cold reader. Explicit request only."
 ---
 
 # Change Explainer

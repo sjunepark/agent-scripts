@@ -1,6 +1,6 @@
 ---
 name: merge-branch
-description: "Manually integrate Git branch work without blind mechanical merges. Use when merging, dry-planning a merge, transplanting branch work, resolving conflicts, or auditing a completed merge."
+description: "Integrate Git branches deliberately: plan or dry-run merges, transplant work, resolve conflicts, or audit completed or in-progress merges."
 ---
 
 # Merge Branch

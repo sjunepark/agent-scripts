@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review code or completed implementation changes for correctness, intent fit, regressions, validation gaps, system and architecture fit, material technical and dependency choices, maintainability, and unearned complexity. Use for code review, roadmap or specification implementation audit, architecture or technical-choice critique, and simplification review. Do not use merely because code is being edited."
+description: "Review completed code changes, roadmap or specification implementation, architecture, technical choices, or overengineering."
 ---
 
 # Code Review

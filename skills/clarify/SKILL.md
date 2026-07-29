@@ -1,6 +1,6 @@
 ---
 name: clarify
-description: "Clarify the request supplied in the prompt that invokes $clarify by recovering its omitted intent and consequential unknowns before work begins. Use only when the user explicitly invokes $clarify with a task or asks for a pre-work clarification interview; do not self-trigger."
+description: "Clarify a task's omitted intent and consequential unknowns before work. Explicit request only."
 ---
 
 # Clarify

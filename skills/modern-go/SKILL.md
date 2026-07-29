@@ -1,6 +1,6 @@
 ---
 name: modern-go
-description: "Modern Go release awareness from Go 1.21 onward. Use whenever creating, modifying, debugging, reviewing, or upgrading Go source, tests, modules, tooling, build configuration, or Go-facing APIs."
+description: "Modern Go release awareness for any Go source, test, module, tooling, build, upgrade, or API work from Go 1.21 onward."
 ---
 
 # Modern Go

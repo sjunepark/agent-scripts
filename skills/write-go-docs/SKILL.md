@@ -1,6 +1,6 @@
 ---
 name: write-go-docs
-description: "Write, revise, prune, or audit source-native Go documentation. Use for Go package and declaration doc comments, examples, deprecation notices, or documentation-quality reviews in Go source."
+description: "Go source documentation: write, revise, prune, or audit package and declaration comments, examples, and deprecation notices."
 ---
 
 # Write Go Docs

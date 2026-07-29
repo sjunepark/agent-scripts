@@ -1,6 +1,6 @@
 ---
 name: ui-lab
-description: "Build or extend a lightweight in-app UI Lab: a dev-only route rendering real production UI states from deterministic fixtures shared with UI tests. Use when the user asks for a UI lab, scenario gallery, or Storybook-like in-app preview; wants to see a dialog, panel, or hard-to-reach UI state without clicking through the app; wants fixtures shared between a visual review page and UI tests; or is adding scenarios to an existing lab."
+description: "UI Lab: build or extend a dev-only in-app scenario gallery for hard-to-reach production UI states, Storybook-like previews, or deterministic fixtures shared with UI tests."
 ---
 
 # UI Lab

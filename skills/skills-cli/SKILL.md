@@ -1,6 +1,6 @@
 ---
 name: skills-cli
-description: "Manage skills with the skills CLI for Codex, Claude Code, and Pi. Use for discovering, installing, listing, updating, removing, or initializing skills; skills.sh; lock-file restore; node_modules sync; and project vs global agent installation troubleshooting."
+description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and Pi: discover, initialize, install, list, update, remove, restore lock files, sync `node_modules`, or troubleshoot project/global scope."
 ---
 
 # Skills CLI

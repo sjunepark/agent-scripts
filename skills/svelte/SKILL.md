@@ -1,6 +1,6 @@
 ---
 name: svelte
-description: "Svelte 5 component work: build, review, refactor, and debug `.svelte` components. Use for runes, props, snippets, events, styling, context, reactive state, and reactivity gotchas, including SvelteKit apps when the issue is component-level rather than route/server-level."
+description: "Svelte 5 component work: `.svelte` files, runes, props, snippets, events, styling, context, and reactivity, including component internals in SvelteKit."
 ---
 
 # Svelte

@@ -1,6 +1,6 @@
 ---
 name: review-campaign
-description: "Long-running systematic codebase review with a persistent ledger in reviews/. Use to plan review areas (plan), continue the next review pass (continue, default), check campaign status (status), triage findings with the user (triage), apply auto-tier fixes (fix), or absorb base-branch drift (sync)."
+description: "Run a stateful whole-repository review campaign with a persistent `reviews/` ledger. Explicit invocation only."
 ---
 
 # Review Campaign

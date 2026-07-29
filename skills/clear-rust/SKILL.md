@@ -1,6 +1,6 @@
 ---
 name: clear-rust
-description: "Plain Rust code with visible control flow, concrete designs, narrow abstractions, and explicit safety boundaries. Use whenever creating, modifying, debugging, reviewing, or refactoring Rust source, tests, macros, Cargo crates, or Rust-facing APIs."
+description: "Plain Rust for any source, test, macro, Cargo crate, or API work: visible control flow, concrete design, narrow abstractions, and explicit safety boundaries."
 ---
 
 # Clear Rust

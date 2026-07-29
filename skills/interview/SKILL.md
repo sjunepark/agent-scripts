@@ -1,6 +1,6 @@
 ---
 name: interview
-description: "Brief every consequential open item and its credible options, interview the user where their judgment is needed, and act on the confirmed decisions. Use unresolved items from the preceding conversation or the prompt that invokes $interview. Use only when the user explicitly invokes $interview or asks to be interviewed; do not self-trigger."
+description: "Brief consequential open decisions, interview the user where judgment matters, and act on confirmed choices. Explicit request only."
 ---
 
 # Interview

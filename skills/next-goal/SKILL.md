@@ -1,6 +1,6 @@
 ---
 name: next-goal
-description: "Choose a substantial, evidence-backed implementation goal and emit a copy-ready fresh-session routing envelope only after planning is sufficient or the user explicitly delegates unresolved decisions. Use only when the user explicitly invokes $next-goal."
+description: "Choose a substantial, evidence-backed implementation goal and emit a copy-ready fresh-session routing envelope. Explicit invocation only."
 ---
 
 # Next Goal

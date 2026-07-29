@@ -1,6 +1,6 @@
 ---
 name: explore-repo
-description: "Explore external GitHub or Git repositories from a centralized local cache. Use when reading another repository's source (including a pinned version, tag, or ref), comparing behavior against upstream, or delegating large external-repo exploration without creating project-local .tmp clones."
+description: "Explore external GitHub or Git source from the centralized `~/.repos` cache for pinned refs, upstream comparison, or delegated repository inspection."
 ---
 
 # Explore Repo

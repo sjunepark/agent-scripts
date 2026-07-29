@@ -1,6 +1,6 @@
 ---
 name: doc-comment-writer
-description: "Add, prune, or improve durable, maintainer-facing doc comments across languages. Use for language-agnostic source documentation or languages without a dedicated documentation skill."
+description: "Doc comments: write, revise, or prune durable maintainer-facing documentation across languages when no language-specific skill applies."
 ---
 
 # Doc Comment Writer

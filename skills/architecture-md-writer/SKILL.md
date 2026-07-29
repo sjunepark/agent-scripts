@@ -1,6 +1,6 @@
 ---
 name: architecture-md-writer
-description: "Create, update, review, or split ARCHITECTURE.md files covering component maps, runtime flow, code maps, and invariants. Use when architecture docs are missing, stale, too detailed, or need nested subsystem docs linked from the root."
+description: "Create, update, review, or split ARCHITECTURE.md files when docs are missing, stale, over-detailed, poorly scoped, or need nested subsystem coverage."
 ---
 
 # ARCHITECTURE.md Writer

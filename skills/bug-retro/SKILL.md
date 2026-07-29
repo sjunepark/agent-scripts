@@ -1,6 +1,6 @@
 ---
 name: bug-retro
-description: "Run an engineering postmortem on a bug or failure — root cause, design-signal classification, and prevention refactors. Use when the user asks for a bug retro or root-cause analysis."
+description: "Analyze a bug or failure for root cause, design signal, and prevention refactors. Explicit request only."
 ---
 
 # Bug Retro

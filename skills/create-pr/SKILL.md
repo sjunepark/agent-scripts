@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: "Create or update GitHub pull requests with gh. Use when drafting a PR title/body, choosing draft versus ready state, handling stacked PR branches and bases, or deciding whether CodeRabbit or Greptile reviews run, are skipped, or are manually triggered."
+description: "Create or update GitHub PRs with `gh`: draft titles and bodies, choose draft or ready status, handle stacked branches and bases, and control CodeRabbit or Greptile reviews."
 ---
 
 # Create PR

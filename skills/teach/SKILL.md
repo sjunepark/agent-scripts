@@ -1,6 +1,6 @@
 ---
 name: teach
-description: "Teach an existing codebase, subsystem, architecture, or feature flow to reviewers and maintainers. Use for a requested design-level mental model of responsibilities, contracts, data flow, invariants, and tradeoffs. Do not use for quick factual questions, implementation requests, library examples, diffs, commits, or patches."
+description: "Teach requested design-level mental models of existing codebases, subsystems, architectures, or feature flows. Use `change-explainer` for diffs, commits, and patches."
 ---
 
 # Teach
