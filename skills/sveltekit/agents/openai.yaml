@@ -1,4 +1,0 @@
-interface:
-  display_name: "SvelteKit"
-  short_description: "Use current SvelteKit route and SSR patterns"
-  default_prompt: "Use this skill when building, reviewing, refactoring, or debugging SvelteKit code, especially around routes, load functions, form actions, SSR, hydration, navigation, cookies, auth, and state placement."

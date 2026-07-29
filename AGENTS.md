@@ -49,8 +49,8 @@
 - Keep global installs to the small baseline that is useful in most repos for a
   given agent.
 - Install domain/project skills selectively where they apply. For example,
-  `svelte`, `sveltekit`, and `ui-lab` belong in frontend/Svelte projects, not
-  in a generic Codex global install.
+  `clear-rust`, `modern-go`, `modern-rust`, `write-go-docs`, and `ui-lab`
+  belong in matching projects, not in a generic Codex global install.
 - When checking whether Codex loads skills, verify the intended installed
   subset, not every skill present under this repo's `skills/`.
 

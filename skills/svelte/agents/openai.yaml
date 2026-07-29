@@ -1,4 +1,0 @@
-interface:
-  display_name: "Svelte"
-  short_description: "Use current Svelte 5 component patterns"
-  default_prompt: "Use this skill when building, reviewing, refactoring, or debugging Svelte 5 component code, especially around runes, props, snippets, events, styling, context, and reactivity gotchas."

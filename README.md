@@ -102,8 +102,8 @@ SKILL_NAME="change-explainer"
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
 ```
 
-Install domain skills such as `svelte`, `sveltekit`, and `ui-lab` only in
-projects where they are relevant.
+Install domain skills such as `clear-rust`, `modern-go`, `modern-rust`,
+`write-go-docs`, and `ui-lab` only in projects where they are relevant.
 
 ## Codex Plugins
 

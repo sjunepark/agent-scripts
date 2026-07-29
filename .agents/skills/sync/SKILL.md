@@ -20,6 +20,7 @@ Always install with the skills CLI from the published source — the GitHub `ski
 2. Inspect the working tree and decide what to publish.
 - Run `git status --short` and inspect relevant diffs before committing.
 - Commit only the changes that belong to this sync request. Do not sweep in unrelated dirty files.
+- When `global-skills.json` exists, treat it as the authoritative machine-global install registry. Confirm every skill being removed globally is absent from its profiles, and run `scripts/audit-global-skills` before changing installs.
 - If the commit scope or message is unclear, ask the user before committing.
 - If there are no relevant local changes, skip the commit and push steps and continue with the remote reinstall/update.
 
@@ -38,13 +39,15 @@ Always install with the skills CLI from the published source — the GitHub `ski
 
 6. Reinstall or update the intended selected skills from the remote source onto this machine.
 - Treat this repo's `skills/` directory as a catalog, not as a global install manifest.
-- Default: machine-global all-agent install, targeting selected skills by name in copy mode: `bunx skills add "<skills-subpath-url>" --skill <skill-name> --copy -g -a '*' -y`. Narrow the agent set only when the user explicitly asks.
+- When `global-skills.json` exists, sync a skill globally only if the registry lists it. Aggregate that skill's agents from installable profiles and pass only those explicit `-a <agent>` targets. A skill absent from the registry stays uninstalled unless the user explicitly changes the desired registry first.
+- Without a registry, default to a machine-global all-agent install for selected skills by name in copy mode: `bunx skills add "<skills-subpath-url>" --skill <skill-name> --copy -g -a '*' -y`.
 - Treat re-running this remote `skills add` command as the reinstall/update path for the current machine.
 - Use `--skill '*'` only when the user explicitly asks to install every published repo skill. Do not use `--all`: it expands to both `--skill '*'` and `--agent '*'`, sweeping in the entire catalog instead of keeping the requested skill selection.
 - If the user asks for a project install instead, omit `-g` and only narrow agents if requested.
 
 7. Verify the result.
 - Run `bunx skills list` for project scope or `bunx skills list -g` for global scope.
+- When the repo has `global-skills.json`, finish with `scripts/audit-global-skills` and require the installed global set to match it.
 - For the default machine-global setup, confirm the selected skill resolves from `~/.agents/skills` and lists the supported agents broadly. For a user-requested narrow setup, confirm only those agents appear.
 - Report the commit hash when a commit was created, the pushed branch, and that the installed skills now come from the remote-backed source, not the local working tree.
 - If the install command overwrote existing skills, say so explicitly in the summary.
@@ -56,10 +59,13 @@ SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
 SKILL_NAME="merge-branch"
 git remote get-url origin
 git status --short
+scripts/audit-global-skills
 git add skills/merge-branch/SKILL.md
 git commit -m "docs: update skill workflow"
 git push
 bunx skills add "$SKILLS_URL" --list
-bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a '*' -y
+bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a codex -y
+bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
 bunx skills list -g
+scripts/audit-global-skills
 ```

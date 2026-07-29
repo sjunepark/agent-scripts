@@ -14,10 +14,8 @@
         "address-pr-feedback",
         "agents-md-writer",
         "architecture-md-writer",
-        "bug-retro",
         "change-explainer",
         "clarify",
-        "clear-rust",
         "code-review",
         "create-pr",
         "doc-comment-writer",
@@ -25,13 +23,10 @@
         "harmonize-docs",
         "interview",
         "merge-branch",
-        "modern-go",
-        "modern-rust",
         "next-goal",
         "progress",
         "project-status",
-        "record",
-        "review-campaign",
+        "skills-cli",
         "teach"
       ]
     },
@@ -46,10 +41,8 @@
         "address-pr-feedback",
         "agents-md-writer",
         "architecture-md-writer",
-        "bug-retro",
         "change-explainer",
         "clarify",
-        "clear-rust",
         "code-review",
         "create-pr",
         "doc-comment-writer",
@@ -57,13 +50,10 @@
         "harmonize-docs",
         "interview",
         "merge-branch",
-        "modern-go",
-        "modern-rust",
         "next-goal",
         "progress",
         "project-status",
-        "record",
-        "review-campaign",
+        "skills-cli",
         "teach"
       ]
     },
@@ -80,15 +70,13 @@
         "architecture-md-writer",
         "change-explainer",
         "clarify",
-        "clear-rust",
         "code-review",
         "create-pr",
         "doc-comment-writer",
         "interview",
         "merge-branch",
         "progress",
-        "record",
-        "review-campaign",
+        "skills-cli",
         "teach"
       ]
     },
@@ -121,24 +109,6 @@
         "improve-codebase-architecture",
         "writing-great-skills"
       ]
-    },
-    {
-      "name": "codex-axi-global",
-      "description": "Third-party agent-facing CLI design skill that should be available to Codex.",
-      "source": "kunchenguid/axi",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["codex"],
-      "skills": ["axi"]
-    },
-    {
-      "name": "claude-axi-global",
-      "description": "Third-party agent-facing CLI design skill that should be available to Claude Code.",
-      "source": "kunchenguid/axi",
-      "scope": "global",
-      "mode": "copy",
-      "agents": ["claude-code"],
-      "skills": ["axi"]
     },
     {
       "name": "codex-baton-global",
@@ -186,10 +156,6 @@
       "skills": [
         {
           "name": "context7-mcp",
-          "agents": ["codex", "claude-code"]
-        },
-        {
-          "name": "impeccable",
           "agents": ["codex", "claude-code"]
         },
         {
