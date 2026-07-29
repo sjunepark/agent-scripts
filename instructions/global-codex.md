@@ -104,7 +104,12 @@ files are loaded after this file and take precedence when they conflict.
   required.
 - Add dependencies only when they remove durable complexity the project should
   not own.
-- Avoid speculative schemas, future-proof fields, and clever abstractions.
+- Implement the smallest code and data model required by the current scope. Do
+  not add abstractions, database columns, schema fields, or other structure for
+  assumed future needs; extend or refactor when concrete requirements emerge.
+- Account for a future requirement upfront only when it is documented in an
+  approved plan or roadmap and doing so materially simplifies the design. Keep
+  anticipatory work minimal and document the rationale.
 
 ## Frontend Defaults
 
