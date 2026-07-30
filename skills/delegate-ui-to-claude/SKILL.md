@@ -45,13 +45,16 @@ Claude, inspect the result, and route revision feedback back to Claude.
      - `~/.agents/skills/impeccable` or `~/.codex/skills/impeccable` at user
        scope; and
      - Impeccable hook entries in the repository's `.codex/hooks.json`.
-   - If a Codex-facing copy or hook is detected, do not invoke, edit, or remove
-     it automatically. Report every exact path, explain that it exposes
-     Impeccable to Codex, and ask the user to remove it. For a shared hooks
-     file, ask to remove only the Impeccable entries, not the whole file. Stop
-     the delegation until the conflict is resolved. If the current Codex task
-     already discovered the skill, recommend starting a fresh task after
-     removal.
+   - Report detected Codex-facing artifacts and do not remove them without
+     explicit authorization. An instruction naming the exact artifact is
+     sufficient. Before removing repo-local `.agents/skills/impeccable`, verify
+     that it resolves inside the repository, is not a symlink, and contains no
+     unrelated files. In `.codex/hooks.json`, remove only Impeccable entries.
+     Require separate authorization for each user-scoped path.
+   - Recheck after cleanup and stop until all conflicts are gone. If this task
+     already discovered Impeccable, continue only in a fresh task. Create it
+     with the requested resume prompt when asked and supported; otherwise tell
+     the user to start it.
    - Invoke Impeccable through `npx` with `@latest` so every delegation checks
      the current published CLI instead of relying on a long-lived local
      binary. If the Claude installation is absent, install it before
