@@ -5,10 +5,12 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
-- Be concise, clear, and direct.
-- Lead with the answer or next action.
-- Expand only when the task, risk, or tradeoff justifies it.
-- Avoid repetition, padding, long recaps, and generic advice.
+- Lead with the answer, decision, or next action. Focus on overall insights,
+  design and architecture, material tradeoffs, and consequences.
+- Omit low-value details; mention the omission when useful. Zoom in when asked,
+  when the task is narrow, or when correctness and safety require it.
+- Keep conversations concise without reducing the thoroughness of the work or
+  requested artifacts.
 
 ## Subagents
 
