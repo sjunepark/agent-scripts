@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delegate UI to Claude"
+  short_description: "Delegate all frontend and UI implementation"
+  default_prompt: "Use $delegate-ui-to-claude to have Claude Code implement this frontend or UI task with Impeccable."

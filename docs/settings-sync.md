@@ -3,9 +3,9 @@
 ## Decision
 
 Use this repo as the source for reusable agent assets, and use chezmoi for
-machine-level pointers and non-secret local config. Do not put live runtime
-state, credentials, histories, caches, logs, or SQLite state into either this
-repo or public skill installs.
+selected machine-level pointers and non-secret local config. Do not put live
+runtime state, credentials, histories, caches, logs, or SQLite state into
+either this repo or public skill installs.
 
 ## Ownership Boundaries
 
@@ -14,24 +14,27 @@ repo or public skill installs.
 | Reusable agent assets | `agent-scripts` | `skills/`, `bin/`, docs, validation scripts, optional hooks | Git commit and push |
 | Repo-local Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Local Codex marketplace install |
 | Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
-| Machine pointers | chezmoi | symlinks or scripts that point tools at this repo | Chezmoi source repo |
+| Machine pointers | chezmoi or harness-specific setup | symlinks or scripts that point tools at this repo | Chezmoi source repo or explicit local setup |
 | Stable personal defaults | chezmoi, with care | selected model, reasoning effort, sandbox default | Template or idempotent update script |
 | Runtime state | local machine only | auth, sessions, logs, caches, memories, SQLite files | Do not sync |
 
 ## Current Chezmoi Status
 
-Read-only inspection on 2026-06-17 found:
+Read-only inspection on 2026-07-30 found:
 
 - Chezmoi source: `/Users/sejunpark/.local/share/chezmoi`.
 - Source repo: clean on `main`, tracking `origin/main` with `0` ahead and
   `0` behind.
 - `chezmoi status`: clean.
-- `~/.codex/AGENTS.md` is managed by chezmoi as a symlink to
-  `/Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`.
+- `~/.codex/AGENTS.md` is a symlink to
+  `/Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`, maintained
+  outside chezmoi.
 - `~/.codex/config.toml` and `~/.agents` are not currently managed by chezmoi.
 - `~/.claude/CLAUDE.md` is managed as a symlink to
-  `/Users/sejunpark/.pi/agent/AGENTS.md`.
-- `~/.pi/agent/AGENTS.md` and `~/.pi/agent/extensions` are managed.
+  `/Users/sejunpark/IT/agent-scripts/instructions/global-claude.md`.
+- `~/.pi/agent/AGENTS.md` is a symlink to
+  `/Users/sejunpark/IT/agent-scripts/instructions/global-pi.md`, maintained
+  outside chezmoi; `~/.pi/agent/extensions` is managed by chezmoi.
 
 ## Codex Settings
 
@@ -137,6 +140,29 @@ Use `global-skills.json` as the desired machine-global skill registry, and run
 when missing managed entries should be reinstalled; manual/audit-only entries
 still need their source handled separately.
 
+The `delegate-ui-to-claude` orchestration skill is intentionally installed only
+for Codex. Impeccable is not a machine-global prerequisite: when the skill
+delegates work in a UI repository, it provisions Claude's project-scoped copy
+with `npx --yes impeccable@latest install -y --providers=claude --scope=project`
+if needed and refreshes an existing copy with the matching `update` command.
+Using `@latest` is intentional: delegation should use the current published
+Impeccable workflow rather than a pinned or long-lived local CLI.
+The intended harness exposure stays under `.claude/`, including the Impeccable
+skill tree and Claude hook settings. Codex-facing copies such as
+`.agents/skills/impeccable`, user-level Impeccable skills under `~/.agents` or
+`~/.codex`, and Impeccable entries in `.codex/hooks.json` are conflicts; the
+skill reports them and asks the user to remove them rather than deleting them
+automatically. Shared hook files should retain their unrelated entries.
+
+Greenfield work, redesigns, missing product context, and other consequential
+design choices use resumable approval phases. Claude returns questions or
+options to Codex, Codex relays them to the user, and implementation resumes in
+the same Claude session after approval. Claude remains read-only during these
+phases; Codex may persist an approved PM-owned contract such as `PRODUCT.md`
+when Impeccable needs it to derive the next options. Scoped work that inherits
+an established product and visual world can use a one-shot run; so can work
+for which the user explicitly authorizes unattended design decisions.
+
 Use explicit skill and agent targets:
 
 ```bash
@@ -153,16 +179,22 @@ cloned, but it should not `chezmoi add` the generated skill copies.
 
 ## Instructions
 
-Keep repo-maintenance rules in this repository's root `AGENTS.md`. For global
-personal Codex defaults, create a separate shared instruction file and let
-chezmoi install a pointer to it, for example:
+Keep repo-maintenance rules in this repository's root `AGENTS.md`. Keep global
+personal defaults in separate harness-specific files even when most guidance
+is shared, so tool-specific behavior does not leak between agents. Point each
+harness at its file:
 
 ```text
 ~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-codex.md
+~/.claude/CLAUDE.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-claude.md
+~/.pi/agent/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-pi.md
 ```
 
-That file should contain durable personal defaults only. Do not mix it with
-this repo's maintenance-specific rules.
+These files should contain durable personal defaults only. Keep multi-step
+procedures in skills and route to them with a concise harness-specific rule.
+Do not mix personal defaults with this repo's maintenance-specific rules.
+Chezmoi currently owns only the Claude pointer; Codex and Pi pointers are
+maintained outside chezmoi.
 
 ## Bootstrap Order For A New Machine
 

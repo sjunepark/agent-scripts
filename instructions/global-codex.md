@@ -17,6 +17,12 @@ files are loaded after this file and take precedence when they conflict.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
 
+## Frontend and UI
+
+- For frontend or UI work, invoke `$delegate-ui-to-claude`; Claude Code owns
+  the frontend/UI implementation while Codex owns product scope, contracts,
+  coordination, and validation.
+
 ## Browser Interaction
 
 - Use browser tools only when the task requires an actual browser: interacting

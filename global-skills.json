@@ -18,6 +18,7 @@
         "clarify",
         "code-review",
         "create-pr",
+        "delegate-ui-to-claude",
         "doc-comment-writer",
         "explore-repo",
         "harmonize-docs",
