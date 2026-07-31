@@ -70,6 +70,9 @@ files are loaded after this file and take precedence when they conflict.
 - Use subagents for that review when the change touches shared behavior,
   cross-module contracts, user-facing flows, security, data migration, or a
   nontrivial refactor.
+- Write detailed, self-documenting commit messages: summarize what changed,
+  explain the intent and reasoning, and record important decisions and
+  tradeoffs that are not obvious from the diff.
 - Prefer preserving individual commits when merging pull requests; do not
   squash by default.
 - For bug fixes, start by reproducing the bug in an E2E setting as closely
