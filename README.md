@@ -17,10 +17,10 @@ rubrics, recipes, or factual references.
 - `AGENTS.md`: maintenance instructions for this repository.
 - `bin/` when present: stable user-facing commands intended to be on `PATH` or
   symlinked into `~/.local/bin`.
-- `instructions/global-codex.md`, `instructions/global-claude.md`, and
-  `instructions/global-pi.md`: harness-specific personal defaults for
-  `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and
-  `~/.pi/agent/AGENTS.md`.
+- `global-agent-instructions/global-codex.md`,
+  `global-agent-instructions/global-claude.md`, and
+  `global-agent-instructions/global-pi.md`: harness-specific personal defaults
+  for `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.pi/agent/AGENTS.md`.
 - `plugins/`: repo-managed local Codex plugins.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
 - `skills/`: published reusable skills.

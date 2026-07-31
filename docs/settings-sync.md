@@ -27,13 +27,13 @@ Read-only inspection on 2026-07-30 found:
   `0` behind.
 - `chezmoi status`: clean.
 - `~/.codex/AGENTS.md` is a symlink to
-  `/Users/sejunpark/IT/agent-scripts/instructions/global-codex.md`, maintained
+  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-codex.md`, maintained
   outside chezmoi.
 - `~/.codex/config.toml` and `~/.agents` are not currently managed by chezmoi.
 - `~/.claude/CLAUDE.md` is managed as a symlink to
-  `/Users/sejunpark/IT/agent-scripts/instructions/global-claude.md`.
+  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-claude.md`.
 - `~/.pi/agent/AGENTS.md` is a symlink to
-  `/Users/sejunpark/IT/agent-scripts/instructions/global-pi.md`, maintained
+  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-pi.md`, maintained
   outside chezmoi; `~/.pi/agent/extensions` is managed by chezmoi.
 
 ## Codex Settings
@@ -177,7 +177,7 @@ bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --sk
 Chezmoi can run those commands as bootstrap/update scripts after this repo is
 cloned, but it should not `chezmoi add` the generated skill copies.
 
-## Instructions
+## Global Agent Instructions
 
 Keep repo-maintenance rules in this repository's root `AGENTS.md`. Keep global
 personal defaults in separate harness-specific files even when most guidance
@@ -185,9 +185,9 @@ is shared, so tool-specific behavior does not leak between agents. Point each
 harness at its file:
 
 ```text
-~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-codex.md
-~/.claude/CLAUDE.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-claude.md
-~/.pi/agent/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/instructions/global-pi.md
+~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-codex.md
+~/.claude/CLAUDE.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-claude.md
+~/.pi/agent/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-pi.md
 ```
 
 These files should contain durable personal defaults only. Keep multi-step
