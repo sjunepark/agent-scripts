@@ -253,6 +253,22 @@
       }
     },
     {
+      "name": "distill-response",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "agents": [
+          "codex",
+          "claude-code",
+          "pi"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "doc-comment-writer",
       "source": "agent-scripts",
       "recommendation": {

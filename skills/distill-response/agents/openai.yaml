@@ -1,0 +1,6 @@
+interface:
+  display_name: "Distill Response"
+  short_description: "Distill prior AI responses to their decision spine"
+  default_prompt: "Use $distill-response to rewrite the latest assistant response as a standalone, big-picture version."
+policy:
+  allow_implicit_invocation: false
