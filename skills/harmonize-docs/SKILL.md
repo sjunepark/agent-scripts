@@ -11,6 +11,11 @@ one canonical home, current implementation and target design remain visibly
 distinct, each active plan reflects reality and remaining intent, and the
 documents route readers without contradiction.
 
+Use a light pruning bias: when alternatives preserve the same durable reader
+value, prefer the leaner one. Treat concise, well-scoped documents as already
+at their natural depth. Preserve or add detail when it materially improves
+understanding, rationale, operational safety, or future decisions.
+
 ## Coordination
 
 Leverage subagents when they are available, choosing the decomposition
