@@ -8,7 +8,7 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
 ## Workflow
 
 1. Inspect current state with `bunx skills list` for project scope and `bunx skills list -g` for global scope.
-   - In this repository, use `scripts/audit-global-skills` to compare machine-global installs against `global-skills.json`, the desired machine-global registry.
+   - In this repository, use `skill-registry.json` as the authoritative classification and `scripts/audit-global-skills` to compare machine-global installs with its global recommendations.
 2. Use `bunx skills find <query>` or `bunx skills add <source> --list` to discover options.
    - When choosing a command, source, scope, or agent target—including initializing a skill—read [references/cli.md](references/cli.md) for the CLI's accepted inputs and install-location facts.
 3. Install with explicit scope, skill selection, and agent targeting.

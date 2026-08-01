@@ -2,9 +2,11 @@
 
 const fs = require("fs");
 const path = require("path");
+const { validateSkillRegistry } = require("./lib/skill-registry");
 
 const root = path.resolve(__dirname, "..");
 const skillsRoot = path.join(root, "skills");
+const skillRegistryFile = path.join(root, "skill-registry.json");
 const errors = [];
 const warnings = [];
 const names = new Map();
@@ -300,7 +302,28 @@ function validateResourcePointers(file, content) {
   }
 }
 
-for (const skillDir of readSkillDirs()) {
+function validateRegistryFile() {
+  if (!fs.existsSync(skillRegistryFile)) {
+    fail(skillRegistryFile, "missing authoritative skill registry");
+    return;
+  }
+
+  let registry;
+  try {
+    registry = JSON.parse(fs.readFileSync(skillRegistryFile, "utf8"));
+  } catch (error) {
+    fail(skillRegistryFile, `invalid JSON: ${error.message}`);
+    return;
+  }
+
+  for (const error of validateSkillRegistry(registry, {
+    repositorySkillNames: names.keys()
+  })) {
+    fail(skillRegistryFile, error);
+  }
+}
+const skillDirs = readSkillDirs();
+for (const skillDir of skillDirs) {
   const file = path.join(skillDir, "SKILL.md");
   const dirName = path.basename(skillDir);
 
@@ -368,6 +391,8 @@ for (const [name, files] of names.entries()) {
   }
 }
 
+validateRegistryFile();
+
 if (errors.length > 0) {
   console.error("Skill validation failed:");
   for (const error of errors) {
@@ -383,4 +408,4 @@ if (warnings.length > 0) {
   }
 }
 
-console.log(`Validated ${names.size} skills.`);
+console.log(`Validated ${names.size} skills and skill-registry.json.`);
