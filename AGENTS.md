@@ -44,13 +44,15 @@
 - Keep the directory name and the `name:` field in `SKILL.md` aligned.
 
 ## Skill install scope
+- Treat `skill-registry.json` as the authoritative classification and install
+  policy for all published repo skills and deliberately recommended external
+  skills. See `docs/skill-registry.md` for its contract.
 - Published means available to install from the GitHub `skills/` subpath; it
   does not imply global installation.
 - Keep global installs to the small baseline that is useful in most repos for a
   given agent.
-- Install domain/project skills selectively where they apply. For example,
-  `clear-rust`, `modern-go`, `modern-rust`, `write-go-docs`, and `ui-lab`
-  belong in matching projects, not in a generic Codex global install.
+- Install project-scoped skills only when their registry `when` condition
+  matches the target repository.
 - When checking whether Codex loads skills, verify the intended installed
   subset, not every skill present under this repo's `skills/`.
 
@@ -82,10 +84,10 @@
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
-- Use `global-skills.json` as the desired machine-global skill registry.
+- Use `skill-registry.json` as the desired skill registry.
 - Use `scripts/audit-global-skills` to compare `bunx skills list -g --json`
-  with `global-skills.json`; use `scripts/audit-global-skills --apply` only
-  when missing managed entries should be reinstalled.
+  with its global recommendations; use `scripts/audit-global-skills --apply`
+  only when missing `skills-cli`-managed entries should be reinstalled.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.

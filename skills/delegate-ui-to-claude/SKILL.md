@@ -1,6 +1,6 @@
 ---
 name: delegate-ui-to-claude
-description: "Delegate all frontend and UI implementation to Claude Code with a Claude-only, repository-scoped Impeccable installation while Codex scopes, orchestrates, and validates the work. Use for creating, changing, redesigning, styling, polishing, or reviewing interfaces, components, layouts, frontend behavior, design systems, responsive behavior, motion, accessibility, or UX. Do not use for work confined to backend, data, infrastructure, or other non-UI layers."
+description: "Delegate all frontend and UI implementation or review to Claude Code with Impeccable, while Codex owns scope, contracts, coordination, and validation. Use for changes to interfaces, components, layouts, design systems, responsive behavior, motion, accessibility, or UX. Do not use for backend-, data-, or infrastructure-only work."
 ---
 
 # Delegate UI to Claude

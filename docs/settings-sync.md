@@ -123,22 +123,22 @@ add`, `codex plugin add`, `/plugins`, and `/hooks` on each machine.
 
 Keep `~/.agents/skills` as a generated user-scope skill install location, not
 as a chezmoi-managed directory. Codex discovers user skills there, and other
-harnesses may also report skills from that shared location. It currently also
-holds non-repo skills (`context7-mcp` and `skill-cleaner`), so do
-not replace it with a symlink to this repo.
+harnesses may also report skills from that shared location. It also holds
+external/manual skills classified in `skill-registry.json`, so do not replace
+it with a symlink to this repo.
 
 Treat this repo's `skills/` directory as the published catalog. A skill being
 published here means it can be installed from the GitHub `skills/` subpath; it
-does not mean it belongs in every global agent install. Keep global installs to
-the skills that are broadly useful, and install domain skills such as
-`clear-rust`, `modern-go`, `modern-rust`, `write-go-docs`, and `ui-lab` only in
-matching projects.
+does not mean it belongs in every global agent install. Use
+`skill-registry.json` for the authoritative scope, provenance, target agents,
+and installation manager; install project recommendations only when their
+`when` condition matches.
 
-Use `global-skills.json` as the desired machine-global skill registry, and run
-`scripts/audit-global-skills` from this repo to compare that registry with
-`bunx skills list -g --json`. Use `scripts/audit-global-skills --apply` only
-when missing managed entries should be reinstalled; manual/audit-only entries
-still need their source handled separately.
+Run `scripts/audit-global-skills` from this repo to compare the registry's
+global recommendations with `bunx skills list -g --json`. Use
+`scripts/audit-global-skills --apply` only when missing `skills-cli`-managed
+entries should be reinstalled; manual and workflow-managed entries remain with
+their recorded manager.
 
 The `delegate-ui-to-claude` orchestration skill is intentionally installed only
 for Codex. Impeccable is not a machine-global prerequisite: when the skill

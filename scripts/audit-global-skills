@@ -3,9 +3,10 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
+const { globalSkillEntries, readSkillRegistry } = require("./lib/skill-registry");
 
 const root = path.resolve(__dirname, "..");
-const defaultManifest = path.join(root, "global-skills.json");
+const defaultRegistry = path.join(root, "skill-registry.json");
 
 const agentDisplayNames = new Map([
   ["claude-code", "Claude Code"],
@@ -14,16 +15,16 @@ const agentDisplayNames = new Map([
 ]);
 
 function usage() {
-  console.log(`Usage: scripts/audit-global-skills [--manifest <path>] [--apply]
+  console.log(`Usage: scripts/audit-global-skills [--registry <path>] [--apply]
 
-Audits bunx skills list -g --json against global-skills.json.
+Audits bunx skills list -g --json against global recommendations in skill-registry.json.
 Without --apply, prints the commands needed to repair missing managed entries.
-With --apply, runs only install commands for entries that have a source.`);
+With --apply, runs only skills-cli repairs with a recorded source.`);
 }
 
 function parseArgs(argv) {
   const options = {
-    manifest: defaultManifest,
+    registry: defaultRegistry,
     apply: false
   };
 
@@ -37,12 +38,12 @@ function parseArgs(argv) {
       options.apply = true;
       continue;
     }
-    if (arg === "--manifest") {
+    if (arg === "--registry") {
       const value = argv[index + 1];
       if (!value) {
-        throw new Error("--manifest requires a path");
+        throw new Error("--registry requires a path");
       }
-      options.manifest = path.resolve(value);
+      options.registry = path.resolve(value);
       index += 1;
       continue;
     }
@@ -52,48 +53,15 @@ function parseArgs(argv) {
   return options;
 }
 
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
-}
-
 function displayName(agent) {
   return agentDisplayNames.get(agent) || agent;
 }
 
-function normalizeSkill(profile, skill) {
-  const skillConfig = typeof skill === "string" ? { name: skill } : skill;
-  if (!skillConfig || typeof skillConfig.name !== "string") {
-    throw new Error(`Profile ${profile.name} has a skill without a name`);
-  }
-
-  return {
-    profile: profile.name,
-    name: skillConfig.name,
-    source: skillConfig.source ?? profile.source,
-    install: skillConfig.install ?? profile.install ?? true,
-    scope: skillConfig.scope ?? profile.scope ?? "global",
-    mode: skillConfig.mode ?? profile.mode,
-    agents: skillConfig.agents ?? profile.agents ?? [],
-    fullDepth: skillConfig.fullDepth ?? profile.fullDepth ?? false
-  };
-}
-
-function normalizeManifest(manifest) {
-  if (!Array.isArray(manifest.profiles)) {
-    throw new Error("global skills manifest must include profiles[]");
-  }
-
-  const entries = [];
-  for (const profile of manifest.profiles) {
-    if (!profile.name || !Array.isArray(profile.skills)) {
-      throw new Error("each profile must include name and skills[]");
-    }
-    for (const skill of profile.skills) {
-      entries.push(normalizeSkill(profile, skill));
-    }
-  }
-
-  return entries;
+function publishedSkillNames() {
+  return fs
+    .readdirSync(path.join(root, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 }
 
 function listGlobalSkills() {
@@ -108,13 +76,15 @@ function listGlobalSkills() {
 function indexInstalled(skills) {
   const byName = new Map();
   for (const skill of skills) {
-    byName.set(skill.name, skill);
+    const agents = new Set(byName.get(skill.name)?.agents || []);
+    for (const agent of skill.agents || []) agents.add(agent);
+    byName.set(skill.name, { ...skill, agents: [...agents] });
   }
   return byName;
 }
 
 function commandFor(entry) {
-  if (!entry.install || !entry.source) return null;
+  if (entry.manager !== "skills-cli" || !entry.source) return null;
 
   const args = ["skills", "add", entry.source, "--skill", entry.name];
   if (entry.mode === "copy") {
@@ -167,9 +137,9 @@ function collectIssues(entries, installed, allowUnlisted) {
     }
   }
 
-  const unlisted = installed
+  const unlisted = [...new Set(installed
     .map((skill) => skill.name)
-    .filter((name) => !wantedNames.has(name))
+    .filter((name) => !wantedNames.has(name)))]
     .sort();
 
   return {
@@ -190,6 +160,7 @@ function actionableEntries(issues) {
     const key = JSON.stringify([
       entry.source,
       entry.name,
+      entry.sourceId,
       entry.scope,
       entry.mode,
       entry.agents,
@@ -205,7 +176,7 @@ function printIssues(issues) {
   if (issues.missing.length > 0) {
     console.log("\nMissing skills:");
     for (const entry of issues.missing) {
-      console.log(`- ${entry.name} (${entry.profile})`);
+      console.log(`- ${entry.name} (${entry.sourceId})`);
     }
   }
 
@@ -213,7 +184,7 @@ function printIssues(issues) {
     console.log("\nSkills missing target agents:");
     for (const issue of issues.missingAgents) {
       console.log(
-        `- ${issue.entry.name} (${issue.entry.profile}): ${issue.absentAgents.join(", ")}`
+        `- ${issue.entry.name} (${issue.entry.sourceId}): ${issue.absentAgents.join(", ")}`
       );
     }
   }
@@ -236,18 +207,20 @@ function hasIssues(issues) {
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  const manifest = readJson(options.manifest);
-  const entries = normalizeManifest(manifest);
+  const registry = readSkillRegistry(options.registry, {
+    repositorySkillNames: publishedSkillNames()
+  });
+  const entries = globalSkillEntries(registry);
   const installed = listGlobalSkills();
   let issues = collectIssues(
     entries,
     installed,
-    manifest.allowUnlistedGlobalSkills === true
+    registry.global?.allowUnlistedSkills === true
   );
 
-  console.log(`Manifest: ${path.relative(root, options.manifest)}`);
-  console.log(`Wanted global skills: ${new Set(entries.map((entry) => entry.name)).size}`);
-  console.log(`Installed global skills: ${installed.length}`);
+  console.log(`Registry: ${path.relative(root, options.registry)}`);
+  console.log(`Recommended global skills: ${entries.length}`);
+  console.log(`Installed global skills: ${indexInstalled(installed).size}`);
 
   if (!hasIssues(issues)) {
     console.log("Global skills match the registry.");
@@ -276,7 +249,7 @@ function main() {
     issues = collectIssues(
       entries,
       listGlobalSkills(),
-      manifest.allowUnlistedGlobalSkills === true
+      registry.global?.allowUnlistedSkills === true
     );
     if (!hasIssues(issues)) {
       console.log("\nGlobal skills match the registry after applying repairs.");

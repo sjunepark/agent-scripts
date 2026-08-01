@@ -25,7 +25,8 @@ rubrics, recipes, or factual references.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
 - `skills/`: published reusable skills.
 - `docs/`: migration and setup decisions.
-- `global-skills.json`: desired machine-global skill registry.
+- `skill-registry.json`: authoritative classification and installation policy
+  for published and deliberately recommended external skills.
 - `scripts/`: repository maintenance scripts.
 - `hooks/`: optional Git hooks.
 
@@ -55,10 +56,11 @@ scripts/validate-skills
 ```
 
 This checks the repository's strict, dependency-free frontmatter subset, local
-links from `SKILL.md`, and direct `SKILL.md` pointers for every bundled runtime
-file; `agents/` metadata and `evals/` fixtures are excluded from runtime-pointer
-checks. Runtime Markdown pointers use inline links; wrap destinations containing
-whitespace or parentheses in angle brackets.
+links from `SKILL.md`, direct `SKILL.md` pointers for every bundled runtime
+file, and complete classification of the published catalog in
+`skill-registry.json`; `agents/` metadata and `evals/` fixtures are excluded
+from runtime-pointer checks. Runtime Markdown pointers use inline links; wrap
+destinations containing whitespace or parentheses in angle brackets.
 
 Audit this machine's global skills against the desired registry:
 
@@ -84,11 +86,13 @@ Install published skills from GitHub after committing and pushing. Treat
 `skills/` as the available catalog, not as a list that must all be installed
 globally.
 
-Use `global-skills.json` as the desired machine-global registry. Use
-`scripts/audit-global-skills` to report drift and
-`scripts/audit-global-skills --apply` to reinstall missing managed entries.
-Skills listed under audit-only/manual profiles still need their source handled
-outside that repair command.
+Use `skill-registry.json` as the source of truth for whether a skill is global,
+project-specific, workflow-managed, or catalog-only, along with its provenance
+and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
+schema contract. Use `scripts/audit-global-skills` to report drift in the
+global subset and `scripts/audit-global-skills --apply` to reinstall missing
+`skills-cli`-managed entries. Manual and workflow-managed entries are never
+installed by that repair command.
 
 For a selected skill:
 
@@ -104,8 +108,8 @@ SKILL_NAME="change-explainer"
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
 ```
 
-Install domain skills such as `clear-rust`, `modern-go`, `modern-rust`,
-`write-go-docs`, and `ui-lab` only in projects where they are relevant.
+For project-scoped recommendations, install only when the registry's `when`
+condition matches the target repository.
 
 ## Codex Plugins
 

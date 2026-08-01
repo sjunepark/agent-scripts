@@ -33,8 +33,8 @@ For this repository specifically:
 - Use `./skills` only for local validation or unpublished work.
 - Treat `skills/` as a catalog. Select the intended global skill with `--skill <name>` rather than installing the whole catalog by default.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
-- Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output against `global-skills.json`. Use `scripts/audit-global-skills --apply` only to reinstall missing managed entries; audit-only/manual entries still need their own source handled separately.
-- Install domain/project skills, such as `clear-rust`, `modern-go`, `modern-rust`, `write-go-docs`, and `ui-lab`, only in matching projects unless the user explicitly wants them globally.
+- Use `skill-registry.json` for authoritative scope, source, target-agent, and installation-manager decisions. Use `scripts/audit-global-skills` to compare live `bunx skills list -g --json` output with its global recommendations. Use `--apply` only to reinstall missing `skills-cli`-managed entries; manual and workflow-managed entries stay with their recorded manager.
+- Install project recommendations only when their registry `when` condition matches unless the user explicitly changes the desired scope.
 - Use shared `~/.agents/skills/` installs only for intentional multi-harness sharing; they can make `skills list -g` report many agents for one skill.
 
 ## Command lookup
