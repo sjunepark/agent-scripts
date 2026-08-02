@@ -301,6 +301,22 @@
       }
     },
     {
+      "name": "end-state-review",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "agents": [
+          "codex",
+          "claude-code",
+          "pi"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "explore-repo",
       "source": "agent-scripts",
       "recommendation": {

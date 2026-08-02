@@ -1,0 +1,7 @@
+interface:
+  display_name: "End-State Review"
+  short_description: "Reframe plans around their clean final state"
+  default_prompt: "Use $end-state-review to review this plan from its intended final state, identify historical residue and real obligations, and propose a coherent plan without changing code."
+
+policy:
+  allow_implicit_invocation: false
