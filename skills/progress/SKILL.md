@@ -1,6 +1,6 @@
 ---
 name: progress
-description: "Manage and review repo-local plans, task queues, continuation, handoffs, status, and durable goal contracts. Explicit invocation or established-goal recovery only."
+description: "Manage and brief repo-local plans, task queues, continuation, handoffs, status, and durable goal contracts. Explicit invocation or established-goal recovery only."
 ---
 
 # Progress
@@ -26,8 +26,8 @@ the active run is authorized to execute.
      path selects goal execution;
    - continuing, resuming, implementing, handing off, starting, or completing
      current work is execution-affecting;
-   - reviewing or discussing a roadmap, future implementation, or proposed
-     plan with the user before implementation selects planning review;
+   - briefing or discussing a roadmap, future implementation, or proposed plan
+     with the user before implementation selects planning review;
    - orienting, auditing, capturing, reordering, scheduling, or otherwise
      editing only the project queue is project-plane work;
    - an explicit instruction to leave the active goal untouched and perform
@@ -120,9 +120,10 @@ recovers, amends, or completes goal state, the goal workflow is sufficient.
   start, reorder, schedule, unschedule, or complete items.
 - [Orient to work](workflows/orient.md) — report current, next, blocked, or
   stale work without modifying the repository.
-- [Review planned work](workflows/review.md) — briefly preview the future
-  roadmap, discuss whether a proposed implementation matches the user's
-  intent, and apply only explicitly approved planning changes.
+- [Brief planned work](workflows/review.md) — explain what comes next and how
+  the plan is written so the user can judge whether it matches their intent;
+  surface consequential review notes and apply only explicitly approved
+  planning changes.
 - [Continue work](workflows/continue.md) — select and implement one substantial
   coherent slice while keeping its item current.
 - [Hand off work](workflows/handoff.md) — compress the present session into a

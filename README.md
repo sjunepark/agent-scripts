@@ -45,9 +45,9 @@ harness. It keeps the service-account token in the host's secret store rather
 than agent configuration. See [docs/1password.md](docs/1password.md) for setup
 and migration from the former `op-codex` wrapper.
 
-Use `$progress` when explicitly invoked to organize, orient to, continue,
-or hand off repo-local plans and tasks. Use `$code-review` for a bounded review
-pass that applies only obvious safe fixes.
+Use `$progress` when explicitly invoked to organize, orient to, brief or review,
+continue, or hand off repo-local plans and tasks. Use `$code-review` for a
+bounded review pass that applies only obvious safe fixes.
 
 ## Validation
 

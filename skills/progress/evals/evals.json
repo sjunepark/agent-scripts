@@ -164,7 +164,7 @@
     {
       "id": 18,
       "prompt": "Use $progress review. Let's discuss how we're planning the invitation work before anyone implements it. Invitation links must expire after seven days, and accepting one must never downgrade an existing member. I don't know the plan's file name.",
-      "expected_output": "The agent treats the user's sentence as a semantic target and resolves Team Invitations without asking for a path. It briefly previews the current and upcoming roadmap, then explains the proposed invitation implementation. It distinguishes both direct intent conflicts from technical concerns, gives a corrected intent readback, and asks only consequential questions. The repository remains unchanged while the discussion awaits approval, and no implementation begins.",
+      "expected_output": "The agent treats the user's sentence as a semantic target and resolves Team Invitations without asking for a path. It leads with a concise briefing of the current and upcoming roadmap, then explains the proposed invitation outcome, behavior, implementation shape, and the plan's lack of explicit validation in plain language. After that briefing, it flags indefinite reusable links and role replacement as conflicts with the user's stated intent and asks only consequential questions. The repository remains unchanged while the user evaluates the plan, and no implementation begins.",
       "files": [
         "evals/fixtures/planning-review/AGENTS.md",
         "evals/fixtures/planning-review/ROADMAP.md",
@@ -175,15 +175,16 @@
       ],
       "expectations": [
         "The response resolves Team Invitations from the description without requiring a file name.",
-        "The response briefly previews Audit Log Export as current and Team Invitations plus Workspace Archiving as upcoming in order.",
-        "The response identifies indefinite reusable links and replacement of an existing role as conflicts with the user's intent.",
+        "The response leads with a brief preview of Audit Log Export as current and Team Invitations plus Workspace Archiving as upcoming in order.",
+        "The response explains Team Invitations' planned outcome, behavior, implementation shape, and validation before critique.",
+        "After the briefing, the response identifies indefinite reusable links and replacement of an existing role as conflicts with the user's intent.",
         "The response asks for approval or consequential clarification without editing planning files or starting implementation."
       ]
     },
     {
       "id": 19,
       "prompt": "Use $progress to review the future roadmap with me. My priority is to ship invitations before more compliance reporting or account-lifecycle work. Explain briefly what would be implemented and check whether the order matches that intention.",
-      "expected_output": "The agent reviews the roadmap-level strategy rather than requiring a file name. It gives a brief ordered preview that separates scheduled plans from the unordered SSO task, identifies that Audit Log Export is Current ahead of Team Invitations, and discusses whether to interrupt or finish its remaining validation. It does not reorder the roadmap until the user explicitly approves a direction and does not implement any item.",
+      "expected_output": "The agent briefs the roadmap-level strategy rather than requiring a file name. It gives a brief ordered preview that separates scheduled plans from the unordered SSO task and explains what the current and next plans would accomplish. It then identifies that Audit Log Export is Current ahead of the user's stated invitation priority and discusses whether to interrupt or finish its remaining validation. It does not reorder the roadmap until the user explicitly approves a direction and does not implement any item.",
       "files": [
         "evals/fixtures/planning-review/AGENTS.md",
         "evals/fixtures/planning-review/ROADMAP.md",
@@ -193,8 +194,8 @@
         "evals/fixtures/planning-review/tasks/sso-discovery.md"
       ],
       "expectations": [
-        "The response gives a brief ordered roadmap preview and identifies Single Sign-On Discovery as unordered.",
-        "The response identifies that current Audit Log Export work precedes the user's invitation priority.",
+        "The response leads with a brief ordered roadmap preview, explains what the current and next plans would accomplish, and identifies Single Sign-On Discovery as unordered.",
+        "After the briefing, the response identifies that current Audit Log Export work precedes the user's invitation priority.",
         "The response asks whether to finish or interrupt the current validation before changing the queue.",
         "The response leaves the roadmap and product implementation unchanged pending explicit approval."
       ]
@@ -216,6 +217,26 @@
         "The updated plan records single-use links, seven-day expiry, and preservation of an existing member's role.",
         "The updated plan contains acceptance conditions and a concrete next implementation action.",
         "The response verifies the planning update and stops before product implementation or delivery."
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Use $progress review. Brief me on what will be implemented next and how the plan proposes to do it. I want to decide for myself whether it matches what I have in mind.",
+      "expected_output": "The agent leads with a self-contained briefing of Audit Log Export as current and Team Invitations as the next queued plan, with later scheduled work and the unordered SSO task clearly distinguished. It explains the selected plans' intended outcomes, proposed behavior and implementation shape, current state, next actions, and validation without inventing missing detail. Only after the briefing does it surface consequential review notes, and it asks whether the plan matches the user's intent. It does not presume a mismatch, demand unnecessary decisions, edit files, or begin implementation.",
+      "files": [
+        "evals/fixtures/planning-review/AGENTS.md",
+        "evals/fixtures/planning-review/ROADMAP.md",
+        "evals/fixtures/planning-review/plans/audit-log-export.md",
+        "evals/fixtures/planning-review/plans/team-invitations.md",
+        "evals/fixtures/planning-review/plans/workspace-archiving.md",
+        "evals/fixtures/planning-review/tasks/sso-discovery.md"
+      ],
+      "expectations": [
+        "The response leads with the roadmap and implementation briefing rather than critique or questions.",
+        "The response distinguishes Audit Log Export as current, Team Invitations as next, Workspace Archiving as later, and Single Sign-On Discovery as unordered.",
+        "The response explains outcomes, planned implementation behavior or shape, current state, next actions, and validation while labeling missing detail instead of inventing it.",
+        "Review notes appear only after the briefing and contain only consequential issues.",
+        "The response asks whether the briefing matches the user's intent and leaves planning files and implementation unchanged."
       ]
     }
   ]

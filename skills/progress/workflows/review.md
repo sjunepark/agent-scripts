@@ -1,28 +1,30 @@
-# Review Planned Work
+# Brief Planned Work
 
-Use this branch as a conversational approval gate for LLM-authored roadmaps and
-plans before product implementation begins. The planning documents describe a
-proposal; they do not independently prove that the proposal matches the user's
-intent.
+Use this branch to brief the user on what the planning system says will be
+implemented next and how the relevant plan proposes to do it. The primary
+output is a compact, faithful explanation that lets the user judge whether the
+proposal matches their intent without reading the planning files. Review notes
+and approval are secondary: surface consequential issues after the briefing,
+and change planning documents only after explicit approval.
 
-## Resolve the Proposal
+## Resolve the Briefing Target
 
 1. Treat a description or sentence supplied after `review`, `discuss`, or an
    equivalent request as a semantic target. Match it against roadmap labels,
    item outcomes, and planning contents; do not require the user to know a file
    name. If materially different candidates match, show the small candidate
-   set and ask which one the user means before reviewing details.
-2. When the user gives no narrower target, review `Current` and the first
+   set and ask which one the user means before reading details.
+2. When the user gives no narrower target, brief `Current` and the first
    queued plan in the context of the selected roadmap. If neither exists,
-   report that there is no planned implementation to review. Review the whole
+   report that there is no planned implementation to brief. Cover the whole
    roadmap's strategy or ordering only when the request describes that broader
    scope.
-3. Read the selected roadmap and review targets completely. Read the `Outcome`
+3. Read the selected roadmap and briefing targets completely. Read the `Outcome`
    and `Next action` of remaining scheduled plans, plus relevant tasks, only far
    enough to give each an accurate one-line preview. Inspect requirements,
    decisions, relevant implementation evidence, and recent history only far
-   enough to test material claims and feasibility. Keep document claims,
-   repository evidence, and direct user intent distinct.
+   enough to explain or test material claims. Keep document claims, repository
+   evidence, and direct user intent distinct.
 4. If goal mode is explicitly selected, recover the goal contract and compare
    the proposal with its included results, exclusions, authority, and
    completion conditions. A review may recommend an amendment but cannot
@@ -30,29 +32,33 @@ intent.
    activate or advance an existing goal merely because the reviewed item is in
    the project queue.
 
-## Discuss Alignment
+## Deliver the Briefing
 
-Begin with a compact preview that lets the user understand the future without
-reading the source files:
+Lead with the planned future, not a critique or a request for decisions. Give
+the user this compact briefing:
 
-- **Future roadmap:** summarize `Current` and upcoming scheduled plans in
-  order, keeping unrelated items to one line each. Identify relevant tasks as
-  unordered rather than implying that their list position schedules them.
-- **Proposed implementation:** explain what the selected work would make true,
-  the main implementation shape, and how success would be checked. State when
-  the plan does not yet contain enough detail to support one of these claims.
+- **What happens next:** distinguish work already `Current` from the next
+  queued plan, then summarize later scheduled plans in order. Keep unrelated
+  items to one line each. Identify relevant tasks as unordered rather than
+  implying that their list position schedules them.
+- **How the plan is written:** explain what the selected work would make true,
+  the user-visible behavior or operational result, the main implementation
+  shape and sequence, important decisions and assumptions, and how success
+  would be checked. State plainly when the plan does not contain enough detail
+  to support one of these claims; do not fill gaps with an invented design.
+- **Review notes:** after the briefing, list only consequential items the user
+  should check or the plan should fix. Separate possible conflicts with known
+  user intent from plan-quality concerns such as omitted requirements,
+  ambiguous behavior, feasibility risks, unsupported claims, or unnecessary
+  complexity. Omit this section when there is nothing material to flag.
 
-Then compare the proposal with the user's description, direct instructions,
-requirements, and verified repository constraints. Report only consequential
-mismatches, omitted requirements, assumptions, tradeoffs, feasibility risks,
-or unnecessary complexity. Separate conflicts with user intent from technical
-quality concerns so the user can judge them independently.
-
-Give a concise intent readback and ask the smallest set of load-bearing
-questions needed to confirm or correct it. Prefer concrete alternatives when
-the user is more likely to recognize the right behavior than to invent it from
-scratch. Keep the repository and external systems unchanged throughout this
-discussion phase.
+When the user supplied intent or requirements, relate review notes to that
+evidence without replacing the briefing with the agent's own verdict. Close by
+asking whether the briefing matches the user's intent or whether they want the
+plan changed. Ask additional questions only when a missing decision prevents
+the user from evaluating or approving the plan; prefer concrete alternatives.
+Keep the repository and external systems unchanged throughout this discussion
+phase.
 
 ## Record an Approved Direction
 

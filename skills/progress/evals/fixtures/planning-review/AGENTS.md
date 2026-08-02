@@ -1,4 +1,5 @@
-# Planning Review Fixture
+# Planning Brief Fixture
 
-Plans are proposals until a user approves them. Product implementation must not
-begin during a planning review.
+Brief the user on planned behavior and implementation shape before surfacing
+review notes. Plans remain proposals until the user approves them, and product
+implementation must not begin during a planning review.
