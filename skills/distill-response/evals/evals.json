@@ -1,0 +1,23 @@
+{
+  "skill_name": "distill-response",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $distill-response on this prior answer: `The deployment succeeded. The API and worker are healthy, no migration was required, and the only next step is to monitor error rates for 30 minutes.`",
+      "expected_output": "A compact standalone explanation led by the successful deployment outcome, with the health evidence and monitoring step preserved. It does not force labels, sections, a table, or a diagram onto this simple linear status.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Use $distill-response on this prior answer: `A request enters the API, which validates it and publishes a job. The worker consumes the job and writes the result. Failed jobs return to the queue with exponential backoff; after five failures they move to a dead-letter queue, which alerts an operator. The queue decouples request latency from processing time, but it introduces eventual consistency and duplicate-delivery risk.`",
+      "expected_output": "A bottom-line-first, standalone mental map with stable descriptive labels for the request path, retry path, and tradeoffs. It uses a compact flow or text diagram because sequence and branching are materially clearer visually, while preserving the retry limit, dead-letter alert, eventual consistency, and duplicate-delivery caveat.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Earlier you distilled a response into this map: `A. Queue boundary — decouples API latency from worker processing. B. Retry policy — retries use exponential backoff and move a job to the dead-letter queue after five failures. C. Delivery tradeoff — consumers must tolerate duplicates.` I then asked about A, and your immediately preceding response elaborated only the queue boundary. Now elaborate **B. Retry policy**.",
+      "expected_output": "A focused explanation sourced from item B in the earlier distilled map, not from the immediately preceding elaboration of sibling item A. It briefly reconnects the retry policy to the overall request-processing map, preserves the established labels, explains the five-failure dead-letter transition, and does not repeat the full overview.",
+      "files": []
+    }
+  ]
+}
