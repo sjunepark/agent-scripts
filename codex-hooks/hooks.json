@@ -1,0 +1,40 @@
+{
+  "description": "Personal Codex lifecycle maintenance installed from agent-scripts.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh {{HOOK_SCRIPT:cleanup-stale-node-repl.sh}}",
+            "timeout": 5,
+            "statusMessage": "Checking Codex helper pressure"
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh {{HOOK_SCRIPT:repair-codex-chrome-plugin-latest.sh}}",
+            "timeout": 5,
+            "statusMessage": "Checking Codex Chrome plugin link"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh {{HOOK_SCRIPT:cleanup-stale-node-repl.sh}}",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

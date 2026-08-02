@@ -160,6 +160,63 @@
         "evals/fixtures/delegated-decisions/goals/workspace-import.md",
         "evals/fixtures/delegated-decisions/plans/workspace-import.md"
       ]
+    },
+    {
+      "id": 18,
+      "prompt": "Use $progress review. Let's discuss how we're planning the invitation work before anyone implements it. Invitation links must expire after seven days, and accepting one must never downgrade an existing member. I don't know the plan's file name.",
+      "expected_output": "The agent treats the user's sentence as a semantic target and resolves Team Invitations without asking for a path. It briefly previews the current and upcoming roadmap, then explains the proposed invitation implementation. It distinguishes both direct intent conflicts from technical concerns, gives a corrected intent readback, and asks only consequential questions. The repository remains unchanged while the discussion awaits approval, and no implementation begins.",
+      "files": [
+        "evals/fixtures/planning-review/AGENTS.md",
+        "evals/fixtures/planning-review/ROADMAP.md",
+        "evals/fixtures/planning-review/plans/audit-log-export.md",
+        "evals/fixtures/planning-review/plans/team-invitations.md",
+        "evals/fixtures/planning-review/plans/workspace-archiving.md",
+        "evals/fixtures/planning-review/tasks/sso-discovery.md"
+      ],
+      "expectations": [
+        "The response resolves Team Invitations from the description without requiring a file name.",
+        "The response briefly previews Audit Log Export as current and Team Invitations plus Workspace Archiving as upcoming in order.",
+        "The response identifies indefinite reusable links and replacement of an existing role as conflicts with the user's intent.",
+        "The response asks for approval or consequential clarification without editing planning files or starting implementation."
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Use $progress to review the future roadmap with me. My priority is to ship invitations before more compliance reporting or account-lifecycle work. Explain briefly what would be implemented and check whether the order matches that intention.",
+      "expected_output": "The agent reviews the roadmap-level strategy rather than requiring a file name. It gives a brief ordered preview that separates scheduled plans from the unordered SSO task, identifies that Audit Log Export is Current ahead of Team Invitations, and discusses whether to interrupt or finish its remaining validation. It does not reorder the roadmap until the user explicitly approves a direction and does not implement any item.",
+      "files": [
+        "evals/fixtures/planning-review/AGENTS.md",
+        "evals/fixtures/planning-review/ROADMAP.md",
+        "evals/fixtures/planning-review/plans/audit-log-export.md",
+        "evals/fixtures/planning-review/plans/team-invitations.md",
+        "evals/fixtures/planning-review/plans/workspace-archiving.md",
+        "evals/fixtures/planning-review/tasks/sso-discovery.md"
+      ],
+      "expectations": [
+        "The response gives a brief ordered roadmap preview and identifies Single Sign-On Discovery as unordered.",
+        "The response identifies that current Audit Log Export work precedes the user's invitation priority.",
+        "The response asks whether to finish or interrupt the current validation before changing the queue.",
+        "The response leaves the roadmap and product implementation unchanged pending explicit approval."
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Use $progress review. We already discussed team invitations. Approved: make invitation links single-use, expire them after seven days, and preserve an existing member's role. Update the planning files to record that direction, then stop before implementation.",
+      "expected_output": "The agent recognizes explicit approval, resolves Team Invitations from the natural-language description, and updates only its planning item with the approved behavior, acceptance conditions, and concrete next implementation action. It verifies the planning text, leaves roadmap selection and order unchanged, and stops without changing product code, moving the item into Current, creating an implementation branch, or starting delivery.",
+      "files": [
+        "evals/fixtures/planning-review/AGENTS.md",
+        "evals/fixtures/planning-review/ROADMAP.md",
+        "evals/fixtures/planning-review/plans/audit-log-export.md",
+        "evals/fixtures/planning-review/plans/team-invitations.md",
+        "evals/fixtures/planning-review/plans/workspace-archiving.md",
+        "evals/fixtures/planning-review/tasks/sso-discovery.md"
+      ],
+      "expectations": [
+        "Only the Team Invitations planning item is changed.",
+        "The updated plan records single-use links, seven-day expiry, and preservation of an existing member's role.",
+        "The updated plan contains acceptance conditions and a concrete next implementation action.",
+        "The response verifies the planning update and stops before product implementation or delivery."
+      ]
     }
   ]
 }

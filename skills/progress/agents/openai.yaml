@@ -1,7 +1,7 @@
 interface:
   display_name: "Progress"
-  short_description: "Manage queues and recover bounded goal state"
-  default_prompt: "Use $progress to reconcile project work or initialize, recover, and enforce a durable goal-scoped execution contract."
+  short_description: "Manage and review queues and bounded goal state"
+  default_prompt: "Use $progress to review or reconcile project work, or to initialize, recover, and enforce a durable goal-scoped execution contract."
 
 policy:
   allow_implicit_invocation: false

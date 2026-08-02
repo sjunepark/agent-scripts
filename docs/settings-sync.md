@@ -119,6 +119,14 @@ Do not manage `~/.codex/plugins/cache`, plugin trust records, or installed
 plugin state through chezmoi. Recreate those with `codex plugin marketplace
 add`, `codex plugin add`, `/plugins`, and `/hooks` on each machine.
 
+Machine-specific lifecycle repairs use the standalone hook module in
+`codex-hooks/` instead of a plugin. This repository owns the canonical manifest
+and scripts; `bin/install-codex-hooks` copies the scripts and merges the owned
+registrations into `~/.codex` without replacing unrelated hooks. Codex remains
+the owner of hook trust state. The repair boundaries and upstream removal tests
+are in
+[codex-lifecycle-workarounds.md](codex-lifecycle-workarounds.md).
+
 ## Skills
 
 Keep `~/.agents/skills` as a generated user-scope skill install location, not

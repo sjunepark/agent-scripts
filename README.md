@@ -23,6 +23,8 @@ rubrics, recipes, or factual references.
   for `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.pi/agent/AGENTS.md`.
 - `plugins/`: repo-managed local Codex plugins.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
+- `codex-hooks/`: canonical standalone Codex hook definitions and scripts.
+- `bin/install-codex-hooks`: idempotent installer for those hooks.
 - `skills/`: published reusable skills.
 - `docs/`: migration and setup decisions.
 - `skill-registry.json`: authoritative classification and installation policy
@@ -131,3 +133,9 @@ review helper before mutating actions such as `chezmoi apply`, `chezmoi add`,
 Use chezmoi for machine-level pointers and config templates, not for copying
 live runtime directories such as `~/.codex`, `~/.pi`, or `~/.claude` wholesale.
 See [docs/settings-sync.md](docs/settings-sync.md).
+
+Standalone personal lifecycle workarounds do not need a plugin. Install or
+update the repository-owned hook module with `bin/install-codex-hooks`; inspect
+drift with `bin/install-codex-hooks --check`. Repair boundaries, machine-state
+ownership, and upstream removal checks are documented in
+[docs/codex-lifecycle-workarounds.md](docs/codex-lifecycle-workarounds.md).

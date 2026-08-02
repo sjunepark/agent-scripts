@@ -1,0 +1,208 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const repoRoot = path.resolve(__dirname, "..");
+const sourceRoot = path.join(repoRoot, "codex-hooks");
+const sourceScriptsDir = path.join(sourceRoot, "scripts");
+const canonicalManifestPath = path.join(sourceRoot, "hooks.json");
+const codexHome = path.resolve(process.env.CODEX_HOME || path.join(os.homedir(), ".codex"));
+const hooksDir = path.join(codexHome, "hooks");
+const hooksPath = path.join(codexHome, "hooks.json");
+const backupPath = `${hooksPath}.agent-scripts-backup`;
+const scriptNames = fs.readdirSync(sourceScriptsDir)
+  .filter((name) => name.endsWith(".sh"))
+  .sort();
+
+function usage() {
+  console.log(`Usage: bin/install-codex-hooks [--check]
+
+Installs the Codex lifecycle hooks owned by this repository into $CODEX_HOME.
+Use --check to report drift without changing the machine.`);
+}
+
+function parseMode(argv) {
+  if (argv.length === 0) return "install";
+  if (argv.length === 1 && argv[0] === "--check") return "check";
+  if (argv.length === 1 && (argv[0] === "--help" || argv[0] === "-h")) {
+    usage();
+    process.exit(0);
+  }
+  usage();
+  process.exit(2);
+}
+
+function readJson(file, fallback) {
+  if (!fs.existsSync(file)) return fallback;
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    throw new Error(`refusing to replace invalid JSON at ${file}: ${error.message}`);
+  }
+}
+
+function shellQuote(value) {
+  return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
+function render(value) {
+  if (typeof value === "string") {
+    return value.replace(/\{\{HOOK_SCRIPT:([^{}]+)\}\}/g, (placeholder, name) => {
+      if (!scriptNames.includes(name)) {
+        throw new Error(`${canonicalManifestPath} references unknown hook script ${name}`);
+      }
+      return shellQuote(path.join(hooksDir, name));
+    });
+  }
+  if (Array.isArray(value)) return value.map(render);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, render(child)]));
+  }
+  return value;
+}
+
+function handlerCommands(manifest) {
+  const commands = new Set();
+  for (const groups of Object.values(manifest.hooks || {})) {
+    for (const group of groups) {
+      for (const handler of group.hooks || []) {
+        if (typeof handler.command === "string") commands.add(handler.command);
+      }
+    }
+  }
+  return commands;
+}
+
+function withoutManagedHandlers(groups, managedCommands, legacyCommands) {
+  const retainedGroups = [];
+  for (const group of groups || []) {
+    const retainedHandlers = (group.hooks || []).filter((handler) => {
+      return !managedCommands.has(handler.command) && !legacyCommands.has(handler.command);
+    });
+    if (retainedHandlers.length > 0) {
+      retainedGroups.push({ ...group, hooks: retainedHandlers });
+    }
+  }
+  return retainedGroups;
+}
+
+function mergedManifest(existing, canonical) {
+  if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+    throw new Error(`${hooksPath} must contain a JSON object`);
+  }
+  if (existing.hooks !== undefined &&
+      (!existing.hooks || typeof existing.hooks !== "object" || Array.isArray(existing.hooks))) {
+    throw new Error(`${hooksPath} hooks must be a JSON object`);
+  }
+
+  const desired = JSON.parse(JSON.stringify(existing));
+  desired.description ||= canonical.description;
+  desired.hooks ||= {};
+
+  const managedCommands = handlerCommands(canonical);
+  const legacyCommands = new Set([
+    `/bin/sh ${path.join(hooksDir, "cleanup-stale-node-repl.sh")}`,
+    `/bin/sh "${path.join(hooksDir, "cleanup-stale-node-repl.sh")}"`,
+    `/bin/sh "${path.join(hooksDir, "repair-codex-chrome-plugin-latest.sh")}"`,
+    `/bin/sh ${path.join(repoRoot, "scripts", "repair-codex-chrome-plugin-latest")}`,
+  ]);
+
+  for (const [eventName, canonicalGroups] of Object.entries(canonical.hooks || {})) {
+    const retained = withoutManagedHandlers(
+      desired.hooks[eventName],
+      managedCommands,
+      legacyCommands,
+    );
+    desired.hooks[eventName] = [...retained, ...canonicalGroups];
+  }
+
+  return desired;
+}
+
+function sameJson(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function scriptDrift(name) {
+  const source = fs.readFileSync(path.join(sourceScriptsDir, name));
+  const destination = path.join(hooksDir, name);
+  if (!fs.existsSync(destination)) return true;
+  if (!fs.lstatSync(destination).isFile()) return true;
+  if (!source.equals(fs.readFileSync(destination))) return true;
+  return (fs.statSync(destination).mode & 0o111) === 0;
+}
+
+function installScript(name) {
+  const source = path.join(sourceScriptsDir, name);
+  const destination = path.join(hooksDir, name);
+  const temporary = `${destination}.agent-scripts-${process.pid}`;
+  fs.writeFileSync(temporary, fs.readFileSync(source), { mode: 0o755 });
+  fs.renameSync(temporary, destination);
+  fs.chmodSync(destination, 0o755);
+}
+
+function installManifest(desired, existingPresent) {
+  const temporary = `${hooksPath}.agent-scripts-${process.pid}`;
+  if (existingPresent) {
+    fs.copyFileSync(hooksPath, backupPath);
+    fs.chmodSync(backupPath, 0o600);
+  }
+  fs.writeFileSync(temporary, `${JSON.stringify(desired, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temporary, hooksPath);
+  fs.chmodSync(hooksPath, 0o600);
+}
+
+function main() {
+  const mode = parseMode(process.argv.slice(2));
+  const canonical = render(readJson(canonicalManifestPath));
+  let manifestStats;
+  try {
+    manifestStats = fs.lstatSync(hooksPath);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  const existingPresent = manifestStats !== undefined;
+  if (manifestStats?.isSymbolicLink()) {
+    throw new Error(`refusing to replace symlinked hook manifest at ${hooksPath}`);
+  }
+  const existing = readJson(hooksPath, { hooks: {} });
+  const desired = mergedManifest(existing, canonical);
+  const driftedScripts = scriptNames.filter(scriptDrift);
+  const manifestDrift = !sameJson(existing, desired);
+
+  if (mode === "check") {
+    for (const name of driftedScripts) console.log(`drift: ${path.join(hooksDir, name)}`);
+    if (manifestDrift) console.log(`drift: ${hooksPath}`);
+    if (driftedScripts.length === 0 && !manifestDrift) {
+      console.log("Codex hooks are installed and current.");
+      return;
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  fs.mkdirSync(hooksDir, { recursive: true, mode: 0o700 });
+  for (const name of driftedScripts) installScript(name);
+  if (manifestDrift) installManifest(desired, existingPresent);
+
+  if (driftedScripts.length === 0 && !manifestDrift) {
+    console.log("Codex hooks are already current.");
+    return;
+  }
+
+  for (const name of driftedScripts) console.log(`installed: ${path.join(hooksDir, name)}`);
+  if (manifestDrift) {
+    console.log(`updated: ${hooksPath}`);
+    if (existingPresent) console.log(`backup: ${backupPath}`);
+    console.log("Review and trust changed hook definitions with /hooks in Codex.");
+  }
+}
+
+try {
+  main();
+} catch (error) {
+  console.error(`install-codex-hooks: ${error.message}`);
+  process.exit(1);
+}

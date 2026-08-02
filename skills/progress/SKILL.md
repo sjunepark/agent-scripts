@@ -1,6 +1,6 @@
 ---
 name: progress
-description: "Manage repo-local plans, task queues, continuation, handoffs, status, and durable goal contracts. Explicit invocation or established-goal recovery only."
+description: "Manage and review repo-local plans, task queues, continuation, handoffs, status, and durable goal contracts. Explicit invocation or established-goal recovery only."
 ---
 
 # Progress
@@ -26,6 +26,8 @@ the active run is authorized to execute.
      path selects goal execution;
    - continuing, resuming, implementing, handing off, starting, or completing
      current work is execution-affecting;
+   - reviewing or discussing a roadmap, future implementation, or proposed
+     plan with the user before implementation selects planning review;
    - orienting, auditing, capturing, reordering, scheduling, or otherwise
      editing only the project queue is project-plane work;
    - an explicit instruction to leave the active goal untouched and perform
@@ -109,15 +111,18 @@ between documentation and repository state is known.
 ## Select a Workflow
 
 Goal execution is a conditional authorization overlay, not a replacement for
-project work management. When goal mode is active and the request changes or
-implements project work, read exactly one primary workflow below in addition
-to the goal resources. When the request only initializes, recovers, amends, or
-completes goal state, the goal workflow is sufficient.
+project work management. When goal mode is active and the request reviews,
+changes, or implements project work, read exactly one primary workflow below
+in addition to the goal resources. When the request only initializes,
+recovers, amends, or completes goal state, the goal workflow is sufficient.
 
 - [Organize work](workflows/organize.md) — initialize the system; capture,
   start, reorder, schedule, unschedule, or complete items.
 - [Orient to work](workflows/orient.md) — report current, next, blocked, or
   stale work without modifying the repository.
+- [Review planned work](workflows/review.md) — briefly preview the future
+  roadmap, discuss whether a proposed implementation matches the user's
+  intent, and apply only explicitly approved planning changes.
 - [Continue work](workflows/continue.md) — select and implement one substantial
   coherent slice while keeping its item current.
 - [Hand off work](workflows/handoff.md) — compress the present session into a
