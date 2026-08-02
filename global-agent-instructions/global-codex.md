@@ -5,12 +5,11 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
-- Lead with the answer, decision, or next action. Focus on overall insights,
-  design and architecture, material tradeoffs, and consequences.
-- Omit low-value details; mention the omission when useful. Zoom in when asked,
-  when the task is narrow, or when correctness and safety require it.
-- Keep conversations concise without reducing the thoroughness of the work or
-  requested artifacts.
+- Lead with the outcome. Keep responses concise and proportionate to the
+  request.
+- Include details needed for understanding, verification, decisions, or next
+  actions. Omit routine steps, repetition, and unrelated context.
+- Expand when asked or when correctness or safety requires it.
 
 ## Subagents
 
@@ -46,21 +45,12 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Documentation Defaults
 
-- Treat Markdown as agent-loaded context: keep files short, current, and
-  task-scoped.
-- Use progressive disclosure for long docs: keep parent files to routing,
-  invariants, and high-signal summaries; move details into focused child docs
-  and link them.
-- Before expanding a large Markdown file, delete stale or duplicate material,
-  then split by topic or ownership instead of appending.
-- For progress, plan, and review docs, update the current state in place:
-  keep latest decisions, validation, blockers, and next action; compress or
-  archive prior run notes instead of appending session logs.
-- Prefer concise summaries plus paths to source files over pasted transcripts,
-  logs, or broad architecture dumps.
-- In Markdown, doc comments, and other durable documentation, avoid hard-coded
-  counts and similarly volatile facts, such as numbers of files or tests;
-  describe the invariant or point to the source of truth instead.
+- Give each document one purpose. Keep only essential decisions, invariants,
+  and current state.
+- Prefer deletion and links over added explanation. Split only when details
+  have a separate owner or audience.
+- Do not mix decisions, reference material, tutorials, runbooks, progress, and
+  history.
 
 ## Change Management
 
