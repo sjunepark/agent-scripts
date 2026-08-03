@@ -1,10 +1,10 @@
 # Delivery Variants
 
-Read this file only after establishing that `/goal` is warranted and the readiness gate has passed.
+Read this file only after the user has confirmed a scope, `/goal` is warranted for that scope, and the readiness gate has passed.
 
 ## Output Order
 
-By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The selected boundary is expressed by the contract, and the evidence-based recommendation is expressed by its `Delivery` field.
+By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not repeat the earlier scope choices or put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The confirmed boundary is expressed by the contract, and the evidence-based delivery recommendation is expressed by its `Delivery` field.
 
 When the user explicitly requests one named delivery variant, return exactly one unlabeled `text` fenced block for that variant even if it differs from the evidence-based recommendation. Do not add an explanation of the discrepancy; the user explicitly chose the emitted delivery mechanics.
 

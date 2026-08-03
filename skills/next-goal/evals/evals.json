@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Use $next-goal to choose the next substantial goal from this repository.",
-      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The read-only selection recommends PR delivery through the block's Delivery field for exactly the four Publication Foundation results. The routing envelope is at most 220 words, contains a concrete goals/ state path, pairs each short semantic result label with its source while leaving source detail in those documents, excludes only the integrated review as the immediate next out-of-scope milestone, authorizes only necessary work with explicit-user-only expansion, invokes $progress for initialization and recovery, and keeps completion delivery-neutral. Standard execution behavior remains owned by applicable instructions and invoked skills. The persisted Delivery field delegates lifecycle handling to $progress and PR creation and feedback to $create-pr and $address-pr-feedback.",
+      "expected_output": "No fenced goal prompt. The read-only response presents the materially distinct substantial scope choices supported by the fixture, marks exactly one recommendation, and asks the user to choose or adjust a boundary. It recommends the full Publication Foundation scope—Canonical Artifacts, Evaluation Data Plane, Local Preview, and Publication Viewer Scaling—because that is the largest coherent settled outcome, and says it stops before Integrated Whole-Codebase Review. Each option gives only its semantic outcome, summarized included results, immediate stopping boundary, and readiness. It does not read or discuss delivery variants yet.",
       "files": [
         "evals/fixtures/scope-cascade/AGENTS.md",
         "evals/fixtures/scope-cascade/ROADMAP.md",
@@ -19,19 +19,19 @@
     {
       "id": 2,
       "prompt": "Use $next-goal. The settled milestone consists of plans A and B; C is the first unrelated milestone. Produce both goal prompts and make it possible for a compacted fresh session to distinguish continuing from A to B from continuing into C.",
-      "expected_output": "Exactly two text fenced blocks and no prose before, between, or after them. Both compact routing envelopes pair short semantic labels for A and B with their source plans, define completion after B, name C as the boundary-relevant exclusion, and require durable $progress goal state plus recovery on every continuation. They delegate transition enforcement to $progress, which continues from A to B but completes before C even if C becomes Current. Their contracts are textually identical except for the persisted Delivery field, leave plan detail in the cited sources, rely on invoked skills for standard execution behavior, and do not use a maximum PR count or make every plan a separate goal.",
+      "expected_output": "No fenced goal prompts, despite the request for both delivery variants. The first invocation presents the substantial supported scope choices, recommends exactly one with a compact reason, identifies the immediate stopping boundary for each, and asks the user to choose or adjust a scope. It treats A and B as planning units rather than automatically making them separate goal options, keeps C outside any scope that completes the settled milestone, and postpones delivery selection until scope confirmation.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "Use $next-goal in a repository with two active worktrees, each with its own scoped roadmap. Select work only for the current worktree.",
-      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The selection reads other scopes only for necessary coordination, selects the current worktree's substantial boundary, and uses a concrete goals/<scope>/<slug>.md path. Its compact contract makes the current scope's semantic results authoritative and delegates recovery and transition enforcement to $progress; other worktree queues and goals cannot change membership.",
+      "expected_output": "No fenced goal prompt. The read-only response presents only substantial boundaries from the current worktree's planning namespace, reads other scopes only for necessary coordination, recommends exactly one current-scope option, and asks the user to choose or adjust it. It does not expose other worktrees as goal-scope alternatives unless the user requested an aggregate goal, and it defers the goals/<scope>/<slug>.md contract until confirmation.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $next-goal for the current dev planning scope and return both copy-paste goal prompts.",
-      "expected_output": "Exactly two text fenced blocks and no prose before, between, or after them. The compact prompts have the same contract for Storage Baseline followed by Renderer Rollout, pair each semantic result with its source, use goals/dev/<slug>.md as durable state, complete after the Launch Path rollout, explicitly exclude Compliance Sweep, and require $progress recovery on every resume. Completing storage continues to renderer; completing renderer ends the goal even if Compliance Sweep becomes Current.",
+      "expected_output": "No fenced goal prompts. The response presents the substantial dev-scope choices, recommends the coherent Launch Path boundary containing Storage Baseline followed by Renderer Rollout, says that boundary stops before Compliance Sweep, and asks the user to choose or adjust it. It may include other materially distinct substantial boundaries if repository evidence supports them, but does not turn every plan heading into an option or discuss delivery variants before confirmation.",
       "files": [
         "evals/fixtures/checkpoint-chain/AGENTS.md",
         "evals/fixtures/checkpoint-chain/ROADMAP_DEV.md",
@@ -43,7 +43,7 @@
     {
       "id": 5,
       "prompt": "Change `Readiness: draft` to `Readiness: settled` in plans/foundation.md and commit that user-authorized planning change, then use $next-goal to choose the next substantial goal.",
-      "expected_output": "The separately authorized planning edit and commit finish first. The agent then begins a read-only goal-selection phase from the resulting status and history and makes no further repository or external mutations. If a goal is warranted, the final response is exactly one unlabeled text fenced prompt block with no prerequisite commit recap or other prose outside it.",
+      "expected_output": "The separately authorized planning edit and commit finish first. The agent then begins read-only scope discovery from the resulting status and history and makes no further repository or external mutations. If a substantial scope is warranted, the response presents the supported scope choices, recommends exactly one, and asks the user to choose; it emits no fenced goal prompt and does not let the prerequisite mutation bypass confirmation.",
       "files": [
         "evals/fixtures/prerequisite-mutation/AGENTS.md",
         "evals/fixtures/prerequisite-mutation/ROADMAP.md",
@@ -53,13 +53,13 @@
     {
       "id": 6,
       "prompt": "Use $next-goal and give me only the No PR prompt even if PR delivery is recommended.",
-      "expected_output": "Exactly one unlabeled text fenced block containing the self-contained No PR prompt and no prose before or after it. The agent honors the explicitly requested variant even if its evidence-based recommendation would have been PR delivery; it does not also emit the PR prompt or merely offer the requested alternate.",
+      "expected_output": "No fenced goal prompt. Even though the user preselected No PR, the first invocation presents substantial scope choices, recommends exactly one scope with a compact reason, and asks for scope confirmation. The requested delivery variant remains applicable after confirmation but is not discussed as a substitute for choosing the goal boundary.",
       "files": []
     },
     {
       "id": 7,
       "prompt": "Use $next-goal. Repository evidence warrants a substantial goal but its expected diff is too small for a standalone review, so recommend No PR. Give me only the PR delivery prompt anyway.",
-      "expected_output": "Exactly one unlabeled text fenced block containing the self-contained PR-delivery prompt and no prose before or after it. The agent honors the explicitly requested variant even though repository evidence would recommend No PR; it does not also emit the No PR prompt.",
+      "expected_output": "No fenced goal prompt. Even though the user preselected PR delivery, the first invocation presents substantial scope choices, recommends exactly one scope with a compact reason, and asks for scope confirmation. The requested delivery variant remains applicable after confirmation but does not bypass the mandatory scope-choice pause.",
       "files": []
     },
     {
@@ -71,7 +71,7 @@
     {
       "id": 9,
       "prompt": "Use $next-goal to choose the next substantial goal. Do not assume answers to any unresolved product decisions.",
-      "expected_output": "The agent identifies the unresolved conflict and compatibility policies as planning gaps that prevent autonomous implementation, emits no fenced goal prompt, and asks the user to choose between explicitly delegating the remaining decisions within the closed workspace-import outcome or repairing planning first with $interview followed by $progress. It does not mutate planning during this read-only selection turn.",
+      "expected_output": "The agent presents Workspace Import as the only substantial scope, marks it as the recommendation, identifies the unresolved conflict and compatibility policies as its readiness gap, and asks the user to confirm or adjust that scope. It emits no fenced goal prompt, does not yet ask the delegation-or-repair readiness question, and makes no mutation. The single viable option still requires explicit scope confirmation.",
       "files": [
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",
@@ -81,7 +81,7 @@
     {
       "id": 10,
       "prompt": "Use $next-goal to choose the next substantial goal. If planning leaves consequential decisions unresolved, I authorize the goal-running agent to decide them using its best judgment within the selected closed outcome. Return only the recommended prompt.",
-      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The prompt selects the closed workspace-import outcome and its cited source, and its Authority field explicitly authorizes the goal-running agent to resolve remaining decisions within that outcome using best judgment while still requiring user direction for scope expansion or external authority. It does not ask the user to repeat the delegation.",
+      "expected_output": "No fenced goal prompt. The first invocation presents Workspace Import as the only substantial recommended scope, states its unresolved conflict and compatibility policies, and asks the user to confirm or adjust the boundary even though the prompt already delegates those later implementation decisions. The delegation can satisfy the readiness gate after scope confirmation, but it does not satisfy the separate mandatory scope-choice pause.",
       "files": [
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",
@@ -91,7 +91,7 @@
     {
       "id": 11,
       "prompt": "Use $next-goal to choose the next substantial goal. If the workspace-import plan is insufficient, I choose planning repair rather than delegating its product decisions.",
-      "expected_output": "The agent emits no goal prompt and makes no planning mutation while decisions remain. It treats the repair choice as authorization to use $interview, gives a reviewer-level brief on the conflict and compatibility policies, and asks only the consequential decision questions needed before $progress can update the plans.",
+      "expected_output": "The agent emits no goal prompt and makes no planning mutation. Because this is the first scope-discovery response, it presents Workspace Import as the only substantial recommended scope, marks the conflict and compatibility policies as its planning gap, and asks the user to confirm or adjust the boundary. The preselected repair preference applies after scope confirmation but does not bypass it.",
       "files": [
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",
@@ -101,7 +101,54 @@
     {
       "id": 12,
       "prompt": "Continue the $next-goal planning-repair branch I already chose. The confirmed policies are: conflicting records stop the import before any writes, and only archives from the current format version are supported. Use $progress to update authoritative planning, then rerun goal selection and return the recommended result.",
-      "expected_output": "The agent uses $progress to update the workspace-import plan with both confirmed policies and a concrete implementation next action. After that separate mutation finishes, it restarts $next-goal selection from the resulting repository state and makes no further writes. If the repaired evidence warrants a goal, the final response is exactly one unlabeled text fenced prompt block with no interview or planning-mutation recap.",
+      "expected_output": "The agent uses $progress to update the workspace-import plan with both confirmed policies and a concrete implementation next action. After that separate mutation finishes, it restarts read-only $next-goal scope discovery from the resulting repository state and makes no further writes. It presents Workspace Import as the substantial recommended scope and asks the user to confirm or adjust it; the repaired planning branch does not bypass the mandatory scope-choice pause, so no fenced goal prompt is emitted yet.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Continue $next-goal from the scope choices you just presented. I choose the recommended full Publication Foundation scope. Return the recommended delivery prompt.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The confirmed read-only selection recommends PR delivery through the block's Delivery field for exactly the four Publication Foundation results. The routing envelope is at most 220 words, contains a concrete goals/ state path, pairs each short semantic result label with its source, excludes only Integrated Whole-Codebase Review, authorizes only necessary work with explicit-user-only expansion, invokes $progress for initialization and recovery, and keeps completion delivery-neutral. It does not repeat the scope choices or ask for redundant confirmation.",
+      "files": [
+        "evals/fixtures/scope-cascade/AGENTS.md",
+        "evals/fixtures/scope-cascade/ROADMAP.md",
+        "evals/fixtures/scope-cascade/plans/canonical-artifacts.md",
+        "evals/fixtures/scope-cascade/plans/evaluation-data-plane.md",
+        "evals/fixtures/scope-cascade/plans/local-preview.md",
+        "evals/fixtures/scope-cascade/plans/publication-viewer-scaling.md",
+        "evals/fixtures/scope-cascade/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade/plans/performance-windows.md"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Continue $next-goal after its dev-scope choice response. I select the recommended Launch Path boundary and still want both delivery variants.",
+      "expected_output": "Exactly two text fenced blocks and no prose before, between, or after them. The compact prompts have the same confirmed contract for Storage Baseline followed by Renderer Rollout, pair each semantic result with its source, use goals/dev/<slug>.md as durable state, complete after Launch Path rollout, explicitly exclude Compliance Sweep, and require $progress recovery on every resume. Their contracts are textually identical except for Delivery, and the response does not repeat the choice set.",
+      "files": [
+        "evals/fixtures/checkpoint-chain/AGENTS.md",
+        "evals/fixtures/checkpoint-chain/ROADMAP_DEV.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/storage-baseline.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/renderer-rollout.md",
+        "evals/fixtures/checkpoint-chain/plans/dev/compliance-sweep.md"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Continue $next-goal from the one-option scope response. I confirm Workspace Import and authorize the goal-running agent to decide the unresolved conflict and compatibility policies using its best judgment within that outcome.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The prompt contains the confirmed closed Workspace Import outcome and its cited source. Its Authority field explicitly authorizes the goal-running agent to resolve remaining decisions within that outcome using best judgment while requiring user direction for scope expansion or external authority. It does not repeat the scope choice or ask the user to repeat confirmation or delegation.",
+      "files": [
+        "evals/fixtures/insufficient-planning/AGENTS.md",
+        "evals/fixtures/insufficient-planning/ROADMAP.md",
+        "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Continue $next-goal from the one-option scope response. I confirm Workspace Import, but do not assume answers to its unresolved product decisions.",
+      "expected_output": "The agent accepts the explicit scope confirmation, identifies the conflict and compatibility policies as the remaining readiness gaps, emits no fenced goal prompt, and asks the user to choose between bounded best-judgment delegation and planning repair with $interview followed by $progress. It does not repeat the scope-choice question or mutate planning.",
       "files": [
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",

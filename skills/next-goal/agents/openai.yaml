@@ -1,7 +1,7 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Choose a bounded substantial implementation goal"
-  default_prompt: "Use $next-goal to decide whether a substantial /goal is warranted, pause before prompting when planning is insufficient, and otherwise return only one copy-ready text-fenced routing envelope for the recommended delivery with a closed contract and $progress recovery."
+  short_description: "Recommend substantial goal scopes for user selection"
+  default_prompt: "Use $next-goal to present the evidence-backed substantial scope choices, recommend one, and pause for my confirmation before generating any /goal prompt. After I choose, apply the readiness gate and return the copy-ready routing envelope for the confirmed scope."
 
 policy:
   allow_implicit_invocation: false
