@@ -101,7 +101,7 @@
     {
       "id": 12,
       "prompt": "Continue the $next-goal planning-repair branch I already chose. The confirmed policies are: conflicting records stop the import before any writes, and only archives from the current format version are supported. Use $progress to update authoritative planning, then rerun goal selection and return the recommended result.",
-      "expected_output": "The agent uses $progress to update the workspace-import plan with both confirmed policies and a concrete implementation next action. After that separate mutation finishes, it restarts read-only $next-goal scope discovery from the resulting repository state and makes no further writes. It presents Workspace Import as the substantial recommended scope and asks the user to confirm or adjust it; the repaired planning branch does not bypass the mandatory scope-choice pause, so no fenced goal prompt is emitted yet.",
+      "expected_output": "The agent uses $progress to update the workspace-import plan with both confirmed policies and a concrete implementation next action. After that separate mutation finishes, it restarts read-only current-state resolution, revalidates the already confirmed Workspace Import scope, and makes no further writes. If the repaired evidence still supports that boundary and warrants a goal, it returns exactly one unlabeled text fenced prompt block with no repair recap or redundant scope confirmation. It refreshes the choices only if the planning repair materially changed the boundary.",
       "files": [
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",
@@ -153,6 +153,19 @@
         "evals/fixtures/insufficient-planning/AGENTS.md",
         "evals/fixtures/insufficient-planning/ROADMAP.md",
         "evals/fixtures/insufficient-planning/plans/workspace-import.md"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Continue $next-goal from the Publication Foundation scope choices. Instead of the recommendation, I choose an adjusted substantial boundary through Local Preview: include Canonical Artifacts, Evaluation Data Plane, and Local Preview, then stop before Publication Viewer Scaling.",
+      "expected_output": "Exactly one unlabeled text fenced block and no prose before or after it. The agent preserves the user's confirmed non-recommended boundary instead of restoring the full Publication Foundation recommendation. The contract includes exactly Canonical Artifacts, Evaluation Data Plane, and Local Preview with their sources, names Publication Viewer Scaling as the immediate exclusion, and applies the readiness and delivery rules normally. It does not repeat the choices or ask for redundant confirmation.",
+      "files": [
+        "evals/fixtures/scope-cascade/AGENTS.md",
+        "evals/fixtures/scope-cascade/ROADMAP.md",
+        "evals/fixtures/scope-cascade/plans/canonical-artifacts.md",
+        "evals/fixtures/scope-cascade/plans/evaluation-data-plane.md",
+        "evals/fixtures/scope-cascade/plans/local-preview.md",
+        "evals/fixtures/scope-cascade/plans/publication-viewer-scaling.md"
       ]
     }
   ]

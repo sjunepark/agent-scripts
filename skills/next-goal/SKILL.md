@@ -30,9 +30,9 @@ Each option must state only the decision-relevant boundary:
 - the immediate next result or milestone it stops before; and
 - whether it is ready or has a specific planning gap that would require delegation or repair after selection.
 
-Recommend exactly one option and explain why in one compact sentence. Prefer the largest useful outcome that a persistent goal-running agent can pursue autonomously, while weighing outcome value, coherence, planning readiness, blocker risk, and separation from later milestones. The scope recommendation is distinct from the later delivery recommendation.
+Mark exactly one option as `(Recommended)` and explain why in one compact sentence. Prefer the largest useful outcome that a persistent goal-running agent can pursue autonomously, while weighing outcome value, coherence, planning readiness, blocker risk, and separation from later milestones. The scope recommendation is distinct from the later delivery recommendation.
 
-Use a structured choice control when available; otherwise use a numbered list. Ask the user to choose by number or name or to propose an adjusted boundary. Emit no fenced goal prompt. When only one substantial candidate exists, present it as the recommendation and ask the user to confirm it. If no substantial unblocked candidate remains, say that `/goal` is not warranted and stop instead of manufacturing an option.
+Use a structured choice control when it can faithfully represent the supported options; otherwise use a numbered list. Ask the user to choose by number or name or to propose an adjusted boundary. Emit no fenced goal prompt. When only one substantial candidate exists, present it as the recommendation and ask the user to confirm it. If no substantial candidate remains that is implementable now or could pass readiness through bounded delegation or planning repair, say that `/goal` is not warranted and stop instead of manufacturing an option. Keep substantial candidates with planning gaps in the choice set so the readiness gate can handle them after confirmation; do not offer work that still depends on external authorization or an unresolved external blocker.
 
 The first invocation always stops here after presenting choices, even if the user named a preferred scope or requested a delivery variant. A follow-up that clearly selects an offered option or proposes a clear adjusted boundary satisfies scope confirmation.
 
@@ -81,14 +81,14 @@ When the outcome is closed but consequential decisions remain, alert the user wi
 
 Emit no goal prompt before the user chooses. Delegation passes the gate only for decisions inside the supported outcome; it never adds results, expands scope, or grants external authority. Record that delegation in the generated contract's `Authority` field so the goal-running agent does not ask again merely because the cited plans left those decisions open.
 
-If the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use `$interview` to settle consequential decisions, then `$progress` to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.
+If the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use `$interview` to settle consequential decisions, then `$progress` to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. Planning repair does not erase an already confirmed scope; revalidate and retain it unless the new evidence materially changes its boundary, in which case present refreshed choices and ask again. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.
 
 The gate is complete only when planning is sufficient or the user has explicitly delegated the remaining decisions within a supported closed outcome. Finalize every routing-envelope field after it passes.
 
 ## 5. Route the Result
 
-- When scope has **not been confirmed in a follow-up**, return only the compact choice set, recommendation, and selection question from step 2. Do not read the delivery-variant instructions or emit a goal prompt.
 - When `/goal` is **not warranted**, give the evidence-based reason and omit the prompt. Do not read the delivery-variant instructions.
+- When one or more substantial scopes exist but none has **been confirmed in a follow-up**, return only the compact choice set, recommendation, and selection question from step 2. Do not read the delivery-variant instructions or emit a goal prompt.
 - Only after the user confirms a scope, the evidence establishes that `/goal` **is warranted**, and the readiness gate passes, read and follow [prompts/delivery-variants.md](prompts/delivery-variants.md).
 - By default, return only the recommended prompt as one unlabeled `text` fenced block. Put only the body to enter after `/goal` inside it, with no prose before or after the fence.
 - Honor an explicit request for one named delivery variant even when it differs from the evidence-based recommendation; identify the emitted variant through its `Delivery` field.
