@@ -253,6 +253,22 @@
       }
     },
     {
+      "name": "develop-skills",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "agents": [
+          "codex",
+          "claude-code",
+          "pi"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "distill-response",
       "source": "agent-scripts",
       "recommendation": {
@@ -601,22 +617,6 @@
       "installation": {
         "manager": "skills-cli",
         "mode": "symlink"
-      }
-    },
-    {
-      "name": "writing-great-skills",
-      "source": "matt-pocock",
-      "recommendation": {
-        "scope": "global",
-        "agents": [
-          "codex",
-          "claude-code"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy",
-        "fullDepth": true
       }
     }
   ]

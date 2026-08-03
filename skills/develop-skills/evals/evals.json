@@ -1,0 +1,65 @@
+{
+  "skill_name": "develop-skills",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $develop-skills to create a reusable skill from these three completed tasks: in each task, the successful approach was to inspect the input schema, map every source field to an output field, run the repository validator, and compare one rendered result with the source. The recurring failures were invented fields and skipped visual checks. Create only what the evidence supports, and leave the new skill ready for evaluation.",
+      "expected_output": "A candidate skill grounded in the supplied task evidence rather than a generic tutorial. It first states the repeated workflow, failure modes, intended trigger boundary, and positive plus near-miss trigger cases; then creates a minimal portable SKILL.md and only resources that are necessary. The instructions use concrete procedures, include the schema and visual validation loop, and omit speculative capabilities. Before claiming readiness, it runs structural checks and exercises realistic tasks in fresh isolated contexts, comparing results with a no-skill baseline and reporting remaining uncertainty.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Use $develop-skills to revise our incident-summary skill. Users report that it produces polished prose but misses unresolved actions. The current skill says to summarize chronologically; two failed outputs omit action owners, while three good outputs group facts under impact, cause, recovery, and follow-up. Preserve behavior that already works and fix only the evidenced gap.",
+      "expected_output": "A focused revision based on inspection of the current skill and the supplied good and failed outputs. It identifies the missing-action failure, preserves useful existing behavior, and changes the smallest relevant instructions or output checks so unresolved actions retain owners and status. It adds assertions derived from the observed failures, validates structure, and compares the revised candidate with the unchanged baseline on representative tasks in fresh isolated contexts. It does not rewrite unrelated guidance, introduce unsupported incident practices, or claim improvement without evaluation evidence.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use $develop-skills to merge `release-notes` and `changelog-editor`. Both inspect commits and write audience-facing summaries. Only `release-notes` handles upgrade warnings; only `changelog-editor` enforces the repository's heading order. Build one replacement, prove it covers both jobs, and retire the originals only when that is safe.",
+      "expected_output": "A consolidation workflow that inventories shared behavior, unique responsibilities, trigger boundaries, resources, tests, and conflicting rules before editing. It creates one coherent candidate rather than concatenating the originals, retaining upgrade warnings and required heading order while resolving overlap explicitly. It validates the package and runs paired clean-context evaluations against both original skills on representative and boundary cases. The originals and their registrations remain intact until the candidate demonstrates coverage, acceptable trigger behavior, and no material regression; any unproven parity is reported as a blocker to removal.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $develop-skills to audit `dependency-upgrader`. Do not edit anything. Tell me whether its scope, package structure, instructions, and evaluation evidence justify keeping it installed. Its description says only `Helps with dependencies`, SKILL.md is 900 lines, and no evaluations are present.",
+      "expected_output": "A read-only, evidence-backed audit that distinguishes structural portability, runtime instruction quality, behavior evidence, and trigger accuracy. It identifies the vague description, oversized entry point, missing trigger boundaries, and absence of evaluation proof without treating line count alone as failure. Findings are prioritized and tied to inspected evidence, with a minimal remediation sequence: define positive and near-miss cases, move only necessary detail into directly linked resources, add assertions, validate structure, compare behavior with a baseline in fresh isolated contexts, and test triggering separately. No files, registrations, or installations are changed.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Use $develop-skills to test and improve this trigger description: `Creates project handoff notes.` It should activate for requests to prepare a durable implementation handoff or resume packet, but not for ordinary status updates, meeting notes, release notes, or requests to continue the work directly. Do not change the runtime workflow unless the tests reveal a separate behavior defect.",
+      "expected_output": "A trigger-focused evaluation with a balanced set of realistic positives, paraphrases, and hard near-miss negatives. It evaluates the existing description repeatedly in fresh isolated contexts, records false positives, false negatives, and run-to-run variance, then proposes a concise description that states both the capability and when it applies. The revised description is retested on the same held-out mix and is accepted only if the evidence improves the intended boundary without suppressing true positives. Runtime instructions remain unchanged unless an independently demonstrated behavior failure warrants a separate revision.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Use $develop-skills to prune `database-review`, whose SKILL.md has grown to 1,400 lines. It repeats the same transaction rules in four sections, embeds a full query-language manual, and offers six interchangeable review workflows. Maintainers still need its schema-safety checklist and its two migration failure cases. Make it easier to use without weakening proven behavior.",
+      "expected_output": "An evidence-first reduction that maps current responsibilities, repeated rules, valuable cases, resource links, and existing evaluations before deleting content. It keeps one clear default workflow, preserves the schema-safety checklist and migration failure cases, removes duplication, and replaces the embedded general manual with a concise task-specific pointer or omits it when unnecessary. Supporting material is split only when it has a distinct purpose and is linked directly from SKILL.md with clear use conditions. The pruned candidate is structurally validated and compared with the original in fresh isolated runs; removal is retained only where behavior remains equivalent or improves.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Write a concise onboarding guide for the sample service described below. This is a one-off document for today's new starters, not a reusable procedure or skill package. The service receives image uploads, scans them, stores accepted files, and emits a completion event.",
+      "expected_output": "A concise onboarding guide for the described service, with no attempt to create, revise, audit, evaluate, package, register, or install a skill. The response respects the explicit one-off scope and does not turn a broadly reusable writing capability into skill-development work merely because the output contains procedural guidance.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Use $develop-skills to create a portable `verify-data-export` skill from our proven workflow. The package must work wherever the Agent Skills format is supported. Runtime instructions may use only ordinary file inspection and commands supplied by the target repository; do not assume a particular vendor, model, client, invocation syntax, global directory, or proprietary tool. Optional interface metadata may be isolated from the runtime instructions.",
+      "expected_output": "A portable skill whose frontmatter and runtime guidance use only the common skill contract and whose procedure is derived from the provided workflow evidence. It avoids client-specific fields, paths, commands, invocation policy, and tool assumptions in SKILL.md and its runtime resources; any optional interface metadata is isolated and nonessential. The package names environmental prerequisites explicitly, degrades cleanly when a repository lacks a command, and includes positive and near-miss trigger cases plus behavioral assertions. Portability is checked structurally, while behavior and trigger accuracy are evaluated separately in fresh isolated contexts before the skill is described as ready.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Use $develop-skills to revise our `billing-reconciler` skill from the supplied failed runs. Apply the current authoring rubric and leave the target ready for evaluation.",
+      "expected_output": "The ordinary create-or-revise workflow is used for `billing-reconciler`. The response inspects the target skill and its evidence, makes the smallest supported revision, and validates the affected behavior without opening, citing, or applying the upstream-guidance refresh workflow. It does not browse the maintained authoring sources merely because `develop-skills` is active.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Use $develop-skills to refresh `develop-skills` itself against both maintained skill-authoring references. Reconcile only material, portable changes; keep model-, client-, and platform-specific guidance out of ordinary runtime instructions. Make validated local edits if warranted, but do not publish or reinstall anything.",
+      "expected_output": "The maintenance-only refresh workflow reads both current maintained pages completely, records the retrieval date, and compares their material claims semantically with the current `develop-skills` guidance. Decisions are traceable and filtered through user and repository requirements, portability, and evaluation evidence. Only the smallest warranted portable changes are made; a supported no-op is acceptable. Repository validation and proportional behavior or trigger checks are run, ordinary routes are checked for source-specific leakage, and the result stops before commit, publication, synchronization, or installation.",
+      "files": []
+    }
+  ]
+}

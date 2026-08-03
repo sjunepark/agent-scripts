@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop Skills"
+  short_description: "Create, merge, and evaluate portable skills"
+  default_prompt: "Use $develop-skills to create, consolidate, or evaluate a portable skill."
