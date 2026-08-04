@@ -1,4 +1,4 @@
 interface:
   display_name: "Teach"
-  short_description: "Teach existing code through design and contracts"
-  default_prompt: "Use $teach to explain this existing codebase, subsystem, architecture, or feature flow through its responsibilities, contracts, data flow, invariants, and tradeoffs."
+  short_description: "Learn an application, then explore selected code areas"
+  default_prompt: "Use $teach project for a capabilities-first map of this application and its source code, or name a subsystem or feature flow for a focused explanation."

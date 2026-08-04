@@ -1,0 +1,41 @@
+{
+  "skill_name": "teach",
+  "cases": [
+    {
+      "id": "whole-project-direct",
+      "prompt": "Teach me this whole project from the top down so I can choose what to learn next.",
+      "expected_activation": true,
+      "reason": "The learner explicitly requests a progressive whole-project source-code view."
+    },
+    {
+      "id": "whole-project-paraphrase",
+      "prompt": "I am new to this repository. Give me a high-level map of how the application works before I choose a source-code area.",
+      "expected_activation": true,
+      "reason": "The learner wants a capabilities-first application map before selecting a narrower target."
+    },
+    {
+      "id": "whole-project-implicit",
+      "prompt": "Help me understand how this codebase fits together, then let me pick a subsystem to explore.",
+      "expected_activation": true,
+      "reason": "The request implies broad teaching and progressive selection without naming the skill."
+    },
+    {
+      "id": "review-near-miss",
+      "prompt": "Review the whole project and identify architectural defects, security risks, and code-quality problems.",
+      "expected_activation": false,
+      "reason": "The requested outcome is critique and defect discovery rather than understanding."
+    },
+    {
+      "id": "change-near-miss",
+      "prompt": "Explain what changed in this commit and why each file was modified.",
+      "expected_activation": false,
+      "reason": "Commit and diff teaching belongs to `change-explainer`."
+    },
+    {
+      "id": "status-near-miss",
+      "prompt": "Summarize the current project status, unfinished work, and what I should do next.",
+      "expected_activation": false,
+      "reason": "The user wants current execution state rather than a source-code mental model."
+    }
+  ]
+}

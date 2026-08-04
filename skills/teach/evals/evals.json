@@ -18,6 +18,30 @@
       "prompt": "I keep getting lost in how this app uses the framework. Teach me the relevant framework behavior only as much as needed to understand the design here, then connect that back to the local responsibilities, contracts, and tradeoffs.",
       "expected_output": "A code-grounded explanation that uses only the necessary library or framework context and ties it back to the local design, responsibilities, contracts, and tradeoffs with selective evidence.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Use $teach project. Help me understand what the application does, how its main parts fit together, and what areas I can choose to learn next without teaching every detail at once.",
+      "expected_output": "A capabilities-first orientation to the running application grounded in source code. It gives an application summary, maps capabilities to major runtime responsibilities, traces one representative flow at lifecycle depth, and ends with a small numbered learning map plus an invitation to select the next area. It omits tests, build tooling, deployment, documentation, exhaustive file lists, and subsystem internals unless they materially affect the runtime model.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I am new to this repository. Give me a high-level map of how the application works before I decide which part of the source code to study.",
+      "expected_output": "A broad source-code orientation framed first by application capabilities and then by their owning runtime regions. It avoids a directory tour and exhaustive detail, uses one central flow to validate the map, and presents stable selectable topics for progressive follow-up.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "From the whole-project learning map you gave me, elaborate the background-jobs area. Reconnect it to the application briefly, but do not repeat the entire overview.",
+      "expected_output": "A focused lesson on background jobs that briefly restores its place in the established application map, then explains its responsibilities, boundaries, contracts, and flow without repeating unrelated areas. If the area remains broad, it ends with a smaller set of optional subtopics.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Use $teach project.",
+      "expected_output": "Select the whole-application workflow and return a capabilities-first application summary, system map, representative flow, numbered learning map, and invitation to choose the next topic.",
+      "files": []
     }
   ]
 }

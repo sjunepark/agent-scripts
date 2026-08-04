@@ -1,6 +1,6 @@
 ---
 name: teach
-description: "Teach requested design-level mental models of existing codebases, subsystems, architectures, or feature flows. Use `change-explainer` for diffs, commits, and patches."
+description: "Teach design-level mental models of existing source code. Use when a learner asks how a focused subsystem or feature works, or requests a whole-project view; use `change-explainer` for diffs, commits, and patches."
 ---
 
 # Teach
@@ -12,8 +12,9 @@ This skill is explanatory. Explain syntax, line-by-line execution, or how to wri
 ## Workflow
 
 1. Identify the teaching target.
-   - Infer whether the learner needs a module, feature flow, subsystem, architecture area, API boundary, runtime path, data model, state flow, or directly relevant external concept.
-   - For a broad request, choose the smallest coherent model first.
+   - Within this skill, treat an exact teaching target of `project` as shorthand for the whole-application workflow. Also select that workflow when the learner clearly asks to start with the entire codebase or application and choose areas afterward. Read [guides/whole-application.md](guides/whole-application.md) and use its orientation workflow.
+   - When the learner selects a topic from an earlier whole-application learning map, read [guides/whole-application.md](guides/whole-application.md) and use its follow-up workflow.
+   - Otherwise, infer whether the learner needs a module, feature flow, subsystem, architecture area, API boundary, runtime path, data model, state flow, or directly relevant external concept. Choose the smallest coherent model that answers the request.
 
 2. Read top-down.
    - Start from entry points, exported symbols, route handlers, public interfaces, or the requested flow.
@@ -40,7 +41,7 @@ This skill is explanatory. Explain syntax, line-by-line execution, or how to wri
 
 ## Output shape
 
-Use this shape unless the user asks for something else.
+For a whole-application orientation, use the output shape in [guides/whole-application.md](guides/whole-application.md). For a focused target, use this shape unless the user asks for something else.
 
 ### Big Picture
 
