@@ -142,11 +142,11 @@ does not mean it belongs in every global agent install. Use
 and installation manager; install project recommendations only when their
 `when` condition matches.
 
-Run `scripts/audit-global-skills` from this repo to compare the registry's
-global recommendations with `bunx skills list -g --json`. Use
-`scripts/audit-global-skills --apply` only when missing `skills-cli`-managed
-entries should be reinstalled; manual and workflow-managed entries remain with
-their recorded manager.
+Run `scripts/audit-global-skills --profile dev|kicpa` from this repo to compare
+the selected profile's global recommendations with
+`bunx skills list -g --json`. The registry-v2 audit is read-only until exact
+filesystem reconciliation is implemented; manual and workflow-managed entries
+remain with their recorded manager.
 
 The `delegate-ui-to-claude` orchestration skill is intentionally installed only
 for Codex. Impeccable is not a machine-global prerequisite: when the skill

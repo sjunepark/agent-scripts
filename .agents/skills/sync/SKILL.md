@@ -20,7 +20,7 @@ Always install with the skills CLI from the published source — the GitHub `ski
 2. Inspect the working tree and decide what to publish.
 - Run `git status --short` and inspect relevant diffs before committing.
 - Commit only the changes that belong to this sync request. Do not sweep in unrelated dirty files.
-- When `skill-registry.json` exists, treat it as the authoritative install policy. Confirm every skill being removed globally lacks a global recommendation for the affected agent, and run `scripts/audit-global-skills` before changing installs.
+- When `skill-registry.json` exists, treat it as the authoritative install policy. Select the machine profile explicitly, confirm every skill being removed globally is absent from that profile, and run `scripts/audit-global-skills --profile <dev|kicpa>` before changing installs.
 - If the commit scope or message is unclear, ask the user before committing.
 - If there are no relevant local changes, skip the commit and push steps and continue with the remote reinstall/update.
 
@@ -47,7 +47,7 @@ Always install with the skills CLI from the published source — the GitHub `ski
 
 7. Verify the result.
 - Run `bunx skills list` for project scope or `bunx skills list -g` for global scope.
-- When the repo has `skill-registry.json`, finish with `scripts/audit-global-skills` and require the installed global set to match its global recommendations.
+- When the repo has `skill-registry.json`, finish with `scripts/audit-global-skills --profile <dev|kicpa>` and require the installed global set to match the selected profile's recommendations.
 - For the default machine-global setup, confirm the selected skill resolves from `~/.agents/skills` and lists the supported agents broadly. For a user-requested narrow setup, confirm only those agents appear.
 - Report the commit hash when a commit was created, the pushed branch, and that the installed skills now come from the remote-backed source, not the local working tree.
 - If the install command overwrote existing skills, say so explicitly in the summary.
@@ -57,9 +57,10 @@ Always install with the skills CLI from the published source — the GitHub `ski
 ```bash
 SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
 SKILL_NAME="merge-branch"
+PROFILE="dev"
 git remote get-url origin
 git status --short
-scripts/audit-global-skills
+scripts/audit-global-skills --profile "$PROFILE"
 git add skills/merge-branch/SKILL.md
 git commit -m "docs: update skill workflow"
 git push
@@ -67,5 +68,5 @@ bunx skills add "$SKILLS_URL" --list
 bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a codex -y
 bunx skills add "$SKILLS_URL" --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
 bunx skills list -g
-scripts/audit-global-skills
+scripts/audit-global-skills --profile "$PROFILE"
 ```

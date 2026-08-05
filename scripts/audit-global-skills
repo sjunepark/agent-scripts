@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execFileSync, spawnSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const { globalSkillEntries, readSkillRegistry } = require("./lib/skill-registry");
 
 const root = path.resolve(__dirname, "..");
@@ -15,17 +15,16 @@ const agentDisplayNames = new Map([
 ]);
 
 function usage() {
-  console.log(`Usage: scripts/audit-global-skills [--registry <path>] [--apply]
+  console.log(`Usage: scripts/audit-global-skills --profile <dev|kicpa> [--registry <path>]
 
-Audits bunx skills list -g --json against global recommendations in skill-registry.json.
-Without --apply, prints the commands needed to repair missing managed entries.
-With --apply, runs only skills-cli repairs with a recorded source.`);
+Audits bunx skills list -g --json against the selected profile in skill-registry.json.
+This registry-v2 command is read-only until exact filesystem reconciliation is implemented.`);
 }
 
 function parseArgs(argv) {
   const options = {
     registry: defaultRegistry,
-    apply: false
+    profile: null
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -35,7 +34,17 @@ function parseArgs(argv) {
       process.exit(0);
     }
     if (arg === "--apply") {
-      options.apply = true;
+      throw new Error(
+        "--apply is unavailable until registry-v2 exact filesystem reconciliation is implemented"
+      );
+    }
+    if (arg === "--profile") {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error("--profile requires dev or kicpa");
+      }
+      options.profile = value;
+      index += 1;
       continue;
     }
     if (arg === "--registry") {
@@ -48,6 +57,10 @@ function parseArgs(argv) {
       continue;
     }
     throw new Error(`Unknown argument: ${arg}`);
+  }
+
+  if (!options.profile) {
+    throw new Error("--profile is required; expected dev or kicpa");
   }
 
   return options;
@@ -83,37 +96,6 @@ function indexInstalled(skills) {
   return byName;
 }
 
-function commandFor(entry) {
-  if (entry.manager !== "skills-cli" || !entry.source) return null;
-
-  const args = ["skills", "add", entry.source, "--skill", entry.name];
-  if (entry.mode === "copy") {
-    args.push("--copy");
-  }
-  if (entry.scope === "global") {
-    args.push("-g");
-  }
-  for (const agent of entry.agents) {
-    args.push("-a", agent);
-  }
-  if (entry.fullDepth) {
-    args.push("--full-depth");
-  }
-  args.push("-y");
-  return ["bunx", ...args];
-}
-
-function shellQuote(value) {
-  if (/^[A-Za-z0-9_./:@=-]+$/.test(value)) {
-    return value;
-  }
-  return `'${value.replace(/'/g, "'\\''")}'`;
-}
-
-function formatCommand(command) {
-  return command.map(shellQuote).join(" ");
-}
-
 function collectIssues(entries, installed, allowUnlisted) {
   const byName = indexInstalled(installed);
   const wantedNames = new Set(entries.map((entry) => entry.name));
@@ -147,29 +129,6 @@ function collectIssues(entries, installed, allowUnlisted) {
     missingAgents,
     unlisted: allowUnlisted ? [] : unlisted
   };
-}
-
-function actionableEntries(issues) {
-  const entries = [
-    ...issues.missing,
-    ...issues.missingAgents.map((issue) => issue.entry)
-  ];
-
-  const seen = new Set();
-  return entries.filter((entry) => {
-    const key = JSON.stringify([
-      entry.source,
-      entry.name,
-      entry.sourceId,
-      entry.scope,
-      entry.mode,
-      entry.agents,
-      entry.fullDepth
-    ]);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return commandFor(entry);
-  });
 }
 
 function printIssues(issues) {
@@ -210,54 +169,31 @@ function main() {
   const registry = readSkillRegistry(options.registry, {
     repositorySkillNames: publishedSkillNames()
   });
-  const entries = globalSkillEntries(registry);
+  const entries = globalSkillEntries(registry, options.profile);
   const installed = listGlobalSkills();
-  let issues = collectIssues(
+  const issues = collectIssues(
     entries,
     installed,
     registry.global?.allowUnlistedSkills === true
   );
 
   console.log(`Registry: ${path.relative(root, options.registry)}`);
+  console.log(`Profile: ${options.profile}`);
+  console.log(
+    `Audiences: ${registry.global.profiles[options.profile].audiences.join(", ")}`
+  );
+  console.log("Mode: read-only aggregate check; exact root state is not evaluated yet");
   console.log(`Recommended global skills: ${entries.length}`);
   console.log(`Installed global skills: ${indexInstalled(installed).size}`);
 
   if (!hasIssues(issues)) {
-    console.log("Global skills match the registry.");
+    console.log(
+      "Aggregated global discovery matches the profile; exact filesystem state is not yet audited."
+    );
     return;
   }
 
   printIssues(issues);
-
-  const commands = actionableEntries(issues).map(commandFor);
-  if (commands.length > 0) {
-    console.log(options.apply ? "\nApplying managed repairs:" : "\nRepair commands:");
-    for (const command of commands) {
-      console.log(formatCommand(command));
-      if (options.apply) {
-        const result = spawnSync(command[0], command.slice(1), {
-          stdio: "inherit"
-        });
-        if (result.status !== 0) {
-          process.exit(result.status ?? 1);
-        }
-      }
-    }
-  }
-
-  if (options.apply) {
-    issues = collectIssues(
-      entries,
-      listGlobalSkills(),
-      registry.global?.allowUnlistedSkills === true
-    );
-    if (!hasIssues(issues)) {
-      console.log("\nGlobal skills match the registry after applying repairs.");
-      return;
-    }
-    console.log("\nRemaining drift after applying repairs:");
-    printIssues(issues);
-  }
 
   process.exit(1);
 }

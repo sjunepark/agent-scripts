@@ -1,8 +1,22 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Authoritative classification and installation policy for repository and recommended external skills.",
   "global": {
-    "allowUnlistedSkills": false
+    "allowUnlistedSkills": false,
+    "profiles": {
+      "dev": {
+        "audiences": [
+          "common",
+          "dev"
+        ]
+      },
+      "kicpa": {
+        "audiences": [
+          "common",
+          "kicpa"
+        ]
+      }
+    }
   },
   "sources": {
     "agent-scripts": {
@@ -39,6 +53,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -55,6 +70,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -71,6 +87,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -87,6 +104,7 @@
       "source": "baton",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -102,6 +120,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex"
         ]
@@ -116,6 +135,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -132,6 +152,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -165,6 +186,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -181,6 +203,7 @@
       "source": "matt-pocock",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -197,6 +220,7 @@
       "source": "context7",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -213,6 +237,7 @@
       "source": "context7-mcp-manual",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -227,6 +252,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -243,6 +269,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex"
         ]
@@ -257,6 +284,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -273,6 +301,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -289,6 +318,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -305,6 +335,7 @@
       "source": "matt-pocock",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -321,6 +352,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -337,6 +369,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -352,6 +385,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -382,6 +416,7 @@
       "source": "matt-pocock",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -398,6 +433,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -414,6 +450,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",
@@ -464,6 +501,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code"
@@ -479,6 +517,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -495,6 +534,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -544,6 +584,7 @@
       "source": "skill-cleaner-manual",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code"
@@ -558,6 +599,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "common",
         "agents": [
           "codex",
           "claude-code",
@@ -574,6 +616,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
+        "audience": "dev",
         "agents": [
           "codex",
           "claude-code",

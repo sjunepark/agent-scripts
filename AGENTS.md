@@ -85,9 +85,10 @@
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
 - Use `skill-registry.json` as the desired skill registry.
-- Use `scripts/audit-global-skills` to compare `bunx skills list -g --json`
-  with its global recommendations; use `scripts/audit-global-skills --apply`
-  only when missing `skills-cli`-managed entries should be reinstalled.
+- Use `scripts/audit-global-skills --profile dev|kicpa` to compare
+  `bunx skills list -g --json` with the selected profile's global
+  recommendations. The registry-v2 audit is read-only until exact filesystem
+  reconciliation is implemented.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.

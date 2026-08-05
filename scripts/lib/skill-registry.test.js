@@ -1,0 +1,198 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const {
+  globalSkillEntries,
+  validateSkillRegistry
+} = require("./skill-registry");
+
+function validRegistry() {
+  return {
+    version: 2,
+    description: "Test registry.",
+    global: {
+      allowUnlistedSkills: false,
+      profiles: {
+        dev: { audiences: ["common", "dev"] },
+        kicpa: { audiences: ["common", "kicpa"] }
+      }
+    },
+    sources: {
+      test: {
+        kind: "external",
+        location: "example/test-skills"
+      }
+    },
+    skills: [
+      {
+        name: "common-alpha",
+        source: "test",
+        recommendation: {
+          scope: "global",
+          audience: "common",
+          agents: ["codex"]
+        },
+        installation: { manager: "skills-cli", mode: "copy" }
+      },
+      {
+        name: "dev-alpha",
+        source: "test",
+        recommendation: {
+          scope: "global",
+          audience: "dev",
+          agents: ["codex"]
+        },
+        installation: { manager: "skills-cli", mode: "copy" }
+      },
+      {
+        name: "kicpa-alpha",
+        source: "test",
+        recommendation: {
+          scope: "global",
+          audience: "kicpa",
+          agents: ["codex"]
+        },
+        installation: { manager: "skills-cli", mode: "copy" }
+      },
+      {
+        name: "project-alpha",
+        source: "test",
+        recommendation: {
+          scope: "project",
+          agents: ["codex"],
+          when: "The target project opts in."
+        },
+        installation: { manager: "skills-cli", mode: "symlink" }
+      }
+    ]
+  };
+}
+
+function validationErrors(mutate) {
+  const registry = validRegistry();
+  mutate(registry);
+  return validateSkillRegistry(registry);
+}
+
+function assertErrorIncludes(errors, expected) {
+  assert.ok(
+    errors.some((error) => error.includes(expected)),
+    `Expected an error containing ${JSON.stringify(expected)}; got:\n${errors.join("\n")}`
+  );
+}
+
+test("version 2 registry resolves the dev and kicpa profile unions", () => {
+  const registry = validRegistry();
+
+  assert.deepEqual(validateSkillRegistry(registry), []);
+  assert.deepEqual(
+    globalSkillEntries(registry, "dev").map((entry) => entry.name),
+    ["common-alpha", "dev-alpha"]
+  );
+  assert.deepEqual(
+    globalSkillEntries(registry, "kicpa").map((entry) => entry.name),
+    ["common-alpha", "kicpa-alpha"]
+  );
+});
+
+test("profile resolution requires an explicit supported profile", () => {
+  const registry = validRegistry();
+
+  assert.throws(
+    () => globalSkillEntries(registry),
+    /profile is required; expected one of: dev, kicpa/
+  );
+  assert.throws(
+    () => globalSkillEntries(registry, "other"),
+    /unknown profile other; expected one of: dev, kicpa/
+  );
+});
+
+test("registry version 1 is rejected", () => {
+  const errors = validationErrors((registry) => {
+    registry.version = 1;
+  });
+
+  assertErrorIncludes(errors, "version must be 2");
+});
+
+test("strict desired state cannot allow unlisted global skills", () => {
+  const errors = validationErrors((registry) => {
+    registry.global.allowUnlistedSkills = true;
+  });
+
+  assertErrorIncludes(errors, "global.allowUnlistedSkills must be false for strict desired state");
+});
+
+test("both supported profiles are required and unknown profiles are rejected", () => {
+  const missing = validationErrors((registry) => {
+    delete registry.global.profiles.kicpa;
+  });
+  const unknown = validationErrors((registry) => {
+    registry.global.profiles.other = { audiences: ["common"] };
+  });
+
+  assertErrorIncludes(missing, "global.profiles must define exactly: dev, kicpa");
+  assertErrorIncludes(unknown, "global.profiles must define exactly: dev, kicpa");
+});
+
+test("profile audiences must be nonempty, sorted, and deduplicated", () => {
+  const empty = validationErrors((registry) => {
+    registry.global.profiles.dev.audiences = [];
+  });
+  const unsorted = validationErrors((registry) => {
+    registry.global.profiles.dev.audiences = ["dev", "common"];
+  });
+  const duplicate = validationErrors((registry) => {
+    registry.global.profiles.dev.audiences = ["common", "dev", "dev"];
+  });
+
+  assertErrorIncludes(empty, "global profile dev audiences must be a non-empty array");
+  assertErrorIncludes(unsorted, "global profile dev audiences must be sorted");
+  assertErrorIncludes(duplicate, "global profile dev repeats audience dev");
+});
+
+test("profile compositions are fixed to common plus their machine audience", () => {
+  const wrongDev = validationErrors((registry) => {
+    registry.global.profiles.dev.audiences = ["dev"];
+  });
+  const unsupported = validationErrors((registry) => {
+    registry.global.profiles.kicpa.audiences = ["common", "finance"];
+  });
+
+  assertErrorIncludes(wrongDev, "global profile dev audiences must be: common, dev");
+  assertErrorIncludes(unsupported, "global profile kicpa has unsupported audience finance");
+});
+
+test("every global recommendation has exactly one supported audience", () => {
+  const missing = validationErrors((registry) => {
+    delete registry.skills[0].recommendation.audience;
+  });
+  const unsupported = validationErrors((registry) => {
+    registry.skills[0].recommendation.audience = "finance";
+  });
+  const multiple = validationErrors((registry) => {
+    registry.skills[0].recommendation.audience = ["common", "dev"];
+  });
+
+  assertErrorIncludes(missing, "common-alpha global recommendation must name one audience");
+  assertErrorIncludes(unsupported, "common-alpha has unsupported audience finance");
+  assertErrorIncludes(multiple, "common-alpha global recommendation must name one audience");
+});
+
+test("project and catalog recommendations cannot declare audiences", () => {
+  const project = validationErrors((registry) => {
+    registry.skills[3].recommendation.audience = "dev";
+  });
+  const catalog = validationErrors((registry) => {
+    registry.skills[3].recommendation = {
+      scope: "catalog",
+      audience: "dev"
+    };
+    registry.skills[3].installation = { manager: "none" };
+  });
+
+  assertErrorIncludes(project, "project-alpha project recommendation must not define audience");
+  assertErrorIncludes(catalog, "project-alpha catalog recommendation must not define audience");
+});

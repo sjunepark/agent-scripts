@@ -15,7 +15,8 @@ Each skill has one record that separates three concerns:
 
 Recommendation scopes are:
 
-- `global`: part of the desired machine baseline for the named agents.
+- `global`: part of a named machine audience and desired for the compatible
+  agents when the selected profile includes that audience.
 - `project`: install only when the record's `when` condition matches a
   repository.
 - `catalog`: published or tracked for discovery, but not recommended for
@@ -29,8 +30,19 @@ Installation managers are:
 - `workflow`: let the named workflow provision the skill in context.
 - `none`: no default installation; required for catalog-only entries.
 
-`global.allowUnlistedSkills` controls whether the global audit reports skills
-installed outside the registry.
+The version 2 global contract defines two profiles:
+
+- `dev` resolves `common` and `dev` audiences.
+- `kicpa` resolves `common` and `kicpa` audiences.
+
+Every global recommendation declares exactly one `audience`: `common`, `dev`,
+or `kicpa`. Project and catalog recommendations cannot declare an audience.
+Profile audience arrays are nonempty, sorted, deduplicated, and fixed to the
+compositions above. Callers must select `dev` or `kicpa` explicitly; there is
+no inferred or default profile.
+
+`global.allowUnlistedSkills` is retained as an explicit strictness declaration
+and must be `false`; installed skills outside the selected profile are drift.
 
 `recommendation.agents` records the agents targeted by installation commands.
 The global audit requires those targets to be discoverable, but it does not
@@ -55,7 +67,9 @@ It requires every `skills/*/SKILL.md` to have exactly one repository-source
 record, rejects missing sources and incomplete classifications, and validates
 the supported scope and installation combinations.
 
-Run `scripts/audit-global-skills` to compare only the registry's `global`
-recommendations with `bunx skills list -g --json`. With `--apply`, the audit
-repairs only entries managed by `skills-cli` with a recorded source. Project,
-workflow, manual, and catalog-only records are never installed by that command.
+Run `scripts/audit-global-skills --profile dev|kicpa` to compare the selected
+profile's `global` recommendations with `bunx skills list -g --json`. The
+registry-v2 audit is read-only until exact filesystem reconciliation is
+implemented. Project, workflow, and catalog-only records are excluded from
+profile resolution. Global manual records remain desired and audited, but no
+install command is synthesized for them.

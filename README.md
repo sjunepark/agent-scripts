@@ -67,7 +67,8 @@ destinations containing whitespace or parentheses in angle brackets.
 Audit this machine's global skills against the desired registry:
 
 ```bash
-scripts/audit-global-skills
+PROFILE="dev"
+scripts/audit-global-skills --profile "$PROFILE"
 ```
 
 Enable the optional pre-commit hook:
@@ -91,10 +92,9 @@ globally.
 Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-specific, workflow-managed, or catalog-only, along with its provenance
 and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
-schema contract. Use `scripts/audit-global-skills` to report drift in the
-global subset and `scripts/audit-global-skills --apply` to reinstall missing
-`skills-cli`-managed entries. Manual and workflow-managed entries are never
-installed by that repair command.
+schema contract. Use `scripts/audit-global-skills --profile dev|kicpa` to
+report drift in the selected global profile. The registry-v2 audit is
+read-only until exact filesystem reconciliation is implemented.
 
 For a selected skill:
 

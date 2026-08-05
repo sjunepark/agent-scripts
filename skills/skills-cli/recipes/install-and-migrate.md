@@ -46,12 +46,13 @@ Use this after the replacement commit is pushed so the remote catalog contains
 
 ```bash
 SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
+PROFILE="dev"
 
 bunx skills remove progress-doc progress-handoff progress-run -g -y
 bunx skills add "$SKILLS_URL" --skill progress --copy -g -a codex -y
 bunx skills add "$SKILLS_URL" --skill progress --copy -g -a claude-code -a pi -y
 bunx skills list -g
-scripts/audit-global-skills
+scripts/audit-global-skills --profile "$PROFILE"
 ```
 
 ## Move selected shared repo skills to Claude Code and Pi only
