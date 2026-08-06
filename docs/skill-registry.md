@@ -30,6 +30,22 @@ Installation managers are:
 - `workflow`: let the named workflow provision the skill in context.
 - `none`: no default installation; required for catalog-only entries.
 
+The manager and the source location are coupled. `skills-cli` clones git
+shorthand (`owner/repo[/path]`) or credential-free `https:` remotes; it cannot
+install from an npm specifier, another URL scheme, or a local path. A record
+whose `source` location falls outside that set must therefore use `manual`,
+`workflow`, or `none`, and validation rejects the `skills-cli` combination at
+any scope.
+
+For those records, `location` names the provisioning entry point rather than a
+tree the Skills CLI could clone. A skill whose own installer compiles or
+selects per-agent content is the usual reason: name-based skill discovery can
+pick the wrong agent's variant or the uncompiled source, and the resulting
+install looks successful while pointing at paths and command prefixes that do
+not match the target agent. `impeccable` is the current example; the
+`delegate-ui-to-claude` workflow provisions it with its own CLI, scoped to one
+project and one agent.
+
 The version 2 global contract defines two profiles:
 
 - `dev` resolves `common` and `dev` audiences.
@@ -66,7 +82,10 @@ make its referenced skill a recommendation.
 Run `scripts/validate-skills` after changing the registry or published catalog.
 It requires every `skills/*/SKILL.md` to have exactly one repository-source
 record, rejects missing sources and incomplete classifications, and validates
-the supported scope and installation combinations.
+the supported scope and installation combinations. It also rejects a
+`skills-cli` record whose source location the Skills CLI cannot clone. That
+check is total: the reconciler's runtime guard sees only the selected profile,
+so validation is the only protection for project-scoped records.
 
 Run `scripts/audit-global-skills --profile <dev|kicpa>` to compare the selected
 profile with exact entries in the managed and explicitly known legacy roots.

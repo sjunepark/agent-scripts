@@ -22,7 +22,11 @@ const {
   restoreQuarantine,
   writeReconcilerState
 } = require("./lib/global-skill-state");
-const { globalSkillEntries, readSkillRegistry } = require("./lib/skill-registry");
+const {
+  globalSkillEntries,
+  readSkillRegistry,
+  skillsCliSourceProblem
+} = require("./lib/skill-registry");
 
 const repositoryRoot = path.resolve(__dirname, "..");
 const defaultRegistry = path.join(repositoryRoot, "skill-registry.json");
@@ -129,30 +133,17 @@ function publishedSkillNames() {
     .map((entry) => entry.name);
 }
 
+// Registry validation already rejects an uninstallable skills-cli location, so
+// this stays as the last guard before a source reaches a subprocess.
 function assertRemoteSource(source) {
-  if (typeof source !== "string" || source.length === 0) {
+  const problem = skillsCliSourceProblem(source);
+  if (problem === "empty") {
     throw new Error("Skills CLI source must be a non-empty remote reference");
   }
-  if (source.startsWith(".") || source.startsWith("/") || source.startsWith("~")) {
+  if (problem === "local") {
     throw new Error("Skills CLI source must be remote, not a local path");
   }
-  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.\/-]+)?$/.test(source)) {
-    const segments = source.split("/");
-    if (!segments.some((segment) => segment === "." || segment === ".." || segment === "")) return;
-  }
-  let parsed;
-  try {
-    parsed = new URL(source);
-  } catch {
-    throw new Error("Skills CLI source must be a credential-free public remote reference");
-  }
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.username ||
-    parsed.password ||
-    parsed.search ||
-    parsed.hash
-  ) {
+  if (problem) {
     throw new Error("Skills CLI source must be a credential-free public remote reference");
   }
 }
