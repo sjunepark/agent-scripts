@@ -15,7 +15,8 @@ Each skill has one record that separates three concerns:
 
 Recommendation scopes are:
 
-- `global`: part of the desired machine baseline for the named agents.
+- `global`: part of a named machine audience and desired for the compatible
+  agents when the selected profile includes that audience.
 - `project`: install only when the record's `when` condition matches a
   repository.
 - `catalog`: published or tracked for discovery, but not recommended for
@@ -29,13 +30,25 @@ Installation managers are:
 - `workflow`: let the named workflow provision the skill in context.
 - `none`: no default installation; required for catalog-only entries.
 
-`global.allowUnlistedSkills` controls whether the global audit reports skills
-installed outside the registry.
+The version 2 global contract defines two profiles:
+
+- `dev` resolves `common` and `dev` audiences.
+- `kicpa` resolves `common` and `kicpa` audiences.
+
+Every global recommendation declares exactly one `audience`: `common`, `dev`,
+or `kicpa`. Project and catalog recommendations cannot declare an audience.
+Profile audience arrays are nonempty, sorted, deduplicated, and fixed to the
+compositions above. Callers must select `dev` or `kicpa` explicitly; there is
+no inferred or default profile.
+
+`global.allowUnlistedSkills` is retained as an explicit strictness declaration
+and must be `false`; installed skills outside the selected profile are drift.
 
 `recommendation.agents` records the agents targeted by installation commands.
-The global audit requires those targets to be discoverable, but it does not
-treat incidental visibility to other harnesses from a shared skill directory
-as drift.
+For exact global reconciliation, Codex- or Pi-compatible entries map to the
+shared `~/.agents/skills` root through an explicit Codex target; Claude Code
+compatibility maps to `~/.claude/skills` through an explicit Claude target.
+The reconciler never synthesizes a Pi target or uses `--all`.
 
 ## Ownership
 
@@ -55,7 +68,43 @@ It requires every `skills/*/SKILL.md` to have exactly one repository-source
 record, rejects missing sources and incomplete classifications, and validates
 the supported scope and installation combinations.
 
-Run `scripts/audit-global-skills` to compare only the registry's `global`
-recommendations with `bunx skills list -g --json`. With `--apply`, the audit
-repairs only entries managed by `skills-cli` with a recorded source. Project,
-workflow, manual, and catalog-only records are never installed by that command.
+Run `scripts/audit-global-skills --profile <dev|kicpa>` to compare the selected
+profile with exact entries in the managed and explicitly known legacy roots.
+The command materializes each Skills CLI-managed remote skill once in a
+temporary home to establish expected content; apply reuses that exact verified
+snapshot for every modeled placement in the run and never uses a local source
+path.
+The default mode is read-only and exits nonzero for missing, outdated,
+modified, misplaced, unexpected, unclassified, or verified legacy duplicate
+state. Runtime-owned roots are reported as protected and not enumerated.
+
+`--apply` installs or updates only unambiguous Skills CLI-managed placements.
+It also adopts already-exact placements into the reconciler-owned verified
+state file; a later update is authorized only while the installed tree still
+matches that record. Before a verified update, apply moves the old tree into a
+manifest-backed quarantine and installs the staged snapshot at the now-absent
+target. A failed or interrupted update therefore leaves the prior tree and a
+restore manifest available; move any active replacement aside before restore.
+Skills CLI v3 `skillFolderHash` values are source-tree
+metadata, not verified local-content hashes. Reconciler tree hashes cover file
+content, paths, symlink targets, and executable bits. Apply does not prune.
+When a first-run copy differs from remote content and has no trustworthy local
+hash, the audit prints an exact `--replace-unverified <sha256:digest> --yes`
+command instead of treating it as an update. That separate boundary
+quarantines the existing copy with a restore manifest before installing and
+verifying remote content. For rollback after a partial or complete
+replacement, first inspect all modeled destinations and move every active
+replacement aside; restore never overwrites a destination. The printed
+`--prune <sha256:digest> --yes` command is a separate boundary that moves only
+the exact reviewed legacy duplicates into a timestamped quarantine. A changed
+candidate set invalidates either digest, and a replacement digest also changes
+when its verified remote snapshot changes. The output prints a
+manifest-specific `--restore ... --yes` command, and restoration refuses to
+overwrite an existing path. Manual entries remain with their recorded manager:
+their exact placement is audited, their content is reported as externally
+managed when no remote expected content exists, and no install command is
+synthesized.
+
+Project, workflow, and catalog-only records are excluded from profile
+resolution. The public `kicpa` profile currently contains only public common
+entries; private KICPA source overlays are not part of this registry contract.

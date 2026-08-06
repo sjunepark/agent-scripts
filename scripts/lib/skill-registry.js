@@ -3,16 +3,22 @@
 const fs = require("fs");
 
 const allowedAgents = new Set(["claude-code", "codex", "pi"]);
+const allowedAudiences = new Set(["common", "dev", "kicpa"]);
 const allowedInstallationManagers = new Set(["manual", "none", "skills-cli", "workflow"]);
 const allowedInstallationModes = new Set(["copy", "symlink"]);
 const allowedRecommendationScopes = new Set(["catalog", "global", "project"]);
 const allowedSourceKinds = new Set(["external", "repository"]);
 const topLevelFields = new Set(["description", "global", "skills", "sources", "version"]);
-const globalFields = new Set(["allowUnlistedSkills"]);
+const globalFields = new Set(["allowUnlistedSkills", "profiles"]);
+const profileFields = new Set(["audiences"]);
 const sourceFields = new Set(["catalogPath", "kind", "location"]);
 const skillFields = new Set(["installation", "name", "recommendation", "source"]);
-const recommendationFields = new Set(["agents", "scope", "when"]);
+const recommendationFields = new Set(["agents", "audience", "scope", "when"]);
 const installationFields = new Set(["fullDepth", "manager", "mode", "workflow"]);
+const supportedProfiles = new Map([
+  ["dev", ["common", "dev"]],
+  ["kicpa", ["common", "kicpa"]]
+]);
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -25,6 +31,58 @@ function rejectUnknownFields(value, allowed, label, errors) {
   }
 }
 
+function arraysEqual(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function validateProfiles(profiles, errors) {
+  if (!isObject(profiles)) {
+    errors.push("global.profiles must be an object keyed by profile name");
+    return;
+  }
+
+  const profileNames = Object.keys(profiles);
+  const expectedProfileNames = [...supportedProfiles.keys()];
+  if (!arraysEqual([...profileNames].sort(), expectedProfileNames)) {
+    errors.push(`global.profiles must define exactly: ${expectedProfileNames.join(", ")}`);
+  }
+  if (!arraysEqual(profileNames, [...profileNames].sort())) {
+    errors.push("global.profiles must be sorted by name");
+  }
+
+  for (const [profileName, profile] of Object.entries(profiles)) {
+    const label = `global profile ${profileName}`;
+    if (!isObject(profile)) {
+      errors.push(`${label} must be an object`);
+      continue;
+    }
+    rejectUnknownFields(profile, profileFields, label, errors);
+
+    const audiences = profile.audiences;
+    if (!Array.isArray(audiences) || audiences.length === 0) {
+      errors.push(`${label} audiences must be a non-empty array`);
+      continue;
+    }
+
+    const seenAudiences = new Set();
+    for (const audience of audiences) {
+      if (typeof audience !== "string" || !allowedAudiences.has(audience)) {
+        errors.push(`${label} has unsupported audience ${audience}`);
+      }
+      if (seenAudiences.has(audience)) errors.push(`${label} repeats audience ${audience}`);
+      seenAudiences.add(audience);
+    }
+    if (!arraysEqual(audiences, [...audiences].sort())) {
+      errors.push(`${label} audiences must be sorted`);
+    }
+
+    const expectedAudiences = supportedProfiles.get(profileName);
+    if (expectedAudiences && !arraysEqual(audiences, expectedAudiences)) {
+      errors.push(`${label} audiences must be: ${expectedAudiences.join(", ")}`);
+    }
+  }
+}
+
 function validateSkillRegistry(registry, options = {}) {
   const errors = [];
   const repositorySkillNames = options.repositorySkillNames
@@ -34,7 +92,7 @@ function validateSkillRegistry(registry, options = {}) {
   if (!isObject(registry)) return ["registry must be an object"];
   rejectUnknownFields(registry, topLevelFields, "registry", errors);
 
-  if (registry.version !== 1) errors.push("version must be 1");
+  if (registry.version !== 2) errors.push("version must be 2");
   if (typeof registry.description !== "string" || registry.description.length === 0) {
     errors.push("description must be a non-empty string");
   }
@@ -45,7 +103,10 @@ function validateSkillRegistry(registry, options = {}) {
     rejectUnknownFields(registry.global, globalFields, "global", errors);
     if (typeof registry.global.allowUnlistedSkills !== "boolean") {
       errors.push("global.allowUnlistedSkills must be a boolean");
+    } else if (registry.global.allowUnlistedSkills) {
+      errors.push("global.allowUnlistedSkills must be false for strict desired state");
     }
+    validateProfiles(registry.global.profiles, errors);
   }
 
   if (!isObject(registry.sources)) {
@@ -132,6 +193,15 @@ function validateSkillRegistry(registry, options = {}) {
         if (!Array.isArray(recommendation.agents) || recommendation.agents.length === 0) {
           errors.push(`${label} ${recommendation.scope} recommendation must name agents`);
         }
+      }
+      if (recommendation.scope === "global") {
+        if (typeof recommendation.audience !== "string") {
+          errors.push(`${label} global recommendation must name one audience`);
+        } else if (!allowedAudiences.has(recommendation.audience)) {
+          errors.push(`${label} has unsupported audience ${recommendation.audience}`);
+        }
+      } else if (recommendation.audience !== undefined) {
+        errors.push(`${label} ${recommendation.scope} recommendation must not define audience`);
       }
       if (recommendation.agents !== undefined) {
         if (!Array.isArray(recommendation.agents)) {
@@ -238,15 +308,30 @@ function readSkillRegistry(file, options = {}) {
   return registry;
 }
 
-function globalSkillEntries(registry) {
+function globalSkillEntries(registry, profile) {
+  const supportedProfileNames = [...supportedProfiles.keys()];
+  if (profile === undefined) {
+    throw new Error(`profile is required; expected one of: ${supportedProfileNames.join(", ")}`);
+  }
+  if (!supportedProfiles.has(profile) || !registry.global?.profiles?.[profile]) {
+    throw new Error(
+      `unknown profile ${profile}; expected one of: ${supportedProfileNames.join(", ")}`
+    );
+  }
+
+  const audiences = new Set(registry.global.profiles[profile].audiences);
   return registry.skills
-    .filter((skill) => skill.recommendation.scope === "global")
+    .filter((skill) =>
+      skill.recommendation.scope === "global" &&
+      audiences.has(skill.recommendation.audience)
+    )
     .map((skill) => {
       const source = registry.sources[skill.source];
       return {
         name: skill.name,
         sourceId: skill.source,
         source: source.location,
+        audience: skill.recommendation.audience,
         manager: skill.installation.manager,
         scope: skill.recommendation.scope,
         mode: skill.installation.mode,

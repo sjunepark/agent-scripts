@@ -67,8 +67,17 @@ destinations containing whitespace or parentheses in angle brackets.
 Audit this machine's global skills against the desired registry:
 
 ```bash
-scripts/audit-global-skills
+PROFILE="dev"
+scripts/audit-global-skills --profile "$PROFILE"
 ```
+
+The audit materializes remote expected content in a temporary home and reads
+only the managed and explicitly known legacy roots in the inspected home. It
+exits nonzero for strict drift and prints exact apply commands plus quarantine
+source candidates and a proposed run destination.
+Apply also records verified Skills CLI tree hashes in
+`~/.agents/.global-skill-state.json`; later runs update only copies that still
+match that recorded state. Local edits remain blocked as modified.
 
 Enable the optional pre-commit hook:
 
@@ -91,24 +100,35 @@ globally.
 Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-specific, workflow-managed, or catalog-only, along with its provenance
 and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
-schema contract. Use `scripts/audit-global-skills` to report drift in the
-global subset and `scripts/audit-global-skills --apply` to reinstall missing
-`skills-cli`-managed entries. Manual and workflow-managed entries are never
-installed by that repair command.
+schema contract. Use `scripts/audit-global-skills --profile <dev|kicpa>` to
+report exact-root drift in the selected global profile.
 
-For a selected skill:
-
-```bash
-SKILL_NAME="change-explainer"
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
-```
-
-For a selected Codex global skill, use an explicit Codex target:
+After intended public skill changes are committed, pushed, merged into the
+registry's remote ref, and pulled onto the machine, reconcile the selected
+profile:
 
 ```bash
-SKILL_NAME="change-explainer"
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
+PROFILE="dev"
+scripts/audit-global-skills --profile "$PROFILE"
+scripts/audit-global-skills --profile "$PROFILE" --apply
+scripts/audit-global-skills --profile "$PROFILE"
 ```
+
+`--apply` uses only credential-free remote registry sources and explicit Codex
+or Claude Code targets. It materializes each desired remote skill once in a
+temporary home, verifies that snapshot, and reuses the same bytes for every
+modeled placement in the run. Before replacing an already-verified copy, apply
+moves the old tree into a manifest-backed quarantine; the printed manifest can
+restore it after the active update is moved aside. A stale copy without prior
+verified state is never silently overwritten. After reviewing its exact
+candidates, copy the printed `--replace-unverified <sha256:digest> --yes`
+command to preserve them in the manifest-backed quarantine before verified
+staged install. Likewise, copy the printed `--prune <sha256:digest> --yes`
+command only after reviewing its exact duplicate set. A changed candidate set
+invalidates either digest; a replacement digest also binds the verified remote
+content. Prune never deletes: it moves only verified legacy duplicates into a
+timestamped quarantine and prints a manifest-specific restore command. Do not
+run apply or prune against a real home during repository validation.
 
 For project-scoped recommendations, install only when the registry's `when`
 condition matches the target repository.

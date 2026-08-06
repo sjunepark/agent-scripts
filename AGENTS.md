@@ -85,9 +85,14 @@
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
 - Use `skill-registry.json` as the desired skill registry.
-- Use `scripts/audit-global-skills` to compare `bunx skills list -g --json`
-  with its global recommendations; use `scripts/audit-global-skills --apply`
-  only when missing `skills-cli`-managed entries should be reinstalled.
+- Use `scripts/audit-global-skills --profile <dev|kicpa>` to compare
+  exact managed-root state with one selected profile. The default is read-only;
+  `--apply` installs or updates remote Skills CLI entries, while
+  the exact `--prune <sha256:digest> --yes` command printed by that audit
+  separately quarantines only the reviewed verified legacy duplicates.
+- Run the dependency-free registry and reconciler tests with `node --test
+  scripts/lib/skill-registry.test.js scripts/lib/global-skill-state.test.js
+  scripts/audit-global-skills.test.js`.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.
@@ -109,16 +114,30 @@
 - For skills, use the GitHub `skills/` subpath so installs do not publish
   repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
-- To install one published repo skill for Claude Code + Pi global use, set `SKILL_NAME=change-explainer` and run: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y`.
-- To install one published repo skill for Codex global use, set `SKILL_NAME=change-explainer` and use an explicit Codex target: `bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y`; current Codex user-scope discovery uses `~/.agents/skills`.
+- Reconcile a machine only after intended public skill changes are committed,
+  pushed, and present at the registry's remote source; fetch that ref and verify
+  each intended skill tree matches the published tree, including after squash
+  or rebase. Run the read-only profile audit, then `--apply`, review the
+  remaining prune plan, and copy its exact digest-bound command only when
+  those verified duplicates should be quarantined.
+- A first-run stale Skills CLI copy without trusted local-hash provenance is
+  not an ordinary update. Review the proposed replacement and use
+  the printed `--replace-unverified <sha256:digest> --yes` command only when
+  its manifest-backed backup and remote reinstall are intended.
 - Do not use `--all` for scoped installs; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which can override the intended agent restriction and recreate shared `~/.agents/skills` installs.
-- Do not leave this repo's published machine-global installs under `~/.agents/skills` unless the user explicitly wants Codex user-scope/global sharing; that shared path makes `bunx skills list -g` report many agents.
+- The reconciler intentionally keeps selected Codex/Pi-compatible skills in
+  `~/.agents/skills` and selected Claude-compatible skills in
+  `~/.claude/skills`; it does not create Pi-specific copies.
+- `--apply` records verified local tree hashes in
+  `~/.agents/.global-skill-state.json`. Exact preexisting copies are adopted;
+  later updates proceed only while installed content still matches the record.
 - Do not install this repo's skills from the current working tree, `.` or `./skills`, when the goal is to install them for ongoing use on a machine.
 - Use local-path skill or plugin installs only for local validation,
   unpublished work, or explicitly requested temporary development testing.
 - Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
-- When converting shared `~/.agents/skills` installs to scoped Claude Code + Pi installs, remove only the affected skill names globally first, then reinstall the intended selected skills from the GitHub `skills/` subpath in copy mode. Keep the concrete command sequence in `skills/skills-cli/recipes/install-and-migrate.md`.
+- Restore quarantined entries only with the manifest-specific command printed
+  by the prune operation; restoration refuses to overwrite an active path.
 
 ## Editing expectations
 - Prefer editing an existing skill in place over adding new top-level conventions.
@@ -131,6 +150,7 @@
 - Prefer exact commands and concrete paths over generic guidance.
 
 ## Current repo facts
-- There is no package manifest, CI workflow, formatter config, or automated test suite at the repo root today.
+- There is no package manifest, CI workflow, or formatter config at the repo root today.
+- Dependency-free Node tests cover the registry and global skill reconciler.
 - There is a repository-local skill validation script at `scripts/validate-skills`.
-- Do not add build, lint, or test instructions to this file unless those workflows are added to the repository.
+- Do not add build or lint instructions to this file unless those workflows are added to the repository.

@@ -142,11 +142,12 @@ does not mean it belongs in every global agent install. Use
 and installation manager; install project recommendations only when their
 `when` condition matches.
 
-Run `scripts/audit-global-skills` from this repo to compare the registry's
-global recommendations with `bunx skills list -g --json`. Use
-`scripts/audit-global-skills --apply` only when missing `skills-cli`-managed
-entries should be reinstalled; manual and workflow-managed entries remain with
-their recorded manager.
+Run `scripts/audit-global-skills --profile <dev|kicpa>` from this repo to audit
+exact managed-root state. The command, not chezmoi, owns profile
+reconciliation: the default is read-only, `--apply` installs or updates remote
+Skills CLI entries, and the separately printed `--prune <sha256:digest> --yes`
+command moves only the exact reviewed legacy duplicates into quarantine.
+Manual entries remain with their recorded manager.
 
 The `delegate-ui-to-claude` orchestration skill is intentionally installed only
 for Codex. Impeccable is not a machine-global prerequisite: when the skill
@@ -171,19 +172,33 @@ when Impeccable needs it to derive the next options. Scoped work that inherits
 an established product and visual world can use a one-shot run; so can work
 for which the user explicitly authorizes unattended design decisions.
 
-Use explicit skill and agent targets:
+Do not reproduce the reconciler's target commands in chezmoi. It deliberately
+maps selected Codex/Pi-compatible skills to `~/.agents/skills`, selected Claude
+skills to `~/.claude/skills`, and creates no Pi-specific copy. Bootstrap with:
 
 ```bash
-# Selected setup for Claude Code + Pi
-SKILL_NAME="change-explainer"
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
-
-# Selected Codex setup; current CLI behavior writes Codex user skills under ~/.agents/skills
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
+PROFILE="dev" # or kicpa
+scripts/audit-global-skills --profile "$PROFILE"
+scripts/audit-global-skills --profile "$PROFILE" --apply
+scripts/audit-global-skills --profile "$PROFILE"
 ```
 
-Chezmoi can run those commands as bootstrap/update scripts after this repo is
-cloned, but it should not `chezmoi add` the generated skill copies.
+If a preexisting stale copy predates the reconciler's verified state, review
+the proposed recoverable replacement and copy its exact printed
+`--replace-unverified <sha256:digest> --yes` command. That operation
+quarantines the old tree before installing the same verified staged snapshot;
+it is never implied by ordinary apply, and a changed candidate set invalidates
+the digest; changed verified replacement content does too. Ordinary verified
+updates also quarantine the old tree and print a
+restore manifest before installing their staged snapshot.
+
+After approving the printed verified-duplicate source candidates, run
+the exact printed `--prune <sha256:digest> --yes` command; retain its manifest
+until the machine has completed a normal work cycle. A changed candidate set
+invalidates the digest. Prune allocates a fresh timestamped destination and
+revalidates every source immediately before moving it. Chezmoi may run
+the read-only audit after this repo is cloned, but it should not own or copy the
+generated skill roots.
 
 ## Global Agent Instructions
 
@@ -206,14 +221,16 @@ maintained outside chezmoi.
 
 ## Bootstrap Order For A New Machine
 
-1. Install Codex, Claude Code, Pi, Bun, Git, chezmoi, and the 1Password CLI.
+1. Install Codex, Claude Code, Pi, Node.js, Bun, Git, chezmoi, and the 1Password CLI.
 2. Apply chezmoi only after resolving any pending managed-file diffs.
 3. Clone or update this repo.
 4. Provision `op-agent` using [the 1Password host setup](1password.md).
 5. Run `scripts/validate-skills`.
 6. Register the repo Codex marketplace and install local repo plugins.
-7. Install published skills from the GitHub `skills/` subpath with explicit
-   agent targets.
+7. Select `dev` or `kicpa`, run the exact-state audit, and use its `--apply`
+   mode only after the registry's public remote ref contains the intended
+   changes; compare each intended skill tree with that remote ref. Keep pruning
+   as a separately reviewed step.
 8. Apply or verify Codex stable config keys.
 9. Re-authenticate other tools locally; do not copy auth files from another
    machine.
