@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const TREE_HASH_ALGORITHM = "tree-sha256-v1";
+const TREE_HASH_ALGORITHM = "tree-sha256-v2";
 const RECONCILER_STATE_RELATIVE_PATH = ".agents/.global-skill-state.json";
 
 const DEFAULT_ROOT_POLICY = Object.freeze([
@@ -231,6 +231,7 @@ function hashPathInto(hash, target, relativePath) {
   if (stat.isFile()) {
     updateHashField(hash, "file");
     updateHashField(hash, portablePath);
+    updateHashField(hash, (stat.mode & 0o111) === 0 ? "non-executable" : "executable");
     updateHashField(hash, fs.readFileSync(target));
     return;
   }
@@ -1278,7 +1279,7 @@ function quarantinePlannedEntries({ report, operations, quarantineRoot, createdA
   });
 
   for (const operation of operations) {
-    if (!new Set(["quarantine", "quarantine-unverified"]).has(operation.type)) {
+    if (!new Set(["quarantine", "quarantine-unverified", "quarantine-update"]).has(operation.type)) {
       throw new Error(`unsupported quarantine operation: ${operation.type}`);
     }
     assertQuarantineOperationSafe(operation, homeDir, quarantineRoot);

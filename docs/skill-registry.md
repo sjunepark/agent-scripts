@@ -68,10 +68,12 @@ It requires every `skills/*/SKILL.md` to have exactly one repository-source
 record, rejects missing sources and incomplete classifications, and validates
 the supported scope and installation combinations.
 
-Run `scripts/audit-global-skills --profile dev|kicpa` to compare the selected
+Run `scripts/audit-global-skills --profile <dev|kicpa>` to compare the selected
 profile with exact entries in the managed and explicitly known legacy roots.
-The command materializes Skills CLI-managed remote sources in a temporary home
-to establish expected content; it never uses a local path as an apply source.
+The command materializes each Skills CLI-managed remote skill once in a
+temporary home to establish expected content; apply reuses that exact verified
+snapshot for every modeled placement in the run and never uses a local source
+path.
 The default mode is read-only and exits nonzero for missing, outdated,
 modified, misplaced, unexpected, unclassified, or verified legacy duplicate
 state. Runtime-owned roots are reported as protected and not enumerated.
@@ -79,16 +81,24 @@ state. Runtime-owned roots are reported as protected and not enumerated.
 `--apply` installs or updates only unambiguous Skills CLI-managed placements.
 It also adopts already-exact placements into the reconciler-owned verified
 state file; a later update is authorized only while the installed tree still
-matches that record. Skills CLI v3 `skillFolderHash` values are source-tree
-metadata, not verified local-content hashes. Apply does not prune.
+matches that record. Before a verified update, apply moves the old tree into a
+manifest-backed quarantine and installs the staged snapshot at the now-absent
+target. A failed or interrupted update therefore leaves the prior tree and a
+restore manifest available; move any active replacement aside before restore.
+Skills CLI v3 `skillFolderHash` values are source-tree
+metadata, not verified local-content hashes. Reconciler tree hashes cover file
+content, paths, symlink targets, and executable bits. Apply does not prune.
 When a first-run copy differs from remote content and has no trustworthy local
-hash, the audit proposes `--replace-unverified --yes` instead of treating it as
-an update. That separate boundary quarantines the existing copy with a restore
-manifest before installing and verifying remote content. For rollback after a
-partial or complete replacement, first inspect all modeled destinations and
-move every active replacement aside; restore never overwrites a destination.
-`--prune --yes` is a separate boundary that moves only
-verified legacy duplicates into a timestamped quarantine. The output prints a
+hash, the audit prints an exact `--replace-unverified <sha256:digest> --yes`
+command instead of treating it as an update. That separate boundary
+quarantines the existing copy with a restore manifest before installing and
+verifying remote content. For rollback after a partial or complete
+replacement, first inspect all modeled destinations and move every active
+replacement aside; restore never overwrites a destination. The printed
+`--prune <sha256:digest> --yes` command is a separate boundary that moves only
+the exact reviewed legacy duplicates into a timestamped quarantine. A changed
+candidate set invalidates either digest, and a replacement digest also changes
+when its verified remote snapshot changes. The output prints a
 manifest-specific `--restore ... --yes` command, and restoration refuses to
 overwrite an existing path. Manual entries remain with their recorded manager:
 their exact placement is audited, their content is reported as externally

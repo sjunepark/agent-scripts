@@ -100,7 +100,7 @@ globally.
 Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-specific, workflow-managed, or catalog-only, along with its provenance
 and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
-schema contract. Use `scripts/audit-global-skills --profile dev|kicpa` to
+schema contract. Use `scripts/audit-global-skills --profile <dev|kicpa>` to
 report exact-root drift in the selected global profile.
 
 After intended public skill changes are committed, pushed, merged into the
@@ -112,20 +112,23 @@ PROFILE="dev"
 scripts/audit-global-skills --profile "$PROFILE"
 scripts/audit-global-skills --profile "$PROFILE" --apply
 scripts/audit-global-skills --profile "$PROFILE"
-# If the audit proposes first-run stale-copy replacements, approve them explicitly:
-scripts/audit-global-skills --profile "$PROFILE" --replace-unverified --yes
-# Approve the printed source candidates; prune allocates a fresh destination:
-scripts/audit-global-skills --profile "$PROFILE" --prune --yes
 ```
 
 `--apply` uses only credential-free remote registry sources and explicit Codex
-or Claude Code targets. A stale copy without prior verified state is never
-silently overwritten; `--replace-unverified --yes` first preserves it in the
-manifest-backed quarantine, then installs and verifies the remote copy.
-`--prune` never deletes: it moves only verified legacy
-duplicates into a timestamped quarantine and prints a manifest-specific restore
-command. Do not run apply or prune against a real home during repository
-validation.
+or Claude Code targets. It materializes each desired remote skill once in a
+temporary home, verifies that snapshot, and reuses the same bytes for every
+modeled placement in the run. Before replacing an already-verified copy, apply
+moves the old tree into a manifest-backed quarantine; the printed manifest can
+restore it after the active update is moved aside. A stale copy without prior
+verified state is never silently overwritten. After reviewing its exact
+candidates, copy the printed `--replace-unverified <sha256:digest> --yes`
+command to preserve them in the manifest-backed quarantine before verified
+staged install. Likewise, copy the printed `--prune <sha256:digest> --yes`
+command only after reviewing its exact duplicate set. A changed candidate set
+invalidates either digest; a replacement digest also binds the verified remote
+content. Prune never deletes: it moves only verified legacy duplicates into a
+timestamped quarantine and prints a manifest-specific restore command. Do not
+run apply or prune against a real home during repository validation.
 
 For project-scoped recommendations, install only when the registry's `when`
 condition matches the target repository.

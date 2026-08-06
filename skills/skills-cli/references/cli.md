@@ -37,13 +37,14 @@ For this repository specifically:
 - Use `./skills` only for local validation or unpublished work.
 - Treat `skills/` as a catalog. Select the intended global skill with `--skill <name>` rather than installing the whole catalog by default.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
-- Use `skill-registry.json` for authoritative scope, audience, profile, source, target-agent, and installation-manager decisions. Use `scripts/audit-global-skills --profile dev|kicpa` to compare exact managed-root state with one explicitly selected profile. Its default mode is read-only, `--apply` uses only remote Skills CLI sources, and `--prune --yes` separately quarantines verified legacy duplicates; manual and workflow-managed entries stay with their recorded manager.
-- The reconciler accepts only credential-free public HTTPS sources or GitHub
+- Use `skill-registry.json` for authoritative scope, audience, profile, source, target-agent, and installation-manager decisions. Use `scripts/audit-global-skills --profile <dev|kicpa>` to compare exact managed-root state with one explicitly selected profile. Its default mode is read-only, `--apply` materializes each remote skill once and reuses the verified staged snapshot, and the exact printed `--prune <sha256:digest> --yes` command separately quarantines the reviewed verified legacy duplicates; manual and workflow-managed entries stay with their recorded manager.
+- The reconciler accepts only credential-free public HTTPS URLs or GitHub
   shorthand. It rejects URL credentials, query strings, fragments, local
   paths, and `npm:` sources for global profile reconciliation.
 - A stale pre-reconciler copy is not silently adopted or overwritten. The
-  separate `--replace-unverified --yes` boundary preserves it in a
-  manifest-backed quarantine before verified remote reinstall.
+  separate printed `--replace-unverified <sha256:digest> --yes` boundary
+  preserves the exact reviewed set in a manifest-backed quarantine before
+  verified staged install.
 - Install project recommendations only when their registry `when` condition matches unless the user explicitly changes the desired scope.
 - The global profile intentionally uses shared `~/.agents/skills/` copies for
   Codex/Pi compatibility and `~/.claude/skills/` copies for Claude Code.

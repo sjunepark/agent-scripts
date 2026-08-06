@@ -118,13 +118,20 @@ Snapshot taken on 2026-08-05 from the development machine:
   recoverable manifests, and restoration in temporary homes only. The real
   development-home audit remained read-only and truthfully reported protected
   state, verified Pi duplicates, and ambiguous copies without mutation.
-- Final goal-bounded validation passes 44 dependency-free tests,
+- Final goal-bounded validation passes 49 dependency-free tests,
   `scripts/validate-skills`, JavaScript syntax checks, `git diff --check`, and
   `bunx skills add ./skills --list`. The final real-home `dev` audit was
   read-only and failed strictly on existing drift as intended. Bounded design
   and safety follow-up reviews report no remaining material findings after a
   partial replacement-failure recovery fixture and operator guidance were
   added.
+- PR #6 review hardening materializes each desired remote skill once and
+  installs that exact verified staged snapshot, quarantines verified old trees
+  before update, hashes executable bits, binds prune and replacement approval
+  to exact state, bounds Skills CLI subprocesses, and verifies publication by
+  skill-tree equality across merge, squash, or rebase workflows. Fixture tests
+  cover staged tampering, update restoration, moving replacement content, and
+  candidate-set races.
 
 ## Accepted decisions
 

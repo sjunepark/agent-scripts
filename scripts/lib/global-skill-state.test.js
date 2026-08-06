@@ -152,6 +152,22 @@ test("hashes skill trees independently of creation order and timestamps", (t) =>
   assert.deepEqual(hashSkillDirectory(first), hashSkillDirectory(second));
 });
 
+test("hashes the executable bit of bundled files", (t) => {
+  const homeDir = temporaryHome(t);
+  const first = writeSkill(homeDir, ".fixture-executable-a", "stable", "same\n");
+  const second = writeSkill(homeDir, ".fixture-executable-b", "stable", "same\n");
+  const firstScript = path.join(first, "run");
+  const secondScript = path.join(second, "run");
+  fs.writeFileSync(firstScript, "#!/bin/sh\nexit 0\n");
+  fs.writeFileSync(secondScript, "#!/bin/sh\nexit 0\n");
+  fs.chmodSync(firstScript, 0o755);
+  fs.chmodSync(secondScript, 0o644);
+
+  assert.notDeepEqual(hashSkillDirectory(first), hashSkillDirectory(second));
+  fs.chmodSync(secondScript, 0o755);
+  assert.deepEqual(hashSkillDirectory(first), hashSkillDirectory(second));
+});
+
 test("inspects only explicit roots and verifies a canonical legacy symlink", (t) => {
   const homeDir = temporaryHome(t);
   const desired = desiredSkill("alpha", { agents: ["codex", "claude-code", "pi"] });

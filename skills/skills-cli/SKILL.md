@@ -8,7 +8,7 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
 ## Workflow
 
 1. Inspect current state with `bunx skills list` for project scope and `bunx skills list -g` for global scope.
-   - In this repository, use `skill-registry.json` as the authoritative classification and `scripts/audit-global-skills --profile dev|kicpa` for exact machine-global state. The default audit is read-only; apply and quarantine are explicit separate modes.
+   - In this repository, use `skill-registry.json` as the authoritative classification and `scripts/audit-global-skills --profile <dev|kicpa>` for exact machine-global state. The default audit is read-only; apply and digest-bound quarantine are explicit separate modes.
 2. Use `bunx skills find <query>` or `bunx skills add <source> --list` to discover options.
    - When choosing a command, source, scope, or agent target—including initializing a skill—read [references/cli.md](references/cli.md) for the CLI's accepted inputs and install-location facts.
 3. Install with explicit scope, skill selection, and agent targeting.
@@ -17,7 +17,8 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
    - Apply adopts exact copies into a reconciler-owned hash record and updates
      only content that still matches its last verified record.
    - Use the separate recoverable replacement mode only for explicitly
-     approved stale copies that predate verified reconciler state.
+     approved stale copies that predate verified reconciler state, copying the
+     exact digest-bound command from the read-only audit.
 4. Verify ordinary installs with the matching scope command. For this
    repository's global profiles, verify exact placement with the reconciler;
    shared-root discovery may report incidental agent visibility.

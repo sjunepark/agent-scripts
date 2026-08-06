@@ -46,21 +46,26 @@ target cannot vary with caller configuration.
 On apply, already-exact Skills CLI copies are adopted into
 `~/.agents/.global-skill-state.json`. A future upstream change is eligible for
 automatic update only while the installed tree still matches its recorded
-hash. Local modifications remain blocked for operator review.
+hash. Before that verified update, apply moves the old tree into a
+manifest-backed quarantine and prints its restore path. Local modifications
+remain blocked for operator review.
 
 If a preexisting copy differs from current remote content before it has a
 verified record, ordinary apply leaves it unclassified. Review the audit's
-recoverable replacement plan, then explicitly preserve and replace it:
+recoverable replacement plan, then copy its exact approval command:
 
 ```bash
-scripts/audit-global-skills --profile "$PROFILE" --replace-unverified --yes
+scripts/audit-global-skills --profile "$PROFILE" \
+  --replace-unverified 'sha256:PRINTED_DIGEST' --yes
 scripts/audit-global-skills --profile "$PROFILE"
 ```
 
-The command writes the manifest and moves every old copy before invoking the
-remote installs. Whether installation fails partway through or succeeds, first
-inspect every modeled destination and move each active replacement aside.
-Then use the printed restore command; restore never overwrites a destination.
+The command writes the manifest and moves every old copy before installing the
+same verified staged remote snapshots. A changed candidate set or verified
+snapshot invalidates the digest. Whether installation fails partway through or
+succeeds, first inspect every modeled
+destination and move each active replacement aside. Then use the printed
+restore command; restore never overwrites a destination.
 
 ## Publish before applying
 
@@ -70,32 +75,40 @@ before apply. A local working tree or pushed feature branch is not enough.
 
 ```bash
 git status --short
+SKILL_NAME="skills-cli"
 INTENDED_COMMIT=$(git rev-parse HEAD)
 git push
 # After merge to the registry source's pinned main ref:
 git fetch origin main
-git merge-base --is-ancestor "$INTENDED_COMMIT" origin/main
+git diff --quiet "$INTENDED_COMMIT:skills/$SKILL_NAME" \
+  "origin/main:skills/$SKILL_NAME"
 bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --list
 scripts/audit-global-skills --profile "$PROFILE" --apply
 ```
 
+Compare every changed skill path. Tree comparison verifies publication after
+merge, squash, or rebase without requiring the original commit object to be an
+ancestor of `origin/main`.
+
 ## Quarantine verified legacy duplicates
 
 Prune is intentionally separate from apply. First run the default audit and
-review every printed source candidate plus its proposed restore path. Approval
-covers the candidate entries, not the timestamped destination: prune creates a
+review every printed source candidate plus its proposed restore path. Copy the
+exact digest-bound command from that report: the digest covers the candidate
+entries and source state, not the timestamped destination. Prune creates a
 fresh run directory and revalidates every candidate immediately before moving:
 
 ```bash
-scripts/audit-global-skills --profile "$PROFILE" --prune --yes
+scripts/audit-global-skills --profile "$PROFILE" \
+  --prune 'sha256:PRINTED_DIGEST' --yes
 scripts/audit-global-skills --profile "$PROFILE"
 ```
 
-Prune moves verified duplicate children one by one into a new timestamped
-directory under `~/.skill-quarantine`; it does not delete them. Modified,
-unknown, ambiguous, unexpected managed, and externally managed entries are
-never prune operations. Retain the manifest through a normal machine work
-cycle.
+A changed candidate set invalidates the digest. Prune moves verified duplicate
+children one by one into a new timestamped directory under
+`~/.skill-quarantine`; it does not delete them. Modified, unknown, ambiguous,
+unexpected managed, and externally managed entries are never prune operations.
+Retain the manifest through a normal machine work cycle.
 
 ## Restore a quarantine
 

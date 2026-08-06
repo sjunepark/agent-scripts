@@ -35,22 +35,30 @@ _None._
 
 ### Current in-scope result
 
-The single-PR delivery lifecycle.
+PR #6 feedback resolution and merge delivery.
 
 ### Next in-scope action
 
-Commit and deliver the validated implementation through one reviewed PR.
+Commit and push the validated feedback fixes, resolve the review threads, and
+merge PR #6 after its checks remain green.
 
 ### Evidence and blockers
 
-- Inherited pre-goal work is present in local commits `1964df1` and `4b2dc11`; both are unpushed and will remain in the reviewable delivery diff.
+- Inherited pre-goal work is present in commits `1964df1` and `4b2dc11`; both
+  are included in pushed PR #6 with the goal implementation commits.
 - Real-home validation is authorized only in read-only audit mode.
-- Bounded review identified symlink confinement, restore idempotence,
+- Bounded pre-PR review identified symlink confinement, restore idempotence,
   provenance, source sanitization, stale-copy replacement, and rollback-
-  guidance gaps. All have fixture-backed fixes, and both final review agents
-  report no remaining material findings.
-- Final validation passes 44 dependency-free tests, skill and registry
+  guidance gaps; all received fixture-backed fixes.
+- PR review identified moving-ref reuse, publication verification, executable-
+  bit hashing, approval binding, subprocess bounds, and operator-documentation
+  gaps. The local feedback patch addresses every actionable thread with a
+  single verified staged snapshot per skill, recoverable verified-update
+  quarantine, digest-bound candidate and replacement-content approval, and
+  updated guidance.
+- Current validation passes 49 dependency-free tests, skill and registry
   validation, JavaScript syntax checks, `git diff --check`, and local catalog
-  discovery. The real-home `dev` audit remained read-only and failed strictly
-  on the existing protected, legacy, and unclassified state as intended.
+  discovery. The final real-home `dev` audit remained read-only and failed
+  strictly on the existing protected, legacy, and unclassified state as
+  intended.
 - Private KICPA source support, real-machine apply/prune, legacy-root migration, and rollout remain excluded.
