@@ -1,206 +1,600 @@
 #!/usr/bin/env node
+"use strict";
 
-const fs = require("fs");
-const path = require("path");
-const { execFileSync } = require("child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { execFileSync } = require("node:child_process");
+const {
+  DEFAULT_ROOT_POLICY,
+  TREE_HASH_ALGORITHM,
+  assertModeledDirectory,
+  assertMutationPathWithin,
+  expectedGlobalPlacements,
+  hashSkillDirectory,
+  inspectSkillRoots,
+  pathEntryExists,
+  planGlobalSkillOperations,
+  quarantinePlannedEntries,
+  quarantineVerifiedDuplicates,
+  reconcileGlobalSkillState,
+  restoreQuarantine,
+  writeReconcilerState
+} = require("./lib/global-skill-state");
 const { globalSkillEntries, readSkillRegistry } = require("./lib/skill-registry");
 
-const root = path.resolve(__dirname, "..");
-const defaultRegistry = path.join(root, "skill-registry.json");
+const repositoryRoot = path.resolve(__dirname, "..");
+const defaultRegistry = path.join(repositoryRoot, "skill-registry.json");
 
-const agentDisplayNames = new Map([
-  ["claude-code", "Claude Code"],
-  ["codex", "Codex"],
-  ["pi", "Pi"]
-]);
+function usage(output = console.log) {
+  output(`Usage:
+  scripts/audit-global-skills --profile <dev|kicpa> [--registry <path>] [--home <path>]
+  scripts/audit-global-skills --profile <dev|kicpa> --apply [--registry <path>] [--home <path>]
+  scripts/audit-global-skills --profile <dev|kicpa> --replace-unverified --yes [--registry <path>] [--home <path>]
+  scripts/audit-global-skills --profile <dev|kicpa> --prune --yes [--registry <path>] [--home <path>]
+  scripts/audit-global-skills --restore <manifest.json> --yes [--home <path>]
 
-function usage() {
-  console.log(`Usage: scripts/audit-global-skills --profile <dev|kicpa> [--registry <path>]
-
-Audits bunx skills list -g --json against the selected profile in skill-registry.json.
-This registry-v2 command is read-only until exact filesystem reconciliation is implemented.`);
+The default mode materializes desired remote skills in a temporary home, then audits
+the selected profile's exact managed and known legacy roots without mutating the
+inspected home. --apply installs or updates unambiguous Skills CLI entries and
+records verified tree hashes for safe future updates. --prune moves verified
+legacy duplicates into a recoverable quarantine and never removes modified,
+unknown, or ambiguous entries. --replace-unverified first quarantines an
+explicitly approved stale copy whose prior hash cannot be verified, then installs
+and verifies the remote copy. Restore refuses to overwrite.`);
 }
 
 function parseArgs(argv) {
   const options = {
     registry: defaultRegistry,
-    profile: null
+    profile: null,
+    homeDir: os.homedir(),
+    apply: false,
+    replaceUnverified: false,
+    prune: false,
+    restore: null,
+    yes: false,
+    help: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--help" || arg === "-h") {
-      usage();
-      process.exit(0);
+      options.help = true;
+      continue;
     }
     if (arg === "--apply") {
-      throw new Error(
-        "--apply is unavailable until registry-v2 exact filesystem reconciliation is implemented"
-      );
+      options.apply = true;
+      continue;
     }
-    if (arg === "--profile") {
+    if (arg === "--prune") {
+      options.prune = true;
+      continue;
+    }
+    if (arg === "--replace-unverified") {
+      options.replaceUnverified = true;
+      continue;
+    }
+    if (arg === "--yes" || arg === "-y") {
+      options.yes = true;
+      continue;
+    }
+    if (["--profile", "--registry", "--home", "--restore"].includes(arg)) {
       const value = argv[index + 1];
-      if (!value) {
-        throw new Error("--profile requires dev or kicpa");
-      }
-      options.profile = value;
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
+      if (arg === "--profile") options.profile = value;
+      if (arg === "--registry") options.registry = path.resolve(value);
+      if (arg === "--home") options.homeDir = path.resolve(value);
+      if (arg === "--restore") options.restore = path.resolve(value);
       index += 1;
       continue;
     }
-    if (arg === "--registry") {
-      const value = argv[index + 1];
-      if (!value) {
-        throw new Error("--registry requires a path");
-      }
-      options.registry = path.resolve(value);
-      index += 1;
-      continue;
-    }
-    throw new Error(`Unknown argument: ${arg}`);
+    throw new Error(`unknown argument: ${arg}`);
   }
 
-  if (!options.profile) {
-    throw new Error("--profile is required; expected dev or kicpa");
+  if (options.help) return options;
+  if ([options.apply, options.prune, options.replaceUnverified].filter(Boolean).length > 1) {
+    throw new Error("--apply, --prune, and --replace-unverified are separate operations");
   }
-
+  if (options.restore && (options.apply || options.prune || options.replaceUnverified || options.profile)) {
+    throw new Error("--restore cannot be combined with a profile operation");
+  }
+  if (options.restore) {
+    if (!options.yes) throw new Error("--restore requires --yes because it moves quarantined entries");
+    return options;
+  }
+  if (!options.profile) throw new Error("--profile is required; expected dev or kicpa");
+  if (options.prune && !options.yes) {
+    throw new Error("--prune requires --yes after approving the read-only source candidates");
+  }
+  if (options.replaceUnverified && !options.yes) {
+    throw new Error("--replace-unverified requires --yes after approving the read-only replacement candidates");
+  }
+  if (options.yes && !options.prune && !options.replaceUnverified) {
+    throw new Error("--yes is only valid with --prune, --replace-unverified, or --restore");
+  }
   return options;
-}
-
-function displayName(agent) {
-  return agentDisplayNames.get(agent) || agent;
 }
 
 function publishedSkillNames() {
   return fs
-    .readdirSync(path.join(root, "skills"), { withFileTypes: true })
+    .readdirSync(path.join(repositoryRoot, "skills"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
 }
 
-function listGlobalSkills() {
-  const output = execFileSync("bunx", ["skills", "list", "-g", "--json"], {
+function assertRemoteSource(source) {
+  if (typeof source !== "string" || source.length === 0) {
+    throw new Error("Skills CLI source must be a non-empty remote reference");
+  }
+  if (source.startsWith(".") || source.startsWith("/") || source.startsWith("~")) {
+    throw new Error("Skills CLI source must be remote, not a local path");
+  }
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.\/-]+)?$/.test(source)) {
+    const segments = source.split("/");
+    if (!segments.some((segment) => segment === "." || segment === ".." || segment === "")) return;
+  }
+  let parsed;
+  try {
+    parsed = new URL(source);
+  } catch {
+    throw new Error("Skills CLI source must be a credential-free public remote reference");
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new Error("Skills CLI source must be a credential-free public remote reference");
+  }
+}
+
+function skillsCliAddArgs(operation) {
+  assertRemoteSource(operation.source);
+  if (!new Set(["codex", "claude-code"]).has(operation.targetAgent)) {
+    throw new Error(`unsupported global install target: ${operation.targetAgent}`);
+  }
+  const args = [
+    "skills",
+    "add",
+    operation.source,
+    "--skill",
+    operation.skill,
+    "--copy",
+    "--global",
+    "--agent",
+    operation.targetAgent,
+    "--yes"
+  ];
+  if (operation.fullDepth) args.push("--full-depth");
+  return args;
+}
+
+function skillsCliEnvironment(homeDir, targetAgent, baseEnvironment = process.env) {
+  const environment = { ...baseEnvironment, HOME: homeDir };
+  if (targetAgent === "codex") {
+    // Pin the current Skills CLI default so Codex and Pi share ~/.agents/skills.
+    environment.CODEX_HOME = path.join(homeDir, ".agents");
+  } else if (targetAgent === "claude-code") {
+    environment.CLAUDE_CONFIG_DIR = path.join(homeDir, ".claude");
+  }
+  return environment;
+}
+
+function placementPath(homeDir, placement) {
+  const relativeRoot = placement.root === "shared" ? ".agents/skills" : ".claude/skills";
+  return path.join(homeDir, relativeRoot, placement.skill);
+}
+
+function defaultExecSkillsCli({ args, homeDir, targetAgent }) {
+  return execFileSync("bunx", args, {
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"]
+    env: skillsCliEnvironment(homeDir, targetAgent),
+    stdio: ["ignore", "pipe", "pipe"]
   });
-
-  return JSON.parse(output);
 }
 
-function indexInstalled(skills) {
-  const byName = new Map();
-  for (const skill of skills) {
-    const agents = new Set(byName.get(skill.name)?.agents || []);
-    for (const agent of skill.agents || []) agents.add(agent);
-    byName.set(skill.name, { ...skill, agents: [...agents] });
+function materializeExpectedContent({ desiredEntries, execSkillsCli = defaultExecSkillsCli }) {
+  const temporaryHome = fs.mkdtempSync(path.join(os.tmpdir(), "global-skill-expected-"));
+  const expectedContent = {};
+  try {
+    const placements = expectedGlobalPlacements(desiredEntries);
+    for (const entry of desiredEntries) {
+      if (entry.manager !== "skills-cli") continue;
+      const placement = placements.find(({ skill }) => skill === entry.name);
+      if (!placement) throw new Error(`Skills CLI entry has no supported target: ${entry.name}`);
+      const operation = { ...placement, source: entry.source };
+      execSkillsCli({
+        args: skillsCliAddArgs(operation),
+        homeDir: temporaryHome,
+        targetAgent: placement.targetAgent,
+        operation
+      });
+      const installedPath = placementPath(temporaryHome, placement);
+      if (!fs.existsSync(installedPath)) {
+        throw new Error(`Skills CLI did not materialize ${entry.name} at ${installedPath}`);
+      }
+      expectedContent[entry.name] = hashSkillDirectory(installedPath);
+    }
+    return expectedContent;
+  } finally {
+    fs.rmSync(temporaryHome, { recursive: true, force: true });
   }
-  return byName;
 }
 
-function collectIssues(entries, installed, allowUnlisted) {
-  const byName = indexInstalled(installed);
-  const wantedNames = new Set(entries.map((entry) => entry.name));
-  const missing = [];
-  const missingAgents = [];
-
-  for (const entry of entries) {
-    const installedSkill = byName.get(entry.name);
-    if (!installedSkill) {
-      missing.push(entry);
-      continue;
+function executeApplyOperations({ operations, expectedContent, homeDir, execSkillsCli }) {
+  for (const operation of operations) {
+    const target = placementPath(homeDir, operation);
+    if (operation.targetPath !== target) {
+      throw new Error(`apply target does not match the modeled root: ${operation.targetPath}`);
     }
-
-    const installedAgents = new Set(installedSkill.agents || []);
-    const absentAgents = entry.agents
-      .map(displayName)
-      .filter((agent) => !installedAgents.has(agent));
-
-    if (absentAgents.length > 0) {
-      missingAgents.push({ entry, absentAgents });
+    const rootPath = path.dirname(target);
+    if (operation.modeledRootPath && operation.modeledRootPath !== rootPath) {
+      throw new Error(`apply operation modeled root changed: ${operation.modeledRootPath}`);
+    }
+    assertMutationPathWithin(rootPath, homeDir, "apply root");
+    assertMutationPathWithin(target, homeDir, "apply target");
+    assertModeledDirectory({
+      directory: rootPath,
+      homeDir,
+      label: "apply root",
+      allowMissing: true,
+      expectedCanonicalPath: operation.expectedRootCanonicalPath
+    });
+    if (operation.type === "install" && pathEntryExists(target)) {
+      throw new Error(`apply install target appeared after planning: ${target}`);
+    }
+    if (operation.type === "update") {
+      if (!pathEntryExists(target)) throw new Error(`apply update target disappeared: ${target}`);
+      const current = hashSkillDirectory(target);
+      if (
+        operation.expectedCurrentKind !== "directory" ||
+        current.hashAlgorithm !== operation.expectedCurrentHashAlgorithm ||
+        current.hash !== operation.expectedCurrentHash
+      ) {
+        throw new Error(`apply update target changed after planning: ${target}`);
+      }
+    }
+    execSkillsCli({
+      args: skillsCliAddArgs(operation),
+      homeDir,
+      targetAgent: operation.targetAgent,
+      operation
+    });
+    assertMutationPathWithin(rootPath, homeDir, "apply root");
+    assertMutationPathWithin(target, homeDir, "apply target");
+    assertModeledDirectory({
+      directory: rootPath,
+      homeDir,
+      label: "apply root",
+      expectedCanonicalPath: operation.expectedRootCanonicalPath
+    });
+    if (!pathEntryExists(target)) throw new Error(`apply did not create expected target: ${target}`);
+    const installed = hashSkillDirectory(target);
+    const expected = expectedContent[operation.skill];
+    if (!expected || installed.hashAlgorithm !== expected.hashAlgorithm || installed.hash !== expected.hash) {
+      throw new Error(`apply verification failed for ${operation.skill} in ${operation.root}`);
     }
   }
-
-  const unlisted = [...new Set(installed
-    .map((skill) => skill.name)
-    .filter((name) => !wantedNames.has(name)))]
-    .sort();
-
-  return {
-    missing,
-    missingAgents,
-    unlisted: allowUnlisted ? [] : unlisted
-  };
 }
 
-function printIssues(issues) {
-  if (issues.missing.length > 0) {
-    console.log("\nMissing skills:");
-    for (const entry of issues.missing) {
-      console.log(`- ${entry.name} (${entry.sourceId})`);
-    }
+function strictIssues(report) {
+  return report.issues.filter(({ type }) => type !== "protected");
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function formatCommand(operation, homeDir) {
+  const targetEnvironment = operation.targetAgent === "codex"
+    ? `CODEX_HOME=${shellQuote(path.join(homeDir, ".agents"))}`
+    : `CLAUDE_CONFIG_DIR=${shellQuote(path.join(homeDir, ".claude"))}`;
+  return [
+    `HOME=${shellQuote(homeDir)}`,
+    targetEnvironment,
+    "bunx",
+    ...skillsCliAddArgs(operation).map(shellQuote)
+  ].join(" ");
+}
+
+function printReport({ registry, registryPath, profile, report, operations, quarantineRoot, output }) {
+  output(`Registry: ${path.relative(repositoryRoot, registryPath) || registryPath}`);
+  output(`Profile: ${profile}`);
+  output(`Audiences: ${registry.global.profiles[profile].audiences.join(", ")}`);
+  output("Modeled roots:");
+  for (const root of report.inventory.roots) {
+    output(`- ${root.id}: ${root.kind} ${root.path}`);
+  }
+  output("Expected skills by managed root:");
+  for (const rootId of ["shared", "claude"]) {
+    const names = report.placements
+      .filter(({ root }) => root === rootId)
+      .map(({ skill }) => skill);
+    output(`- ${rootId} (${names.length}): ${names.join(", ") || "none"}`);
   }
 
-  if (issues.missingAgents.length > 0) {
-    console.log("\nSkills missing target agents:");
-    for (const issue of issues.missingAgents) {
-      console.log(
-        `- ${issue.entry.name} (${issue.entry.sourceId}): ${issue.absentAgents.join(", ")}`
+  if (report.issues.length === 0) {
+    output("Discrepancies: none");
+  } else {
+    output("Discrepancies:");
+    for (const issue of report.issues) {
+      output(
+        `- ${issue.type}: ${issue.skill ?? "(root)"} @ ${issue.root} (${issue.reason})${
+          issue.path ? ` ${issue.path}` : ""
+        }`
       );
     }
   }
 
-  if (issues.unlisted.length > 0) {
-    console.log("\nUnlisted global skills:");
-    for (const name of issues.unlisted) {
-      console.log(`- ${name}`);
+  output("Proposed apply operations:");
+  if (operations.apply.length === 0) output("- none");
+  for (const operation of operations.apply) {
+    output(`- ${formatCommand(operation, report.inventory.homeDir)}`);
+  }
+  output("Manual manager actions:");
+  if (operations.manual.length === 0) output("- none");
+  for (const operation of operations.manual) {
+    output(`- ${operation.skill} @ ${operation.root}: ${operation.manager} (${operation.issue})`);
+  }
+  output("Proposed prune operations:");
+  if (operations.prune.length === 0) output("- none");
+  for (const operation of operations.prune) output(`- move ${operation.from} -> ${operation.to}`);
+  if (operations.prune.length > 0) {
+    output("Approval covers these source candidates; execution allocates a fresh run destination and revalidates each entry.");
+    output(`Quarantine: ${quarantineRoot}`);
+    output(
+      `Restore after pruning: scripts/audit-global-skills --restore ${shellQuote(
+        path.join(quarantineRoot, "manifest.json")
+      )} --home ${shellQuote(report.inventory.homeDir)} --yes`
+    );
+  }
+  output("Proposed recoverable replacements:");
+  if (operations.replace.length === 0) output("- none");
+  for (const operation of operations.replace) {
+    output(`- quarantine ${operation.from} -> ${operation.to}, then reinstall from ${operation.source}`);
+  }
+  if (operations.replace.length > 0) {
+    output("Replacement requires --replace-unverified --yes; the original copy remains in the manifest-backed quarantine.");
+    output(`Quarantine: ${quarantineRoot}`);
+    output(
+      `Restore after replacement: scripts/audit-global-skills --restore ${shellQuote(
+        path.join(quarantineRoot, "manifest.json")
+      )} --home ${shellQuote(report.inventory.homeDir)} --yes`
+    );
+  }
+  output(`Strict result: ${strictIssues(report).length === 0 ? "pass" : "fail"}`);
+}
+
+function timestampForPath(date) {
+  return date.toISOString().replace(/[:.]/g, "-");
+}
+
+function buildReport({ desiredEntries, knownSkillNames, expectedContent, homeDir, rootPolicy }) {
+  const inventory = inspectSkillRoots({ homeDir, rootPolicy });
+  return reconcileGlobalSkillState({
+    desiredEntries,
+    knownSkillNames,
+    expectedContent,
+    inventory
+  });
+}
+
+function managedStateRecordsForExactPlacements({ report, expectedContent, recordedAt }) {
+  const records = new Map(
+    (report.inventory.reconcilerState ?? []).map((record) => [
+      `${record.root}\0${record.skill}`,
+      record
+    ])
+  );
+  const entries = new Map(
+    report.inventory.entries.map((entry) => [`${entry.root}\0${entry.name}`, entry])
+  );
+  for (const placement of report.placements) {
+    if (placement.manager !== "skills-cli") continue;
+    const key = `${placement.root}\0${placement.skill}`;
+    const current = entries.get(key);
+    const expected = expectedContent[placement.skill];
+    if (
+      current?.kind === "directory" &&
+      current.hashStatus === "verified" &&
+      current.hashAlgorithm === TREE_HASH_ALGORITHM &&
+      expected?.hashAlgorithm === TREE_HASH_ALGORITHM &&
+      current.hash === expected.hash
+    ) {
+      records.set(key, {
+        root: placement.root,
+        skill: placement.skill,
+        source: placement.source,
+        hashAlgorithm: current.hashAlgorithm,
+        hash: current.hash,
+        recordedAt
+      });
     }
   }
-}
-
-function hasIssues(issues) {
-  return (
-    issues.missing.length > 0 ||
-    issues.missingAgents.length > 0 ||
-    issues.unlisted.length > 0
+  return [...records.values()].sort((left, right) =>
+    `${left.root}\0${left.skill}`.localeCompare(`${right.root}\0${right.skill}`)
   );
 }
 
-function main() {
-  const options = parseArgs(process.argv.slice(2));
-  const registry = readSkillRegistry(options.registry, {
-    repositorySkillNames: publishedSkillNames()
-  });
-  const entries = globalSkillEntries(registry, options.profile);
-  const installed = listGlobalSkills();
-  const issues = collectIssues(
-    entries,
-    installed,
-    registry.global?.allowUnlistedSkills === true
-  );
+function applyOperationsForReplacements(operations) {
+  return operations.map((operation) => ({
+    type: "install",
+    skill: operation.skill,
+    source: operation.source,
+    sourceId: operation.sourceId,
+    root: operation.root,
+    targetAgent: operation.targetAgent,
+    fullDepth: operation.fullDepth,
+    targetPath: operation.from,
+    modeledRootPath: operation.modeledRootPath,
+    expectedRootCanonicalPath: operation.expectedRootCanonicalPath,
+    expectedCurrentKind: null,
+    expectedCurrentHashAlgorithm: null,
+    expectedCurrentHash: null
+  }));
+}
 
-  console.log(`Registry: ${path.relative(root, options.registry)}`);
-  console.log(`Profile: ${options.profile}`);
-  console.log(
-    `Audiences: ${registry.global.profiles[options.profile].audiences.join(", ")}`
-  );
-  console.log("Mode: read-only aggregate check; exact root state is not evaluated yet");
-  console.log(`Recommended global skills: ${entries.length}`);
-  console.log(`Installed global skills: ${indexInstalled(installed).size}`);
+function run(options, dependencies = {}) {
+  const output = dependencies.output ?? console.log;
+  const execSkillsCli = dependencies.execSkillsCli ?? defaultExecSkillsCli;
+  const rootPolicy = dependencies.rootPolicy ?? DEFAULT_ROOT_POLICY;
+  const now = dependencies.now ?? (() => new Date());
 
-  if (!hasIssues(issues)) {
-    console.log(
-      "Aggregated global discovery matches the profile; exact filesystem state is not yet audited."
-    );
-    return;
+  if (path.resolve(options.homeDir) === path.parse(path.resolve(options.homeDir)).root) {
+    throw new Error("homeDir must not be a filesystem root");
   }
 
-  printIssues(issues);
+  if (options.restore) {
+    const result = restoreQuarantine({ manifestPath: options.restore, homeDir: options.homeDir });
+    output(`Restored entries: ${result.restored.length}`);
+    for (const restoredPath of result.restored) output(`- ${restoredPath}`);
+    output(`Manifest updated: ${result.manifestPath}`);
+    return 0;
+  }
 
-  process.exit(1);
+  const registry = readSkillRegistry(options.registry, {
+    repositorySkillNames: dependencies.repositorySkillNames ?? publishedSkillNames()
+  });
+  const desiredEntries = globalSkillEntries(registry, options.profile);
+  for (const entry of desiredEntries) {
+    if (entry.manager === "skills-cli") assertRemoteSource(entry.source);
+  }
+  const knownSkillNames = registry.skills
+    .filter(({ recommendation }) => recommendation.scope === "global")
+    .map(({ name }) => name);
+  const expectedContent = dependencies.expectedContent ?? materializeExpectedContent({
+    desiredEntries,
+    execSkillsCli
+  });
+  const quarantineRoot = dependencies.quarantineRoot ?? path.join(
+    options.homeDir,
+    ".skill-quarantine",
+    `global-skills-${timestampForPath(now())}`
+  );
+
+  let report = buildReport({
+    desiredEntries,
+    knownSkillNames,
+    expectedContent,
+    homeDir: options.homeDir,
+    rootPolicy
+  });
+  let operations = planGlobalSkillOperations({ report, quarantineRoot });
+  printReport({
+    registry,
+    registryPath: options.registry,
+    profile: options.profile,
+    report,
+    operations,
+    quarantineRoot,
+    output
+  });
+
+  if (
+    (options.apply || options.replaceUnverified) &&
+    report.inventory.errors.some(({ reason }) => reason.startsWith("reconciler-state"))
+  ) {
+    throw new Error("apply refuses to overwrite invalid or untrusted reconciler state");
+  }
+
+  if (options.apply && operations.apply.length > 0) {
+    executeApplyOperations({
+      operations: operations.apply,
+      expectedContent,
+      homeDir: options.homeDir,
+      execSkillsCli
+    });
+    output(`Applied operations: ${operations.apply.length}`);
+  }
+  if (options.prune && operations.prune.length > 0) {
+    const result = quarantineVerifiedDuplicates({
+      report,
+      operations: operations.prune,
+      quarantineRoot,
+      createdAt: now().toISOString()
+    });
+    output(`Quarantined entries: ${operations.prune.length}`);
+    output(`Restore manifest: ${result.manifestPath}`);
+  }
+
+  if (options.replaceUnverified && operations.replace.length > 0) {
+    const result = quarantinePlannedEntries({
+      report,
+      operations: operations.replace,
+      quarantineRoot,
+      createdAt: now().toISOString()
+    });
+    output(`Quarantined unverified entries: ${operations.replace.length}`);
+    output(`Restore manifest: ${result.manifestPath}`);
+    executeApplyOperations({
+      operations: applyOperationsForReplacements(operations.replace),
+      expectedContent,
+      homeDir: options.homeDir,
+      execSkillsCli
+    });
+    output(`Installed verified replacements: ${operations.replace.length}`);
+  }
+
+  if (options.apply || (options.replaceUnverified && operations.replace.length > 0)) {
+    const adoptionReport = buildReport({
+      desiredEntries,
+      knownSkillNames,
+      expectedContent,
+      homeDir: options.homeDir,
+      rootPolicy
+    });
+    const records = managedStateRecordsForExactPlacements({
+      report: adoptionReport,
+      expectedContent,
+      recordedAt: now().toISOString()
+    });
+    const statePath = writeReconcilerState({ homeDir: options.homeDir, records });
+    output(`Recorded verified Skills CLI state: ${statePath}`);
+  }
+
+  if (options.apply || options.prune || options.replaceUnverified) {
+    report = buildReport({
+      desiredEntries,
+      knownSkillNames,
+      expectedContent,
+      homeDir: options.homeDir,
+      rootPolicy
+    });
+    operations = planGlobalSkillOperations({ report, quarantineRoot });
+    output(`Post-operation strict result: ${strictIssues(report).length === 0 ? "pass" : "fail"}`);
+  }
+  return strictIssues(report).length === 0 ? 0 : 1;
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
+function main(argv = process.argv.slice(2)) {
+  try {
+    const options = parseArgs(argv);
+    if (options.help) {
+      usage();
+      return 0;
+    }
+    return run(options);
+  } catch (error) {
+    console.error(error.message);
+    return 1;
+  }
 }
+
+if (require.main === module) process.exitCode = main();
+
+module.exports = {
+  assertRemoteSource,
+  applyOperationsForReplacements,
+  executeApplyOperations,
+  managedStateRecordsForExactPlacements,
+  main,
+  materializeExpectedContent,
+  parseArgs,
+  run,
+  skillsCliAddArgs,
+  skillsCliEnvironment,
+  strictIssues
+};

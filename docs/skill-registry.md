@@ -45,9 +45,10 @@ no inferred or default profile.
 and must be `false`; installed skills outside the selected profile are drift.
 
 `recommendation.agents` records the agents targeted by installation commands.
-The global audit requires those targets to be discoverable, but it does not
-treat incidental visibility to other harnesses from a shared skill directory
-as drift.
+For exact global reconciliation, Codex- or Pi-compatible entries map to the
+shared `~/.agents/skills` root through an explicit Codex target; Claude Code
+compatibility maps to `~/.claude/skills` through an explicit Claude target.
+The reconciler never synthesizes a Pi target or uses `--all`.
 
 ## Ownership
 
@@ -68,8 +69,32 @@ record, rejects missing sources and incomplete classifications, and validates
 the supported scope and installation combinations.
 
 Run `scripts/audit-global-skills --profile dev|kicpa` to compare the selected
-profile's `global` recommendations with `bunx skills list -g --json`. The
-registry-v2 audit is read-only until exact filesystem reconciliation is
-implemented. Project, workflow, and catalog-only records are excluded from
-profile resolution. Global manual records remain desired and audited, but no
-install command is synthesized for them.
+profile with exact entries in the managed and explicitly known legacy roots.
+The command materializes Skills CLI-managed remote sources in a temporary home
+to establish expected content; it never uses a local path as an apply source.
+The default mode is read-only and exits nonzero for missing, outdated,
+modified, misplaced, unexpected, unclassified, or verified legacy duplicate
+state. Runtime-owned roots are reported as protected and not enumerated.
+
+`--apply` installs or updates only unambiguous Skills CLI-managed placements.
+It also adopts already-exact placements into the reconciler-owned verified
+state file; a later update is authorized only while the installed tree still
+matches that record. Skills CLI v3 `skillFolderHash` values are source-tree
+metadata, not verified local-content hashes. Apply does not prune.
+When a first-run copy differs from remote content and has no trustworthy local
+hash, the audit proposes `--replace-unverified --yes` instead of treating it as
+an update. That separate boundary quarantines the existing copy with a restore
+manifest before installing and verifying remote content. For rollback after a
+partial or complete replacement, first inspect all modeled destinations and
+move every active replacement aside; restore never overwrites a destination.
+`--prune --yes` is a separate boundary that moves only
+verified legacy duplicates into a timestamped quarantine. The output prints a
+manifest-specific `--restore ... --yes` command, and restoration refuses to
+overwrite an existing path. Manual entries remain with their recorded manager:
+their exact placement is audited, their content is reported as externally
+managed when no remote expected content exists, and no install command is
+synthesized.
+
+Project, workflow, and catalog-only records are excluded from profile
+resolution. The public `kicpa` profile currently contains only public common
+entries; private KICPA source overlays are not part of this registry contract.

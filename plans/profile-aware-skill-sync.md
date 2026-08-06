@@ -1,6 +1,7 @@
 # Profile-aware cross-machine skill sync
 
-Status: Current plan; phases 1-3 complete.
+Status: Current plan; phases 1-4 and the goal-bounded phase 7/8 work are
+implemented and validated; PR delivery is in progress.
 
 ## Outcome
 
@@ -101,6 +102,29 @@ Snapshot taken on 2026-08-05 from the development machine:
   combined dependency-free suite passes 22 tests. The model was never invoked
   against real machine skill roots, no real-home state was mutated, and the
   audit/apply/prune command remains unchanged.
+- The 2026-08-06 reconciler slice replaced aggregate discovery with a strict
+  exact-root command. Remote desired content is materialized in a temporary
+  home; apply uses explicit Codex and Claude targets without a Pi copy; prune
+  revalidates verified duplicates and canonical copies before moving them into
+  a manifest-backed quarantine; restore is path-confined and refuses overwrite.
+- Apply now adopts verified exact copies into a reconciler-owned state file and
+  uses those root-local hashes to distinguish safe upstream updates from local
+  modifications. Skills CLI v3 folder hashes are not treated as local-content
+  evidence. Every apply, prune, restore, and manifest mutation validates the
+  canonical nearest existing ancestor, including missing paths below symlinks.
+- Dependency-free coverage now exercises both public profiles, remote command
+  synthesis, verified-state adoption, v3 lock handling, apply preconditions,
+  protected/manual state, symlink-ancestor escapes, prune races, crash-
+  recoverable manifests, and restoration in temporary homes only. The real
+  development-home audit remained read-only and truthfully reported protected
+  state, verified Pi duplicates, and ambiguous copies without mutation.
+- Final goal-bounded validation passes 44 dependency-free tests,
+  `scripts/validate-skills`, JavaScript syntax checks, `git diff --check`, and
+  `bunx skills add ./skills --list`. The final real-home `dev` audit was
+  read-only and failed strictly on existing drift as intended. Bounded design
+  and safety follow-up reviews report no remaining material findings after a
+  partial replacement-failure recovery fixture and operator guidance were
+  added.
 
 ## Accepted decisions
 
@@ -330,28 +354,29 @@ large collection of coupled branches.
 Exit condition: fixture inventories produce a complete, deterministic report
 without reading or mutating the real home directory.
 
-### 4. Make the global audit profile-aware and strict
+### 4. Make the profile-aware global audit exact-state and strict
 
 Primary command: `scripts/audit-global-skills`.
 
-- [ ] Add mandatory `--profile dev|kicpa` parsing and useful help text.
-- [ ] Keep the default operation read-only.
-- [ ] Report the selected audiences, expected skills by managed root, detected
+- [x] Require `--profile dev|kicpa` and provide useful help text.
+- [x] Keep the default operation read-only and fail closed on `--apply` until
+      exact-state reconciliation is implemented.
+- [x] Report the selected audiences, expected skills by managed root, detected
       discrepancies, protected entries, and proposed operations.
-- [ ] Make strict discrepancies exit nonzero, including unexpected entries in
+- [x] Make strict discrepancies exit nonzero, including unexpected entries in
       managed roots and unclassified legacy collisions.
-- [ ] Update `--apply` to install/update only from remote sources and only into
+- [x] Update `--apply` to install/update only from remote sources and only into
       expected roots.
-- [ ] For the shared root, synthesize an explicit Codex target even when Pi is
+- [x] For the shared root, synthesize an explicit Codex target even when Pi is
       also compatible; never synthesize a Pi target.
-- [ ] For Claude compatibility, synthesize the explicit Claude Code target.
-- [ ] Preserve the rule that changed public skills are committed and pushed
+- [x] For Claude compatibility, synthesize the explicit Claude Code target.
+- [x] Preserve the rule that changed public skills are committed and pushed
       before reinstalling from the GitHub `skills/` subpath.
-- [ ] Add a separate `--prune` confirmation boundary that quarantines only
+- [x] Add a separate `--prune` confirmation boundary that quarantines only
       verified legacy duplicates. Refuse to combine ambiguous cleanup with an
       ordinary apply.
-- [ ] Print the quarantine location and a concrete restore procedure.
-- [ ] Keep this as a repository maintenance script initially. Add a stable
+- [x] Print the quarantine location and a concrete restore procedure.
+- [x] Keep this as a repository maintenance script initially. Add a stable
       `bin/` wrapper only if a demonstrated cross-repository workflow needs it.
 
 Exit condition: the command can explain and reconcile either profile while
@@ -403,22 +428,23 @@ classified.
 
 Update behavior and documentation together:
 
-- [ ] `docs/skill-registry.md`: version 2 schema, audience/profile semantics,
+- [x] `docs/skill-registry.md`: version 2 schema, audience/profile semantics,
       managers, and validation errors.
-- [ ] `README.md`: concise two-machine workflow and pointers to detailed docs.
-- [ ] `docs/settings-sync.md`: machine bootstrap, authentication boundary, and
+- [x] `README.md`: concise two-machine workflow and pointers to detailed docs.
+- [x] `docs/settings-sync.md`: machine bootstrap, authentication boundary, and
       what settings sync does and does not own.
-- [ ] `AGENTS.md`: only the durable current commands and invariants; do not turn
+- [x] `AGENTS.md`: only the durable current commands and invariants; do not turn
       it into a migration log.
-- [ ] `.agents/skills/sync/SKILL.md`: explicit profile, publish-before-install,
-      private-source authentication, and safe reconciliation order.
-- [ ] `skills/skills-cli/SKILL.md`: strict profile workflow where generally
+- [x] `.agents/skills/sync/SKILL.md`: explicit profile, publish-before-install,
+      public-source publication verification, and safe reconciliation order.
+      Private-source authentication remains deferred to excluded phase 5.
+- [x] `skills/skills-cli/SKILL.md`: strict profile workflow where generally
       useful.
-- [ ] `skills/skills-cli/references/cli.md`: verified CLI flags and shared-root
+- [x] `skills/skills-cli/references/cli.md`: verified CLI flags and shared-root
       behavior.
-- [ ] `skills/skills-cli/recipes/install-and-migrate.md`: exact install,
+- [x] `skills/skills-cli/recipes/install-and-migrate.md`: exact install,
       audit, apply, prune, quarantine, and rollback commands.
-- [ ] Review any other install-management recipe referenced by the skill and
+- [x] Review any other install-management recipe referenced by the skill and
       update it only if the behavior changed.
 
 Exit condition: a fresh session can bootstrap either machine without relying
@@ -440,17 +466,22 @@ Minimum automated cases:
       states.
 - [x] Protected-root exclusion.
 - [x] Manual/workflow manager preservation.
-- [ ] Public and private source command synthesis without credentials.
+- [x] Credential-free public remote source command synthesis and rejection of
+      credential-bearing or unsupported source forms. Private KICPA
+      discovery/authentication remains excluded.
 - [x] Hash mismatch and unverifiable provenance handling.
+- [x] First-run stale-copy quarantine and verified remote replacement using a
+      temporary home fixture only.
 - [x] Quarantine and restore plans using a temporary home fixture only.
 
 Repository validation:
 
 - [x] Run the new dependency-free test command.
-- [x] Run `scripts/validate-skills`.
-- [ ] Run `bunx skills add ./skills --list`.
-- [ ] Run strict dry-run audits for both profiles against fixtures.
-- [ ] Run the development profile against the real machine read-only.
+- [x] Run `scripts/validate-skills` after the final review fixes.
+- [x] Run `bunx skills add ./skills --list` after the final review fixes.
+- [x] Run strict dry-run audits for both profiles against fixtures.
+- [x] Run the development profile against the real machine read-only after the
+      final review fixes.
 - [x] Run `$code-review` with the diet lens, apply safe findings, and repeat
       validation.
 
@@ -504,37 +535,26 @@ common skill plus a machine-specific skill in all intended clients.
 
 ## Completion criteria
 
-- [ ] `dev` resolves to exactly `common + dev`; `kicpa` resolves to exactly
+- [x] `dev` resolves to exactly `common + dev`; `kicpa` resolves to exactly
       `common + kicpa`.
-- [ ] Project-scoped entries cannot enter global desired state.
+- [x] Project-scoped entries cannot enter global desired state.
 - [ ] Managed Codex/Pi skills have one canonical copy in `~/.agents/skills`.
 - [ ] Claude-compatible selected skills have the intended copy in
       `~/.claude/skills`.
 - [ ] No registry-managed copy remains in `~/.pi/agent/skills` or a legacy root
       after successful, verified migration.
-- [ ] Unknown and runtime-owned entries are classified or preserved rather
+- [x] Unknown and runtime-owned entries are classified or preserved rather
       than deleted.
 - [ ] Strict audits pass on both machines.
 - [ ] Private KICPA contents are unavailable without GitHub authorization.
-- [ ] Tests, validators, documentation, and operator skills describe the same
+- [x] Tests, validators, documentation, and operator skills describe the same
       workflow.
 - [ ] Quarantine rollback has been tested or rehearsed and retained through a
       normal work cycle on both machines.
 
 ## Next action
 
-Begin phase 4 by connecting the exact-state model to the audit through a
-fixture-backed, read-only integration slice:
-
-1. Refactor `scripts/audit-global-skills` behind a callable interface with
-   injected registry, home, expected-content, and output dependencies while
-   retaining the thin executable entry point.
-2. Replace aggregate agent-label decisions with exact placements, inventory,
-   reconciliation, and operation-plan reporting for temporary-home fixtures.
-3. Add CLI fixtures for both profiles, strict pass/fail exits, protected and
-   unclassified reporting, and deterministic proposed operations.
-4. Keep `--apply` and `--prune` unavailable, and do not inspect the real home,
-   until the fixture-backed strict audit passes and source materialization for
-   expected hashes has an explicit read-only design.
-5. Run the combined Node tests and `scripts/validate-skills`, then stop for a
-   review before enabling the live read-only audit.
+Finish the current goal through its single reviewed PR, then update terminal
+planning metadata on `main`. Phases 5, 6, and 9 require separate authority:
+private KICPA support, real-machine apply/prune, legacy-root migration, and
+rollout remain deliberately unstarted.

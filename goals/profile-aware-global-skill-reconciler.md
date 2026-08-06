@@ -29,17 +29,28 @@ _None._
 
 - Profile-aware registry schema and resolver (phases 1-2).
 - Fixture-only exact filesystem inventory, classification, hashing, and operation planning model (phase 3).
+- Exact-state strict audit and remote-only public-profile apply with explicit Codex and Claude targets (phase 4).
+- Canonically confined, manifest-backed quarantine and crash-resilient restore within the goal boundary.
+- Operator guidance for profile selection, publication verification, verified-state adoption, apply, prune, and restore.
 
 ### Current in-scope result
 
-Exact-state strict audit and remote-only reconciliation command, followed by recoverable pruning, operator guidance, and bounded validation.
+The single-PR delivery lifecycle.
 
 ### Next in-scope action
 
-Connect the exact-state model to `scripts/audit-global-skills` through fixture-backed CLI tests, then implement remote-only apply and quarantine-based prune/restore behavior without mutating the real home.
+Commit and deliver the validated implementation through one reviewed PR.
 
 ### Evidence and blockers
 
 - Inherited pre-goal work is present in local commits `1964df1` and `4b2dc11`; both are unpushed and will remain in the reviewable delivery diff.
 - Real-home validation is authorized only in read-only audit mode.
+- Bounded review identified symlink confinement, restore idempotence,
+  provenance, source sanitization, stale-copy replacement, and rollback-
+  guidance gaps. All have fixture-backed fixes, and both final review agents
+  report no remaining material findings.
+- Final validation passes 44 dependency-free tests, skill and registry
+  validation, JavaScript syntax checks, `git diff --check`, and local catalog
+  discovery. The real-home `dev` audit remained read-only and failed strictly
+  on the existing protected, legacy, and unclassified state as intended.
 - Private KICPA source support, real-machine apply/prune, legacy-root migration, and rollout remain excluded.

@@ -71,6 +71,14 @@ PROFILE="dev"
 scripts/audit-global-skills --profile "$PROFILE"
 ```
 
+The audit materializes remote expected content in a temporary home and reads
+only the managed and explicitly known legacy roots in the inspected home. It
+exits nonzero for strict drift and prints exact apply commands plus quarantine
+source candidates and a proposed run destination.
+Apply also records verified Skills CLI tree hashes in
+`~/.agents/.global-skill-state.json`; later runs update only copies that still
+match that recorded state. Local edits remain blocked as modified.
+
 Enable the optional pre-commit hook:
 
 ```bash
@@ -93,22 +101,31 @@ Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-specific, workflow-managed, or catalog-only, along with its provenance
 and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
 schema contract. Use `scripts/audit-global-skills --profile dev|kicpa` to
-report drift in the selected global profile. The registry-v2 audit is
-read-only until exact filesystem reconciliation is implemented.
+report exact-root drift in the selected global profile.
 
-For a selected skill:
-
-```bash
-SKILL_NAME="change-explainer"
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a claude-code -a pi -y
-```
-
-For a selected Codex global skill, use an explicit Codex target:
+After intended public skill changes are committed, pushed, merged into the
+registry's remote ref, and pulled onto the machine, reconcile the selected
+profile:
 
 ```bash
-SKILL_NAME="change-explainer"
-bunx skills add https://github.com/sjunepark/agent-scripts/tree/main/skills --skill "$SKILL_NAME" --copy -g -a codex -y
+PROFILE="dev"
+scripts/audit-global-skills --profile "$PROFILE"
+scripts/audit-global-skills --profile "$PROFILE" --apply
+scripts/audit-global-skills --profile "$PROFILE"
+# If the audit proposes first-run stale-copy replacements, approve them explicitly:
+scripts/audit-global-skills --profile "$PROFILE" --replace-unverified --yes
+# Approve the printed source candidates; prune allocates a fresh destination:
+scripts/audit-global-skills --profile "$PROFILE" --prune --yes
 ```
+
+`--apply` uses only credential-free remote registry sources and explicit Codex
+or Claude Code targets. A stale copy without prior verified state is never
+silently overwritten; `--replace-unverified --yes` first preserves it in the
+manifest-backed quarantine, then installs and verifies the remote copy.
+`--prune` never deletes: it moves only verified legacy
+duplicates into a timestamped quarantine and prints a manifest-specific restore
+command. Do not run apply or prune against a real home during repository
+validation.
 
 For project-scoped recommendations, install only when the registry's `when`
 condition matches the target repository.

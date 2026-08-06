@@ -21,9 +21,13 @@ For the harnesses used most often in this repo:
 
 - Claude Code global path: `~/.claude/skills/`
 - Pi global path: `~/.pi/agent/skills/`
-- Codex user-scope path (shared with many other harnesses): `~/.agents/skills/`
-- Claude Code + Pi copy-mode installs write directly to `~/.claude/skills/` and `~/.pi/agent/skills/` and keep `skills list -g` reporting `Agents: Claude Code, Pi` for those selected skills.
-- The Codex copy-mode install currently writes directly to `~/.agents/skills/`.
+- Current raw Codex global copy target: `~/.agents/skills/`
+- Universal shared user-scope path: `~/.agents/skills/`
+
+This repository's profile reconciler deliberately invokes the explicit Codex
+target and defensively scopes the subprocess `CODEX_HOME` to `~/.agents`. That
+pins the current shared destination for Codex/Pi discovery without passing a Pi
+target, even if the caller has customized Codex's environment.
 
 If the same skill `name` exists in more than one discovered location, discovery can show multiple entries instead of merging them.
 
@@ -33,9 +37,16 @@ For this repository specifically:
 - Use `./skills` only for local validation or unpublished work.
 - Treat `skills/` as a catalog. Select the intended global skill with `--skill <name>` rather than installing the whole catalog by default.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
-- Use `skill-registry.json` for authoritative scope, audience, profile, source, target-agent, and installation-manager decisions. Use `scripts/audit-global-skills --profile dev|kicpa` to compare live `bunx skills list -g --json` output with one explicitly selected profile. The registry-v2 audit is read-only until exact filesystem reconciliation is implemented; manual and workflow-managed entries stay with their recorded manager.
+- Use `skill-registry.json` for authoritative scope, audience, profile, source, target-agent, and installation-manager decisions. Use `scripts/audit-global-skills --profile dev|kicpa` to compare exact managed-root state with one explicitly selected profile. Its default mode is read-only, `--apply` uses only remote Skills CLI sources, and `--prune --yes` separately quarantines verified legacy duplicates; manual and workflow-managed entries stay with their recorded manager.
+- The reconciler accepts only credential-free public HTTPS sources or GitHub
+  shorthand. It rejects URL credentials, query strings, fragments, local
+  paths, and `npm:` sources for global profile reconciliation.
+- A stale pre-reconciler copy is not silently adopted or overwritten. The
+  separate `--replace-unverified --yes` boundary preserves it in a
+  manifest-backed quarantine before verified remote reinstall.
 - Install project recommendations only when their registry `when` condition matches unless the user explicitly changes the desired scope.
-- Use shared `~/.agents/skills/` installs only for intentional multi-harness sharing; they can make `skills list -g` report many agents for one skill.
+- The global profile intentionally uses shared `~/.agents/skills/` copies for
+  Codex/Pi compatibility and `~/.claude/skills/` copies for Claude Code.
 
 ## Command lookup
 

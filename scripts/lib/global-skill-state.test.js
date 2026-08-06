@@ -13,7 +13,10 @@ const {
   hashSkillDirectory,
   inspectSkillRoots,
   planGlobalSkillOperations,
-  reconcileGlobalSkillState
+  quarantineVerifiedDuplicates,
+  reconcileGlobalSkillState,
+  restoreQuarantine,
+  writeReconcilerState
 } = require("./global-skill-state");
 
 function temporaryHome(t) {
@@ -170,15 +173,7 @@ test("inspects only explicit roots and verifies a canonical legacy symlink", (t)
     }
   });
 
-  const rootPolicy = [
-    ...DEFAULT_ROOT_POLICY,
-    {
-      id: "codex-system",
-      relativePath: ".codex/skills/.system",
-      kind: "protected"
-    }
-  ];
-  const inventory = inspectSkillRoots({ homeDir, rootPolicy });
+  const inventory = inspectSkillRoots({ homeDir });
   const report = reconcileGlobalSkillState({
     desiredEntries: [desired],
     knownSkillNames: ["alpha"],
@@ -371,6 +366,13 @@ test("plans installs and updates only for skills-cli managed unambiguous drift",
     () => planGlobalSkillOperations({ report, quarantineRoot: homeDir }),
     /quarantineRoot must be a child of the inspected homeDir/
   );
+  assert.throws(
+    () => planGlobalSkillOperations({
+      report,
+      quarantineRoot: path.join(homeDir, "other-quarantine", "run")
+    }),
+    /under homeDir\/\.skill-quarantine/
+  );
 });
 
 test("preserves manual ownership for ambiguous drift", (t) => {
@@ -416,6 +418,10 @@ test("reports contradictory source provenance without treating content as manage
   const source = writeSkill(homeDir, ".fixture-source", "source-mismatch", "same\n");
   copySkill(source, homeDir, ".agents/skills", "source-mismatch");
   const expectedContent = { "source-mismatch": expectedContentRecord(source) };
+  fs.writeFileSync(
+    path.join(homeDir, ".agents/skills/source-mismatch/SKILL.md"),
+    "different\n"
+  );
   writeLock(homeDir, {
     "source-mismatch": {
       source: "https://github.com/other/private-skills",
@@ -467,6 +473,90 @@ test("does not use a shared-root lock as Claude provenance", (t) => {
   assert.equal(issue(report, "outdated", desired.name, "claude"), undefined);
 });
 
+test("does not mistake the Skills CLI v3 folder hash for verified local content", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("v3-lock");
+  const expected = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  const old = writeSkill(homeDir, ".fixture-old", desired.name, "old\n");
+  copySkill(old, homeDir, ".agents/skills", desired.name);
+  writeLock(homeDir, {}, JSON.stringify({
+    version: 3,
+    skills: {
+      [desired.name]: {
+        sourceUrl: desired.source,
+        sourceType: "github",
+        skillFolderHash: "not-a-local-tree-hash"
+      }
+    }
+  }, null, 2));
+
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(expected) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+
+  assert.equal(
+    issue(report, "unclassified", desired.name, "shared").reason,
+    "lock-hash-unverifiable"
+  );
+  assert.equal(issue(report, "outdated", desired.name, "shared"), undefined);
+});
+
+test("uses root-local reconciler state to distinguish outdated from modified copies", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("tracked", { agents: ["codex", "claude-code"] });
+  const expected = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  const old = writeSkill(homeDir, ".fixture-old", desired.name, "old\n");
+  const oldHash = expectedContentRecord(old);
+  copySkill(old, homeDir, ".agents/skills", desired.name);
+  copySkill(old, homeDir, ".claude/skills", desired.name);
+  writeReconcilerState({
+    homeDir,
+    records: ["shared", "claude"].map((root) => ({
+      root,
+      skill: desired.name,
+      source: desired.source,
+      ...oldHash,
+      recordedAt: "2026-08-06T00:00:00.000Z"
+    }))
+  });
+
+  let report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(expected) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  assert.ok(issue(report, "outdated", desired.name, "shared"));
+  assert.ok(issue(report, "outdated", desired.name, "claude"));
+
+  fs.writeFileSync(path.join(homeDir, ".claude/skills", desired.name, "SKILL.md"), "local edit\n");
+  report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(expected) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  assert.equal(
+    issue(report, "modified", desired.name, "claude").reason,
+    "installed-content-differs-from-reconciler-state"
+  );
+
+  const changedSource = { ...desired, source: "https://github.com/example/other-skills" };
+  report = reconcileGlobalSkillState({
+    desiredEntries: [changedSource],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(expected) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  assert.equal(
+    issue(report, "unclassified", desired.name, "shared").reason,
+    "reconciler-state-source-mismatch"
+  );
+});
+
 test("turns malformed lock provenance into an unclassified issue", (t) => {
   const homeDir = temporaryHome(t);
   writeLock(homeDir, {}, "{not-json");
@@ -483,4 +573,190 @@ test("turns malformed lock provenance into an unclassified issue", (t) => {
   assert.equal(lockIssue.type, "unclassified");
   assert.equal(lockIssue.skill, null);
   assert.match(lockIssue.path, /\.agents\/\.skill-lock\.json$/);
+});
+
+test("prune refuses when the canonical entry changes after planning", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("race-safe");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  const shared = copySkill(source, homeDir, ".agents/skills", desired.name);
+  const legacy = copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "race-safe-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  fs.writeFileSync(path.join(shared, "SKILL.md"), "changed after planning\n");
+
+  assert.throws(
+    () => quarantineVerifiedDuplicates({
+      report,
+      operations: operations.prune,
+      quarantineRoot,
+      createdAt: "2026-08-06T00:00:00.000Z"
+    }),
+    /canonical entry content changed/
+  );
+  assert.equal(fs.existsSync(legacy), true);
+});
+
+test("prune refuses a quarantine parent that resolves outside home", (t) => {
+  const homeDir = temporaryHome(t);
+  const outside = temporaryHome(t);
+  const desired = desiredSkill("confined-prune");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  copySkill(source, homeDir, ".agents/skills", desired.name);
+  const legacy = copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "escaped-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  fs.symlinkSync(outside, path.join(homeDir, ".skill-quarantine"));
+
+  assert.throws(
+    () => quarantineVerifiedDuplicates({
+      report,
+      operations: operations.prune,
+      quarantineRoot,
+      createdAt: "2026-08-06T00:00:00.000Z"
+    }),
+    /quarantine root resolves outside homeDir/
+  );
+  assert.equal(fs.existsSync(legacy), true);
+  assert.equal(fs.existsSync(path.join(outside, "escaped-run")), false);
+});
+
+test("prune refuses a legacy root redirected within home after planning", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("root-pinned-prune");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  copySkill(source, homeDir, ".agents/skills", desired.name);
+  copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "pinned-prune-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  const legacyRoot = path.join(homeDir, ".pi/agent/skills");
+  const alternateRoot = path.join(homeDir, "alternate-legacy-skills");
+  fs.rmSync(legacyRoot, { recursive: true, force: true });
+  copySkill(source, homeDir, "alternate-legacy-skills", desired.name);
+  fs.symlinkSync(alternateRoot, legacyRoot);
+
+  assert.throws(
+    () => quarantineVerifiedDuplicates({
+      report,
+      operations: operations.prune,
+      quarantineRoot,
+      createdAt: "2026-08-06T00:00:00.000Z"
+    }),
+    /quarantine source root must not traverse a symlink/
+  );
+  assert.equal(fs.existsSync(path.join(alternateRoot, desired.name)), true);
+});
+
+test("restore refuses a destination ancestor that resolves outside home", (t) => {
+  const homeDir = temporaryHome(t);
+  const outside = temporaryHome(t);
+  const desired = desiredSkill("confined-restore");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  copySkill(source, homeDir, ".agents/skills", desired.name);
+  copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "restore-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  const { manifestPath } = quarantineVerifiedDuplicates({
+    report,
+    operations: operations.prune,
+    quarantineRoot,
+    createdAt: "2026-08-06T00:00:00.000Z"
+  });
+  fs.rmSync(path.join(homeDir, ".pi"), { recursive: true, force: true });
+  fs.symlinkSync(outside, path.join(homeDir, ".pi"));
+
+  assert.throws(
+    () => restoreQuarantine({ manifestPath, homeDir }),
+    /restore destination root resolves outside homeDir/
+  );
+  assert.equal(fs.existsSync(path.join(outside, "agent/skills", desired.name)), false);
+  assert.equal(fs.existsSync(path.join(quarantineRoot, "pi", desired.name)), true);
+});
+
+test("restore refuses a legacy root redirected within home", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("root-pinned-restore");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  copySkill(source, homeDir, ".agents/skills", desired.name);
+  copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "pinned-restore-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  const { manifestPath } = quarantineVerifiedDuplicates({
+    report,
+    operations: operations.prune,
+    quarantineRoot,
+    createdAt: "2026-08-06T00:00:00.000Z"
+  });
+  const legacyRoot = path.join(homeDir, ".pi/agent/skills");
+  const alternateRoot = path.join(homeDir, "alternate-restore-skills");
+  fs.rmSync(legacyRoot, { recursive: true, force: true });
+  fs.mkdirSync(alternateRoot, { recursive: true });
+  fs.symlinkSync(alternateRoot, legacyRoot);
+
+  assert.throws(
+    () => restoreQuarantine({ manifestPath, homeDir }),
+    /restore destination root must not traverse a symlink/
+  );
+  assert.equal(fs.existsSync(path.join(alternateRoot, desired.name)), false);
+  assert.equal(fs.existsSync(path.join(quarantineRoot, "pi", desired.name)), true);
+});
+
+test("restore reconciles a crash after rename but before manifest status update", (t) => {
+  const homeDir = temporaryHome(t);
+  const desired = desiredSkill("crash-restore");
+  const source = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
+  copySkill(source, homeDir, ".agents/skills", desired.name);
+  const original = copySkill(source, homeDir, ".pi/agent/skills", desired.name);
+  const report = reconcileGlobalSkillState({
+    desiredEntries: [desired],
+    knownSkillNames: [desired.name],
+    expectedContent: { [desired.name]: expectedContentRecord(source) },
+    inventory: inspectSkillRoots({ homeDir })
+  });
+  const quarantineRoot = path.join(homeDir, ".skill-quarantine", "crash-run");
+  const operations = planGlobalSkillOperations({ report, quarantineRoot });
+  const { manifestPath, manifest } = quarantineVerifiedDuplicates({
+    report,
+    operations: operations.prune,
+    quarantineRoot,
+    createdAt: "2026-08-06T00:00:00.000Z"
+  });
+  fs.mkdirSync(path.dirname(original), { recursive: true });
+  fs.renameSync(manifest.entries[0].quarantinedPath, original);
+
+  const result = restoreQuarantine({ manifestPath, homeDir });
+  const updated = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  assert.deepEqual(result.restored, []);
+  assert.equal(updated.entries[0].status, "restored");
+  assert.equal(fs.existsSync(original), true);
 });

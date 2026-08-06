@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const TREE_HASH_ALGORITHM = "tree-sha256-v1";
+const RECONCILER_STATE_RELATIVE_PATH = ".agents/.global-skill-state.json";
 
 const DEFAULT_ROOT_POLICY = Object.freeze([
   Object.freeze({
@@ -24,6 +25,16 @@ const DEFAULT_ROOT_POLICY = Object.freeze([
     relativePath: ".pi/agent/skills",
     kind: "legacy",
     canonicalRootId: "shared"
+  }),
+  Object.freeze({
+    id: "codex-system",
+    relativePath: ".codex/skills/.system",
+    kind: "protected"
+  }),
+  Object.freeze({
+    id: "codex-plugin-cache",
+    relativePath: ".codex/plugins/cache",
+    kind: "protected"
   })
 ]);
 
@@ -38,9 +49,38 @@ function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function canonicalSourceIdentity(source) {
+  if (typeof source !== "string" || source.length === 0) return null;
+  const shorthand = source.match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?$/);
+  if (shorthand) return `github:${shorthand[1].toLowerCase()}/${shorthand[2].toLowerCase()}`;
+  let parsed;
+  try {
+    parsed = new URL(source);
+  } catch {
+    return source.replace(/\.git$/, "");
+  }
+  if (parsed.hostname.toLowerCase() === "github.com") {
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    if (parts.length >= 2) {
+      return `github:${parts[0].toLowerCase()}/${parts[1].replace(/\.git$/, "").toLowerCase()}`;
+    }
+  }
+  return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\.git$/, "").replace(/\/$/, "")}`;
+}
+
 function isPathWithin(candidate, parent) {
   const relative = path.relative(parent, candidate);
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function pathEntryExists(candidate) {
+  try {
+    fs.lstatSync(candidate);
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
 }
 
 function resolveHomePath(homeDir, relativePath, label) {
@@ -52,6 +92,91 @@ function resolveHomePath(homeDir, relativePath, label) {
     throw new Error(`${label} must stay inside homeDir`);
   }
   return resolved;
+}
+
+function assertMutationPathWithin(candidate, homeDir, label = "mutation path") {
+  if (!path.isAbsolute(candidate) || !path.isAbsolute(homeDir)) {
+    throw new Error(`${label} and homeDir must be absolute paths`);
+  }
+  const resolvedCandidate = path.resolve(candidate);
+  const resolvedHome = path.resolve(homeDir);
+  if (!isPathWithin(resolvedCandidate, resolvedHome)) {
+    throw new Error(`${label} must stay inside homeDir: ${resolvedCandidate}`);
+  }
+
+  let canonicalHome;
+  try {
+    canonicalHome = fs.realpathSync(resolvedHome);
+  } catch (error) {
+    throw new Error(`homeDir must exist and be readable: ${error.message}`);
+  }
+
+  let existingAncestor = resolvedCandidate;
+  while (true) {
+    try {
+      fs.lstatSync(existingAncestor);
+      break;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw new Error(`${label} ancestor is unreadable: ${existingAncestor}: ${error.message}`);
+      }
+      const parent = path.dirname(existingAncestor);
+      if (parent === existingAncestor) {
+        throw new Error(`${label} has no existing ancestor: ${resolvedCandidate}`);
+      }
+      existingAncestor = parent;
+    }
+  }
+
+  let canonicalAncestor;
+  try {
+    canonicalAncestor = fs.realpathSync(existingAncestor);
+  } catch (error) {
+    throw new Error(`${label} ancestor cannot be resolved: ${existingAncestor}: ${error.message}`);
+  }
+  if (!isPathWithin(canonicalAncestor, canonicalHome)) {
+    throw new Error(`${label} resolves outside homeDir: ${resolvedCandidate}`);
+  }
+  return { canonicalHome, existingAncestor, canonicalAncestor, resolvedCandidate };
+}
+
+function assertModeledDirectory({
+  directory,
+  homeDir,
+  label = "modeled directory",
+  allowMissing = false,
+  expectedCanonicalPath = null
+}) {
+  assertMutationPathWithin(directory, homeDir, label);
+  const resolvedHome = path.resolve(homeDir);
+  const resolvedDirectory = path.resolve(directory);
+  const relative = path.relative(resolvedHome, resolvedDirectory);
+  const components = relative === "" ? [] : relative.split(path.sep);
+  let current = resolvedHome;
+  for (const component of components) {
+    current = path.join(current, component);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === "ENOENT" && allowMissing) {
+        return { exists: false, canonicalPath: null };
+      }
+      if (error.code === "ENOENT") throw new Error(`${label} does not exist: ${directory}`);
+      throw new Error(`${label} is unreadable: ${current}: ${error.message}`);
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`${label} must not traverse a symlink: ${current}`);
+    }
+    if (!stat.isDirectory()) {
+      throw new Error(`${label} must be a directory: ${current}`);
+    }
+  }
+  const canonicalPath = fs.realpathSync(resolvedDirectory);
+  if (expectedCanonicalPath && canonicalPath !== expectedCanonicalPath) {
+    throw new Error(`${label} canonical identity changed: ${directory}`);
+  }
+  return { exists: true, canonicalPath };
 }
 
 function normalizedRootPolicy(homeDir, rootPolicy) {
@@ -230,6 +355,65 @@ function parseLockFile(lockPath, rootId) {
   return { locks, errors };
 }
 
+function parseReconcilerStateFromValue(parsed, statePath) {
+  if (!isObject(parsed) || parsed.version !== 1 || !Array.isArray(parsed.records)) {
+    return {
+      records: [],
+      errors: [{ root: "shared", path: statePath, reason: "reconciler-state-invalid" }]
+    };
+  }
+
+  const records = [];
+  const errors = [];
+  const keys = new Set();
+  for (const record of parsed.records) {
+    const valid =
+      isObject(record) &&
+      new Set(["shared", "claude"]).has(record.root) &&
+      typeof record.skill === "string" &&
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(record.skill) &&
+      typeof record.source === "string" &&
+      record.source.length > 0 &&
+      record.hashAlgorithm === TREE_HASH_ALGORITHM &&
+      typeof record.hash === "string" &&
+      /^[a-f0-9]{64}$/.test(record.hash) &&
+      typeof record.recordedAt === "string";
+    const key = valid ? `${record.root}\0${record.skill}` : null;
+    if (!valid || keys.has(key)) {
+      errors.push({
+        root: valid ? record.root : "shared",
+        skill: valid ? record.skill : null,
+        path: statePath,
+        reason: "reconciler-state-record-invalid"
+      });
+      continue;
+    }
+    keys.add(key);
+    records.push({
+      root: record.root,
+      skill: record.skill,
+      source: record.source,
+      hashAlgorithm: record.hashAlgorithm,
+      hash: record.hash,
+      recordedAt: record.recordedAt
+    });
+  }
+  return { records: records.sort(compareStateRecords), errors };
+}
+
+function parseReconcilerState(statePath) {
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  } catch (error) {
+    return {
+      records: [],
+      errors: [{ root: "shared", path: statePath, reason: "reconciler-state-invalid", detail: error.message }]
+    };
+  }
+  return parseReconcilerStateFromValue(parsed, statePath);
+}
+
 function inspectSkillRoots({ homeDir, rootPolicy = DEFAULT_ROOT_POLICY }) {
   if (typeof homeDir !== "string" || homeDir.length === 0 || !path.isAbsolute(homeDir)) {
     throw new Error("homeDir must be a non-empty absolute path");
@@ -249,6 +433,7 @@ function inspectSkillRoots({ homeDir, rootPolicy = DEFAULT_ROOT_POLICY }) {
   const protectedRoots = [];
   const errors = [];
   const locks = [];
+  const reconcilerState = [];
   const readLockPaths = new Set();
 
   for (const root of roots) {
@@ -283,6 +468,23 @@ function inspectSkillRoots({ homeDir, rootPolicy = DEFAULT_ROOT_POLICY }) {
           root: root.id,
           path: root.path,
           reason: "root-unreadable",
+          detail: error.message
+        });
+        root.safeToRead = false;
+      }
+    } else if (!lookupFailed && root.kind !== "protected") {
+      try {
+        assertModeledDirectory({
+          directory: root.path,
+          homeDir: resolvedHome,
+          label: `${root.id} root`,
+          allowMissing: true
+        });
+      } catch (error) {
+        errors.push({
+          root: root.id,
+          path: root.path,
+          reason: "root-unsafe-ancestor",
           detail: error.message
         });
         root.safeToRead = false;
@@ -381,11 +583,44 @@ function inspectSkillRoots({ homeDir, rootPolicy = DEFAULT_ROOT_POLICY }) {
     }
   }
 
+  const reconcilerStatePath = resolveHomePath(
+    resolvedHome,
+    RECONCILER_STATE_RELATIVE_PATH,
+    "reconciler state path"
+  );
+  if (fs.existsSync(reconcilerStatePath)) {
+    let canonicalStatePath;
+    try {
+      canonicalStatePath = fs.realpathSync(reconcilerStatePath);
+    } catch (error) {
+      errors.push({
+        root: "shared",
+        path: reconcilerStatePath,
+        reason: "reconciler-state-invalid",
+        detail: error.message
+      });
+    }
+    if (canonicalStatePath && !isPathWithin(canonicalStatePath, canonicalHome)) {
+      errors.push({
+        root: "shared",
+        path: reconcilerStatePath,
+        reason: "reconciler-state-outside-home",
+        detail: canonicalStatePath
+      });
+    } else if (canonicalStatePath) {
+      const parsed = parseReconcilerState(reconcilerStatePath);
+      if (parsed.errors.length === 0) reconcilerState.push(...parsed.records);
+      errors.push(...parsed.errors);
+    }
+  }
+
   return {
     homeDir: resolvedHome,
     roots,
     entries: entries.sort(compareStateRecords),
     locks: locks.sort(compareStateRecords),
+    reconcilerState: reconcilerState.sort(compareStateRecords),
+    reconcilerStatePath,
     protectedRoots: protectedRoots.sort(compareStateRecords),
     errors: errors.sort(compareStateRecords)
   };
@@ -432,7 +667,9 @@ function issueFromPlacement(type, placement, root, reason, extra = {}) {
     type,
     skill: placement.skill,
     root: placement.root,
-    path: root.path,
+    path: root.targetPath ?? root.path,
+    modeledRootPath: root.path,
+    expectedRootCanonicalPath: root.canonicalPath,
     reason,
     manager: placement.manager,
     source: placement.source,
@@ -447,7 +684,11 @@ function lockForSkill(locks, skill, rootId) {
   return locks.find((lock) => lock.name === skill && lock.root === rootId) ?? null;
 }
 
-function classifyExpectedEntry({ placement, root, current, expected, lock }) {
+function reconcilerRecordForSkill(records, skill, rootId) {
+  return records.find((record) => record.skill === skill && record.root === rootId) ?? null;
+}
+
+function classifyExpectedEntry({ placement, root, current, expected, lock, reconcilerRecord }) {
   if (!current) return issueFromPlacement("missing", placement, root, "expected-entry-absent");
   if (current.kind === "symlink") {
     return issueFromPlacement(
@@ -462,6 +703,14 @@ function classifyExpectedEntry({ placement, root, current, expected, lock }) {
     return issueFromPlacement("modified", placement, root, "expected-skill-is-not-directory");
   }
   if (!expected?.hash || expected.hashAlgorithm !== TREE_HASH_ALGORITHM) {
+    if (placement.manager !== "skills-cli") {
+      return issueFromPlacement(
+        "protected",
+        placement,
+        root,
+        "externally-managed-content-not-verified"
+      );
+    }
     return issueFromPlacement(
       "unclassified",
       placement,
@@ -472,15 +721,71 @@ function classifyExpectedEntry({ placement, root, current, expected, lock }) {
   if (current.hashStatus !== "verified" || current.hashAlgorithm !== TREE_HASH_ALGORITHM) {
     return issueFromPlacement("unclassified", placement, root, "current-hash-unverifiable");
   }
-  if (lock && lock.source !== null && lock.source !== placement.source) {
+  if (current.hash === expected.hash) return null;
+  if (reconcilerRecord) {
+    if (reconcilerRecord.source !== placement.source) {
+      return issueFromPlacement(
+        "unclassified",
+        placement,
+        root,
+        "reconciler-state-source-mismatch"
+      );
+    }
+    if (
+      reconcilerRecord.hashAlgorithm === TREE_HASH_ALGORITHM &&
+      current.hash === reconcilerRecord.hash
+    ) {
+      return issueFromPlacement(
+        "outdated",
+        placement,
+        root,
+        "installed-content-is-older-than-expected",
+        {
+          currentKind: current.kind,
+          currentHashAlgorithm: current.hashAlgorithm,
+          currentHash: current.hash
+        }
+      );
+    }
+    return issueFromPlacement(
+      "modified",
+      placement,
+      root,
+      "installed-content-differs-from-reconciler-state"
+    );
+  }
+  if (
+    lock &&
+    lock.source !== null &&
+    canonicalSourceIdentity(lock.source) !== canonicalSourceIdentity(placement.source)
+  ) {
     return issueFromPlacement("unclassified", placement, root, "source-provenance-mismatch");
   }
-  if (current.hash === expected.hash) return null;
   if (!lock?.hash || lock.hashAlgorithm !== TREE_HASH_ALGORITHM) {
-    return issueFromPlacement("unclassified", placement, root, "lock-hash-unverifiable");
+    return issueFromPlacement(
+      "unclassified",
+      placement,
+      root,
+      "lock-hash-unverifiable",
+      {
+        currentKind: current.kind,
+        currentHashAlgorithm: current.hashAlgorithm,
+        currentHash: current.hash
+      }
+    );
   }
   if (current.hash === lock.hash) {
-    return issueFromPlacement("outdated", placement, root, "installed-content-is-older-than-expected");
+    return issueFromPlacement(
+      "outdated",
+      placement,
+      root,
+      "installed-content-is-older-than-expected",
+      {
+        currentKind: current.kind,
+        currentHashAlgorithm: current.hashAlgorithm,
+        currentHash: current.hash
+      }
+    );
   }
   return issueFromPlacement("modified", placement, root, "installed-content-differs-from-lock");
 }
@@ -530,12 +835,18 @@ function reconcileGlobalSkillState({
     const current = entryByKey.get(key);
     const expected = expectedContent[placement.skill];
     const lock = lockForSkill(inventory.locks, placement.skill, placement.root);
+    const reconcilerRecord = reconcilerRecordForSkill(
+      inventory.reconcilerState ?? [],
+      placement.skill,
+      placement.root
+    );
     const classification = classifyExpectedEntry({
       placement,
-      root: { ...root, path: path.join(root.path, placement.skill) },
+      root: { ...root, targetPath: path.join(root.path, placement.skill) },
       current,
       expected,
-      lock
+      lock,
+      reconcilerRecord
     });
     if (classification) issues.push(classification);
     else cleanExpectedKeys.add(key);
@@ -605,6 +916,7 @@ function reconcileGlobalSkillState({
       canonical?.hashStatus === "verified" &&
       entry.hash === canonical.hash;
     if (cleanExpectedKeys.has(canonicalKey) && (equivalentSymlink || equivalentHash)) {
+      const canonicalRoot = rootById.get(canonicalRootId);
       issues.push({
         type: "verified-legacy-duplicate",
         skill: entry.name,
@@ -612,7 +924,17 @@ function reconcileGlobalSkillState({
         path: entry.path,
         reason: equivalentSymlink ? "symlink-targets-canonical-entry" : "content-matches-canonical-entry",
         manager: desired.manager,
-        canonicalPath: canonical.path
+        canonicalPath: canonical.path,
+        modeledRootPath: root.path,
+        expectedRootCanonicalPath: root.canonicalPath,
+        canonicalRootPath: canonicalRoot.path,
+        expectedCanonicalRootCanonicalPath: canonicalRoot.canonicalPath,
+        entryKind: entry.kind,
+        hashAlgorithm: entry.hashAlgorithm,
+        hash: entry.hash,
+        resolvedTarget: entry.resolvedTarget,
+        canonicalHashAlgorithm: canonical.hashAlgorithm,
+        canonicalHash: canonical.hash
       });
     } else {
       issues.push({
@@ -641,21 +963,76 @@ function planGlobalSkillOperations({ report, quarantineRoot }) {
   ) {
     throw new Error("quarantineRoot must be a child of the inspected homeDir");
   }
+  const quarantineBase = path.join(report.inventory.homeDir, ".skill-quarantine");
   for (const root of report.inventory.roots) {
     if (isPathWithin(quarantineRoot, root.path) || isPathWithin(root.path, quarantineRoot)) {
       throw new Error(`quarantineRoot must not overlap skill root ${root.path}`);
     }
   }
+  if (quarantineRoot === quarantineBase || !isPathWithin(quarantineRoot, quarantineBase)) {
+    throw new Error("quarantineRoot must be a run directory under homeDir/.skill-quarantine");
+  }
 
   const apply = [];
   const prune = [];
+  const replace = [];
   const restore = [];
   const manual = [];
   const blocked = [];
   const operationKeys = new Set();
+  const unsafeRootReasons = new Set([
+    "root-not-directory",
+    "root-outside-home",
+    "root-unreadable",
+    "root-unsafe-ancestor"
+  ]);
+  const unsafeRootIds = new Set(
+    report.inventory.errors
+      .filter(({ reason }) => unsafeRootReasons.has(reason))
+      .map(({ root }) => root)
+  );
 
   for (const issue of report.issues) {
+    if (
+      issue.type === "unclassified" &&
+      issue.reason === "lock-hash-unverifiable" &&
+      issue.manager === "skills-cli" &&
+      issue.currentKind === "directory" &&
+      issue.currentHashAlgorithm === TREE_HASH_ALGORITHM &&
+      issue.currentHash &&
+      !unsafeRootIds.has(issue.root)
+    ) {
+      replace.push({
+        type: "quarantine-unverified",
+        skill: issue.skill,
+        root: issue.root,
+        from: issue.path,
+        to: path.join(quarantineRoot, issue.root, issue.skill),
+        mustNotExist: true,
+        expectedKind: issue.currentKind,
+        expectedHashAlgorithm: issue.currentHashAlgorithm,
+        expectedHash: issue.currentHash,
+        expectedResolvedTarget: null,
+        modeledRootPath: issue.modeledRootPath,
+        expectedRootCanonicalPath: issue.expectedRootCanonicalPath,
+        source: issue.source,
+        sourceId: issue.sourceId,
+        targetAgent: issue.targetAgent,
+        fullDepth: issue.fullDepth
+      });
+    }
     if (issue.type === "missing" || issue.type === "outdated") {
+      if (unsafeRootIds.has(issue.root)) {
+        blocked.push({
+          type: "blocked",
+          skill: issue.skill,
+          root: issue.root,
+          path: issue.path,
+          issue: issue.type,
+          reason: "modeled-root-is-unsafe"
+        });
+        continue;
+      }
       if (issue.manager === "skills-cli") {
         const key = `${issue.skill}\0${issue.root}\0${issue.type}`;
         if (!operationKeys.has(key)) {
@@ -667,7 +1044,13 @@ function planGlobalSkillOperations({ report, quarantineRoot }) {
             sourceId: issue.sourceId,
             root: issue.root,
             targetAgent: issue.targetAgent,
-            fullDepth: issue.fullDepth
+            fullDepth: issue.fullDepth,
+            targetPath: issue.path,
+            modeledRootPath: issue.modeledRootPath,
+            expectedRootCanonicalPath: issue.expectedRootCanonicalPath,
+            expectedCurrentKind: issue.currentKind ?? null,
+            expectedCurrentHashAlgorithm: issue.currentHashAlgorithm ?? null,
+            expectedCurrentHash: issue.currentHash ?? null
           });
         }
       } else {
@@ -703,7 +1086,18 @@ function planGlobalSkillOperations({ report, quarantineRoot }) {
         root: issue.root,
         from: issue.path,
         to: destination,
-        mustNotExist: true
+        mustNotExist: true,
+        expectedKind: issue.entryKind,
+        expectedHashAlgorithm: issue.hashAlgorithm,
+        expectedHash: issue.hash,
+        expectedResolvedTarget: issue.resolvedTarget,
+        canonicalPath: issue.canonicalPath,
+        modeledRootPath: issue.modeledRootPath,
+        expectedRootCanonicalPath: issue.expectedRootCanonicalPath,
+        canonicalRootPath: issue.canonicalRootPath,
+        expectedCanonicalRootCanonicalPath: issue.expectedCanonicalRootCanonicalPath,
+        expectedCanonicalHashAlgorithm: issue.canonicalHashAlgorithm,
+        expectedCanonicalHash: issue.canonicalHash
       });
       restore.push({
         type: "restore",
@@ -730,18 +1124,365 @@ function planGlobalSkillOperations({ report, quarantineRoot }) {
   return {
     apply: apply.sort(compareStateRecords),
     prune: prune.sort(compareStateRecords),
+    replace: replace.sort(compareStateRecords),
     restore: restore.sort(compareStateRecords),
     manual: manual.sort(compareStateRecords),
     blocked: blocked.sort(compareStateRecords)
   };
 }
 
+function assertQuarantineOperationSafe(operation, homeDir, quarantineRoot) {
+  if (!isPathWithin(operation.from, homeDir)) {
+    throw new Error(`quarantine source must stay inside homeDir: ${operation.from}`);
+  }
+  if (!isPathWithin(operation.to, quarantineRoot)) {
+    throw new Error(`quarantine destination must stay inside quarantineRoot: ${operation.to}`);
+  }
+  if (path.dirname(operation.from) !== operation.modeledRootPath) {
+    throw new Error(`quarantine source left its modeled root: ${operation.from}`);
+  }
+  assertModeledDirectory({
+    directory: operation.modeledRootPath,
+    homeDir,
+    label: "quarantine source root",
+    expectedCanonicalPath: operation.expectedRootCanonicalPath
+  });
+  assertMutationPathWithin(operation.from, homeDir, "quarantine source");
+  assertMutationPathWithin(operation.to, homeDir, "quarantine destination");
+  if (!fs.existsSync(operation.from)) {
+    throw new Error(`quarantine source no longer exists: ${operation.from}`);
+  }
+  if (fs.existsSync(operation.to)) {
+    throw new Error(`quarantine destination already exists: ${operation.to}`);
+  }
+
+  const stat = fs.lstatSync(operation.from);
+  const currentKind = stat.isSymbolicLink()
+    ? "symlink"
+    : stat.isDirectory()
+      ? "directory"
+      : stat.isFile()
+        ? "file"
+        : "other";
+  if (currentKind !== operation.expectedKind) {
+    throw new Error(`quarantine source type changed: ${operation.from}`);
+  }
+  if (operation.expectedResolvedTarget !== null && operation.expectedResolvedTarget !== undefined) {
+    let resolvedTarget;
+    try {
+      resolvedTarget = fs.realpathSync(operation.from);
+    } catch {
+      resolvedTarget = null;
+    }
+    if (resolvedTarget !== operation.expectedResolvedTarget) {
+      throw new Error(`quarantine symlink target changed: ${operation.from}`);
+    }
+  }
+  if (operation.expectedHash) {
+    const current = stat.isSymbolicLink()
+      ? hashObservedPath(fs.realpathSync(operation.from))
+      : hashObservedPath(operation.from);
+    if (
+      current.hashAlgorithm !== operation.expectedHashAlgorithm ||
+      current.hash !== operation.expectedHash
+    ) {
+      throw new Error(`quarantine source content changed: ${operation.from}`);
+    }
+  }
+  if (operation.type === "quarantine") {
+    if (!operation.canonicalPath || !fs.existsSync(operation.canonicalPath)) {
+      throw new Error(`canonical entry no longer exists: ${operation.canonicalPath}`);
+    }
+    if (path.dirname(operation.canonicalPath) !== operation.canonicalRootPath) {
+      throw new Error(`canonical entry left its modeled root: ${operation.canonicalPath}`);
+    }
+    assertModeledDirectory({
+      directory: operation.canonicalRootPath,
+      homeDir,
+      label: "canonical managed root",
+      expectedCanonicalPath: operation.expectedCanonicalRootCanonicalPath
+    });
+    assertMutationPathWithin(operation.canonicalPath, homeDir, "canonical entry");
+    const canonical = hashObservedPath(operation.canonicalPath);
+    if (
+      canonical.hashAlgorithm !== operation.expectedCanonicalHashAlgorithm ||
+      canonical.hash !== operation.expectedCanonicalHash
+    ) {
+      throw new Error(`canonical entry content changed: ${operation.canonicalPath}`);
+    }
+  }
+}
+
+function writeJsonAtomic(file, value, homeDir = null) {
+  if (homeDir) assertMutationPathWithin(file, homeDir, "state file");
+  const temporary = `${file}.tmp-${process.pid}-${crypto.randomBytes(6).toString("hex")}`;
+  if (homeDir) assertMutationPathWithin(temporary, homeDir, "temporary state file");
+  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: "wx" });
+  if (homeDir) {
+    assertMutationPathWithin(file, homeDir, "state file");
+    assertMutationPathWithin(temporary, homeDir, "temporary state file");
+  }
+  fs.renameSync(temporary, file);
+}
+
+function writeReconcilerState({ homeDir, records }) {
+  if (!Array.isArray(records)) throw new Error("reconciler state records must be an array");
+  const statePath = resolveHomePath(
+    path.resolve(homeDir),
+    RECONCILER_STATE_RELATIVE_PATH,
+    "reconciler state path"
+  );
+  const parsed = parseReconcilerStateFromValue({ version: 1, records }, statePath);
+  if (parsed.errors.length > 0) throw new Error("reconciler state records are invalid");
+  assertModeledDirectory({
+    directory: path.dirname(statePath),
+    homeDir,
+    label: "reconciler state parent",
+    allowMissing: true
+  });
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  assertModeledDirectory({
+    directory: path.dirname(statePath),
+    homeDir,
+    label: "reconciler state parent"
+  });
+  writeJsonAtomic(statePath, { version: 1, records: parsed.records }, homeDir);
+  return statePath;
+}
+
+function quarantinePlannedEntries({ report, operations, quarantineRoot, createdAt }) {
+  if (!Array.isArray(operations)) throw new Error("operations must be an array");
+  if (operations.length === 0) return null;
+  if (!path.isAbsolute(quarantineRoot)) throw new Error("quarantineRoot must be an absolute path");
+  const homeDir = report.inventory.homeDir;
+  if (!isPathWithin(quarantineRoot, homeDir) || quarantineRoot === homeDir) {
+    throw new Error("quarantineRoot must be a child of the inspected homeDir");
+  }
+  const quarantineBase = path.join(homeDir, ".skill-quarantine");
+  if (quarantineRoot === quarantineBase || !isPathWithin(quarantineRoot, quarantineBase)) {
+    throw new Error("quarantineRoot must be a run directory under homeDir/.skill-quarantine");
+  }
+  for (const root of report.inventory.roots) {
+    if (isPathWithin(quarantineRoot, root.path) || isPathWithin(root.path, quarantineRoot)) {
+      throw new Error(`quarantineRoot must not overlap skill root ${root.path}`);
+    }
+  }
+  if (fs.existsSync(quarantineRoot)) {
+    throw new Error(`quarantineRoot already exists: ${quarantineRoot}`);
+  }
+  assertModeledDirectory({
+    directory: quarantineRoot,
+    homeDir,
+    label: "quarantine root",
+    allowMissing: true
+  });
+
+  for (const operation of operations) {
+    if (!new Set(["quarantine", "quarantine-unverified"]).has(operation.type)) {
+      throw new Error(`unsupported quarantine operation: ${operation.type}`);
+    }
+    assertQuarantineOperationSafe(operation, homeDir, quarantineRoot);
+  }
+
+  fs.mkdirSync(quarantineRoot, { recursive: true });
+  assertModeledDirectory({ directory: quarantineRoot, homeDir, label: "quarantine root" });
+  const manifestPath = path.join(quarantineRoot, "manifest.json");
+  const manifest = {
+    version: 2,
+    createdAt,
+    homeDir,
+    quarantineRoot,
+    quarantineCanonicalPath: fs.realpathSync(quarantineRoot),
+    roots: Object.fromEntries(
+      report.inventory.roots
+        .filter(({ id }) => operations.some(({ root }) => root === id))
+        .map(({ id, path: rootPath, canonicalPath }) => [
+          id,
+          { path: rootPath, canonicalPath }
+        ])
+    ),
+    entries: operations.map((operation) => ({
+      skill: operation.skill,
+      root: operation.root,
+      reason: operation.type,
+      originalPath: operation.from,
+      quarantinedPath: operation.to,
+      status: "pending"
+    }))
+  };
+  writeJsonAtomic(manifestPath, manifest, homeDir);
+
+  for (const [index, operation] of operations.entries()) {
+    assertQuarantineOperationSafe(operation, homeDir, quarantineRoot);
+    assertModeledDirectory({
+      directory: path.dirname(operation.to),
+      homeDir,
+      label: "quarantine destination parent",
+      allowMissing: true
+    });
+    fs.mkdirSync(path.dirname(operation.to), { recursive: true });
+    assertModeledDirectory({
+      directory: path.dirname(operation.to),
+      homeDir,
+      label: "quarantine destination parent"
+    });
+    assertMutationPathWithin(operation.from, homeDir, "quarantine source");
+    assertMutationPathWithin(operation.to, homeDir, "quarantine destination");
+    fs.renameSync(operation.from, operation.to);
+    manifest.entries[index].status = "quarantined";
+    writeJsonAtomic(manifestPath, manifest, homeDir);
+  }
+
+  return { manifestPath, manifest };
+}
+
+const quarantineVerifiedDuplicates = quarantinePlannedEntries;
+
+function restoreQuarantine({ manifestPath, homeDir }) {
+  if (!path.isAbsolute(homeDir)) throw new Error("homeDir must be an absolute path");
+  if (!path.isAbsolute(manifestPath)) throw new Error("manifestPath must be an absolute path");
+  const resolvedHome = path.resolve(homeDir);
+  const resolvedManifest = path.resolve(manifestPath);
+  if (!isPathWithin(resolvedManifest, resolvedHome)) {
+    throw new Error("restore manifest must stay inside homeDir");
+  }
+  assertModeledDirectory({
+    directory: path.dirname(resolvedManifest),
+    homeDir: resolvedHome,
+    label: "restore manifest parent"
+  });
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(resolvedManifest, "utf8"));
+  } catch (error) {
+    throw new Error(`could not read restore manifest: ${error.message}`);
+  }
+  if (
+    !isObject(manifest) ||
+    manifest.version !== 2 ||
+    manifest.homeDir !== resolvedHome ||
+    !path.isAbsolute(manifest.quarantineRoot) ||
+    typeof manifest.quarantineCanonicalPath !== "string" ||
+    manifest.quarantineRoot === path.join(resolvedHome, ".skill-quarantine") ||
+    !isPathWithin(manifest.quarantineRoot, path.join(resolvedHome, ".skill-quarantine")) ||
+    !isPathWithin(resolvedManifest, manifest.quarantineRoot) ||
+    !isObject(manifest.roots) ||
+    !Array.isArray(manifest.entries)
+  ) {
+    throw new Error("restore manifest is invalid or belongs to a different homeDir");
+  }
+  assertModeledDirectory({
+    directory: manifest.quarantineRoot,
+    homeDir: resolvedHome,
+    label: "restore quarantine root",
+    expectedCanonicalPath: manifest.quarantineCanonicalPath
+  });
+
+  const restored = [];
+  for (const entry of manifest.entries) {
+    if (!isObject(entry)) throw new Error("restore manifest contains an invalid entry");
+    if (entry.status === "restored" || entry.status === "not-moved") continue;
+    if (!new Set(["pending", "quarantined"]).has(entry.status)) {
+      throw new Error(`restore entry has unsupported status for ${entry.skill ?? "unknown"}`);
+    }
+    const originalRootRecord = manifest.roots[entry.root];
+    const originalRoot = originalRootRecord?.path;
+    if (
+      typeof entry.skill !== "string" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.skill) ||
+      !isObject(originalRootRecord) ||
+      typeof originalRoot !== "string" ||
+      typeof originalRootRecord.canonicalPath !== "string" ||
+      !path.isAbsolute(originalRoot) ||
+      !isPathWithin(originalRoot, resolvedHome) ||
+      !path.isAbsolute(entry.originalPath) ||
+      path.dirname(entry.originalPath) !== originalRoot ||
+      path.basename(entry.originalPath) !== entry.skill ||
+      !path.isAbsolute(entry.quarantinedPath) ||
+      entry.quarantinedPath !== path.join(manifest.quarantineRoot, entry.root, entry.skill)
+    ) {
+      throw new Error(`restore entry escapes its allowed roots: ${entry.skill ?? "unknown"}`);
+    }
+    assertModeledDirectory({
+      directory: originalRoot,
+      homeDir: resolvedHome,
+      label: "restore destination root",
+      allowMissing: true,
+      expectedCanonicalPath: originalRootRecord.canonicalPath
+    });
+    assertModeledDirectory({
+      directory: path.dirname(entry.quarantinedPath),
+      homeDir: resolvedHome,
+      label: "quarantined entry parent"
+    });
+    assertMutationPathWithin(entry.originalPath, resolvedHome, "restore destination");
+    assertMutationPathWithin(entry.quarantinedPath, resolvedHome, "quarantined entry");
+    if (entry.status === "pending" || entry.status === "quarantined") {
+      const originalExists = pathEntryExists(entry.originalPath);
+      const quarantinedExists = pathEntryExists(entry.quarantinedPath);
+      if (originalExists && !quarantinedExists) {
+        entry.status = entry.status === "pending" ? "not-moved" : "restored";
+        writeJsonAtomic(resolvedManifest, manifest, resolvedHome);
+        continue;
+      }
+      if (!originalExists && quarantinedExists) {
+        if (entry.status === "pending") {
+          entry.status = "quarantined";
+          writeJsonAtomic(resolvedManifest, manifest, resolvedHome);
+        }
+      } else if (entry.status === "quarantined" && originalExists && quarantinedExists) {
+        throw new Error(`restore destination already exists: ${entry.originalPath}`);
+      } else if (entry.status === "quarantined" && !originalExists && !quarantinedExists) {
+        throw new Error(`quarantined entry is missing: ${entry.quarantinedPath}`);
+      } else {
+        throw new Error(`restore entry has ambiguous filesystem state: ${entry.skill}`);
+      }
+    }
+    if (!pathEntryExists(entry.quarantinedPath)) {
+      throw new Error(`quarantined entry is missing: ${entry.quarantinedPath}`);
+    }
+    if (pathEntryExists(entry.originalPath)) {
+      throw new Error(`restore destination already exists: ${entry.originalPath}`);
+    }
+    assertModeledDirectory({
+      directory: originalRoot,
+      homeDir: resolvedHome,
+      label: "restore destination root",
+      allowMissing: true,
+      expectedCanonicalPath: originalRootRecord.canonicalPath
+    });
+    fs.mkdirSync(path.dirname(entry.originalPath), { recursive: true });
+    assertModeledDirectory({
+      directory: originalRoot,
+      homeDir: resolvedHome,
+      label: "restore destination root",
+      expectedCanonicalPath: originalRootRecord.canonicalPath
+    });
+    assertMutationPathWithin(entry.originalPath, resolvedHome, "restore destination");
+    assertMutationPathWithin(entry.quarantinedPath, resolvedHome, "quarantined entry");
+    fs.renameSync(entry.quarantinedPath, entry.originalPath);
+    entry.status = "restored";
+    writeJsonAtomic(resolvedManifest, manifest, resolvedHome);
+    restored.push(entry.originalPath);
+  }
+  return { manifestPath: resolvedManifest, restored };
+}
+
 module.exports = {
   DEFAULT_ROOT_POLICY,
+  RECONCILER_STATE_RELATIVE_PATH,
   TREE_HASH_ALGORITHM,
+  assertModeledDirectory,
+  assertMutationPathWithin,
   expectedGlobalPlacements,
   hashSkillDirectory,
   inspectSkillRoots,
+  pathEntryExists,
   planGlobalSkillOperations,
-  reconcileGlobalSkillState
+  quarantinePlannedEntries,
+  quarantineVerifiedDuplicates,
+  restoreQuarantine,
+  reconcileGlobalSkillState,
+  writeReconcilerState
 };
