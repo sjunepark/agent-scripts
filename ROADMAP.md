@@ -2,11 +2,11 @@
 
 ## Current
 
-- [Profile-aware cross-machine skill sync](plans/profile-aware-skill-sync.md)
+_None._
 
 ## Plans
 
-_None._
+- [Profile-aware cross-machine skill sync](plans/profile-aware-skill-sync.md)
 
 ## Tasks
 

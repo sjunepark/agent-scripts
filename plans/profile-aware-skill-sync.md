@@ -1,7 +1,7 @@
 # Profile-aware cross-machine skill sync
 
-Status: Current plan; phases 1-4 and the goal-bounded phase 7/8 work are
-implemented and validated; PR delivery is in progress.
+Status: Implemented for the authorized phases 1-4 and goal-bounded phase 7/8
+work. Phases 5, 6, and 9 remain deliberately deferred.
 
 ## Outcome
 
@@ -561,7 +561,6 @@ common skill plus a machine-specific skill in all intended clients.
 
 ## Next action
 
-Finish the current goal through its single reviewed PR, then update terminal
-planning metadata on `main`. Phases 5, 6, and 9 require separate authority:
-private KICPA support, real-machine apply/prune, legacy-root migration, and
-rollout remain deliberately unstarted.
+No action remains within the completed goal. Phases 5, 6, and 9 require a new
+authorization boundary: private KICPA support, real-machine apply/prune,
+legacy-root migration, and rollout remain deliberately unstarted.

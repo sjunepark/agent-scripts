@@ -1,6 +1,6 @@
 # Goal: Profile-aware global skill reconciler
 
-Status: active
+Status: complete
 Planning scope: ROADMAP.md
 
 ## Original contract
@@ -35,12 +35,12 @@ _None._
 
 ### Current in-scope result
 
-PR #6 feedback resolution and merge delivery.
+Delivery complete.
 
 ### Next in-scope action
 
-Commit and push the validated feedback fixes, resolve the review threads, and
-merge PR #6 after its checks remain green.
+None. Any private-source support, machine mutation, migration, or rollout
+requires a separately authorized goal.
 
 ### Evidence and blockers
 
@@ -61,4 +61,7 @@ merge PR #6 after its checks remain green.
   discovery. The final real-home `dev` audit remained read-only and failed
   strictly on the existing protected, legacy, and unclassified state as
   intended.
+- PR #6 merged through the required feedback lifecycle as merge commit
+  `7db76d3`; all nine actionable threads were answered and resolved, and the
+  final CodeRabbit and GitGuardian checks passed.
 - Private KICPA source support, real-machine apply/prune, legacy-root migration, and rollout remain excluded.
