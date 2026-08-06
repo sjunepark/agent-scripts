@@ -1,6 +1,6 @@
 # Profile-aware cross-machine skill sync
 
-Status: Current plan; registry v2 schema slice complete.
+Status: Current plan; phases 1-3 complete.
 
 ## Outcome
 
@@ -89,6 +89,18 @@ Snapshot taken on 2026-08-05 from the development machine:
   skills on this machine as drift. A bounded `code-review` pass found no
   remaining safe fixes or decisions after correcting the global-manual-record
   documentation.
+- The 2026-08-06 exact-state slice added a fixture-only filesystem inventory,
+  deterministic tree hashing, strict issue classification, and a non-executing
+  operation planner in `scripts/lib/global-skill-state.js`. Existing roots and
+  lock files are read only after their canonical paths are proven to stay
+  inside an explicitly injected home; lock provenance is root-local and never
+  authorizes a different managed root.
+- Exact-state fixtures cover canonical and Claude copies, legacy duplicates,
+  protected roots, symlinks, path escapes, missing/outdated/modified and
+  ambiguous content, manager boundaries, and quarantine/restore plans. The
+  combined dependency-free suite passes 22 tests. The model was never invoked
+  against real machine skill roots, no real-home state was mutated, and the
+  audit/apply/prune command remains unchanged.
 
 ## Accepted decisions
 
@@ -297,22 +309,22 @@ Prefer a focused pure module, for example
 `scripts/lib/global-skill-state.js`, rather than expanding the command into a
 large collection of coupled branches.
 
-- [ ] Map each selected registry entry to its expected managed roots:
+- [x] Map each selected registry entry to its expected managed roots:
       Codex/Pi compatibility to `~/.agents/skills`, and Claude compatibility to
       `~/.claude/skills`.
-- [ ] Enumerate children only in explicit managed and known legacy roots.
-- [ ] Read lock-file provenance when available: source URL, ref, skill path,
+- [x] Enumerate children only in explicit managed and known legacy roots.
+- [x] Read lock-file provenance when available: source URL, ref, skill path,
       and recorded content hash.
-- [ ] Calculate current hashes in a stable way compatible with the lock format,
+- [x] Calculate current hashes in a stable way compatible with the lock format,
       or report provenance as unverifiable if compatibility cannot be proven.
-- [ ] Classify issues as at least `missing`, `outdated`, `misplaced`,
+- [x] Classify issues as at least `missing`, `outdated`, `misplaced`,
       `unexpected-managed`, `verified-legacy-duplicate`, `modified`,
       `unclassified`, and `protected`.
-- [ ] Detect symlinks explicitly and resolve targets read-only before deciding
+- [x] Detect symlinks explicitly and resolve targets read-only before deciding
       whether two entries are equivalent.
-- [ ] Generate an operation plan independently from executing it so dry-run,
+- [x] Generate an operation plan independently from executing it so dry-run,
       tests, apply, and prune share one decision path.
-- [ ] Ensure manual and workflow-managed registry entries keep their manager
+- [x] Ensure manual and workflow-managed registry entries keep their manager
       boundaries and are not silently converted to Skills CLI ownership.
 
 Exit condition: fixture inventories produce a complete, deterministic report
@@ -420,26 +432,26 @@ add package tooling solely for this feature.
 
 Minimum automated cases:
 
-- [ ] Valid `dev` and `kicpa` profile resolution.
-- [ ] Missing, unknown, duplicate, and scope-invalid audiences.
-- [ ] Canonical shared-root and Claude compatibility placement.
-- [ ] No Pi-specific install command is generated.
-- [ ] Strict missing, extra, misplaced, outdated, modified, and unclassified
+- [x] Valid `dev` and `kicpa` profile resolution.
+- [x] Missing, unknown, duplicate, and scope-invalid audiences.
+- [x] Canonical shared-root and Claude compatibility placement.
+- [x] No Pi-specific install command is generated.
+- [x] Strict missing, extra, misplaced, outdated, modified, and unclassified
       states.
-- [ ] Protected-root exclusion.
-- [ ] Manual/workflow manager preservation.
+- [x] Protected-root exclusion.
+- [x] Manual/workflow manager preservation.
 - [ ] Public and private source command synthesis without credentials.
-- [ ] Hash mismatch and unverifiable provenance handling.
-- [ ] Quarantine and restore plans using a temporary home fixture only.
+- [x] Hash mismatch and unverifiable provenance handling.
+- [x] Quarantine and restore plans using a temporary home fixture only.
 
 Repository validation:
 
-- [ ] Run the new dependency-free test command.
-- [ ] Run `scripts/validate-skills`.
+- [x] Run the new dependency-free test command.
+- [x] Run `scripts/validate-skills`.
 - [ ] Run `bunx skills add ./skills --list`.
 - [ ] Run strict dry-run audits for both profiles against fixtures.
 - [ ] Run the development profile against the real machine read-only.
-- [ ] Run `$code-review` with the diet lens, apply safe findings, and repeat
+- [x] Run `$code-review` with the diet lens, apply safe findings, and repeat
       validation.
 
 Exit condition: tests never mutate the real home directory and all validation
@@ -511,16 +523,18 @@ common skill plus a machine-specific skill in all intended clients.
 
 ## Next action
 
-Implement the exact-state modeling slice in phase 3 without touching the real
-home directory:
+Begin phase 4 by connecting the exact-state model to the audit through a
+fixture-backed, read-only integration slice:
 
-1. Add temporary-home fixtures for canonical, Claude, legacy, protected,
-   symlinked, modified, and unknown skill entries.
-2. Implement a focused pure `scripts/lib/global-skill-state.js` module that
-   maps one resolved profile to expected roots and classifies fixture state.
-3. Separate operation-plan generation from execution and preserve manager
-   boundaries; generate no Pi-specific install target.
-4. Add deterministic tests for placement, provenance/hash uncertainty, issue
-   classes, protected roots, and quarantine/restore plans.
-5. Run the registry tests and `scripts/validate-skills`, then stop for review
-   before connecting the model to real-home audit, apply, or prune behavior.
+1. Refactor `scripts/audit-global-skills` behind a callable interface with
+   injected registry, home, expected-content, and output dependencies while
+   retaining the thin executable entry point.
+2. Replace aggregate agent-label decisions with exact placements, inventory,
+   reconciliation, and operation-plan reporting for temporary-home fixtures.
+3. Add CLI fixtures for both profiles, strict pass/fail exits, protected and
+   unclassified reporting, and deterministic proposed operations.
+4. Keep `--apply` and `--prune` unavailable, and do not inspect the real home,
+   until the fixture-backed strict audit passes and source materialization for
+   expected hashes has an explicit read-only design.
+5. Run the combined Node tests and `scripts/validate-skills`, then stop for a
+   review before enabling the live read-only audit.
