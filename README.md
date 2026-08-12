@@ -99,7 +99,7 @@ globally.
 
 Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-specific, workflow-managed, or catalog-only, along with its provenance
-and target agents. See [docs/skill-registry.md](docs/skill-registry.md) for the
+and installation targets. See [docs/skill-registry.md](docs/skill-registry.md) for the
 schema contract. Use `scripts/audit-global-skills --profile <dev|kicpa>` to
 report exact-root drift in the selected global profile.
 

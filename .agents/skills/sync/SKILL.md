@@ -107,7 +107,7 @@ scripts/audit-global-skills --profile "$PROFILE" --apply
 scripts/audit-global-skills --profile "$PROFILE"
 ```
 
-Apply uses only registry-approved remote sources. It installs selected Codex/Pi-compatible skills through the shared Codex target, selected Claude-compatible skills through the Claude target, and creates no Pi-specific copy. It adopts already-exact copies, updates only verified unchanged copies, quarantines the prior verified tree before an update, and blocks locally modified or unverified stale copies.
+Apply uses only registry-approved remote sources. It installs the registry's `.agents` targets through the Codex command target and `.claude` targets through the Claude Code command target, and creates no Pi-specific copy. It adopts already-exact copies, updates only verified unchanged copies, quarantines the prior verified tree before an update, and blocks locally modified or unverified stale copies.
 
 Do not hand-build global commands or use `--all` when this registry-backed reconciler applies. Project, workflow, catalog, and manual records remain with their declared policy or manager.
 

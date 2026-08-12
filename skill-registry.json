@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Authoritative classification and installation policy for repository and recommended external skills.",
   "global": {
     "allowUnlistedSkills": false,
@@ -54,10 +54,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -71,10 +70,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -88,10 +86,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -105,9 +102,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -121,8 +118,8 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex"
+        "targets": [
+          ".agents"
         ]
       },
       "installation": {
@@ -136,10 +133,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -153,10 +149,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -169,10 +164,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository contains maintained Rust code."
       },
@@ -187,10 +181,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -204,9 +197,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -221,8 +214,8 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex"
+        "targets": [
+          ".agents"
         ]
       },
       "installation": {
@@ -236,9 +229,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -253,9 +246,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -268,10 +261,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -285,8 +277,8 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex"
+        "targets": [
+          ".agents"
         ]
       },
       "installation": {
@@ -300,10 +292,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -317,10 +308,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -334,10 +324,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -351,9 +340,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -368,10 +357,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -385,9 +373,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -401,9 +389,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -416,8 +404,8 @@
       "source": "impeccable",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "claude-code"
+        "targets": [
+          ".claude"
         ],
         "when": "The delegate-ui-to-claude workflow operates in a UI repository."
       },
@@ -432,9 +420,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -449,10 +437,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -466,10 +453,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -482,10 +468,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository contains maintained Go code."
       },
@@ -499,10 +484,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository contains maintained Rust code."
       },
@@ -517,9 +501,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -533,10 +517,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -550,9 +533,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -565,10 +548,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository uses Release Please or is explicitly adopting it."
       },
@@ -582,10 +564,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository needs a persistent whole-repository review campaign."
       },
@@ -600,9 +581,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -615,10 +596,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "common",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -632,10 +612,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -648,10 +627,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository has a user interface that benefits from deterministic development scenarios."
       },
@@ -666,10 +644,9 @@
       "recommendation": {
         "scope": "global",
         "audience": "dev",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ]
       },
       "installation": {
@@ -682,10 +659,9 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "project",
-        "agents": [
-          "codex",
-          "claude-code",
-          "pi"
+        "targets": [
+          ".agents",
+          ".claude"
         ],
         "when": "The repository contains maintained Go code."
       },

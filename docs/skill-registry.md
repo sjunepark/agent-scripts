@@ -9,14 +9,14 @@ external skills.
 Each skill has one record that separates three concerns:
 
 - `source` identifies where the skill definition comes from.
-- `recommendation` identifies its intended scope, target agents, and, for a
+- `recommendation` identifies its intended scope, installation targets, and, for a
   project recommendation, when it applies.
 - `installation` identifies who manages the install and any required mode.
 
 Recommendation scopes are:
 
-- `global`: part of a named machine audience and desired for the compatible
-  agents when the selected profile includes that audience.
+- `global`: part of a named machine audience and desired at its declared
+  installation targets when the selected profile includes that audience.
 - `project`: install only when the record's `when` condition matches a
   repository.
 - `catalog`: published or tracked for discovery, but not recommended for
@@ -46,7 +46,7 @@ not match the target agent. `impeccable` is the current example; the
 `delegate-ui-to-claude` workflow provisions it with its own CLI, scoped to one
 project and one agent.
 
-The version 2 global contract defines two profiles:
+The version 3 global contract defines two profiles:
 
 - `dev` resolves `common` and `dev` audiences.
 - `kicpa` resolves `common` and `kicpa` audiences.
@@ -60,11 +60,15 @@ no inferred or default profile.
 `global.allowUnlistedSkills` is retained as an explicit strictness declaration
 and must be `false`; installed skills outside the selected profile are drift.
 
-`recommendation.agents` records the agents targeted by installation commands.
-For exact global reconciliation, Codex- or Pi-compatible entries map to the
-shared `~/.agents/skills` root through an explicit Codex target; Claude Code
-compatibility maps to `~/.claude/skills` through an explicit Claude target.
-The reconciler never synthesizes a Pi target or uses `--all`.
+`recommendation.targets` records installation destinations directly. The only
+supported values are `.agents`, which maps to `~/.agents/skills`, and
+`.claude`, which maps to `~/.claude/skills`. Global and project recommendations
+must declare at least one sorted target; catalog recommendations declare none.
+The Skills CLI adapter uses an
+explicit Codex command target to populate `.agents` and an explicit Claude Code
+command target to populate `.claude`; those client names are implementation
+details rather than registry classification. The reconciler never synthesizes
+a Pi target or uses `--all`.
 
 ## Ownership
 

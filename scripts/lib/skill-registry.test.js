@@ -9,7 +9,7 @@ const {
 
 function validRegistry() {
   return {
-    version: 2,
+    version: 3,
     description: "Test registry.",
     global: {
       allowUnlistedSkills: false,
@@ -31,7 +31,7 @@ function validRegistry() {
         recommendation: {
           scope: "global",
           audience: "common",
-          agents: ["codex"]
+          targets: [".agents"]
         },
         installation: { manager: "skills-cli", mode: "copy" }
       },
@@ -41,7 +41,7 @@ function validRegistry() {
         recommendation: {
           scope: "global",
           audience: "dev",
-          agents: ["codex"]
+          targets: [".agents"]
         },
         installation: { manager: "skills-cli", mode: "copy" }
       },
@@ -51,7 +51,7 @@ function validRegistry() {
         recommendation: {
           scope: "global",
           audience: "kicpa",
-          agents: ["codex"]
+          targets: [".agents"]
         },
         installation: { manager: "skills-cli", mode: "copy" }
       },
@@ -60,7 +60,7 @@ function validRegistry() {
         source: "test",
         recommendation: {
           scope: "project",
-          agents: ["codex"],
+          targets: [".agents"],
           when: "The target project opts in."
         },
         installation: { manager: "skills-cli", mode: "symlink" }
@@ -82,13 +82,21 @@ function assertErrorIncludes(errors, expected) {
   );
 }
 
-test("version 2 registry resolves the dev and kicpa profile unions", () => {
+test("version 3 registry resolves the dev and kicpa profile unions", () => {
   const registry = validRegistry();
+  const devEntries = globalSkillEntries(registry, "dev");
 
   assert.deepEqual(validateSkillRegistry(registry), []);
   assert.deepEqual(
-    globalSkillEntries(registry, "dev").map((entry) => entry.name),
+    devEntries.map((entry) => entry.name),
     ["common-alpha", "dev-alpha"]
+  );
+  assert.deepEqual(
+    devEntries.map(({ name, targets }) => ({ name, targets })),
+    [
+      { name: "common-alpha", targets: [".agents"] },
+      { name: "dev-alpha", targets: [".agents"] }
+    ]
   );
   assert.deepEqual(
     globalSkillEntries(registry, "kicpa").map((entry) => entry.name),
@@ -109,12 +117,12 @@ test("profile resolution requires an explicit supported profile", () => {
   );
 });
 
-test("registry version 1 is rejected", () => {
+test("older registry versions are rejected", () => {
   const errors = validationErrors((registry) => {
-    registry.version = 1;
+    registry.version = 2;
   });
 
-  assertErrorIncludes(errors, "version must be 2");
+  assertErrorIncludes(errors, "version must be 3");
 });
 
 test("strict desired state cannot allow unlisted global skills", () => {
@@ -181,6 +189,35 @@ test("every global recommendation has exactly one supported audience", () => {
   assertErrorIncludes(multiple, "common-alpha global recommendation must name one audience");
 });
 
+test("global and project recommendations use sorted installation targets", () => {
+  const legacy = validationErrors((registry) => {
+    delete registry.skills[0].recommendation.targets;
+    registry.skills[0].recommendation.agents = ["codex"];
+  });
+  const unsupported = validationErrors((registry) => {
+    registry.skills[0].recommendation.targets = ["codex"];
+  });
+  const duplicate = validationErrors((registry) => {
+    registry.skills[0].recommendation.targets = [".agents", ".agents"];
+  });
+  const unsorted = validationErrors((registry) => {
+    registry.skills[0].recommendation.targets = [".claude", ".agents"];
+  });
+  const missingProjectTargets = validationErrors((registry) => {
+    delete registry.skills[3].recommendation.targets;
+  });
+
+  assertErrorIncludes(legacy, "common-alpha recommendation has unsupported field agents");
+  assertErrorIncludes(legacy, "common-alpha global recommendation must name targets");
+  assertErrorIncludes(unsupported, "common-alpha has unsupported target codex");
+  assertErrorIncludes(duplicate, "common-alpha repeats target .agents");
+  assertErrorIncludes(unsorted, "common-alpha recommendation targets must be sorted");
+  assertErrorIncludes(
+    missingProjectTargets,
+    "project-alpha project recommendation must name targets"
+  );
+});
+
 test("skills-cli installation requires a source the Skills CLI can clone", () => {
   const npmSpecifier = validationErrors((registry) => {
     registry.sources.test.location = "npm:test-skills@latest";
@@ -220,7 +257,7 @@ test("non-skills-cli managers may provision from a source the Skills CLI cannot 
     source: "installer",
     recommendation: {
       scope: "project",
-      agents: ["claude-code"],
+      targets: [".claude"],
       when: "The delegating workflow operates in a matching repository."
     },
     installation: { manager: "workflow", workflow: "delegate-ui-to-claude" }
@@ -243,4 +280,16 @@ test("project and catalog recommendations cannot declare audiences", () => {
 
   assertErrorIncludes(project, "project-alpha project recommendation must not define audience");
   assertErrorIncludes(catalog, "project-alpha catalog recommendation must not define audience");
+});
+
+test("catalog recommendations cannot declare installation targets", () => {
+  const errors = validationErrors((registry) => {
+    registry.skills[3].recommendation = {
+      scope: "catalog",
+      targets: [".agents"]
+    };
+    registry.skills[3].installation = { manager: "none" };
+  });
+
+  assertErrorIncludes(errors, "project-alpha catalog recommendation must not define targets");
 });

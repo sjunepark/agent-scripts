@@ -132,6 +132,10 @@ Snapshot taken on 2026-08-05 from the development machine:
   skill-tree equality across merge, squash, or rebase workflows. Fixture tests
   cover staged tampering, update restoration, moving replacement content, and
   candidate-set races.
+- The 2026-08-13 registry v3 refactor replaced client-compatibility
+  classification with the two actual installation destinations: `.agents` and
+  `.claude`. Client names now appear only inside the Skills CLI adapter used to
+  materialize those destinations.
 
 ## Accepted decisions
 
@@ -142,13 +146,13 @@ Snapshot taken on 2026-08-05 from the development machine:
   `dev = common + dev`, and `kicpa = common + kicpa`.
 - Require `--profile dev` or `--profile kicpa` for reconciliation. Do not infer
   a profile from hostname or silently choose a default.
-- Bump the registry contract to version 2 because profile-aware validation is a
-  breaking schema change.
+- The registry contract is version 3. Version 2 introduced profile-aware
+  validation; version 3 replaces agent compatibility with installation targets.
 - Every global recommendation must declare exactly one audience from
   `common`, `dev`, or `kicpa`.
 - Project and catalog entries must not carry a machine audience.
-- Keep `recommendation.agents` as skill/client compatibility metadata. Do not
-  add profile-specific agent selection in this iteration.
+- Use `recommendation.targets` to declare `.agents`, `.claude`, or both. Do not
+  classify skills by client when reconciliation manages destinations.
 - Do not recreate the former profile design that duplicated the same skill
   name under source/agent buckets.
 
@@ -156,14 +160,21 @@ The intended registry shape is:
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "global": {
     "allowUnlistedSkills": false,
     "profiles": {
       "dev": { "audiences": ["common", "dev"] },
       "kicpa": { "audiences": ["common", "kicpa"] }
     }
-  }
+  },
+  "skills": [
+    {
+      "recommendation": {
+        "targets": [".agents", ".claude"]
+      }
+    }
+  ]
 }
 ```
 
@@ -172,18 +183,14 @@ but it must preserve these semantics and avoid duplicated profile lists.
 
 ### Installation layout
 
-- Treat `~/.agents/skills` as the canonical managed root for selected skills
-  used by Codex and Pi.
-- Keep Claude compatibility copies in `~/.claude/skills` when the skill's
-  existing compatibility metadata includes Claude Code.
+- Map the `.agents` target to the canonical `~/.agents/skills` managed root.
+- Map the `.claude` target to `~/.claude/skills`.
 - Do not maintain registry-managed duplicates in `~/.pi/agent/skills` or other
   legacy agent roots.
-- Install a selected Codex-or-Pi-compatible skill into the shared root through
-  the explicit Codex target. Do not pass `-a pi`, because that recreates a Pi
-  copy.
-- Accept that a skill in the shared root is visible to both Codex and Pi even
-  when its existing compatibility metadata names only one of them. Independent
-  Codex and Pi subsets are intentionally out of scope for this iteration.
+- Populate the `.agents` destination through the explicit Codex command target.
+  Do not pass `-a pi`, because that recreates a Pi copy.
+- Accept that a skill in the shared root is visible to both Codex and Pi.
+  Independent Codex and Pi subsets are intentionally out of scope.
 - Never use Skills CLI `--all` for these installs; it expands both skills and
   agents and can repopulate legacy roots.
 - Verify Pi discovery on the KICPA machine before pruning its Pi-specific
@@ -340,9 +347,8 @@ Prefer a focused pure module, for example
 `scripts/lib/global-skill-state.js`, rather than expanding the command into a
 large collection of coupled branches.
 
-- [x] Map each selected registry entry to its expected managed roots:
-      Codex/Pi compatibility to `~/.agents/skills`, and Claude compatibility to
-      `~/.claude/skills`.
+- [x] Map each selected registry entry to its expected managed roots from its
+      `.agents` and `.claude` targets.
 - [x] Enumerate children only in explicit managed and known legacy roots.
 - [x] Read lock-file provenance when available: source URL, ref, skill path,
       and recorded content hash.
@@ -374,9 +380,10 @@ Primary command: `scripts/audit-global-skills`.
       managed roots and unclassified legacy collisions.
 - [x] Update `--apply` to install/update only from remote sources and only into
       expected roots.
-- [x] For the shared root, synthesize an explicit Codex target even when Pi is
-      also compatible; never synthesize a Pi target.
-- [x] For Claude compatibility, synthesize the explicit Claude Code target.
+- [x] For the `.agents` destination, synthesize an explicit Codex command
+      target; never synthesize a Pi command target.
+- [x] For the `.claude` destination, synthesize the explicit Claude Code
+      command target.
 - [x] Preserve the rule that changed public skills are committed and pushed
       before reinstalling from the GitHub `skills/` subpath.
 - [x] Add a separate `--prune` confirmation boundary that quarantines only
@@ -467,7 +474,7 @@ Minimum automated cases:
 
 - [x] Valid `dev` and `kicpa` profile resolution.
 - [x] Missing, unknown, duplicate, and scope-invalid audiences.
-- [x] Canonical shared-root and Claude compatibility placement.
+- [x] Canonical `.agents` and `.claude` target placement.
 - [x] No Pi-specific install command is generated.
 - [x] Strict missing, extra, misplaced, outdated, modified, and unclassified
       states.
@@ -537,17 +544,16 @@ common skill plus a machine-specific skill in all intended clients.
 - Preserve unrelated user changes and unmanaged skills throughout migration.
 - Quarantine destinations must be outside active discovery roots, have an
   explicit manifest, and avoid overwriting an earlier backup.
-- Do not create compatibility layers for registry version 1 unless a concrete
-  external consumer is found. Prefer one clear version 2 path.
+- Do not create compatibility layers for older registry versions unless a
+  concrete external consumer is found. Prefer one clear version 3 path.
 
 ## Completion criteria
 
 - [x] `dev` resolves to exactly `common + dev`; `kicpa` resolves to exactly
       `common + kicpa`.
 - [x] Project-scoped entries cannot enter global desired state.
-- [ ] Managed Codex/Pi skills have one canonical copy in `~/.agents/skills`.
-- [ ] Claude-compatible selected skills have the intended copy in
-      `~/.claude/skills`.
+- [ ] Every selected `.agents` target has one canonical copy in `~/.agents/skills`.
+- [ ] Every selected `.claude` target has the intended copy in `~/.claude/skills`.
 - [ ] No registry-managed copy remains in `~/.pi/agent/skills` or a legacy root
       after successful, verified migration.
 - [x] Unknown and runtime-owned entries are classified or preserved rather

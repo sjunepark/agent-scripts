@@ -630,8 +630,8 @@ function inspectSkillRoots({ homeDir, rootPolicy = DEFAULT_ROOT_POLICY }) {
 function expectedGlobalPlacements(desiredEntries) {
   const placements = [];
   for (const entry of desiredEntries) {
-    const agents = new Set(entry.agents || []);
-    if (agents.has("claude-code")) {
+    const targets = new Set(entry.targets || []);
+    if (targets.has(".claude")) {
       placements.push({
         skill: entry.name,
         root: "claude",
@@ -642,7 +642,7 @@ function expectedGlobalPlacements(desiredEntries) {
         fullDepth: entry.fullDepth === true
       });
     }
-    if (agents.has("codex") || agents.has("pi")) {
+    if (targets.has(".agents")) {
       placements.push({
         skill: entry.name,
         root: "shared",

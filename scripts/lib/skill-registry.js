@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 
-const allowedAgents = new Set(["claude-code", "codex", "pi"]);
+const allowedTargets = new Set([".agents", ".claude"]);
 const allowedAudiences = new Set(["common", "dev", "kicpa"]);
 const allowedInstallationManagers = new Set(["manual", "none", "skills-cli", "workflow"]);
 const allowedInstallationModes = new Set(["copy", "symlink"]);
@@ -13,7 +13,7 @@ const globalFields = new Set(["allowUnlistedSkills", "profiles"]);
 const profileFields = new Set(["audiences"]);
 const sourceFields = new Set(["catalogPath", "kind", "location"]);
 const skillFields = new Set(["installation", "name", "recommendation", "source"]);
-const recommendationFields = new Set(["agents", "audience", "scope", "when"]);
+const recommendationFields = new Set(["audience", "scope", "targets", "when"]);
 const installationFields = new Set(["fullDepth", "manager", "mode", "workflow"]);
 const supportedProfiles = new Map([
   ["dev", ["common", "dev"]],
@@ -126,7 +126,7 @@ function validateSkillRegistry(registry, options = {}) {
   if (!isObject(registry)) return ["registry must be an object"];
   rejectUnknownFields(registry, topLevelFields, "registry", errors);
 
-  if (registry.version !== 2) errors.push("version must be 2");
+  if (registry.version !== 3) errors.push("version must be 3");
   if (typeof registry.description !== "string" || registry.description.length === 0) {
     errors.push("description must be a non-empty string");
   }
@@ -224,8 +224,8 @@ function validateSkillRegistry(registry, options = {}) {
         errors.push(`${label} has unsupported recommendation scope ${recommendation.scope}`);
       }
       if (recommendation.scope === "global" || recommendation.scope === "project") {
-        if (!Array.isArray(recommendation.agents) || recommendation.agents.length === 0) {
-          errors.push(`${label} ${recommendation.scope} recommendation must name agents`);
+        if (!Array.isArray(recommendation.targets) || recommendation.targets.length === 0) {
+          errors.push(`${label} ${recommendation.scope} recommendation must name targets`);
         }
       }
       if (recommendation.scope === "global") {
@@ -237,17 +237,23 @@ function validateSkillRegistry(registry, options = {}) {
       } else if (recommendation.audience !== undefined) {
         errors.push(`${label} ${recommendation.scope} recommendation must not define audience`);
       }
-      if (recommendation.agents !== undefined) {
-        if (!Array.isArray(recommendation.agents)) {
-          errors.push(`${label} recommendation agents must be an array when present`);
+      if (recommendation.targets !== undefined) {
+        if (!Array.isArray(recommendation.targets)) {
+          errors.push(`${label} recommendation targets must be an array when present`);
         } else {
-          const seenAgents = new Set();
-          for (const agent of recommendation.agents) {
-            if (!allowedAgents.has(agent)) errors.push(`${label} has unsupported agent ${agent}`);
-            if (seenAgents.has(agent)) errors.push(`${label} repeats agent ${agent}`);
-            seenAgents.add(agent);
+          const seenTargets = new Set();
+          for (const target of recommendation.targets) {
+            if (!allowedTargets.has(target)) errors.push(`${label} has unsupported target ${target}`);
+            if (seenTargets.has(target)) errors.push(`${label} repeats target ${target}`);
+            seenTargets.add(target);
+          }
+          if (!arraysEqual(recommendation.targets, [...recommendation.targets].sort())) {
+            errors.push(`${label} recommendation targets must be sorted`);
           }
         }
+      }
+      if (recommendation.scope === "catalog" && recommendation.targets !== undefined) {
+        errors.push(`${label} catalog recommendation must not define targets`);
       }
       if (recommendation.scope === "project") {
         if (typeof recommendation.when !== "string" || recommendation.when.length === 0) {
@@ -382,7 +388,7 @@ function globalSkillEntries(registry, profile) {
         manager: skill.installation.manager,
         scope: skill.recommendation.scope,
         mode: skill.installation.mode,
-        agents: skill.recommendation.agents,
+        targets: skill.recommendation.targets,
         fullDepth: skill.installation.fullDepth === true
       };
     });

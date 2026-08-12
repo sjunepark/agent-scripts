@@ -56,7 +56,7 @@ function desiredSkill(name, options = {}) {
     manager: options.manager ?? "skills-cli",
     scope: "global",
     mode: "copy",
-    agents: options.agents ?? ["codex"],
+    targets: options.targets ?? [".agents"],
     fullDepth: false
   };
 }
@@ -73,20 +73,20 @@ function issue(report, type, skill, root) {
   );
 }
 
-test("maps Codex and Pi compatibility to shared and Claude compatibility to Claude", () => {
+test("maps registry destinations directly to the two managed roots", () => {
   const placements = expectedGlobalPlacements([
-    desiredSkill("claude-only", { agents: ["claude-code"] }),
-    desiredSkill("codex-and-claude", { agents: ["codex", "claude-code", "pi"] }),
-    desiredSkill("pi-only", { agents: ["pi"] })
+    desiredSkill("claude-only", { targets: [".claude"] }),
+    desiredSkill("both-roots", { targets: [".agents", ".claude"] }),
+    desiredSkill("shared-only", { targets: [".agents"] })
   ]);
 
   assert.deepEqual(
     placements.map(({ skill, root, targetAgent }) => ({ skill, root, targetAgent })),
     [
+      { skill: "both-roots", root: "claude", targetAgent: "claude-code" },
+      { skill: "both-roots", root: "shared", targetAgent: "codex" },
       { skill: "claude-only", root: "claude", targetAgent: "claude-code" },
-      { skill: "codex-and-claude", root: "claude", targetAgent: "claude-code" },
-      { skill: "codex-and-claude", root: "shared", targetAgent: "codex" },
-      { skill: "pi-only", root: "shared", targetAgent: "codex" }
+      { skill: "shared-only", root: "shared", targetAgent: "codex" }
     ]
   );
   assert.equal(placements.some(({ root, targetAgent }) => root === "pi" || targetAgent === "pi"), false);
@@ -170,7 +170,7 @@ test("hashes the executable bit of bundled files", (t) => {
 
 test("inspects only explicit roots and verifies a canonical legacy symlink", (t) => {
   const homeDir = temporaryHome(t);
-  const desired = desiredSkill("alpha", { agents: ["codex", "claude-code", "pi"] });
+  const desired = desiredSkill("alpha", { targets: [".agents", ".claude"] });
   const source = writeSkill(homeDir, ".fixture-source", "alpha", "alpha v1\n");
   const expectedContent = { alpha: expectedContentRecord(source) };
   const shared = copySkill(source, homeDir, ".agents/skills", "alpha");
@@ -340,9 +340,9 @@ test("does not follow a skill symlink outside the explicit roots", (t) => {
 test("plans installs and updates only for skills-cli managed unambiguous drift", (t) => {
   const homeDir = temporaryHome(t);
   const desiredEntries = [
-    desiredSkill("cli", { agents: ["codex", "claude-code", "pi"] }),
+    desiredSkill("cli", { targets: [".agents", ".claude"] }),
     desiredSkill("manual", { manager: "manual" }),
-    desiredSkill("workflow", { manager: "workflow", agents: ["pi"] })
+    desiredSkill("workflow", { manager: "workflow", targets: [".agents"] })
   ];
   const inventory = inspectSkillRoots({ homeDir });
   const report = reconcileGlobalSkillState({
@@ -462,7 +462,7 @@ test("reports contradictory source provenance without treating content as manage
 
 test("does not use a shared-root lock as Claude provenance", (t) => {
   const homeDir = temporaryHome(t);
-  const desired = desiredSkill("root-local-lock", { agents: ["claude-code"] });
+  const desired = desiredSkill("root-local-lock", { targets: [".claude"] });
   const expected = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
   const old = writeSkill(homeDir, ".fixture-old", desired.name, "old\n");
   copySkill(old, homeDir, ".claude/skills", desired.name);
@@ -522,7 +522,7 @@ test("does not mistake the Skills CLI v3 folder hash for verified local content"
 
 test("uses root-local reconciler state to distinguish outdated from modified copies", (t) => {
   const homeDir = temporaryHome(t);
-  const desired = desiredSkill("tracked", { agents: ["codex", "claude-code"] });
+  const desired = desiredSkill("tracked", { targets: [".agents", ".claude"] });
   const expected = writeSkill(homeDir, ".fixture-source", desired.name, "expected\n");
   const old = writeSkill(homeDir, ".fixture-old", desired.name, "old\n");
   const oldHash = expectedContentRecord(old);

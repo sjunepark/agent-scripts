@@ -138,7 +138,7 @@ it with a symlink to this repo.
 Treat this repo's `skills/` directory as the published catalog. A skill being
 published here means it can be installed from the GitHub `skills/` subpath; it
 does not mean it belongs in every global agent install. Use
-`skill-registry.json` for the authoritative scope, provenance, target agents,
+`skill-registry.json` for the authoritative scope, provenance, installation targets,
 and installation manager; install project recommendations only when their
 `when` condition matches.
 
@@ -173,8 +173,8 @@ an established product and visual world can use a one-shot run; so can work
 for which the user explicitly authorizes unattended design decisions.
 
 Do not reproduce the reconciler's target commands in chezmoi. It deliberately
-maps selected Codex/Pi-compatible skills to `~/.agents/skills`, selected Claude
-skills to `~/.claude/skills`, and creates no Pi-specific copy. Bootstrap with:
+maps the registry's `.agents` target to `~/.agents/skills` and its `.claude`
+target to `~/.claude/skills`, and creates no Pi-specific copy. Bootstrap with:
 
 ```bash
 PROFILE="dev" # or kicpa

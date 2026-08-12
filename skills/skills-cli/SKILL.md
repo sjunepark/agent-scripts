@@ -13,7 +13,7 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
    - When choosing a command, source, scope, or agent target—including initializing a skill—read [references/cli.md](references/cli.md) for the CLI's accepted inputs and install-location facts.
 3. Install with explicit scope, skill selection, and agent targeting.
    - Before installing or reinstalling a published skill, or moving a shared install to agent-specific paths, read [recipes/install-and-migrate.md](recipes/install-and-migrate.md) and use the matching recipe.
-   - In this repository, prefer the profile reconciler over hand-written global commands. It uses remote sources only, an explicit Codex target for the shared Codex/Pi root, and an explicit Claude Code target for Claude copies.
+   - In this repository, prefer the profile reconciler over hand-written global commands. The registry names the `.agents` and `.claude` destinations; the Skills CLI adapter uses explicit Codex and Claude Code command targets to populate them.
    - Apply adopts exact copies into a reconciler-owned hash record and updates
      only content that still matches its last verified record.
    - Use the separate recoverable replacement mode only for explicitly

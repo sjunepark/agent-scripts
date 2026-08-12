@@ -43,7 +43,7 @@ function registryFixture(t) {
   const fixtureRoot = temporaryDirectory(t, "global-skill-audit-registry-");
   const registryPath = path.join(fixtureRoot, "skill-registry.json");
   const registry = {
-    version: 2,
+    version: 3,
     description: "Audit fixture.",
     global: {
       allowUnlistedSkills: false,
@@ -59,7 +59,7 @@ function registryFixture(t) {
       {
         name: "common-alpha",
         source: "public",
-        recommendation: { scope: "global", audience: "common", agents: ["codex"] },
+        recommendation: { scope: "global", audience: "common", targets: [".agents"] },
         installation: { manager: "skills-cli", mode: "copy" }
       },
       {
@@ -68,14 +68,14 @@ function registryFixture(t) {
         recommendation: {
           scope: "global",
           audience: "dev",
-          agents: ["claude-code", "codex", "pi"]
+          targets: [".agents", ".claude"]
         },
         installation: { manager: "skills-cli", mode: "copy" }
       },
       {
         name: "kicpa-alpha",
         source: "public",
-        recommendation: { scope: "global", audience: "kicpa", agents: ["codex"] },
+        recommendation: { scope: "global", audience: "kicpa", targets: [".agents"] },
         installation: { manager: "skills-cli", mode: "copy" }
       }
     ]
@@ -209,7 +209,7 @@ test("materializes remote expected content only in a temporary home", (t) => {
       name: "alpha",
       source: "example/skills",
       manager: "skills-cli",
-      agents: ["pi"],
+      targets: [".agents"],
       fullDepth: false
     }],
     execSkillsCli({ args, homeDir, operation }) {

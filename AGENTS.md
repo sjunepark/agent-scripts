@@ -125,9 +125,9 @@
   the printed `--replace-unverified <sha256:digest> --yes` command only when
   its manifest-backed backup and remote reinstall are intended.
 - Do not use `--all` for scoped installs; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which can override the intended agent restriction and recreate shared `~/.agents/skills` installs.
-- The reconciler intentionally keeps selected Codex/Pi-compatible skills in
-  `~/.agents/skills` and selected Claude-compatible skills in
-  `~/.claude/skills`; it does not create Pi-specific copies.
+- The registry declares selected installation targets as `.agents` and
+  `.claude`. The reconciler places them in `~/.agents/skills` and
+  `~/.claude/skills`, respectively; it does not create Pi-specific copies.
 - `--apply` records verified local tree hashes in
   `~/.agents/.global-skill-state.json`. Exact preexisting copies are adopted;
   later updates proceed only while installed content still matches the record.
