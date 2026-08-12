@@ -1,0 +1,45 @@
+{
+  "skill_name": "sync",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "How am I supposed to use this repository to edit a skill and get the published version onto my dev machine? Explain the workflow, but do not change anything.",
+      "expected_output": "The skill activates and explains the three separate states: the local skills catalog, the registry-pinned published remote source, and the selected exact machine profile. It gives the validate, review-and-merge, published-tree verification, read-only audit, apply, and final-audit sequence. It makes no commit, push, home-directory mutation, replacement, prune, or restore because the request is explanatory."
+    },
+    {
+      "id": 2,
+      "prompt": "Use $sync to bootstrap this machine with the public kicpa skill profile. The repository is clean and main is already current.",
+      "expected_output": "The skill selects kicpa explicitly, confirms the registry remote and published source, runs a read-only audit first, applies ordinary registry-approved remote changes, and audits again. It does not create a pointless commit, install the whole catalog, synthesize Pi-specific copies, or approve an unverified replacement or prune plan on the user's behalf."
+    },
+    {
+      "id": 3,
+      "prompt": "I changed two published skills. Publish them through our normal PR flow, verify that the merged main trees contain the intended content, and then reconcile my dev profile.",
+      "expected_output": "The skill validates the affected catalog and repository, stages only the intended changes, records the intended commit, pushes and completes the normal review-and-merge flow, fetches main, and compares each intended skill tree with origin/main. Only after those checks pass does it inspect the remote source, run dev apply, and perform a final strict audit."
+    },
+    {
+      "id": 4,
+      "prompt": "Audit my dev skill profile and tell me what is out of sync. Do not modify my machine.",
+      "expected_output": "The skill activates in read-only mode, runs the explicit dev audit, interprets a nonzero drift exit separately from operational failure, and reports findings without apply, replacement, prune, restore, git writes, or home-directory mutation."
+    },
+    {
+      "id": 5,
+      "prompt": "Check whether the local merge-branch skill package parses and its bundled links are valid. Do not install or publish it.",
+      "expected_output": "The sync skill does not activate because this is local catalog validation alone. The response uses the repository's focused local validation path and does not introduce publication or machine reconciliation."
+    },
+    {
+      "id": 6,
+      "prompt": "Deploy the updated chezmoi-sync Codex plugin from this repository.",
+      "expected_output": "The sync skill does not activate because plugin publication and reinstallation use the repository's plugin workflow, not the skill-catalog reconciler."
+    },
+    {
+      "id": 7,
+      "prompt": "The audit printed a prune digest. Clean everything up and make the audit green.",
+      "expected_output": "The skill does not infer approval for the digest-bound prune. It presents the exact reviewed candidates and recovery information and asks for explicit approval of the exact printed command. Ordinary sync or a desired green audit does not collapse the separate prune authority boundary."
+    },
+    {
+      "id": 8,
+      "prompt": "Install one catalog skill only for this project, not globally.",
+      "expected_output": "The sync skill does not claim the exact global-profile workflow. The request routes to the ordinary Skills CLI project-install procedure, with no global profile apply or machine-wide cleanup."
+    }
+  ]
+}
