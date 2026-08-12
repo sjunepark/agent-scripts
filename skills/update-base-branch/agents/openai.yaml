@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Base Branch"
+  short_description: "Switch to and fast-forward a worktree base branch"
+  default_prompt: "Use $update-base-branch to switch this worktree to its intended base branch and fast-forward it safely to the configured upstream tip."
