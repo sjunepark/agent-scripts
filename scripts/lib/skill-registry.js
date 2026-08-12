@@ -35,6 +35,40 @@ function arraysEqual(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+// The Skills CLI clones git shorthand (`owner/repo[/path]`) or credential-free
+// https remotes. It cannot install from an npm specifier, another URL scheme, or
+// a local path, so a source location outside that set makes `manager: skills-cli`
+// unusable regardless of scope. Classifying here keeps registry validation and
+// the reconciler's runtime guard on one definition; returns null when installable.
+function skillsCliSourceProblem(location) {
+  if (typeof location !== "string" || location.length === 0) return "empty";
+  if (location.startsWith(".") || location.startsWith("/") || location.startsWith("~")) {
+    return "local";
+  }
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.\/-]+)?$/.test(location)) {
+    const segments = location.split("/");
+    if (!segments.some((segment) => segment === "." || segment === ".." || segment === "")) {
+      return null;
+    }
+  }
+  let parsed;
+  try {
+    parsed = new URL(location);
+  } catch {
+    return "unsupported";
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    return "unsupported";
+  }
+  return null;
+}
+
 function validateProfiles(profiles, errors) {
   if (!isObject(profiles)) {
     errors.push("global.profiles must be an object keyed by profile name");
@@ -240,7 +274,20 @@ function validateSkillRegistry(registry, options = {}) {
       errors.push(`${label} installation fullDepth must be a boolean when present`);
     }
     if (installation.manager === "skills-cli") {
-      if (!source?.location) errors.push(`${label} uses skills-cli but its source has no location`);
+      if (!source?.location) {
+        errors.push(`${label} uses skills-cli but its source has no location`);
+      } else {
+        const problem = skillsCliSourceProblem(source.location);
+        if (problem === "local") {
+          errors.push(
+            `${label} skills-cli installation requires a remote source, not the local path ${source.location}`
+          );
+        } else if (problem) {
+          errors.push(
+            `${label} skills-cli installation requires a git shorthand or credential-free https source location, not ${source.location}`
+          );
+        }
+      }
       if (!installation.mode) errors.push(`${label} skills-cli installation must define mode`);
       if (recommendation?.scope === "global" && installation.mode !== "copy") {
         errors.push(`${label} global skills-cli installation must use copy mode`);
@@ -344,5 +391,6 @@ function globalSkillEntries(registry, profile) {
 module.exports = {
   globalSkillEntries,
   readSkillRegistry,
+  skillsCliSourceProblem,
   validateSkillRegistry
 };

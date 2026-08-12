@@ -1,4 +1,4 @@
 interface:
   display_name: "Sync"
-  short_description: "Publish and install selected repo skills"
-  default_prompt: "Use $sync to commit and push intended skill changes, then install selected published skills from the remote skills/ source with explicit --skill <name> and the default --copy -g -a '*' -y all-agent target."
+  short_description: "Publish and reconcile repo skill profiles"
+  default_prompt: "Use $sync to explain or execute this repository's local-catalog, published-source, and exact machine-profile workflow. Preserve read-only requests, publish intended skill changes before apply, and require separate approval for digest-bound replacement or prune operations."

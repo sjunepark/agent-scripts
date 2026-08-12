@@ -1,100 +1,150 @@
 ---
 name: sync
-description: "Sync repo skills onto this machine — commit and push intended skill changes, then reinstall selected published skills with the skills CLI from the repository's remote skills/ URL. Use when the user wants to sync, bootstrap, or reinstall repo skills from GitHub or another git remote, not ./skills or the working tree."
+description: "Orient and operate this repository's skill publication and machine-reconciliation workflow. Use when the user asks how repo skills move from local edits to published remote sources, asks to audit, bootstrap, sync, or reinstall a dev or kicpa machine profile, or asks to handle findings from that profile audit. Do not use for plugin deployment or local catalog validation alone."
 ---
 
 # Sync
 
-Use this skill to publish the intended local skill changes, then install selected published skills from the current repository's remote `skills/` subpath onto the current machine.
+Move intended skill state through three distinct layers without treating them as interchangeable:
 
-Always install with the skills CLI from the published source — the GitHub `skills/` subpath — never `.`, `./skills`, or any filesystem path.
+1. `skills/` is the editable, distributable catalog in this checkout.
+2. The registry's remote source ref is the published catalog.
+3. One explicitly selected `dev` or `kicpa` profile is the desired exact state on a machine.
+
+Local validation proves that a checkout is usable as a source; it does not publish or install it. A pushed feature branch is not published when the registry points to `main`. A published catalog contains more skills than either global profile.
+
+## Choose the operation
+
+Classify the request before changing anything:
+
+- **Explain or inspect:** Explain the three layers, inspect relevant files, and run only the read-only profile audit when a profile is known. Do not commit, push, apply, replace, prune, or restore.
+- **Validate local work:** Validate `./skills` or one `./skills/<name>` without installing it for ongoing use. This is not a sync.
+- **Reconcile published state:** When the requested profile is already published, run the read-only audit, apply ordinary safe changes, and audit again. Do not create a commit merely to reconcile a machine.
+- **Publish and reconcile:** Validate intended local changes, send them through the repository's normal review and merge flow, verify the published trees, then reconcile the selected profile.
+- **Recover:** Restore only the manifest the user identifies, after checking that every destination is absent.
+
+Choose `dev` for the public `common + dev` baseline and `kicpa` for the public `common + kicpa` baseline. Any explicit `dev` or `kicpa` mention in the request selects that profile; do not ask the user to repeat it. Never infer a profile from whatever happens to be installed. Ask the user to choose only when a mutating request names neither profile.
+
+## Authority boundaries
+
+- An explanation, status check, or audit request is read-only.
+- Commit and push only when the user asked to publish or sync relevant local changes. Stage only in-scope files and preserve unrelated working-tree state.
+- Run `--apply` only when the user asked to bootstrap, install, reconcile, or sync the selected machine profile.
+- Ordinary apply never authorizes first-run replacement or legacy pruning. Show the exact candidates and printed restore procedure, then wait for explicit approval before copying either digest-bound command.
+- Restore only on explicit request. It refuses to overwrite an active path; move an active replacement aside only with the user's authority.
+- Never use a local checkout as the ongoing machine install source.
 
 ## Workflow
 
-1. Confirm the repository remote URL.
-- Run `git remote get-url origin`.
-- If `origin` is missing, stop and tell the user you need a remote URL for this repo.
-- For this repository, convert the remote into the GitHub `skills/` subpath: `https://github.com/sjunepark/agent-scripts/tree/main/skills`.
-- If the remote points somewhere unexpected, show it to the user before committing, pushing, or installing.
+### 1. Establish source, profile, and current state
 
-1. Inspect the working tree and decide what to publish.
-- Run `git status --short` and inspect relevant diffs before committing.
-- Commit only the changes that belong to this sync request. Do not sweep in unrelated dirty files.
-- When `skill-registry.json` exists, treat it as the authoritative exact-state install policy. Select the machine profile explicitly and run `scripts/audit-global-skills --profile <dev|kicpa>` before changing installs. Do not remove or prune anything during this first pass.
-- If the commit scope or message is unclear, ask the user before committing.
-- If there are no relevant local changes, skip the commit and push steps and continue with the remote reinstall/update.
-
-1. Commit the intended changes.
-- Stage the intended files explicitly with `git add <paths>`.
-- Do not commit generated install output or local-only caches.
-
-1. Push the commit so the remote contains the intended version.
-- Record the intended commit as `INTENDED_COMMIT=$(git rev-parse HEAD)`.
-- Run `git push` after committing.
-- If the push fails, stop and report the failure. Do not install from a remote that lacks the intended changes.
-- If the registry source is pinned to another ref such as `main`, merge through
-  the normal review flow and fetch that ref. For every changed skill, compare
-  the intended skill tree with the published tree, for example `git diff
-  --quiet "$INTENDED_COMMIT:skills/$SKILL_NAME" "origin/main:skills/$SKILL_NAME"`.
-  This remains valid for merge, squash, and rebase workflows. Stop if any
-  comparison fails; a pushed feature branch is not published at the registry
-  ref.
-
-1. Inspect the remote skill source before installing.
-- Run `bunx skills add "<skills-subpath-url>" --list`.
-- Confirm the remote resolves and exposes only the published skills from `skills/`.
-
-1. Reconcile the selected profile from remote sources.
-- Treat this repo's `skills/` directory as a catalog, not as a global install manifest.
-- When `skill-registry.json` exists, run `scripts/audit-global-skills --profile <dev|kicpa> --apply`. The reconciler installs or updates only unambiguous remote Skills CLI entries, maps Codex/Pi compatibility to the shared root through an explicit Codex target, maps Claude compatibility through an explicit Claude Code target, and never creates a Pi-specific copy.
-- Apply adopts already-exact Skills CLI copies into its verified state file.
-  Later updates are automatic only while the installed tree still matches that
-  record; local edits remain blocked. Before a verified update, apply moves the
-  old tree into a manifest-backed quarantine and prints its restore path.
-- If the read-only audit proposes first-run unverified replacements, show each
-  candidate and its restore command. After explicit approval, copy the exact
-  `--replace-unverified <sha256:digest> --yes` command printed by that audit;
-  it quarantines the old tree before installing and verifying the same staged
-  remote snapshot. A changed candidate set or verified snapshot invalidates
-  the digest.
-- Do not run `--apply` until the intended commit is present at every registry source ref. A pushed feature branch does not update a registry source pinned to `main`.
-- Manual, workflow, project, and catalog records remain outside synthesized apply operations.
-- Without a registry, default to a machine-global all-agent install for selected skills by name in copy mode: `bunx skills add "<skills-subpath-url>" --skill <skill-name> --copy -g -a '*' -y`.
-- Treat re-running this remote `skills add` command as the reinstall/update path for the current machine.
-- Use `--skill '*'` only when the user explicitly asks to install every published repo skill. Do not use `--all`: it expands to both `--skill '*'` and `--agent '*'`, sweeping in the entire catalog instead of keeping the requested skill selection.
-- If the user asks for a project install instead, omit `-g` and only narrow agents if requested.
-
-1. Verify the result and keep cleanup separate.
-- Run `bunx skills list` for project scope or `bunx skills list -g` for global scope.
-- When the repo has `skill-registry.json`, rerun `scripts/audit-global-skills --profile <dev|kicpa>`. If it prints verified legacy duplicates, show the source candidates and restore procedure to the user. After explicit approval, copy the exact `--prune <sha256:digest> --yes` command printed by that audit. A changed candidate set invalidates the digest; an accepted plan allocates a fresh destination and revalidates each entry. Retain the generated manifest through a normal work cycle.
-- For the default machine-global setup, confirm the selected skill resolves from `~/.agents/skills` and lists the supported agents broadly. For a user-requested narrow setup, confirm only those agents appear.
-- Report the commit hash when a commit was created, the pushed branch, and that the installed skills now come from the remote-backed source, not the local working tree.
-- If the install command overwrote existing skills, say so explicitly in the summary.
-
-## Command Pattern
+Run:
 
 ```bash
-SKILLS_URL="https://github.com/sjunepark/agent-scripts/tree/main/skills"
-PROFILE="dev"
-SKILL_NAME="merge-branch"
 git remote get-url origin
 git status --short
 scripts/audit-global-skills --profile "$PROFILE"
-git add skills/merge-branch/SKILL.md
-git commit -m "docs: update skill workflow"
-INTENDED_COMMIT=$(git rev-parse HEAD)
+```
+
+Confirm that `origin` corresponds to the source recorded in `skill-registry.json`. A completed report ending in `Strict result: fail` means drift. An error without that strict report is an operational failure even though both cases exit nonzero; report materialization, network, or validation errors instead of relabeling them as drift. The first audit is always read-only.
+
+If there are no relevant local changes and the requested state is already published, skip the validation and publication steps but still verify the registry's remote catalog before reconciliation.
+
+### 2. Validate changes that must be published
+
+Inspect relevant diffs and validate the smallest affected surface:
+
+```bash
+bunx skills add ./skills --list
+scripts/validate-skills
+```
+
+Use `bunx skills add ./skills/<skill-name> --list` for a focused skill check. If the registry or reconciler changed, also run:
+
+```bash
+node --test scripts/lib/skill-registry.test.js scripts/lib/global-skill-state.test.js scripts/audit-global-skills.test.js
+```
+
+Do not use `.`, `./skills`, or the working tree for an ongoing machine install.
+
+### 3. Publish before machine reconciliation
+
+Stage only intended files, create a reviewable commit, and push it:
+
+```bash
+git add <intended-paths>
+git commit
 git push
-# After the reviewed change is merged to the registry's pinned main ref:
+```
+
+If the registry source is pinned to `main`, complete the normal review and merge flow before continuing. After the last review-driven change is pushed, record the final PR head as `INTENDED_COMMIT`; refresh it after every later change. Once merged, fetch the pinned ref and verify each changed published skill by tree equality:
+
+```bash
+INTENDED_COMMIT=$(git rev-parse HEAD)
 git fetch origin main
 git diff --quiet "$INTENDED_COMMIT:skills/$SKILL_NAME" "origin/main:skills/$SKILL_NAME"
+```
+
+This check remains valid after merge, squash, or rebase. Stop if any intended skill tree differs. A feature-branch push alone does not authorize installing from a `main` source.
+
+### 4. Verify the remote catalog
+
+Resolve this repository's published catalog source from the registry and inspect that exact URL before apply:
+
+```bash
+SKILLS_URL=$(node -e 'const r=require("./skill-registry.json"); const url=r.sources?.["agent-scripts"]?.location; if (!url) process.exit(1); process.stdout.write(url)')
 bunx skills add "$SKILLS_URL" --list
+```
+
+Confirm that the remote exposes the published catalog. Do not interpret the full catalog as the selected machine profile.
+
+### 5. Reconcile the selected profile
+
+Run ordinary apply, then audit the resulting exact state:
+
+```bash
 scripts/audit-global-skills --profile "$PROFILE" --apply
 scripts/audit-global-skills --profile "$PROFILE"
 ```
 
-Only after approving the exact candidates, run the separately printed commands:
+Apply uses only registry-approved remote sources. It installs selected Codex/Pi-compatible skills through the shared Codex target, selected Claude-compatible skills through the Claude target, and creates no Pi-specific copy. It adopts already-exact copies, updates only verified unchanged copies, quarantines the prior verified tree before an update, and blocks locally modified or unverified stale copies.
+
+Do not hand-build global commands or use `--all` when this registry-backed reconciler applies. Project, workflow, catalog, and manual records remain with their declared policy or manager.
+
+### 6. Handle gated follow-up separately
+
+If the audit reports an unverified stale copy, present the candidates, digest, quarantine behavior, and restore command. Only after explicit approval, copy the exact command printed by that audit:
 
 ```bash
 scripts/audit-global-skills --profile "$PROFILE" --replace-unverified 'sha256:PRINTED_DIGEST' --yes
+```
+
+Audit again. A changed candidate set or verified replacement snapshot invalidates the digest.
+
+If the audit reports verified legacy duplicates, present the candidates, digest, quarantine behavior, and restore command. Only after separate explicit approval, copy the exact printed command:
+
+```bash
 scripts/audit-global-skills --profile "$PROFILE" --prune 'sha256:PRINTED_DIGEST' --yes
 ```
+
+Audit again and retain the generated manifest through a normal work cycle. Prune moves reviewed duplicates into quarantine; it does not delete them. A changed candidate set invalidates the digest.
+
+For an explicitly requested rollback, use only the manifest-specific command produced by the reconciler:
+
+```bash
+scripts/audit-global-skills --restore '/absolute/path/to/manifest.json' --home '/absolute/home' --yes
+```
+
+Inspect every modeled destination first. Restoration must stop rather than overwrite an existing destination.
+
+## Completion
+
+Finish with:
+
+- the selected profile and whether the operation was read-only or mutating;
+- the validation results and published ref verified, when publication occurred;
+- the final audit result, including any remaining drift;
+- every quarantine manifest or restore command created; and
+- any replacement or prune plan left pending approval.
+
+Do not claim exact state while the final audit still reports drift. Do not call a blocked local modification repaired merely because ordinary apply completed.

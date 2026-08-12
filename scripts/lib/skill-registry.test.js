@@ -181,6 +181,54 @@ test("every global recommendation has exactly one supported audience", () => {
   assertErrorIncludes(multiple, "common-alpha global recommendation must name one audience");
 });
 
+test("skills-cli installation requires a source the Skills CLI can clone", () => {
+  const npmSpecifier = validationErrors((registry) => {
+    registry.sources.test.location = "npm:test-skills@latest";
+  });
+  const localPath = validationErrors((registry) => {
+    registry.sources.test.location = "./skills";
+  });
+  const credentialed = validationErrors((registry) => {
+    registry.sources.test.location = "https://token@example.com/test-skills";
+  });
+
+  assertErrorIncludes(
+    npmSpecifier,
+    "common-alpha skills-cli installation requires a git shorthand or credential-free https source location, not npm:test-skills@latest"
+  );
+  // The check is total: project-scoped records never reach the reconciler's
+  // runtime guard, so validation is their only protection.
+  assertErrorIncludes(npmSpecifier, "project-alpha skills-cli installation requires");
+  assertErrorIncludes(
+    localPath,
+    "common-alpha skills-cli installation requires a remote source, not the local path ./skills"
+  );
+  assertErrorIncludes(
+    credentialed,
+    "common-alpha skills-cli installation requires a git shorthand or credential-free https source location"
+  );
+});
+
+test("non-skills-cli managers may provision from a source the Skills CLI cannot clone", () => {
+  const registry = validRegistry();
+  registry.sources = {
+    installer: { kind: "external", location: "npm:installer@latest" },
+    test: registry.sources.test
+  };
+  registry.skills.push({
+    name: "workflow-alpha",
+    source: "installer",
+    recommendation: {
+      scope: "project",
+      agents: ["claude-code"],
+      when: "The delegating workflow operates in a matching repository."
+    },
+    installation: { manager: "workflow", workflow: "delegate-ui-to-claude" }
+  });
+
+  assert.deepEqual(validateSkillRegistry(registry), []);
+});
+
 test("project and catalog recommendations cannot declare audiences", () => {
   const project = validationErrors((registry) => {
     registry.skills[3].recommendation.audience = "dev";
