@@ -1,0 +1,47 @@
+{
+  "skill_name": "update-base-branch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $update-base-branch to leave this feature branch and update the current worktree to the latest dev branch. Its upstream remote is named company, not origin.",
+      "expected_output": "The agent confirms a clean worktree, resolves dev's configured company/dev upstream, fetches company, switches to dev, and fast-forwards without rewriting history. It verifies that HEAD equals company/dev and reports the resulting commit.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Use $update-base-branch to move this worktree to dev. The dev branch is already checked out in another worktree.",
+      "expected_output": "The agent does not mutate the other worktree or force the current one onto dev. It explains that dev belongs to another worktree and asks for a current-worktree base branch or directs the user to run the update in dev's owning worktree.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use $update-base-branch to switch from this feature branch to the latest primary branch, but the worktree contains an untracked draft.",
+      "expected_output": "The agent stops before fetching or switching, identifies the untracked file, and asks the user to commit or stash it. It does not stash, reset, clean, or choose a branch while local work is unprotected.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Merge the latest dev branch into my current feature branch so I can resolve integration conflicts.",
+      "expected_output": "The skill does not trigger because the requested outcome keeps the feature branch checked out and integrates dev into it.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Force my divergent local main branch to exactly match the remote and discard the local commits.",
+      "expected_output": "The skill does not trigger because the user explicitly requests destructive history replacement rather than a fast-forward update.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Fetch every remote so I can inspect all newly published branches without switching branches.",
+      "expected_output": "The skill does not trigger because the request is remote discovery without switching to or updating a base branch.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Use $update-base-branch to leave this feature branch for dev. The local dev branch has an unpublished commit that is absent from its upstream.",
+      "expected_output": "After fetching, the agent detects that local dev is not an ancestor of its upstream and stops before switching. It reports the local-only commit and does not reset, rewrite, or otherwise reconcile the branch.",
+      "files": []
+    }
+  ]
+}
