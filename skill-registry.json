@@ -646,6 +646,23 @@
       }
     },
     {
+      "name": "update-base-branch",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "audience": "dev",
+        "agents": [
+          "codex",
+          "claude-code",
+          "pi"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "write-go-docs",
       "source": "agent-scripts",
       "recommendation": {
