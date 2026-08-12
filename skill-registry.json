@@ -219,10 +219,15 @@
       "name": "codex-cleanup",
       "source": "agent-scripts",
       "recommendation": {
-        "scope": "catalog"
+        "scope": "global",
+        "audience": "dev",
+        "agents": [
+          "codex"
+        ]
       },
       "installation": {
-        "manager": "none"
+        "manager": "skills-cli",
+        "mode": "copy"
       }
     },
     {
