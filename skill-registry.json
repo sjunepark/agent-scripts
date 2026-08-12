@@ -216,6 +216,16 @@
       }
     },
     {
+      "name": "codex-cleanup",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "catalog"
+      },
+      "installation": {
+        "manager": "none"
+      }
+    },
+    {
       "name": "context7-cli",
       "source": "context7",
       "recommendation": {
