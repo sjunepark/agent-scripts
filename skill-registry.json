@@ -512,6 +512,16 @@
       }
     },
     {
+      "name": "pdf-to-markdown",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "catalog"
+      },
+      "installation": {
+        "manager": "none"
+      }
+    },
+    {
       "name": "progress",
       "source": "agent-scripts",
       "recommendation": {

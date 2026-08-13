@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDF to Markdown"
+  short_description: "Convert PDFs into agent-readable Markdown"
+  default_prompt: "Use $pdf-to-markdown to convert this PDF into clean agent-readable Markdown while preserving the source."

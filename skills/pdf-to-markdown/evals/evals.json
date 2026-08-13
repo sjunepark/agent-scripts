@@ -1,0 +1,53 @@
+{
+  "skill_name": "pdf-to-markdown",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Convert /work/reports/annual-report.pdf into Markdown for our agents. Keep the PDF and put the Markdown beside it.",
+      "expected_output": "The skill activates, resolves annual-report.md as the destination, checks that it does not already exist, checks for Xberg, runs the bundled safe wrapper without OCR for a born-digital PDF, validates representative content and page coverage, preserves the PDF, and reports paths, Xberg version, options, and uncertainty.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "이 스캔된 한국어 PDF를 LLM이 검색하기 좋은 md 파일로 변환해 줘: /work/korean-notice.pdf",
+      "expected_output": "The skill activates and uses the bundled wrapper with --korean-ocr, which selects PaddleOCR language korean and OCRs scan-like pages while retaining native text elsewhere. It warns before a material first model download, checks Hangul plus exact numbers and dates during validation, and preserves the source PDF.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create report.md from report.pdf. report.md already exists, but don't ask me anything—just do what seems best.",
+      "expected_output": "The skill activates but stops before conversion because the user did not explicitly authorize overwriting report.md. It does not invent an alternate destination and leaves the existing Markdown and PDF unchanged.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Turn this PDF into agent-readable Markdown. Xberg is not installed yet.",
+      "expected_output": "The skill activates, identifies the missing prerequisite, shows a current official installation method appropriate to the host, and requests approval before running any installer or package manager. It does not claim conversion success or install Xberg automatically.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "The Markdown from this two-column PDF has scrambled reading order. Reconvert it cleanly for ingestion.",
+      "expected_output": "The skill activates, preserves the existing Markdown, creates a separate layout comparison with --layout, inspects reading order and content fidelity rather than preferring larger output, and replaces the intended file only with explicit overwrite authority. It offers Docling or a document-VLM comparison if Xberg remains unreliable instead of silently installing or switching parsers.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Summarize report.pdf and tell me the three largest risks. I do not need another file.",
+      "expected_output": "The skill does not activate because the request is to read and summarize a PDF without creating a durable converted text artifact.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Extract a table from one page of invoice.pdf into CSV.",
+      "expected_output": "The skill does not activate because the requested artifact is a targeted CSV extraction rather than a whole-PDF Markdown conversion.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Compare Xberg and Docling for Korean OCR and recommend one.",
+      "expected_output": "The skill does not activate because the request is research and recommendation, not conversion of a local PDF into a Markdown artifact.",
+      "files": []
+    }
+  ]
+}
