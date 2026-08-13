@@ -1,6 +1,6 @@
 ---
 name: codex-cleanup
-description: "Audit and safely reduce local Codex Desktop and CLI disk or memory usage. Use when Codex becomes slow or heavy, a Codex home such as ~/.codex has grown large, or the user wants to assess or clean task history, archived sessions, logs_2.sqlite, cached standalone releases, shell snapshots, or leftover runtime processes. Do not use for deleting cloud ChatGPT chats, general operating-system cleanup, or uninstalling and resetting Codex."
+description: "Audit and safely reduce local Codex Desktop and CLI disk or memory usage. Explicit invocation only. Use for assessing or cleaning task history, archived sessions, logs_2.sqlite, cached standalone releases, shell snapshots, or leftover runtime processes. Do not use for deleting cloud ChatGPT chats, general operating-system cleanup, or uninstalling and resetting Codex."
 ---
 
 # Codex Cleanup

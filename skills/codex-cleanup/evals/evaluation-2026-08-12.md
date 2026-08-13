@@ -13,7 +13,8 @@
 
 ## Trigger evaluation
 
-An isolated metadata-only classifier evaluated `evals/trigger-cases.json`:
+At the time of this evaluation, an isolated metadata-only classifier evaluated
+the then-current `evals/trigger-cases.json` fixture:
 
 - Positive cases: 4/4 triggered.
 - Near misses: 4/4 did not trigger.

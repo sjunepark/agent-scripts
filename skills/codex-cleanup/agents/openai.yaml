@@ -2,3 +2,5 @@ interface:
   display_name: "Codex Cleanup"
   short_description: "Audit and safely reclaim local Codex storage"
   default_prompt: "Use $codex-cleanup to audit my local Codex data, explain what consumes space, and safely clean only the items I approve."
+policy:
+  allow_implicit_invocation: false

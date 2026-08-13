@@ -2,23 +2,31 @@
   "skill_name": "codex-cleanup",
   "positive": [
     {
-      "prompt": "My ~/.codex directory keeps growing and the desktop app feels heavier. Assess what can be cleaned safely.",
-      "reason": "Requests a measured audit and cleanup of local Codex storage and runtime usage."
+      "prompt": "Use $codex-cleanup. My ~/.codex directory keeps growing and the desktop app feels heavier. Assess what can be cleaned safely.",
+      "reason": "Explicitly invokes the skill for a measured audit and cleanup of local Codex storage and runtime usage."
     },
     {
-      "prompt": "Delete old archived Codex sessions, including completed subagent sessions, and compact the log database.",
-      "reason": "Requests permanent local task-history deletion and database maintenance."
+      "prompt": "Run the codex-cleanup skill to delete old archived Codex sessions, including completed subagent sessions, and compact the log database.",
+      "reason": "Explicitly names the skill for permanent local task-history deletion and database maintenance."
     },
     {
-      "prompt": "Why are there many Codex standalone releases and renderer processes, and which ones can I remove or stop?",
-      "reason": "Requests both release-cache and live-runtime cleanup within the skill boundary."
+      "prompt": "$codex-cleanup: Why are there many Codex standalone releases and renderer processes, and which ones can I remove or stop?",
+      "reason": "Explicitly invokes the skill for both release-cache and live-runtime cleanup."
     },
     {
-      "prompt": "Codex is consuming 4 GB of RAM after weeks of use. Help me restart it without losing active work.",
-      "reason": "Implicitly requests safe runtime cleanup even without naming the Codex home."
+      "prompt": "Please use codex-cleanup. Codex is consuming 4 GB of RAM after weeks of use. Help me restart it without losing active work.",
+      "reason": "Explicitly names the skill for safe runtime cleanup without naming the Codex home."
     }
   ],
   "near_miss": [
+    {
+      "prompt": "My ~/.codex directory keeps growing and the desktop app feels heavier. Assess what can be cleaned safely.",
+      "reason": "The request fits the subject matter but does not explicitly invoke the manual-only skill."
+    },
+    {
+      "prompt": "Codex is consuming 4 GB of RAM after weeks of use. Help me restart it without losing active work.",
+      "reason": "The request fits runtime cleanup but does not explicitly invoke the manual-only skill."
+    },
     {
       "prompt": "Delete my cloud ChatGPT conversation history.",
       "reason": "Cloud account chat deletion is not local Codex state cleanup."
