@@ -1,0 +1,6 @@
+interface:
+  display_name: "Windows Cleanup"
+  short_description: "Safely diagnose and clean a slowing Windows PC"
+  default_prompt: "Use $windows-cleanup to start with a read-only Windows slowdown and storage assessment, then present an itemized plan without changing anything."
+policy:
+  allow_implicit_invocation: false

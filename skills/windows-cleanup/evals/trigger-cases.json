@@ -1,0 +1,63 @@
+{
+  "skill_name": "windows-cleanup",
+  "positive": [
+    {
+      "prompt": "Use $windows-cleanup. My Windows 11 laptop has gradually become slow. Diagnose it and clean only what is safe.",
+      "reason": "Explicitly invokes the skill for evidence-led diagnosis and cautious Windows maintenance."
+    },
+    {
+      "prompt": "Use $windows-cleanup because C: is almost full and boot takes much longer. Show what consumes space and which startup apps are worth disabling.",
+      "reason": "Explicitly invokes the skill for combined storage-pressure and startup-load assessment."
+    },
+    {
+      "prompt": "$windows-cleanup: review Temporary files, Storage Sense, old update files, and unused apps, but ask before changing anything.",
+      "reason": "Explicitly invokes the skill and names supported cleanup surfaces plus the confirmation boundary."
+    },
+    {
+      "prompt": "Use $windows-cleanup to tell whether background load, malware, updates, the power plan, or drive health explains this sluggish PC.",
+      "reason": "Explicitly invokes the skill for its broad slowdown diagnosis and handoff boundaries."
+    },
+    {
+      "prompt": "Use $windows-cleanup. This old Windows 10 PC is slow and short on space; assess it safely.",
+      "reason": "Explicitly invokes the skill for legacy diagnosis and an edition-aware Windows 10 lifecycle check."
+    }
+  ],
+  "near_miss": [
+    {
+      "prompt": "My Windows 11 laptop has gradually become slow. Diagnose it and clean only what is safe.",
+      "reason": "The request is in scope but does not explicitly invoke this manual-only skill."
+    },
+    {
+      "prompt": "C: is almost full and boot takes much longer. Show what consumes space and which startup apps are worth disabling.",
+      "reason": "Relevant storage and startup work must not implicitly activate the manual-only skill."
+    },
+    {
+      "prompt": "Review Temporary files, Storage Sense, old update files, and unused apps, but ask before changing anything.",
+      "reason": "Naming cleanup surfaces is not an explicit invocation of $windows-cleanup."
+    },
+    {
+      "prompt": "Debloat Windows by removing every preinstalled app, telemetry service, and scheduled task.",
+      "reason": "Broad debloating and privacy modification exceed cautious performance cleanup."
+    },
+    {
+      "prompt": "My PC will not boot after an update. Repair Windows for me.",
+      "reason": "Boot recovery is a recovery workflow, not cleanup or ordinary slowdown diagnosis."
+    },
+    {
+      "prompt": "A ransomware alert appeared in Microsoft Defender. Contain it and investigate the breach.",
+      "reason": "An active security incident needs incident response rather than routine maintenance."
+    },
+    {
+      "prompt": "Tune the registry and disable security features to maximize gaming performance.",
+      "reason": "Registry tuning and security weakening violate this skill's safety boundary."
+    },
+    {
+      "prompt": "My SSD is making unusual noises and Windows reports a critical storage warning.",
+      "reason": "A probable failing device requires backup and hardware support, not cleanup experimentation."
+    },
+    {
+      "prompt": "Reset this PC and erase all of my files before I sell it.",
+      "reason": "Device reset and secure erasure are destructive lifecycle operations outside the skill."
+    }
+  ]
+}

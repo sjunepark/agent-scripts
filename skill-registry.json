@@ -671,6 +671,21 @@
       }
     },
     {
+      "name": "windows-cleanup",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "audience": "kicpa",
+        "targets": [
+          ".agents"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "write-go-docs",
       "source": "agent-scripts",
       "recommendation": {
