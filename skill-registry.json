@@ -515,10 +515,16 @@
       "name": "pdf-to-markdown",
       "source": "agent-scripts",
       "recommendation": {
-        "scope": "catalog"
+        "scope": "global",
+        "audience": "common",
+        "targets": [
+          ".agents",
+          ".claude"
+        ]
       },
       "installation": {
-        "manager": "none"
+        "manager": "skills-cli",
+        "mode": "copy"
       }
     },
     {
