@@ -21,6 +21,21 @@ or private conventions.
 - Keep client-specific metadata outside the runtime resources. The skill must
   still be understandable and useful when that metadata is absent.
 
+## Invocation policy
+
+- Default to explicit invocation. State that intent in the portable description
+  and enforce it in client adapter metadata when the client supports an
+  invocation policy.
+- Treat implicit discovery as an evidence-backed opt-in. Require broad recurrence
+  within the installation scope, reliable matching from ordinary requests, safe
+  and useful activation without explicit intent, and benefit worth the client's
+  persistent catalog or discovery cost.
+- Decide installation scope independently. Broad availability does not require
+  implicit activation, and repository-scoped availability does not prohibit it.
+- Keep the adapter mechanism out of runtime instructions. A client that lacks an
+  invocation-policy control should still be able to infer the intended boundary
+  from the portable description and trigger cases.
+
 ## Bundled resources
 
 - Keep runtime resources inside the skill directory. Do not depend on absolute
@@ -83,6 +98,8 @@ or private conventions.
 
 - [ ] Directory name and frontmatter `name` match.
 - [ ] `description` says what the skill does and when it should apply.
+- [ ] Activation defaults to explicit invocation unless the implicit-discovery
+      evidence gate passes, and adapter metadata matches that decision.
 - [ ] Frontmatter uses only portable fields; client metadata is separate.
 - [ ] Every required runtime resource has a direct relative pointer from
       `SKILL.md`.

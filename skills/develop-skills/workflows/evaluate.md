@@ -12,7 +12,11 @@ Use this workflow to determine whether a new, revised, or merged skill is struct
 3. Build cases from realistic requests and representative artifacts. Include:
    - ordinary success cases;
    - difficult or failure-prone cases;
-   - positive trigger cases that imply the need without naming the skill; and
+   - explicit positive trigger cases for every skill;
+   - for manual-only skills, in-scope but uninvoked requests expected not to
+     activate;
+   - for implicitly discoverable skills, positive cases that imply the need
+     without naming the skill; and
    - near-miss negatives that share vocabulary but belong outside the scope.
 4. Reserve at least one case as a holdout when the decision is consequential or
    the case set is large enough to support one. Do not tune against its result.
@@ -99,11 +103,13 @@ Prefer the simpler baseline when the measured difference is negligible or incons
 
 ## Gate 3: Trigger Evaluation
 
-Evaluate activation independently from task quality. A strong workflow is still a poor skill if it activates too rarely or too broadly.
+Evaluate activation independently from task quality. A strong workflow is still
+a poor skill if it violates its selected activation policy.
 
 1. Create a balanced set of prompts:
-   - direct positives that clearly need the capability;
-   - implicit positives that describe the work without using the skill name;
+   - explicit positives that invoke the skill directly;
+   - in-scope prompts without the skill name, labeled positive only for an
+     implicitly discoverable skill and negative for a manual-only skill;
    - near-miss negatives with overlapping terms;
    - unrelated negatives; and
    - ambiguous cases with an explicitly documented expected outcome.
@@ -117,7 +123,12 @@ Evaluate activation independently from task quality. A strong workflow is still 
    - false-activation rate.
 6. Inspect errors by case type instead of relying only on aggregate rates.
 
-Set thresholds before scoring. Direct positives should normally activate reliably, while near-miss negatives should normally remain inactive. If behavior is already sound, revise only the description and rerun this gate; do not distort the workflow to compensate for poor selection.
+Set thresholds before scoring. Explicit positives should normally activate
+reliably. A manual-only skill must reject uninvoked prompts even when they match
+its subject. An implicitly discoverable skill must justify its catalog cost by
+reliably accepting intended implicit prompts while rejecting near misses. If
+behavior is already sound, revise only the description or adapter policy and
+rerun this gate; do not distort the workflow to compensate for poor selection.
 
 ## Diagnose Failures
 
@@ -132,6 +143,7 @@ Set thresholds before scoring. Direct positives should normally activate reliabl
 | Subjective scores conflict | Rubric anchors are vague or reviewer context differs | Tighten anchors and repeat blind review |
 | Positive prompts do not activate | Description omits user language or use conditions | Add concrete capability and trigger phrases |
 | Near-miss negatives activate | Scope boundary is too broad | Add a concise exclusion or narrow the capability statement |
+| Manual-only skill activates implicitly | Adapter policy is absent or inconsistent | Disable implicit invocation in client metadata and retest |
 
 Change one meaningful variable at a time when diagnosing a failure. Start a new round with a new version identifier, fresh contexts, and frozen criteria.
 

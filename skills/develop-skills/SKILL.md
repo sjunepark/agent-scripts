@@ -1,6 +1,6 @@
 ---
 name: develop-skills
-description: "Develop, consolidate, audit, and empirically evaluate portable Agent Skills. Use when the task is to create or revise a SKILL.md or bundled resource, merge overlapping skills, audit an existing skill's quality or portability, compare a skill candidate with a baseline, or test a trigger description before publishing or removing predecessors."
+description: "Develop, consolidate, audit, and empirically evaluate portable Agent Skills. Explicit invocation only. Use to create or revise a SKILL.md or bundled resource, merge overlapping skills, audit an existing skill's quality or portability, compare a skill candidate with a baseline, or test a trigger description before publishing or removing predecessors."
 ---
 
 # Develop Skills
@@ -17,6 +17,8 @@ coherent purpose, not as a storage place for accumulated advice.
 - During any authoring or review pass, apply the [Authoring rubric](rubrics/authoring.md).
 - Whenever structure, metadata, resources, or dependencies may limit reuse, apply
   the [Portability contract](references/portability.md).
+- When the target includes Codex adapter metadata, apply the
+  [Codex invocation policy](guides/codex-invocation.md).
 
 Read only the paths relevant to the requested operation, except that every
 candidate must pass the authoring rubric and portability contract before it is
@@ -34,9 +36,12 @@ considered complete.
    guidance is the right solution. Prefer a direct answer, ordinary project
    documentation, or executable enforcement when the need is one-off,
    explanatory, or mechanically checkable.
-4. **Write trigger cases first.** Include clear positives, paraphrases, implicit
-   requests, and near-miss negatives. The description must say both what the
-   skill does and when it applies without claiming unrelated work.
+4. **Choose activation policy and write trigger cases.** Default to explicit
+   invocation. Opt into implicit discovery only when evidence shows broad
+   recurrence within the installation scope, reliable prompt matching, safe and
+   useful activation without explicit intent, and enough value to justify
+   persistent catalog context. Keep installation reach separate from activation
+   policy, and test the selected boundary with positives and near misses.
 5. **Author the minimum candidate.** Keep universally required rules and routing
    in `SKILL.md`. Move optional or detailed material into directly linked,
    purpose-named resources. Remove duplicated, obvious, obsolete, and no-op

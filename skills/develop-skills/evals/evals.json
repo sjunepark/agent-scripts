@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Use $develop-skills to create a reusable skill from these three completed tasks: in each task, the successful approach was to inspect the input schema, map every source field to an output field, run the repository validator, and compare one rendered result with the source. The recurring failures were invented fields and skipped visual checks. Create only what the evidence supports, and leave the new skill ready for evaluation.",
-      "expected_output": "A candidate skill grounded in the supplied task evidence rather than a generic tutorial. It first states the repeated workflow, failure modes, intended trigger boundary, and positive plus near-miss trigger cases; then creates a minimal portable SKILL.md and only resources that are necessary. The instructions use concrete procedures, include the schema and visual validation loop, and omit speculative capabilities. Before claiming readiness, it runs structural checks and exercises realistic tasks in fresh isolated contexts, comparing results with a no-skill baseline and reporting remaining uncertainty.",
+      "expected_output": "A candidate skill grounded in the supplied task evidence rather than a generic tutorial. It first states the repeated workflow, failure modes, intended trigger boundary, and positive plus near-miss trigger cases; then creates a minimal portable SKILL.md and only resources that are necessary. It defaults to explicit invocation and keeps client-specific enforcement in adapter metadata because the request provides no evidence that implicit discovery passes the broad-recurrence, reliable-matching, safe-use, and catalog-value gate. The instructions use concrete procedures, include the schema and visual validation loop, and omit speculative capabilities. Before claiming readiness, it runs structural checks and exercises realistic tasks in fresh isolated contexts, comparing results with a no-skill baseline and reporting remaining uncertainty.",
       "files": []
     },
     {
@@ -59,6 +59,12 @@
       "id": 10,
       "prompt": "Use $develop-skills to refresh `develop-skills` itself against both maintained skill-authoring references. Reconcile only material, portable changes; keep model-, client-, and platform-specific guidance out of ordinary runtime instructions. Make validated local edits if warranted, but do not publish or reinstall anything.",
       "expected_output": "The maintenance-only refresh workflow reads both current maintained pages completely, records the retrieval date, and compares their material claims semantically with the current `develop-skills` guidance. Decisions are traceable and filtered through user and repository requirements, portability, and evaluation evidence. Only the smallest warranted portable changes are made; a supported no-op is acceptable. Repository validation and proportional behavior or trigger checks are run, ordinary routes are checked for source-specific leakage, and the result stops before commit, publication, synchronization, or installation.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Use $develop-skills to choose activation policies for two validated skills. `repository-test-triage` is used in most engineering tasks, has a stable low-false-positive trigger set, and is safe to load whenever test failures are mentioned. `account-reset` is globally installed but rarely used, can delete local state, and should run only when named. Keep the packages portable and add Codex adapter metadata.",
+      "expected_output": "The response treats installation reach and activation as separate decisions. It may opt `repository-test-triage` into implicit discovery only after citing the supplied broad recurrence, reliable matching, safety, and catalog-value evidence, while keeping `account-reset` manual-only despite its global installation. Portable descriptions and trigger cases reflect each boundary. Codex adapter metadata sets `policy.allow_implicit_invocation` explicitly to `true` for the justified implicit skill and `false` for the manual skill; uninvoked account-reset prompts are negative trigger cases. It does not infer that global installation implies implicit activation.",
       "files": []
     }
   ]

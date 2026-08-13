@@ -59,16 +59,41 @@ when they can be selected, executed, and evaluated independently.
 
 ## 4. Build the Trigger Set
 
-Collect concrete requests before writing the description:
+Choose activation policy before writing the description or cases. Default to
+explicit invocation. Treat implicit discovery as an opt-in that must satisfy all
+of these conditions:
+
+- the capability is expected to recur broadly within the locations where the
+  skill will be installed;
+- ordinary user wording identifies the capability reliably enough to keep both
+  missed activations and false activations acceptably low;
+- activating without an explicit request is safe and ordinarily useful; and
+- the expected benefit justifies occupying persistent skill-catalog context.
+
+Installation reach and activation policy are separate decisions. A globally
+installed skill may remain manual-only, while a narrowly installed repository
+skill may justify implicit discovery within that repository.
+
+Record the portable activation intent in the description. Keep any
+client-specific enforcement in that client's adapter metadata, following any
+applicable client guidance routed from the skill entry point. Encode the chosen
+value explicitly rather than relying on omission when a client may default
+omitted policy to implicit discovery.
+
+Then collect concrete requests:
 
 - at least three positive examples that vary wording, specificity, and
   starting context;
 - at least three near-miss examples that share vocabulary but require a
-  different workflow; and
-- any implicit request that should activate the skill even without naming it.
+  different workflow;
+- for a manual-only skill, positives that explicitly invoke it and in-scope but
+  uninvoked requests labeled as near misses; or
+- for an implicitly discoverable skill, implicit positives that describe the
+  work without naming it.
 
 For each example, record why the skill should or should not apply. Adjust the
-scope if reasonable reviewers cannot classify the examples consistently.
+scope or retain manual-only activation if reasonable reviewers cannot classify
+the examples consistently.
 
 ## 5. Plan the Minimum Package
 
@@ -93,7 +118,8 @@ Write the smallest instructions that reproduce the successful decisions from
 the task evidence:
 
 1. Use valid portable frontmatter with a stable name and a description that
-   states both what the skill does and when it applies.
+   states both what the skill does and when it applies. For a manual-only skill,
+   say `Explicit invocation only` rather than advertising implicit triggers.
 2. Lead with the workflow and defaults. Use imperative steps, explicit branch
    conditions, and observable stopping criteria.
 3. Match specificity to fragility: leave room for judgment where several

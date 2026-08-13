@@ -6,7 +6,7 @@ that supports it. `N/A` passes only when its rationale is explicit.
 
 ## Severity and decision
 
-- **Blocker:** The skill cannot be discovered, followed, validated, or used
+- **Blocker:** The skill cannot be selected as intended, followed, validated, or used
   portably; required behavior is unsafe or materially wrong.
 - **Major:** A likely user task will trigger incorrectly, stall, skip a required
   result, or produce an unreliable outcome.
@@ -33,6 +33,12 @@ not mandatory edits.
 
 - [ ] **Pass/Fail — Blocker:** Does the frontmatter description state both what
   the skill does and the concrete situations in which it should be used?
+- [ ] **Pass/Fail — Major:** Is explicit invocation the default, with implicit
+  discovery enabled only when broad recurrence, reliable matching, safe, useful
+  activation, and catalog-context value are supported by evidence?
+- [ ] **Pass/Fail — Major:** Is installation reach decided separately from
+  activation policy, and does client adapter metadata enforce the selected
+  policy when that capability exists?
 - [ ] **Pass/Fail — Major:** Do the stated triggers match representative positive
   cases without claiming unrelated near-miss cases?
 - [ ] **Pass/Fail — Major:** Does the description use observable task language
