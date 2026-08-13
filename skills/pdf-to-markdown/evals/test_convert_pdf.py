@@ -39,6 +39,9 @@ if os.environ.get("FAKE_XBERG_ORT_FAIL"):
 if os.environ.get("FAKE_XBERG_FAIL"):
     print("fatal error: fixture extraction failed", file=sys.stderr)
     raise SystemExit(17)
+if os.environ.get("FAKE_XBERG_OOM"):
+    print("worker exhausted: out of memory " + "x" * 2_000, file=sys.stderr)
+    raise SystemExit(17)
 if os.environ.get("FAKE_XBERG_INVALID_JSON"):
     print("not JSON")
     raise SystemExit(0)
@@ -55,24 +58,36 @@ if "--page-markers" in sys.argv:
     marker_index = sys.argv.index("--page-markers")
     include_markers = sys.argv[marker_index + 1] == "true"
 
+marker_format = "\\n\\n<!-- PAGE {page_num} -->\\n\\n"
+if "--config-json" in sys.argv:
+    config_index = sys.argv.index("--config-json")
+    config = json.loads(sys.argv[config_index + 1])
+    marker_format = config["pages"]["marker_format"]
+
+def marker(page_number):
+    return marker_format.replace("{page_num}", str(page_number))
+
 if os.environ.get("FAKE_XBERG_SHIFTED_MARKERS"):
     pages = [
         {"page_number": 1, "is_blank": False},
         {"page_number": 2, "is_blank": True},
         {"page_number": 3, "is_blank": False},
     ]
-    content = "<!-- PAGE 1 -->first\\n<!-- PAGE 2 -->third"
+    content = marker(1) + "first\\n" + marker(2) + "third"
 elif os.environ.get("FAKE_XBERG_BAD_MARKERS"):
     pages = [
         {"page_number": 1, "is_blank": False},
         {"page_number": 2, "is_blank": True},
         {"page_number": 3, "is_blank": False},
     ]
-    content = "<!-- PAGE 1 -->first\\n<!-- PAGE 1 -->third"
+    content = marker(1) + "first\\n" + marker(1) + "third"
 else:
     pages = [{"page_number": 1, "is_blank": False}]
-    marker = "<!-- PAGE 1 -->\\n" if include_markers else ""
-    content = marker + "# 한국어 보고서\\n금액 12,345원, 날짜 2026-08-13\\n"
+    generated_marker = marker(1) if include_markers else ""
+    content = generated_marker + "# 한국어 보고서\\n금액 12,345원, 날짜 2026-08-13\\n"
+
+if os.environ.get("FAKE_XBERG_LITERAL_MARKER"):
+    content += "```markdown\\n<!-- PAGE 99 -->\\n```\\n"
 
 if os.environ.get("FAKE_XBERG_EMPTY"):
     content = ""
@@ -82,13 +97,26 @@ if os.environ.get("FAKE_XBERG_WHITESPACE"):
 page_count = len(pages)
 if os.environ.get("FAKE_XBERG_BAD_PAGE_COUNT"):
     page_count += 1
+metadata = {
+    "format": {"page_count": page_count},
+    "pages": {"total_count": page_count},
+}
+if os.environ.get("FAKE_XBERG_MISSING_PAGE_COUNT"):
+    metadata = {}
+if os.environ.get("FAKE_XBERG_MALFORMED_PAGE_COUNT"):
+    metadata = {
+        "format": {"page_count": str(page_count)},
+        "pages": {"total_count": None},
+    }
+if os.environ.get("FAKE_XBERG_ONE_VALID_PAGE_COUNT"):
+    metadata = {
+        "format": {"page_count": str(page_count)},
+        "pages": {"total_count": page_count},
+    }
 result = {
     "content": content,
     "pages": pages,
-    "metadata": {
-        "format": {"page_count": page_count},
-        "pages": {"total_count": page_count},
-    },
+    "metadata": metadata,
 }
 json.dump({"result": result}, sys.stdout, ensure_ascii=False)
 """,
@@ -238,8 +266,21 @@ json.dump({"result": result}, sys.stdout, ensure_ascii=False)
             [int(match.group(1)) for match in PAGE_MARKER_RE.finditer(markdown)],
             [1, 2, 3],
         )
-        self.assertEqual(PAGE_MARKER_RE.sub("", markdown), "first\nthird")
+        self.assertEqual(
+            PAGE_MARKER_RE.sub("", markdown), "\n\n\n\nfirst\n\n\n\n\nthird"
+        )
         self.assertIn("restored 1 blank-page marker(s)", completed.stderr)
+
+    def test_literal_page_marker_text_is_preserved_as_document_content(self) -> None:
+        environment = {**self.environment, "FAKE_XBERG_LITERAL_MARKER": "1"}
+        completed = self.run_wrapper(environment=environment)
+        output = self.source.with_suffix(".md")
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        markdown = output.read_text(encoding="utf-8")
+        self.assertIn("<!-- PAGE 1 -->", markdown)
+        self.assertIn("```markdown\n<!-- PAGE 99 -->\n```", markdown)
+        self.assertNotIn("XBERG-PAGE-", markdown)
 
     def test_repeated_parser_warnings_are_aggregated(self) -> None:
         environment = {**self.environment, "FAKE_XBERG_WARNINGS": "1"}
@@ -248,6 +289,12 @@ json.dump({"result": result}, sys.stdout, ensure_ascii=False)
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("encountered 3 dictionary-as-stream object(s)", completed.stderr)
         self.assertEqual(completed.stderr.count("Dictionary used where"), 0)
+
+    def test_one_valid_declared_page_count_is_sufficient(self) -> None:
+        environment = {**self.environment, "FAKE_XBERG_ONE_VALID_PAGE_COUNT": "1"}
+        completed = self.run_wrapper(environment=environment)
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_layout_runtime_mismatch_reports_root_cause_not_mutex(self) -> None:
         output = self.source.with_suffix(".md")
@@ -261,10 +308,20 @@ json.dump({"result": result}, sys.stdout, ensure_ascii=False)
         self.assertNotIn("Mutex poisoned", completed.stderr)
         self.assertFalse(output.exists())
 
+    def test_unclassified_failure_retains_bounded_diagnostics(self) -> None:
+        environment = {**self.environment, "FAKE_XBERG_OOM": "1"}
+        completed = self.run_wrapper(environment=environment)
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("out of memory", completed.stderr)
+        self.assertLess(len(completed.stderr), 1_200)
+
     def test_invalid_json_or_page_metadata_publishes_nothing(self) -> None:
         for variable in (
             "FAKE_XBERG_INVALID_JSON",
             "FAKE_XBERG_BAD_PAGE_COUNT",
+            "FAKE_XBERG_MISSING_PAGE_COUNT",
+            "FAKE_XBERG_MALFORMED_PAGE_COUNT",
             "FAKE_XBERG_BAD_MARKERS",
         ):
             with self.subTest(variable=variable):

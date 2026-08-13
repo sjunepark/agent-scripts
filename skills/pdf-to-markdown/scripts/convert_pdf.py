@@ -8,14 +8,14 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from typing import Any, BinaryIO
 
 
-PAGE_MARKER_RE = re.compile(r"<!-- PAGE (\d+) -->")
 ANSI_ESCAPE_RE = re.compile(r"\x1b(?:[@-_][0-?]*[ -/]*[@-~])")
 DICTIONARY_STREAM_WARNING = (
     "Dictionary used where Stream expected, treating as empty stream"
@@ -104,7 +104,12 @@ def validate_paths(source: Path, output: Path, overwrite: bool) -> tuple[Path, P
     return source, output
 
 
-def build_command(executable: str, source: Path, args: argparse.Namespace) -> list[str]:
+def build_command(
+    executable: str,
+    source: Path,
+    args: argparse.Namespace,
+    private_marker_format: str | None,
+) -> list[str]:
     command = [
         executable,
         "extract",
@@ -117,8 +122,19 @@ def build_command(executable: str, source: Path, args: argparse.Namespace) -> li
         "--extract-pages",
         "true",
         "--page-markers",
-        "false" if args.no_page_markers else "true",
+        "false" if private_marker_format is None else "true",
     ]
+
+    if private_marker_format is not None:
+        command.extend(
+            [
+                "--config-json",
+                json.dumps(
+                    {"pages": {"marker_format": private_marker_format}},
+                    separators=(",", ":"),
+                ),
+            ]
+        )
 
     if args.korean_ocr:
         command.extend(
@@ -191,14 +207,25 @@ def failure_message(returncode: int, diagnostics: str) -> str:
             "No output was created."
         )
 
-    useful_lines = []
+    fallback_lines: list[str] = []
+    useful_lines: list[str] = []
+    seen: set[str] = set()
     for line in cleaned.splitlines():
         stripped = line.strip()
-        if not stripped or DICTIONARY_STREAM_WARNING in stripped:
+        if (
+            not stripped
+            or DICTIONARY_STREAM_WARNING in stripped
+            or stripped in seen
+        ):
             continue
+        seen.add(stripped)
+        fallback_lines.append(stripped)
         if any(word in stripped.lower() for word in ("error", "failed", "panic")):
             useful_lines.append(stripped)
-    detail = useful_lines[0] if useful_lines else "no actionable diagnostic was emitted"
+    selected_lines = useful_lines[:5] or fallback_lines[:5]
+    detail = " | ".join(selected_lines) or "no diagnostic was emitted"
+    if len(detail) > 1_000:
+        detail = f"{detail[:997]}..."
     return f"Xberg failed with exit status {returncode}: {detail}"
 
 
@@ -235,10 +262,10 @@ def emit_success_diagnostics(diagnostics: str) -> None:
         )
 
 
-def load_result(json_path: Path) -> dict[str, Any]:
+def load_result(json_stream: BinaryIO) -> dict[str, Any]:
     try:
-        with json_path.open("r", encoding="utf-8") as stream:
-            document = json.load(stream)
+        json_stream.seek(0)
+        document = json.loads(json_stream.read().decode("utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise SystemExit(
             f"Xberg returned invalid JSON; output was not created: {error}"
@@ -276,37 +303,47 @@ def validate_pages(result: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
             )
         blank_count += int(is_blank)
 
+    declared_counts: list[Any] = []
     metadata = result.get("metadata")
     if isinstance(metadata, dict):
-        declared_counts = []
         format_metadata = metadata.get("format")
         page_metadata = metadata.get("pages")
         if isinstance(format_metadata, dict):
             declared_counts.append(format_metadata.get("page_count"))
         if isinstance(page_metadata, dict):
             declared_counts.append(page_metadata.get("total_count"))
-        for declared_count in declared_counts:
-            if (
-                isinstance(declared_count, int)
-                and not isinstance(declared_count, bool)
-                and declared_count != len(pages)
-            ):
-                raise SystemExit(
-                    "Xberg page-count metadata disagrees with its page records; "
-                    "output was not created"
-                )
+
+    valid_declared_counts = [
+        count
+        for count in declared_counts
+        if isinstance(count, int) and not isinstance(count, bool)
+    ]
+    if not valid_declared_counts:
+        raise SystemExit(
+            "Xberg JSON contains no valid declared page count; output was not created"
+        )
+    if any(count != len(pages) for count in valid_declared_counts):
+        raise SystemExit(
+            "Xberg page-count metadata disagrees with its page records; "
+            "output was not created"
+        )
 
     return pages, blank_count
 
 
 def normalize_page_markers(
-    content: str, pages: list[dict[str, Any]]
+    content: str,
+    pages: list[dict[str, Any]],
+    private_marker_re: re.Pattern[str],
 ) -> tuple[str, int]:
-    matches = list(PAGE_MARKER_RE.finditer(content))
+    matches = list(private_marker_re.finditer(content))
     marker_numbers = [int(match.group(1)) for match in matches]
     expected_numbers = list(range(1, len(pages) + 1))
     if marker_numbers == expected_numbers:
-        return content, 0
+        normalized = private_marker_re.sub(
+            lambda match: f"<!-- PAGE {match.group(1)} -->", content
+        )
+        return normalized, 0
 
     nonblank_numbers = [
         page["page_number"] for page in pages if not page["is_blank"]
@@ -326,40 +363,33 @@ def normalize_page_markers(
         )
 
     pieces: list[str] = []
+    generated_numbers: list[int] = []
     cursor = 0
     previous_page = 0
-    for match, target_page in zip(matches, nonblank_numbers, strict=True):
-        pieces.append(content[cursor : match.start()])
-        pieces.extend(
-            f"<!-- PAGE {page_number} -->"
-            for page_number in range(previous_page + 1, target_page + 1)
-        )
+    for match, target_page in zip(matches, nonblank_numbers):
+        body_piece = content[cursor : match.start()]
+        pieces.append(body_piece)
+        page_numbers = list(range(previous_page + 1, target_page + 1))
+        generated_numbers.extend(page_numbers)
+        pieces.extend(f"<!-- PAGE {page_number} -->" for page_number in page_numbers)
         cursor = match.end()
         previous_page = target_page
-    pieces.append(content[cursor:])
-    pieces.extend(
-        f"<!-- PAGE {page_number} -->"
-        for page_number in range(previous_page + 1, len(pages) + 1)
-    )
+    final_body_piece = content[cursor:]
+    pieces.append(final_body_piece)
+    trailing_numbers = list(range(previous_page + 1, len(pages) + 1))
+    generated_numbers.extend(trailing_numbers)
+    pieces.extend(f"<!-- PAGE {page_number} -->" for page_number in trailing_numbers)
     normalized = "".join(pieces)
 
-    normalized_numbers = [
-        int(match.group(1)) for match in PAGE_MARKER_RE.finditer(normalized)
-    ]
-    if normalized_numbers != expected_numbers:
+    if generated_numbers != expected_numbers:
         raise SystemExit(
             "Internal page-marker normalization failed; output was not created"
-        )
-    if PAGE_MARKER_RE.sub("", normalized) != PAGE_MARKER_RE.sub("", content):
-        raise SystemExit(
-            "Internal page-marker normalization changed Markdown content; "
-            "output was not created"
         )
     return normalized, len(pages) - len(matches)
 
 
 def render_markdown(
-    result: dict[str, Any], include_page_markers: bool
+    result: dict[str, Any], private_marker_re: re.Pattern[str] | None
 ) -> tuple[str, int, int, int]:
     content = result.get("content")
     if not isinstance(content, str):
@@ -368,19 +398,29 @@ def render_markdown(
         )
     pages, blank_count = validate_pages(result)
     repaired_count = 0
-    if include_page_markers:
-        content, repaired_count = normalize_page_markers(content, pages)
+    if private_marker_re is not None:
+        content, repaired_count = normalize_page_markers(
+            content, pages, private_marker_re
+        )
     if not content.strip():
         raise SystemExit("Xberg produced empty Markdown; output was not created")
     return content, len(pages), blank_count, repaired_count
 
 
-def make_temp_path(output: Path, suffix: str) -> Path:
+def make_temp_file(output: Path, suffix: str) -> tuple[int, Path]:
     file_descriptor, temp_name = tempfile.mkstemp(
         prefix=f".{output.name}.", suffix=suffix, dir=output.parent
     )
-    os.close(file_descriptor)
-    return Path(temp_name)
+    return file_descriptor, Path(temp_name)
+
+
+def make_private_marker_format() -> tuple[str, re.Pattern[str]]:
+    token = secrets.token_hex(16)
+    marker_format = f"\n\n<!-- XBERG-PAGE-{token} {{page_num}} -->\n\n"
+    marker_text = re.escape(marker_format.strip()).replace(
+        re.escape("{page_num}"), r"(\d+)"
+    )
+    return marker_format, re.compile(rf"(?m)^{marker_text}$")
 
 
 def main() -> int:
@@ -389,16 +429,17 @@ def main() -> int:
     output_arg = args.output or source_arg.with_suffix(".md")
     source, output = validate_paths(source_arg, output_arg, args.overwrite)
     executable = resolve_xberg(args.xberg)
-    command = build_command(executable, source, args)
+    private_marker_format: str | None = None
+    private_marker_re: re.Pattern[str] | None = None
+    if not args.no_page_markers:
+        private_marker_format, private_marker_re = make_private_marker_format()
+    command = build_command(executable, source, args, private_marker_format)
 
-    json_name = make_temp_path(output, ".json.tmp")
-    diagnostics_name: Path | None = None
     markdown_path: Path | None = None
     try:
-        diagnostics_name = make_temp_path(output, ".stderr.tmp")
         with (
-            json_name.open("wb") as json_stream,
-            diagnostics_name.open("wb") as diagnostics_stream,
+            tempfile.TemporaryFile(mode="w+b", dir=output.parent) as json_stream,
+            tempfile.TemporaryFile(mode="w+b", dir=output.parent) as diagnostics_stream,
         ):
             completed = subprocess.run(
                 command,
@@ -407,20 +448,28 @@ def main() -> int:
                 check=False,
             )
 
-        diagnostics = diagnostics_name.read_text(encoding="utf-8", errors="replace")
-        if completed.returncode != 0:
-            raise SystemExit(failure_message(completed.returncode, diagnostics))
-        emit_success_diagnostics(diagnostics)
+            diagnostics_stream.seek(0)
+            diagnostics = diagnostics_stream.read().decode(
+                "utf-8", errors="replace"
+            )
+            if completed.returncode != 0:
+                raise SystemExit(failure_message(completed.returncode, diagnostics))
+            emit_success_diagnostics(diagnostics)
 
-        result = load_result(json_name)
-        content, page_count, blank_count, repaired_count = render_markdown(
-            result, include_page_markers=not args.no_page_markers
-        )
+            result = load_result(json_stream)
+            content, page_count, blank_count, repaired_count = render_markdown(
+                result, private_marker_re
+            )
 
-        markdown_path = make_temp_path(output, ".md.tmp")
-        with markdown_path.open("w", encoding="utf-8", newline="") as stream:
+        markdown_descriptor, markdown_path = make_temp_file(output, ".md.tmp")
+        with os.fdopen(
+            markdown_descriptor, "w", encoding="utf-8", newline=""
+        ) as stream:
             stream.write(content)
-        os.chmod(markdown_path, 0o644)
+            if hasattr(os, "fchmod"):
+                os.fchmod(stream.fileno(), 0o644)
+        if not hasattr(os, "fchmod"):
+            os.chmod(markdown_path, 0o644)
         finalize(markdown_path, output, args.overwrite)
 
         summary = (
@@ -431,9 +480,6 @@ def main() -> int:
             summary += f"; restored {repaired_count} blank-page marker(s)"
         print(f"{summary}.", file=sys.stderr)
     finally:
-        json_name.unlink(missing_ok=True)
-        if diagnostics_name is not None:
-            diagnostics_name.unlink(missing_ok=True)
         if markdown_path is not None:
             markdown_path.unlink(missing_ok=True)
 
