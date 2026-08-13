@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const test = require("node:test");
 
 const {
@@ -198,6 +199,81 @@ test("points explicit Codex and Claude targets at the two managed roots", () => 
   assert.equal(codex.HOME, homeDir);
   assert.equal(codex.CODEX_HOME, path.join(homeDir, ".agents"));
   assert.equal(claude.CLAUDE_CONFIG_DIR, path.join(homeDir, ".claude"));
+});
+
+test("aligns every Windows home signal with the temporary staging home", () => {
+  const homeDir = "C:\\Temp\\Audit Home-한글";
+  const inherited = {
+    USERPROFILE: "C:\\Users\\real-user",
+    HOMEDRIVE: "C:",
+    HOMEPATH: "\\Users\\real-user",
+    HOMESHARE: "\\\\server\\real-user"
+  };
+
+  for (const [targetAgent, configVariable, configDirectory] of [
+    ["codex", "CODEX_HOME", ".agents"],
+    ["claude-code", "CLAUDE_CONFIG_DIR", ".claude"]
+  ]) {
+    const environment = skillsCliEnvironment(homeDir, targetAgent, inherited, "win32");
+    assert.equal(environment.HOME, homeDir);
+    assert.equal(environment.USERPROFILE, homeDir);
+    assert.equal(environment.HOMEDRIVE, "C:");
+    assert.equal(environment.HOMEPATH, "\\Temp\\Audit Home-한글");
+    assert.equal(environment.HOMESHARE, undefined);
+    assert.equal(environment[configVariable], path.win32.join(homeDir, configDirectory));
+  }
+});
+
+test("a Windows-like staging subprocess cannot write beneath the inherited real profile", (t) => {
+  const fixtureRoot = temporaryDirectory(t, "global-skill-windows-home-");
+  const realProfile = path.join(fixtureRoot, "real profile");
+  const fakeCli = path.join(fixtureRoot, "fake-skills-cli.js");
+  fs.writeFileSync(fakeCli, `
+    "use strict";
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const [targetAgent, skill] = process.argv.slice(2);
+    const home = process.env.USERPROFILE || process.env.HOME;
+    const root = targetAgent === "codex" ? ".agents/skills" : ".claude/skills";
+    const target = path.join(home, root, skill);
+    fs.mkdirSync(target, { recursive: true });
+    fs.writeFileSync(path.join(target, "SKILL.md"), skill + "\\n");
+  `);
+
+  for (const [targetAgent, relativeRoot] of [
+    ["codex", ".agents/skills"],
+    ["claude-code", ".claude/skills"]
+  ]) {
+    const skill = `${targetAgent}-alpha`;
+    let observedTemporaryHome;
+    const expected = materializeExpectedContent({
+      desiredEntries: [{
+        name: skill,
+        source: "example/skills",
+        manager: "skills-cli",
+        targets: [targetAgent === "codex" ? ".agents" : ".claude"],
+        fullDepth: false
+      }],
+      execSkillsCli({ homeDir }) {
+        observedTemporaryHome = homeDir;
+        const environment = skillsCliEnvironment(homeDir, targetAgent, {
+          ...process.env,
+          USERPROFILE: realProfile,
+          HOMEDRIVE: "C:",
+          HOMEPATH: "\\Users\\real-user"
+        }, "win32");
+        execFileSync(process.execPath, [fakeCli, targetAgent, skill], { env: environment });
+        assert.equal(
+          fs.existsSync(path.join(homeDir, relativeRoot, skill, "SKILL.md")),
+          true
+        );
+      }
+    });
+
+    assert.equal(typeof expected[skill].hash, "string");
+    assert.equal(fs.existsSync(observedTemporaryHome), false);
+    assert.equal(fs.existsSync(path.join(realProfile, relativeRoot, skill)), false);
+  }
 });
 
 test("materializes remote expected content only in a temporary home", (t) => {

@@ -169,13 +169,38 @@ function skillsCliAddArgs(operation) {
   return args;
 }
 
-function skillsCliEnvironment(homeDir, targetAgent, baseEnvironment = process.env) {
-  const environment = { ...baseEnvironment, HOME: homeDir };
+function skillsCliEnvironment(
+  homeDir,
+  targetAgent,
+  baseEnvironment = process.env,
+  platform = process.platform
+) {
+  const pathApi = platform === "win32" ? path.win32 : path;
+  const environment = {
+    ...baseEnvironment,
+    HOME: homeDir,
+    // Some cross-platform tooling consults USERPROFILE even when HOME is set.
+    // Keep both signals aligned so staging can never fall back to the real profile.
+    USERPROFILE: homeDir
+  };
+  if (platform === "win32") {
+    delete environment.HOMESHARE;
+    const { root } = path.win32.parse(homeDir);
+    if (/^[A-Za-z]:\\$/.test(root)) {
+      environment.HOMEDRIVE = root.slice(0, 2);
+      environment.HOMEPATH = homeDir.slice(2) || "\\";
+    } else {
+      // UNC homes cannot be represented faithfully as HOMEDRIVE + HOMEPATH.
+      // Removing inherited values is safer than retaining a contradictory profile.
+      delete environment.HOMEDRIVE;
+      delete environment.HOMEPATH;
+    }
+  }
   if (targetAgent === "codex") {
     // Pin the current Skills CLI default so Codex and Pi share ~/.agents/skills.
-    environment.CODEX_HOME = path.join(homeDir, ".agents");
+    environment.CODEX_HOME = pathApi.join(homeDir, ".agents");
   } else if (targetAgent === "claude-code") {
-    environment.CLAUDE_CONFIG_DIR = path.join(homeDir, ".claude");
+    environment.CLAUDE_CONFIG_DIR = pathApi.join(homeDir, ".claude");
   }
   return environment;
 }
