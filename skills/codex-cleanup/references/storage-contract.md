@@ -2,7 +2,7 @@
 
 Use this reference when classifying audit results or performing cleanup. These
 semantics were verified against the open-source Codex repository at commit
-`93beee910d39d31425d874a15fd56fc921ab2911` on 2026-08-12. Treat paths and
+`902bd9e06b3ecb32cbf7f8e64cd23b956be3e7fe` on 2026-08-13. Treat paths and
 method names as version-sensitive and verify them against the installed build
 when behavior differs.
 
@@ -66,16 +66,34 @@ estimates internal free space; it is not additional filesystem usage. A full
 `VACUUM` rewrites the database and must not race a Desktop, CLI, app-server,
 updater, or helper that can write it.
 
-Before compaction:
+For a WAL-mode database, the main file and any nonempty `-wal` file together
+form persistent database state and must remain together when copied or restored.
+The `-shm` file contains only a shared-memory WAL index; SQLite reconstructs it
+from the WAL, so do not treat a copied `-shm` file as recovery data.
 
-1. Verify all relevant processes are stopped and remain stopped.
-2. Verify sufficient filesystem space for a restorable copy and SQLite's rewrite.
-3. Copy the database and sidecars consistently while offline.
-4. Run `PRAGMA quick_check` and stop on any non-`ok` result.
-5. Run `PRAGMA wal_checkpoint(TRUNCATE)` before `VACUUM`.
+Each current app-server and TUI process opens `logs_2.sqlite` read-write from its
+resolved Codex home in WAL mode, maintains a connection pool, and starts an
+asynchronous log inserter. Startup maintenance can also delete expired log rows
+and checkpoint the WAL. Multiple Codex processes may normally share the database,
+but an apparently idle task or client is not evidence that its process will not
+access it. For maintenance, stop every Desktop, CLI, IDE extension, app-server,
+and helper process sharing the target Codex home. A process may remain only when
+its effective Codex home is proven different; when that cannot be established,
+treat it as a possible writer and do not compact.
 
-After compaction, rerun `PRAGMA quick_check`, restart the intended client, and
-verify retained tasks. Keep the safety copy until those checks pass.
+`VACUUM` is transactional and preserves the retained logical database content
+while rebuilding the physical file to return free pages to the filesystem. It
+does not choose or delete retained tasks or log rows. SQLite normally protects
+the rewrite with a transaction and locking, but relying on lock failure is
+insufficient here: a concurrent process can make the prerequisite checkpoint,
+safety copy, baseline, or validation inconsistent. Recommend compaction when
+measured reclaimable pages are material; skip it when the likely filesystem
+saving is negligible.
+
+SQLite may change implicit `ROWID` values in tables without an explicit
+`INTEGER PRIMARY KEY`. The current `logs` table uses an explicit integer primary
+key, but verify the installed schema and compare logical invariants before and
+after maintenance rather than assuming that detail is stable across versions.
 
 ## Runtime cleanup
 

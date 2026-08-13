@@ -19,8 +19,11 @@ and mutate only the scope the user approved.
   Verify the exact installed interface through its help, schema, or primary
   protocol documentation before presenting or invoking it. Never invent a
   convenience CLI command, and never remove rollout files or task rows directly.
-- Quiesce every process that can write the target database before checkpointing,
-  copying, or vacuuming it.
+- Quiesce every process that can access the target database before checkpointing,
+  copying, or vacuuming it. This includes every Desktop, CLI, IDE extension,
+  app-server, and helper session that shares the resolved Codex home, even when
+  its tasks appear idle. A session may remain open only when its effective Codex
+  home is proven to be different; otherwise treat it as a possible writer.
 - Never terminate the current execution process or one of its ancestors. If the
   current run lives inside the target Desktop or CLI process tree, prepare the
   exact next action and have the user quit or continue from a separate process.
@@ -41,7 +44,9 @@ and mutate only the scope the user approved.
    acceptable and the client has been quiesced. Ordinary page metrics come only
    from the main-file header. For `--quick-check`, the script refuses to proceed
    when it detects matching runtime processes and checks a temporary copy so it
-   never creates or changes database sidecars in the Codex home.
+   never creates or changes database sidecars in the Codex home. Its process
+   inventory intentionally omits arguments and environment, so it cannot prove
+   which Codex home each process uses; treat its runtime block as conservative.
 3. If a compatible Codex executable provides a read-only doctor command, run it
    and capture rollout/database parity before mutation. Prefer the executable
    used by the active Desktop or CLI; do not assume the shell's `codex` is the
@@ -74,9 +79,14 @@ Select only actions supported by the evidence:
 - **Standalone releases:** Resolve the `current` target. Keep it and, by default,
   the newest distinct rollback release. Consider only other complete release
   directories while installers and updaters are stopped.
-- **Log database:** Compact only when free pages are materially useful and the
-  filesystem has enough working space for both the safety copy and SQLite's
-  temporary rewrite. Database row retention and file compaction are distinct.
+- **Log database:** Recommend compaction when measured free pages would reclaim
+  material filesystem space; skip it when the likely saving is negligible.
+  SQLite `VACUUM` preserves retained logical rows and rebuilds the file to return
+  free pages to the filesystem. It is not a substitute for task deletion or log
+  retention. Require enough working space for both the safety copy and SQLite's
+  temporary rewrite. Read and follow
+  [workflows/compact-log-database.md](workflows/compact-log-database.md) before
+  approving, handing off, or performing compaction.
 - **Other caches:** Act only when the installed version documents ownership and
   cleanup semantics or the user approves exact disposable files after review.
 
@@ -99,19 +109,23 @@ and updates its index without removing the rollout content.
 2. Re-run the parity diagnostic and history inventory. Stop on missing,
    duplicate, mismatched, or stale state instead of continuing into lower-value
    cleanup.
-3. Quiesce runtime writers. Ask the user to finish or stop active work, exit the
-   owning client normally, and verify that relevant PIDs exited. Send a graceful
-   termination only to exact approved residual PIDs; escalate to forced
-   termination only with separate explicit authority.
+3. Quiesce database access. Ask the user to finish or stop active work and exit
+   every Desktop, CLI, IDE extension, app-server, and helper session sharing the
+   resolved Codex home. Verify that all relevant PIDs exited; do not infer safety
+   from sessions appearing idle. Send a graceful termination only to exact
+   approved residual PIDs; escalate to forced termination only with separate
+   explicit authority.
 4. Remove approved obsolete release directories while quiesced. Re-resolve the
    `current` target immediately before deletion and abort if it changed or any
    candidate equals it.
-5. For approved database compaction, make a restorable copy while offline, run
-   an integrity check, checkpoint and truncate the WAL, run `VACUUM`, then run
-   the integrity check again. Abort if free space is insufficient or any writer
-   reappears.
-6. Restart the intended client and verify it can list and resume retained tasks.
-   Re-run the audit with the same options and compare measured bytes and
+5. For approved database compaction, execute sections 1–5 of the compaction
+   workflow: offline gates, recovery copy, logical baseline,
+   `PRAGMA integrity_check`, WAL checkpoint, `VACUUM`, and pre-reopen checks.
+   Abort on any failed or ambiguous gate; do not reduce the workflow to a bare
+   `VACUUM` command.
+6. Restart in stages. After compaction, follow section 6 of its workflow;
+   otherwise restart the intended client normally. Verify retained tasks, then
+   re-run the audit with the same options and compare measured bytes and
    processes with the baseline.
 
 When the current run cannot survive quiescence, stop after producing a complete

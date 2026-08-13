@@ -161,19 +161,21 @@ def sqlite_stats(path: Path, home: Path, quick_check: bool, runtime_active: bool
         })
         if quick_check:
             if runtime_active:
-                result["quick_check_skipped"] = "Matching Codex processes are active; retry after quiescing them."
+                result["quick_check_skipped"] = (
+                    "Conservative block: matching Codex processes are active or process inspection is unavailable, "
+                    "and this audit does not inspect their effective Codex homes; retry after proving the target home is quiescent."
+                )
             else:
                 with tempfile.TemporaryDirectory(prefix="codex-cleanup-sqlite-check.") as temporary:
                     snapshot = Path(temporary, path.name)
                     shutil.copy2(path, snapshot)
-                    for suffix in ("-wal", "-shm"):
-                        sidecar = Path(f"{path}{suffix}")
-                        if sidecar.is_file():
-                            shutil.copy2(sidecar, Path(f"{snapshot}{suffix}"))
+                    wal = Path(f"{path}-wal")
+                    if wal.is_file():
+                        shutil.copy2(wal, Path(f"{snapshot}-wal"))
                     connection = sqlite3.connect(snapshot, timeout=2)
                     try:
                         result["quick_check"] = [row[0] for row in connection.execute("PRAGMA quick_check")]
-                        result["quick_check_scope"] = "temporary offline snapshot including copied sidecars"
+                        result["quick_check_scope"] = "temporary offline snapshot including the persistent WAL when present"
                     finally:
                         connection.close()
     except (OSError, sqlite3.Error, ValueError) as error:
@@ -342,6 +344,7 @@ def process_stats() -> dict[str, Any]:
         "total_rss_kib": sum(item["rss_kib"] or 0 for item in processes),
         "error": error,
         "note": "Executable names only; command arguments are intentionally omitted.",
+        "codex_home_attribution": "Not inspected; process identity and ancestry do not prove which Codex home a process uses.",
     }
 
 
@@ -434,6 +437,7 @@ def print_report(report: dict[str, Any]) -> None:
     runtime = report["runtime"]
     print("\nRuntime processes:")
     print(f"  matched tree: {len(runtime['processes'])} processes; RSS {format_bytes(runtime['total_rss_kib'] * 1024)}")
+    print(f"  note: {runtime['codex_home_attribution']}")
     displayed = list(runtime["processes"][:20])
     displayed_pids = {item["pid"] for item in displayed}
     displayed.extend(
