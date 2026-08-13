@@ -213,7 +213,7 @@
       "source": "agent-scripts",
       "recommendation": {
         "scope": "global",
-        "audience": "dev",
+        "audience": "common",
         "targets": [
           ".agents"
         ]
