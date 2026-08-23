@@ -1,0 +1,35 @@
+{
+  "skill_name": "delegate",
+  "positive": [
+    {
+      "prompt": "Use $delegate to implement this approved API change and its regression tests.",
+      "reason": "Explicitly invokes the skill for substantive code implementation."
+    },
+    {
+      "prompt": "$delegate: update the parser, fixtures, and migration documentation, then validate the repository.",
+      "reason": "Explicitly invokes the skill for coordinated edits across several implementation surfaces."
+    },
+    {
+      "prompt": "Run the delegate skill for this refactor. Keep the parent focused on scope and review while the worker handles the detailed edits.",
+      "reason": "Explicitly names the skill and requests its parent-orchestrator workflow."
+    }
+  ],
+  "near_miss": [
+    {
+      "prompt": "Implement this approved API change and its regression tests.",
+      "reason": "The work is in scope but does not explicitly invoke this manual-only skill."
+    },
+    {
+      "prompt": "Update the parser, fixtures, and migration documentation, then validate the repository.",
+      "reason": "A substantive implementation request must not implicitly activate the skill."
+    },
+    {
+      "prompt": "Delegate the architecture review to several agents and summarize their opinions without editing files.",
+      "reason": "Analysis-only fan-out is not detailed code or file implementation and belongs to a brainstorming or review workflow."
+    },
+    {
+      "prompt": "Create a separate Codex task so I can supervise an implementation in the sidebar.",
+      "reason": "A user-owned task is a different lifecycle from an in-task implementation subagent."
+    }
+  ]
+}

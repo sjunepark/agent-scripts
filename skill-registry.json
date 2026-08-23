@@ -272,6 +272,21 @@
       }
     },
     {
+      "name": "delegate",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "audience": "dev",
+        "targets": [
+          ".agents"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "delegate-ui-to-claude",
       "source": "agent-scripts",
       "recommendation": {
