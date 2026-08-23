@@ -78,9 +78,9 @@
 ## Working commands
 - When explicitly invoked, use `$progress` to organize, orient to, continue,
   or hand off repo-local plans and tasks.
-- Use `$code-review` after implementation to run one bounded review pass, apply
-  obvious safe fixes, validate, and include the diet lens when the change adds
-  avoidable complexity.
+- Use `$code-review` after implementation to run one bounded review pass. It
+  applies the implementation, system, design, and diet lenses proportionately,
+  applies obvious safe fixes, and validates.
 - Inspect project-visible skills for the current working directory with `bunx skills list`.
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.

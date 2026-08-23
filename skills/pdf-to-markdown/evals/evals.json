@@ -52,7 +52,7 @@
     {
       "id": 9,
       "prompt": "Convert this 261-page PDF to Markdown. Xberg says 11 pages are blank and emitted only 250 page markers; make the page references reliable without breaking cross-page lists.",
-      "expected_output": "The skill activates and uses the wrapper's JSON-backed validation. The wrapper requires contiguous page records, reconciles the 250 canonical markers with the 250 nonblank pages, inserts markers for all 11 blank physical pages, verifies markers 1 through 261, and asserts that removing marker comments leaves Xberg's whole-document Markdown body unchanged. It does not concatenate per-page Markdown.",
+      "expected_output": "The skill activates and uses the wrapper's JSON-backed validation. The wrapper requires contiguous page records, reconciles the 250 canonical markers with the 250 nonblank pages, inserts markers for all 11 blank physical pages, verifies markers 1 through 261, and preserves Xberg's whole-document Markdown body unchanged apart from the marker comments. It does not concatenate per-page Markdown.",
       "files": []
     },
     {

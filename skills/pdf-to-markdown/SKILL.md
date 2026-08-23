@@ -33,7 +33,7 @@ them.
    Xberg for JSON so it can validate every physical page, but publishes only
    Xberg's whole-document Markdown and retains no parser JSON.
 
-   Its ordinary Xberg extraction command is:
+   The wrapper's ordinary Xberg extraction uses these core flags:
 
    ```bash
    xberg extract /absolute/path/report.pdf \
@@ -44,10 +44,16 @@ them.
      --page-markers true
    ```
 
+   When page markers are enabled, the wrapper also supplies a randomized
+   private marker through `--config-json`; it later converts only those private
+   markers to `<!-- PAGE n -->`. A direct fallback must use an equivalently
+   collision-resistant private marker rather than public page comments during
+   validation.
+
    The wrapper validates that Xberg's page records form a contiguous 1-based
    sequence and agree with its declared page count. If Xberg omits markers for
    pages it classifies as blank, the wrapper restores those markers from page
-   metadata while asserting that the Markdown body is byte-for-byte unchanged.
+   metadata while preserving Xberg's Markdown body unchanged.
    It refuses publication when marker and page metadata cannot be reconciled.
    Do not rebuild the document by concatenating per-page Markdown because that
    can reset lists and damage structures spanning page boundaries. Do not
@@ -97,10 +103,11 @@ After every conversion:
    paragraph order, tables, lists, code, Hangul where expected, numbers, dates,
    missing pages, suspicious repetition, mojibake, and abrupt density changes.
 2. Read the wrapper's validation summary. It reports physical, nonblank, and
-   blank page counts and how many blank-page markers it restored. Compare that
-   total with an independent PDF page count when a PDF inspection capability is
-   available. A blank page can legitimately contain no text, but it must still
-   have a marker in the final Markdown unless `--no-page-markers` was requested.
+   blank page counts and, when nonzero, how many blank-page markers it restored.
+   Compare that total with an independent PDF page count when a PDF inspection
+   capability is available. A blank page can legitimately contain no text, but
+   it must still have a marker in the final Markdown unless `--no-page-markers`
+   was requested.
    Repeated `pdf_oxide` dictionary-as-stream warnings are summarized rather than
    dumped; they mean malformed or unusual PDF objects were treated as empty
    streams, so inspect nearby visual content when fidelity is uncertain. The

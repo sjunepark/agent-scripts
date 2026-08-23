@@ -27,44 +27,35 @@ description: "Review completed code changes, roadmap or specification implementa
      debt.
    - Continue once the target and edit policy are explicit.
 
-2. Run the implementation gate when reviewing completed work, current
-   uncommitted changes, or any code review where correctness, regressions, or
-   validation matter. Read
+2. Run the implementation gate for every review. Read
    [lenses/implementation-review.md](lenses/implementation-review.md).
    - Continue once material issues, obvious safe fixes, validation gaps, and
      remaining decision points have been checked.
 
-3. Add the system lens when the user asks for a broad, holistic, strategic, or
-   end-to-end review. Also add it when the target implements a roadmap,
-   specification, ADR, or migration; spans a substantial initiative; or
-   introduces, replaces, or commits the system to a material language,
-   runtime, framework, direct dependency, protocol, storage, service, build,
-   deployment, or infrastructure choice. Read
+3. Run the system lens for every review. Read
    [lenses/system.md](lenses/system.md).
+   - Apply it proportionately to the target. Inspect the system choices and
+     cross-cutting consequences the target changes or materially relies on;
+     treat inapplicable dimensions as checked without manufacturing findings.
    - Follow the named intent and its consequences across affected areas without
      turning a bounded review into an unsolicited whole-repository audit.
    - Continue once every relevant stated outcome, constraint, material choice,
      and applicable cross-cutting consequence has a disposition, and every
      criticized choice has an evidenced alternative and tradeoff.
 
-4. Add the design lens when the user asks about architecture, code design,
-   module responsibilities, interfaces, seams, dependency direction,
-   coupling, cohesion, or testability. Also add it when the review target
-   creates or reshapes a module or public contract, changes dependency
-   direction, or spreads one behavior across ownership boundaries. Read
+4. Run the design lens for every review. Read
    [lenses/design.md](lenses/design.md).
-   - Keep the implementation gate alone for a routine local edit that does not
-     alter system shape.
+   - Apply it proportionately to the affected modules and consumers. A routine
+     local edit still receives a bounded design check; it does not require a
+     broader redesign or whole-codebase investigation.
    - Continue once the target's responsibilities, interfaces, dependencies,
      affected consumers, and relevant architecture decisions have been checked.
 
-5. Add the diet lens when the user asks about overengineering, simplification,
-   deletion, trimming, wrappers, helpers, schema/config surface, compatibility
-   paths, modes, flags, generic layers, or bolted-on design. Also add it when
-   the review target itself introduces those surfaces. Read
+5. Run the diet lens for every review. Read
    [lenses/diet.md](lenses/diet.md).
-   - Do not load the diet lens for a routine small edit with no complexity
-     signal unless the user asked for that lens.
+   - Apply it proportionately. For a routine small edit with no complexity
+     signal, make a brief check and conclude without a diet finding rather than
+     searching for speculative simplifications.
    - Continue once unearned complexity candidates are either reported or
      explicitly kept as-is.
 

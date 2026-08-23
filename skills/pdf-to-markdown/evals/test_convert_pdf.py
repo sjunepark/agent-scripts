@@ -52,6 +52,15 @@ if os.environ.get("FAKE_XBERG_WARNINGS"):
             "Dictionary used where Stream expected, treating as empty stream",
             file=sys.stderr,
         )
+if os.environ.get("FAKE_XBERG_MANY_WARNINGS"):
+    for _ in range(10_000):
+        print(
+            "Dictionary used where Stream expected, treating as empty stream",
+            file=sys.stderr,
+        )
+if os.environ.get("FAKE_XBERG_MANY_DIAGNOSTICS"):
+    for index in range(1_000):
+        print(f"diagnostic line {index}", file=sys.stderr)
 
 include_markers = True
 if "--page-markers" in sys.argv:
@@ -67,7 +76,29 @@ if "--config-json" in sys.argv:
 def marker(page_number):
     return marker_format.replace("{page_num}", str(page_number))
 
-if os.environ.get("FAKE_XBERG_SHIFTED_MARKERS"):
+if os.environ.get("FAKE_XBERG_LEADING_BLANK_SHIFTED_MARKERS"):
+    pages = [
+        {"page_number": 1, "is_blank": True},
+        {"page_number": 2, "is_blank": False},
+        {"page_number": 3, "is_blank": False},
+    ]
+    content = marker(1) + "second\\n" + marker(2) + "third"
+elif os.environ.get("FAKE_XBERG_INTERIOR_BLANK_SHIFTED_MARKERS"):
+    pages = [
+        {"page_number": 1, "is_blank": False},
+        {"page_number": 2, "is_blank": True},
+        {"page_number": 3, "is_blank": False},
+        {"page_number": 4, "is_blank": False},
+    ]
+    content = (
+        marker(1)
+        + "first\\n"
+        + marker(2)
+        + "third\\n"
+        + marker(3)
+        + "fourth"
+    )
+elif os.environ.get("FAKE_XBERG_SHIFTED_MARKERS"):
     pages = [
         {"page_number": 1, "is_blank": False},
         {"page_number": 2, "is_blank": True},
@@ -280,6 +311,40 @@ json.dump({"result": result}, sys.stdout, ensure_ascii=False)
         )
         self.assertIn("restored 1 blank-page marker(s)", completed.stderr)
 
+    def test_shifted_markers_after_leading_blank_page_are_restored(self) -> None:
+        environment = {
+            **self.environment,
+            "FAKE_XBERG_LEADING_BLANK_SHIFTED_MARKERS": "1",
+        }
+        completed = self.run_wrapper(environment=environment)
+        output = self.source.with_suffix(".md")
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(
+            [
+                int(match.group(1))
+                for match in PAGE_MARKER_RE.finditer(output.read_text(encoding="utf-8"))
+            ],
+            [1, 2, 3],
+        )
+
+    def test_shifted_markers_after_interior_blank_page_are_restored(self) -> None:
+        environment = {
+            **self.environment,
+            "FAKE_XBERG_INTERIOR_BLANK_SHIFTED_MARKERS": "1",
+        }
+        completed = self.run_wrapper(environment=environment)
+        output = self.source.with_suffix(".md")
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(
+            [
+                int(match.group(1))
+                for match in PAGE_MARKER_RE.finditer(output.read_text(encoding="utf-8"))
+            ],
+            [1, 2, 3, 4],
+        )
+
     def test_literal_page_marker_text_is_preserved_as_document_content(self) -> None:
         environment = {**self.environment, "FAKE_XBERG_LITERAL_MARKER": "1"}
         completed = self.run_wrapper(environment=environment)
@@ -298,6 +363,21 @@ json.dump({"result": result}, sys.stdout, ensure_ascii=False)
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("encountered 3 dictionary-as-stream object(s)", completed.stderr)
         self.assertEqual(completed.stderr.count("Dictionary used where"), 0)
+
+    def test_large_diagnostics_are_streamed_into_a_bounded_summary(self) -> None:
+        environment = {
+            **self.environment,
+            "FAKE_XBERG_MANY_WARNINGS": "1",
+            "FAKE_XBERG_MANY_DIAGNOSTICS": "1",
+        }
+        completed = self.run_wrapper(environment=environment)
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn(
+            "encountered 10000 dictionary-as-stream object(s)", completed.stderr
+        )
+        self.assertIn("995 additional line(s) omitted", completed.stderr)
+        self.assertLess(len(completed.stderr), 1_500)
 
     def test_json_processing_warnings_are_reported(self) -> None:
         environment = {

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
@@ -27,6 +28,17 @@ ORT_VERSION_RE = re.compile(
 )
 MAX_DIAGNOSTIC_LINES = 5
 MAX_DIAGNOSTIC_CHARS = 1_000
+MAX_DIAGNOSTIC_FRAGMENT_BYTES = 64 * 1024
+
+
+@dataclass
+class DiagnosticSummary:
+    dictionary_stream_warning_count: int
+    ort_version_mismatch: tuple[str, str, str] | None
+    ort_initialization_failed: bool
+    useful_lines: list[str]
+    fallback_lines: list[str]
+    omitted_line_count: int
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,15 +197,62 @@ def finalize(temp_path: Path, output: Path, overwrite: bool) -> None:
         temp_path.unlink()
 
 
-def clean_diagnostics(diagnostics: str) -> str:
-    return ANSI_ESCAPE_RE.sub("", diagnostics)
+def summarize_diagnostics(diagnostics_stream: BinaryIO) -> DiagnosticSummary:
+    diagnostics_stream.seek(0)
+    warning_count = 0
+    version_mismatch: tuple[str, str, str] | None = None
+    ort_initialization_failed = False
+    useful_lines: list[str] = []
+    fallback_lines: list[str] = []
+    retained_lines: set[str] = set()
+    omitted_line_count = 0
+    pattern_tail = ""
+
+    while fragment := diagnostics_stream.readline(MAX_DIAGNOSTIC_FRAGMENT_BYTES):
+        cleaned = ANSI_ESCAPE_RE.sub("", fragment.decode("utf-8", errors="replace"))
+        warning_count += cleaned.count(DICTIONARY_STREAM_WARNING)
+
+        pattern_text = pattern_tail + cleaned
+        if version_mismatch is None:
+            version_match = ORT_VERSION_RE.search(pattern_text)
+            if version_match:
+                version_mismatch = version_match.groups()
+        ort_initialization_failed = (
+            ort_initialization_failed or "Failed to initialize ORT API" in pattern_text
+        )
+        pattern_tail = pattern_text[-MAX_DIAGNOSTIC_CHARS:]
+
+        stripped = cleaned.strip()
+        if not stripped or DICTIONARY_STREAM_WARNING in stripped:
+            continue
+        retained = stripped[:MAX_DIAGNOSTIC_CHARS]
+        if retained in retained_lines:
+            continue
+        if len(fallback_lines) < MAX_DIAGNOSTIC_LINES:
+            fallback_lines.append(retained)
+            retained_lines.add(retained)
+        else:
+            omitted_line_count += 1
+        if (
+            len(useful_lines) < MAX_DIAGNOSTIC_LINES
+            and any(word in stripped.lower() for word in ("error", "failed", "panic"))
+            and retained not in useful_lines
+        ):
+            useful_lines.append(retained)
+
+    return DiagnosticSummary(
+        dictionary_stream_warning_count=warning_count,
+        ort_version_mismatch=version_mismatch,
+        ort_initialization_failed=ort_initialization_failed,
+        useful_lines=useful_lines,
+        fallback_lines=fallback_lines,
+        omitted_line_count=omitted_line_count,
+    )
 
 
-def failure_message(returncode: int, diagnostics: str) -> str:
-    cleaned = clean_diagnostics(diagnostics)
-    version_match = ORT_VERSION_RE.search(cleaned)
-    if version_match:
-        requested_api, supported_apis, runtime_version = version_match.groups()
+def failure_message(returncode: int, summary: DiagnosticSummary) -> str:
+    if summary.ort_version_mismatch is not None:
+        requested_api, supported_apis, runtime_version = summary.ort_version_mismatch
         return (
             "Xberg ONNX Runtime mismatch: it requested ONNX Runtime API "
             f"{requested_api}, but the loaded runtime ({runtime_version.strip()}) supports "
@@ -202,68 +261,36 @@ def failure_message(returncode: int, diagnostics: str) -> str:
             "a compatible runtime with ORT_DYLIB_PATH. No output was created."
         )
 
-    if "Failed to initialize ORT API" in cleaned:
+    if summary.ort_initialization_failed:
         return (
             "Xberg could not initialize the ONNX Runtime API for layout extraction. "
             "Check the loaded ONNX Runtime library and ORT_DYLIB_PATH. "
             "No output was created."
         )
 
-    fallback_lines: list[str] = []
-    useful_lines: list[str] = []
-    seen: set[str] = set()
-    for line in cleaned.splitlines():
-        stripped = line.strip()
-        if (
-            not stripped
-            or DICTIONARY_STREAM_WARNING in stripped
-            or stripped in seen
-        ):
-            continue
-        seen.add(stripped)
-        fallback_lines.append(stripped)
-        if any(word in stripped.lower() for word in ("error", "failed", "panic")):
-            useful_lines.append(stripped)
-    selected_lines = (
-        useful_lines[:MAX_DIAGNOSTIC_LINES]
-        or fallback_lines[:MAX_DIAGNOSTIC_LINES]
-    )
+    selected_lines = summary.useful_lines or summary.fallback_lines
     detail = " | ".join(selected_lines) or "no diagnostic was emitted"
     if len(detail) > MAX_DIAGNOSTIC_CHARS:
         detail = f"{detail[: MAX_DIAGNOSTIC_CHARS - 3]}..."
     return f"Xberg failed with exit status {returncode}: {detail}"
 
 
-def emit_success_diagnostics(diagnostics: str) -> None:
-    cleaned = clean_diagnostics(diagnostics)
-    warning_count = cleaned.count(DICTIONARY_STREAM_WARNING)
-    if warning_count:
+def emit_success_diagnostics(summary: DiagnosticSummary) -> None:
+    if summary.dictionary_stream_warning_count:
         print(
             "Xberg warning: pdf_oxide encountered "
-            f"{warning_count} dictionary-as-stream object(s) and treated them as empty "
+            f"{summary.dictionary_stream_warning_count} dictionary-as-stream object(s) "
+            "and treated them as empty "
             "streams; inspect affected visual content if fidelity is uncertain.",
             file=sys.stderr,
         )
 
-    other_lines: list[str] = []
-    seen: set[str] = set()
-    for line in cleaned.splitlines():
-        stripped = line.strip()
-        if (
-            not stripped
-            or DICTIONARY_STREAM_WARNING in stripped
-            or stripped in seen
-        ):
-            continue
-        seen.add(stripped)
-        other_lines.append(stripped)
-
-    for line in other_lines[:MAX_DIAGNOSTIC_LINES]:
+    for line in summary.fallback_lines:
         print(f"Xberg diagnostic: {line}", file=sys.stderr)
-    if len(other_lines) > MAX_DIAGNOSTIC_LINES:
+    if summary.omitted_line_count:
         print(
             "Xberg diagnostic: "
-            f"{len(other_lines) - MAX_DIAGNOSTIC_LINES} additional unique line(s) omitted",
+            f"{summary.omitted_line_count} additional line(s) omitted",
             file=sys.stderr,
         )
 
@@ -275,6 +302,7 @@ def emit_processing_warnings(result: dict[str, Any]) -> None:
 
     rendered: list[str] = []
     seen: set[tuple[str, str]] = set()
+    omitted_count = 0
     for warning in warnings:
         if not isinstance(warning, dict):
             continue
@@ -285,19 +313,23 @@ def emit_processing_warnings(result: dict[str, Any]) -> None:
         warning_key = (source.strip(), message.strip())
         if warning_key in seen:
             continue
-        seen.add(warning_key)
-        rendered.append(
-            f"[{warning_key[0] or 'unknown'}] {warning_key[1] or 'unspecified warning'}"
-        )
+        if len(rendered) < MAX_DIAGNOSTIC_LINES:
+            seen.add(warning_key)
+            rendered.append(
+                f"[{warning_key[0] or 'unknown'}] "
+                f"{warning_key[1] or 'unspecified warning'}"
+            )
+        else:
+            omitted_count += 1
 
-    for warning in rendered[:MAX_DIAGNOSTIC_LINES]:
+    for warning in rendered:
         if len(warning) > MAX_DIAGNOSTIC_CHARS:
             warning = f"{warning[: MAX_DIAGNOSTIC_CHARS - 3]}..."
         print(f"Xberg processing warning: {warning}", file=sys.stderr)
-    if len(rendered) > MAX_DIAGNOSTIC_LINES:
+    if omitted_count:
         print(
             "Xberg processing warning: "
-            f"{len(rendered) - MAX_DIAGNOSTIC_LINES} additional unique warning(s) omitted",
+            f"{omitted_count} additional warning(s) omitted",
             file=sys.stderr,
         )
 
@@ -388,14 +420,8 @@ def normalize_page_markers(
     nonblank_numbers = [
         page["page_number"] for page in pages if not page["is_blank"]
     ]
-    previous_nonblank = 0
-    markers_match_page_intervals = len(marker_numbers) == len(nonblank_numbers)
-    for marker_number, nonblank_number in zip(marker_numbers, nonblank_numbers):
-        if not previous_nonblank < marker_number <= nonblank_number:
-            markers_match_page_intervals = False
-            break
-        previous_nonblank = nonblank_number
-    if not markers_match_page_intervals:
+    ordinal_numbers = list(range(1, len(nonblank_numbers) + 1))
+    if marker_numbers not in (nonblank_numbers, ordinal_numbers):
         raise SystemExit(
             "Xberg page markers cannot be reconciled with its page metadata; "
             f"found {len(marker_numbers)} marker(s) for {len(pages)} page(s), "
@@ -488,13 +514,12 @@ def main() -> int:
                 check=False,
             )
 
-            diagnostics_stream.seek(0)
-            diagnostics = diagnostics_stream.read().decode(
-                "utf-8", errors="replace"
-            )
+            diagnostic_summary = summarize_diagnostics(diagnostics_stream)
             if completed.returncode != 0:
-                raise SystemExit(failure_message(completed.returncode, diagnostics))
-            emit_success_diagnostics(diagnostics)
+                raise SystemExit(
+                    failure_message(completed.returncode, diagnostic_summary)
+                )
+            emit_success_diagnostics(diagnostic_summary)
 
             result = load_result(json_stream)
             emit_processing_warnings(result)

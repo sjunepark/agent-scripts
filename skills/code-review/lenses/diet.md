@@ -3,6 +3,10 @@
 Use this lens for **unearned weight**: code that does not earn its maintenance
 cost today.
 
+Apply it proportionately in every code review. For a small change with no
+complexity signal, make a brief check and conclude without a diet finding; do
+not expand the review merely to search for simplification opportunities.
+
 The goal is not fewer lines. The goal is fewer obligations: fewer concepts,
 states, branches, compatibility promises, and surfaces to preserve.
 

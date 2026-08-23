@@ -1,4 +1,4 @@
 interface:
   display_name: "Code Review"
   short_description: "Review implementation, system choices, design, and complexity"
-  default_prompt: "Use $code-review to review the current implementation for correctness and intent, apply obvious safe Bucket I fixes, validate, and add system, design, or diet lenses when relevant."
+  default_prompt: "Use $code-review to review the current implementation, apply the implementation, system, design, and diet lenses proportionately, apply obvious safe Bucket I fixes, and validate."
