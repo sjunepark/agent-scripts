@@ -63,6 +63,9 @@ files are loaded after this file and take precedence when they conflict.
   tests, or validation scripts before adding more prose to AGENTS.md.
 - After finishing a reviewable implementation or editing slice, run
   `$code-review`.
+- After `$code-review` completes for a reviewable change that materially affects
+  documented behavior, architecture, operations, commands, or delivery status,
+  run `$harmonize-docs changes`. Skip documentation-neutral changes.
 - Attach or request the initial CodeRabbit review when creating a PR unless
   explicitly opted out. Do not manually retrigger CodeRabbit or Codex after
   incremental pushes unless the user asks; handle automatic reviews.
