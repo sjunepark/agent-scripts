@@ -16,6 +16,30 @@ value, prefer the leaner one. Treat concise, well-scoped documents as already
 at their natural depth. Preserve or add detail when it materially improves
 understanding, rationale, operational safety, or future decisions.
 
+## State contract
+
+Treat project status as three independent questions:
+
+- **Implementation reality:** What behavior, structure, and operational boundary
+  are verifiably present now?
+- **Target design:** What future behavior or structure is selected, proposed, or
+  unresolved?
+- **Delivery status:** What work connects reality to the target, and what is
+  completed, active, blocked, deferred, or next?
+
+Do not let one answer stand in for another. A target can be accepted without
+being implemented; an implementation can exist without being validated,
+supported, published, authorized, or production-ready. Preserve any such
+readiness distinctions that matter to the repository instead of compressing
+them into a single label such as `current` or `complete`.
+
+Make the state of each material claim clear on first reading. Reserve
+unqualified present-tense behavior for verified implementation reality. Future
+or historical material needs visible framing through the document's opening,
+section headings, a concise status map, tense, or an explicit date. A document
+may span multiple states, but its boundaries must remain legible without
+requiring readers to reconstruct them from several files.
+
 ## Coordination
 
 Leverage subagents when they are available, choosing the decomposition
@@ -36,9 +60,11 @@ directly.
   subsystem or tool documentation.
 - Include documentation-specific navigation and configuration files needed to
   keep the documentation reachable and valid, even when they are not prose.
-- Treat archives, immutable historical records, generated output, vendored
-  material, dependencies, and build artifacts as outside the default boundary.
-  Honor any narrower or broader scope in the invocation.
+- Treat archives, generated output, vendored material, dependencies, and build
+  artifacts as outside the default boundary. Preserve immutable historical
+  content, but include a record's reader-facing status and navigation when it
+  remains part of the active documentation system. Honor any narrower or
+  broader scope in the invocation.
 - Preserve unrelated working-tree changes as intentional.
 
 Complete this step when every plausible documentation file is classified as
@@ -48,8 +74,8 @@ in scope or outside it, with no active document left undiscovered.
 
 - Read every in-scope document completely. Use source files as evidence, not as
   additional editing scope.
-- Verify claims about current behavior and status against code, configuration,
-  tests, commands, and repository state.
+- Verify claims about current behavior, availability, and readiness against
+  code, configuration, tests, commands, releases, and repository state.
 - Recover future intent from the latest confirmed user direction and active
   plans. Distinguish unfinished intent from a false current-state claim.
 - Do not infer implementation from confident wording, present-tense design
@@ -57,6 +83,9 @@ in scope or outside it, with no active document left undiscovered.
   system are independent states until repository evidence connects them.
 - Recover decisions and rationale from decision records and confirmed context.
   Mark genuinely unresolved intent instead of inventing it.
+- Time-scope historical material that remains in active reader paths. Preserve
+  immutable records; use lifecycle framing or correct the current documents
+  that route to them instead of silently rewriting decision-time assertions.
 - Classify material claims along independent axes: verified implementation
   reality; design authority such as selected, proposed, or unresolved; and
   delivery status from the repository's planning vocabulary. A selected target
@@ -71,6 +100,9 @@ claim has an evidence-backed classification, and every conflict is visible.
 - Give each document a clear purpose, audience, scope, and lifecycle.
 - Give each durable fact one canonical home. Let other documents link to it or
   carry only the local context their readers need.
+- Give each mutable state within its scope one canonical owner: implementation
+  reality, target design, and delivery status must not drift across competing
+  status sources. Ensure repository entry points route readers to those owners.
 - Treat tool-recognized instruction files as configuration: verify their
   filenames, scope, discovery, and precedence before changing their topology,
   and preserve the intended effective hierarchy.
@@ -137,10 +169,14 @@ structure.
   promoted into the canonical current-state account and its delivery records
   updated; unfinished target behavior must not be promoted merely because it
   is fully designed or scheduled.
+- Reconcile direct-entry documents after each material state transition,
+  including relevant overviews, package and release docs, operational guides,
+  architecture maps, and active plans. Do not leave the precise state visible
+  only in a low-level goal or progress record.
 - Confirm that every target's implemented and unimplemented boundaries are
   visible, every unresolved possibility remains non-authoritative, and overview
-  documents route readers to the canonical implementation-status and delivery
-  sources.
+  documents route readers to the canonical implementation, target-design, and
+  delivery sources.
 - Run available documentation, link, example, and repository validation that is
   relevant to the changed files. Inspect the final diff and working-tree state.
 - Account for every initially discovered file and every earlier conflict.
@@ -148,7 +184,7 @@ structure.
   appropriate document when readers need it.
 
 Complete this step only when all in-scope files and material claims are
-accounted for, all verifiable references and current-state claims have been
+accounted for, all verifiable references and state claims have been
 checked, no conflict is concealed, and validation passes or its limitation is
 recorded.
 
@@ -159,5 +195,5 @@ decisions, unresolved uncertainties, and validation results. Keep the report
 short and point to the changed documents instead of repeating their content.
 
 Complete the run when the user can see what changed, where current
-implementation and target design are authoritatively recorded, and what—if
-anything—still needs a decision.
+implementation, target design, and delivery status are authoritatively recorded,
+and what—if anything—still needs a decision.
