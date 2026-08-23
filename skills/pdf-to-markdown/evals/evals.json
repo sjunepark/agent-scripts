@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Convert /work/reports/annual-report.pdf into Markdown for our agents. Keep the PDF and put the Markdown beside it.",
-      "expected_output": "The skill activates, resolves annual-report.md as the destination, checks that it does not already exist, checks for Xberg, runs the bundled safe wrapper without OCR for a born-digital PDF, validates representative content and page coverage, preserves the PDF, and reports paths, Xberg version, options, and uncertainty.",
+      "expected_output": "The skill activates, resolves annual-report.md as the destination, checks that it does not already exist, checks for Xberg, runs the bundled safe wrapper without OCR for a born-digital PDF, validates contiguous page metadata and representative content, preserves Xberg's whole-document Markdown and the PDF, and reports paths, Xberg version, options, physical/nonblank/blank page counts, restored marker count, warnings, and uncertainty.",
       "files": []
     },
     {
@@ -47,6 +47,18 @@
       "id": 8,
       "prompt": "Compare Xberg and Docling for Korean OCR and recommend one.",
       "expected_output": "The skill does not activate because the request is research and recommendation, not conversion of a local PDF into a Markdown artifact.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Convert this 261-page PDF to Markdown. Xberg says 11 pages are blank and emitted only 250 page markers; make the page references reliable without breaking cross-page lists.",
+      "expected_output": "The skill activates and uses the wrapper's JSON-backed validation. The wrapper requires contiguous page records, reconciles the 250 canonical markers with the 250 nonblank pages, inserts markers for all 11 blank physical pages, verifies markers 1 through 261, and asserts that removing marker comments leaves Xberg's whole-document Markdown body unchanged. It does not concatenate per-page Markdown.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "The --layout comparison failed with 'requested API version [18]' and then 'Mutex poisoned'. Diagnose it and don't leave a partial file.",
+      "expected_output": "The skill identifies the ONNX Runtime API mismatch as the primary failure and the Mutex poisoned message as a secondary worker-state symptom. On Windows it checks for an older System32 onnxruntime.dll and explains ORT_DYLIB_PATH as the explicit-runtime remedy without silently installing or replacing libraries. The failed temporary output is removed and no comparison Markdown is published.",
       "files": []
     }
   ]

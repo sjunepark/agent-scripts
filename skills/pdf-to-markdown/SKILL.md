@@ -28,21 +28,31 @@ them.
    python3 scripts/convert_pdf.py /absolute/path/report.pdf
    ```
 
-   The wrapper writes `report.md` atomically, adds page markers, preserves the
-   PDF, rejects empty output, and never invokes a shell.
+   The wrapper writes `report.md` atomically, preserves the PDF, rejects empty
+   or structurally inconsistent output, and never invokes a shell. It asks
+   Xberg for JSON so it can validate every physical page, but publishes only
+   Xberg's whole-document Markdown and retains no parser JSON.
 
    Its ordinary Xberg extraction command is:
 
    ```bash
    xberg extract /absolute/path/report.pdf \
      --no-config-discovery \
+     --format json \
      --content-format markdown \
+     --extract-pages true \
      --page-markers true
    ```
 
-   The wrapper captures that command's standard output into a temporary file
-   and publishes it only after validation. Do not replace the wrapper with a
-   direct shell redirect when creating the final artifact.
+   The wrapper validates that Xberg's page records form a contiguous 1-based
+   sequence and agree with its declared page count. If Xberg omits markers for
+   pages it classifies as blank, the wrapper restores those markers from page
+   metadata while asserting that the Markdown body is byte-for-byte unchanged.
+   It refuses publication when marker and page metadata cannot be reconciled.
+   Do not rebuild the document by concatenating per-page Markdown because that
+   can reset lists and damage structures spanning page boundaries. Do not
+   replace the wrapper with a direct shell redirect when creating the final
+   artifact.
 5. For a PDF that contains scanned Korean pages, add `--korean-ocr`. This uses
    PaddleOCR with explicit Korean selection and OCRs only pages classified as
    scans while retaining native text elsewhere:
@@ -56,7 +66,9 @@ them.
    ```bash
    xberg extract /absolute/path/report.pdf \
      --no-config-discovery \
+     --format json \
      --content-format markdown \
+     --extract-pages true \
      --page-markers true \
      --ocr true \
      --ocr-backend paddle-ocr \
@@ -84,9 +96,16 @@ After every conversion:
 1. Inspect the beginning, middle, and end of the Markdown. Check headings,
    paragraph order, tables, lists, code, Hangul where expected, numbers, dates,
    missing pages, suspicious repetition, mojibake, and abrupt density changes.
-2. Compare page-marker coverage with the source page count when a PDF inspection
-   capability is available. Treat this as a diagnostic: a page can legitimately
-   contain no text.
+2. Read the wrapper's validation summary. It reports physical, nonblank, and
+   blank page counts and how many blank-page markers it restored. Compare that
+   total with an independent PDF page count when a PDF inspection capability is
+   available. A blank page can legitimately contain no text, but it must still
+   have a marker in the final Markdown unless `--no-page-markers` was requested.
+   Repeated `pdf_oxide` dictionary-as-stream warnings are summarized rather than
+   dumped; they mean malformed or unusual PDF objects were treated as empty
+   streams, so inspect nearby visual content when fidelity is uncertain. The
+   wrapper also reports Xberg's structured processing warnings with bounded
+   output; treat them as page or pipeline-specific fidelity risks to inspect.
 3. If ordinary extraction loses reading order, headings, tables, lists, or
    figure placement, rerun to a temporary comparison file with `--layout`:
 
@@ -101,6 +120,12 @@ After every conversion:
 
    Compare content fidelity, then replace the intended output only with the
    user's overwrite authority. Do not assume that the larger output is better.
+   If layout extraction reports an ONNX Runtime API mismatch, treat that as the
+   cause even if a later worker message says `Mutex poisoned`. On Windows, check
+   whether an older `C:\Windows\System32\onnxruntime.dll` was loaded. Point
+   `ORT_DYLIB_PATH` at a compatible runtime only with user authority; do not
+   silently install or replace a system library. The wrapper publishes no
+   partial layout output after this failure.
 4. If Korean OCR still omits or corrupts content, retry with `--force-ocr` only
    when the native text layer is the cause. For complex visual pages that remain
    unreliable, report the failing pages and offer a Docling or document-VLM
@@ -111,5 +136,7 @@ After every conversion:
 
 Finish only when the Markdown exists, is nonempty, passed representative source
 checks, and the source PDF remains unchanged. Report the PDF and Markdown paths,
-Xberg version, OCR or layout options used, any overwritten file explicitly
-authorized by the user, and any pages or structures that remain uncertain.
+Xberg version, OCR or layout options used, physical/nonblank/blank page counts,
+restored marker count, summarized parser warnings, any overwritten file
+explicitly authorized by the user, and any pages or structures that remain
+uncertain.
