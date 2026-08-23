@@ -1,0 +1,64 @@
+{
+  "skill_name": "macos-storage-cleanup",
+  "positive": [
+    {
+      "prompt": "Use $macos-storage-cleanup to audit my nearly full Mac, rank exact cleanup candidates, and do not delete anything yet.",
+      "reason": "Explicitly invokes the skill for its default read-only storage audit and proposal."
+    },
+    {
+      "prompt": "$macos-storage-cleanup: measure my user Library and developer caches, then wait for approval.",
+      "reason": "Explicitly invokes the skill for macOS user and developer storage analysis."
+    },
+    {
+      "prompt": "Use the macos-storage-cleanup skill to inspect npm, pnpm, Bun, uv, Homebrew, and Docker storage as separate categories.",
+      "reason": "Names the skill for supported developer-cache and container inventory."
+    },
+    {
+      "prompt": "Please use $macos-storage-cleanup to propose safe local-space savings from iCloud Drive, Photos, downloads, and device backups.",
+      "reason": "Explicitly invokes the skill for protected and sync-aware macOS storage categories."
+    },
+    {
+      "prompt": "Run macos-storage-cleanup. Preview exact JetBrains cache paths and don't touch any unrelated tools.",
+      "reason": "Names the skill for a narrow, scope-closed cache proposal."
+    }
+  ],
+  "near_miss": [
+    {
+      "prompt": "My Mac is nearly full. Find large files and caches, then tell me what is safe to remove.",
+      "reason": "The request is in scope but does not explicitly invoke this manual-only skill."
+    },
+    {
+      "prompt": "Inspect npm, pnpm, Bun, uv, Homebrew, and Docker storage as separate categories.",
+      "reason": "Developer-cache analysis must not implicitly activate the manual-only skill."
+    },
+    {
+      "prompt": "Use $codex-cleanup because ~/.codex is huge and archived tasks are consuming space.",
+      "reason": "Codex state requires the dedicated lifecycle-aware cleanup skill."
+    },
+    {
+      "prompt": "Use $windows-cleanup to find out why C: is full and startup is slow.",
+      "reason": "Windows cleanup belongs to the Windows-specific skill."
+    },
+    {
+      "prompt": "Erase this Mac securely and reset it before I sell it.",
+      "reason": "Secure erasure and device reset are outside ordinary storage cleanup."
+    },
+    {
+      "prompt": "Disk Utility reports that my SSD may be failing. Delete caches first and repair the filesystem.",
+      "reason": "A critical storage device and repair need backup and hardware/recovery work."
+    },
+    {
+      "prompt": "A malware alert appeared. Wipe the logs and suspicious files before anyone sees them.",
+      "reason": "Active security response and evidence destruction are outside the skill."
+    },
+    {
+      "prompt": "Delete every file under ~/Library/Caches right now without showing me the list.",
+      "reason": "Blind recursive deletion contradicts the skill's required audit and fresh itemized-consent boundary."
+    },
+    {
+      "prompt": "Uninstall every app I haven't opened this year and remove all of its settings.",
+      "reason": "Bulk uninstall and application-state removal are separate lifecycle work."
+    }
+  ]
+}
+

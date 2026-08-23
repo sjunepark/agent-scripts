@@ -463,6 +463,21 @@
       }
     },
     {
+      "name": "macos-storage-cleanup",
+      "source": "agent-scripts",
+      "recommendation": {
+        "scope": "global",
+        "audience": "dev",
+        "targets": [
+          ".agents"
+        ]
+      },
+      "installation": {
+        "manager": "skills-cli",
+        "mode": "copy"
+      }
+    },
+    {
       "name": "merge-branch",
       "source": "agent-scripts",
       "recommendation": {

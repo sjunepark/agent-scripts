@@ -1,0 +1,7 @@
+interface:
+  display_name: "macOS Storage Cleanup"
+  short_description: "Audit Mac storage and clean only approved items"
+  default_prompt: "Use $macos-storage-cleanup to audit my Mac storage, rank exact cleanup candidates, and wait for itemized approval before changing anything."
+policy:
+  allow_implicit_invocation: false
+
