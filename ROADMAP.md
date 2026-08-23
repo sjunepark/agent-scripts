@@ -2,11 +2,11 @@
 
 ## Current
 
-_None._
+[Reconcile global and project skills with sjskills](plans/sjskills-skill-reconciler.md)
 
 ## Plans
 
-- [Profile-aware cross-machine skill sync](plans/profile-aware-skill-sync.md)
+_None._
 
 ## Tasks
 

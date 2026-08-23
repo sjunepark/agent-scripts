@@ -1,7 +1,8 @@
 # Profile-aware cross-machine skill sync
 
-Status: Implemented for the authorized phases 1-4 and goal-bounded phase 7/8
-work. Phases 5, 6, and 9 remain deliberately deferred.
+Status: Complete. The authorized reconciler work was implemented; its
+deliberately deferred private-source, legacy-migration, and rollout phases are
+superseded by [the `sjskills` reconciler plan](sjskills-skill-reconciler.md).
 
 ## Outcome
 
@@ -567,6 +568,6 @@ common skill plus a machine-specific skill in all intended clients.
 
 ## Next action
 
-No action remains within the completed goal. Phases 5, 6, and 9 require a new
-authorization boundary: private KICPA support, real-machine apply/prune,
-legacy-root migration, and rollout remain deliberately unstarted.
+None — complete. The replacement product direction is scheduled in
+[the `sjskills` reconciler plan](sjskills-skill-reconciler.md); no deferred
+machine mutation or rollout was performed through this historical plan.
