@@ -1,6 +1,6 @@
 ---
 name: harmonize-docs
-description: "Harmonize repository docs and plans across implementation reality, target design, and delivery status. Explicit invocation only."
+description: "Harmonize all repository docs and plans by default, or only the documentation affected by an explicitly stated change, file, topic, plan, subsystem, or comparison. Explicit invocation only."
 ---
 
 # Harmonize Docs
@@ -15,6 +15,30 @@ Use a light pruning bias: when alternatives preserve the same durable reader
 value, prefer the leaner one. Treat concise, well-scoped documents as already
 at their natural depth. Preserve or add detail when it materially improves
 understanding, rationale, operational safety, or future decisions.
+
+## Scope contract
+
+- With no explicit scope, harmonize the repository's entire active documentation
+  system.
+- With an explicit scope, treat it as the seed for one bounded harmonization.
+  The scope may be described naturally as changes, paths, a topic, a plan, a
+  subsystem, or a comparison; do not require a fixed command vocabulary.
+- When the scope is `changes`, use the change set named by the user or established
+  by the current task. If neither identifies one, use current staged, unstaged,
+  and untracked working-tree changes. If no meaningful change set can be
+  identified, resolve the boundary instead of silently substituting unrelated
+  branch history.
+- Expand a scoped seed only to its necessary documentation impact closure: the
+  canonical documents that own affected claims, active plans or status records
+  that track the affected work, and navigation or cross-references that must
+  change with them. Source files may supply evidence without entering the edit
+  boundary.
+- Do not inventory or reconcile the whole documentation system during a scoped
+  run. Record a credible unrelated inconsistency for follow-up rather than
+  broadening the run without user direction.
+
+Apply the same state model and quality bar at either scale. Only discovery,
+coverage, validation, and completion are bounded by the established scope.
 
 ## State contract
 
@@ -44,31 +68,39 @@ requiring readers to reconstruct them from several files.
 
 Leverage subagents when they are available, choosing the decomposition
 dynamically from the repository's shape and the work discovered. The
-coordinating agent owns exhaustive coverage, conflict resolution, and the
-integrated result. When subagents are unavailable, perform the same work
-directly.
+coordinating agent owns complete coverage of the established boundary, conflict
+resolution, and the integrated result. When subagents are unavailable, perform
+the same work directly.
 
 ## Workflow
 
 ### 1. Establish the documentation boundary
 
 - Read the effective repository instructions and inspect working-tree state.
-- Discover documentation through repository conventions, navigation files,
-  links, and common documentation and planning names or extensions.
-- Include all active, human-authored documentation: overview and contributor
-  docs, plans and progress trackers, decisions, runbooks, instructions, and
-  subsystem or tool documentation.
+- Determine whether the invocation supplies an explicit scope. If it does,
+  identify the seed and trace only its necessary documentation impact closure.
+  If it does not, discover documentation across the repository through its
+  conventions, navigation files, links, and common documentation and planning
+  names or extensions.
+- For a repository-wide run, include all active, human-authored documentation:
+  overview and contributor docs, plans and progress trackers, decisions,
+  runbooks, instructions, and subsystem or tool documentation.
+- For a scoped run, include only documents with claims, status, or routing
+  materially affected by the seed. Do not include a document merely because it
+  mentions the same broad area.
 - Include documentation-specific navigation and configuration files needed to
-  keep the documentation reachable and valid, even when they are not prose.
+  keep the in-scope documentation reachable and valid, even when they are not
+  prose.
 - Treat archives, generated output, vendored material, dependencies, and build
-  artifacts as outside the default boundary. Preserve immutable historical
-  content, but include a record's reader-facing status and navigation when it
-  remains part of the active documentation system. Honor any narrower or
-  broader scope in the invocation.
+  artifacts as outside the boundary. Preserve immutable historical content, but
+  include a record's reader-facing status and navigation when it remains part of
+  the active documentation system within the established boundary.
 - Preserve unrelated working-tree changes as intentional.
 
-Complete this step when every plausible documentation file is classified as
-in scope or outside it, with no active document left undiscovered.
+Complete this step when the boundary and its evidence are explicit. For a
+repository-wide run, every plausible documentation file is classified as in
+scope or outside it. For a scoped run, the seed and necessary impact closure are
+accounted for without an exhaustive repository inventory.
 
 ### 2. Reconstruct truth by claim type
 
@@ -181,7 +213,8 @@ structure.
   relevant to the changed files. Inspect the final diff and working-tree state.
 - Account for every initially discovered file and every earlier conflict.
   Report anything that cannot be verified and keep uncertainty explicit in the
-  appropriate document when readers need it.
+  appropriate document when readers need it. In a scoped run, report credible
+  out-of-scope conflicts separately without pursuing them.
 
 Complete this step only when all in-scope files and material claims are
 accounted for, all verifiable references and state claims have been
