@@ -3,7 +3,6 @@ package sjskills
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -681,8 +680,5 @@ func TestInspectProjectDoesNotReturnRawFilesystemErrors(t *testing.T) {
 		if strings.Contains(string(problem.Reason), string(filepath.Separator)) || strings.Contains(string(problem.Reason), "permission") || strings.Contains(string(problem.Reason), "no such") {
 			t.Fatalf("unbounded/raw problem = %#v", problem)
 		}
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		t.Fatal("unexpected filesystem error returned")
 	}
 }

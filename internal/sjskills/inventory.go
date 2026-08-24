@@ -467,7 +467,7 @@ func readBoundedInspectionFile(path string, limit int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	reader := io.LimitReader(file, limit+1)
 	data, err := io.ReadAll(reader)
 	if err != nil {

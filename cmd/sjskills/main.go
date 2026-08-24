@@ -849,10 +849,6 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 	}
 }
 
-func execute(ctx context.Context, args []string, stdout, stderr io.Writer, directory string) int {
-	return executeWithInput(ctx, args, strings.NewReader(""), stdout, stderr, directory)
-}
-
 func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer, directory string) int {
 	if ctx == nil {
 		ctx = context.Background()

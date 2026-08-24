@@ -1987,7 +1987,11 @@ func TestApplicationProjectApplyLifecycle(t *testing.T) {
 		}
 		envelope := app.apply(context.Background(), false, true)
 		if materialized != nil {
-			defer materialized.Cleanup()
+			defer func() {
+				if err := materialized.Cleanup(); err != nil {
+					t.Errorf("cleanup materialization: %v", err)
+				}
+			}()
 		}
 		if cleanupCalls != 1 || envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Message != "materialization cleanup failed" {
 			t.Fatalf("cleanupCalls=%d envelope=%#v", cleanupCalls, envelope)

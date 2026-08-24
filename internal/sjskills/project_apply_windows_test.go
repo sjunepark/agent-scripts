@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build windows
 
 package sjskills
 
@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestPublishNoReplaceDarwinPreservesCollision(t *testing.T) {
+func TestPublishNoReplaceWindowsPreservesCollision(t *testing.T) {
 	parent := t.TempDir()
 	source := filepath.Join(parent, "source")
 	destination := filepath.Join(parent, "destination")

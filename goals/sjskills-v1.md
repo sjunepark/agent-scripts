@@ -51,9 +51,11 @@ temporary projects only.
 
 - Boundary classification: initialization and delivery-base preflight are
   necessary prerequisites for the contract's PR lifecycle.
-- `main` is the integration branch: it is unprotected, directly pushable,
-  current with `origin/main`, and the repository has no automatic production
-  deployment. This avoids an unnecessary staging branch and aggregation PR.
+- For this goal only, `main` is the explicitly preflighted integration branch:
+  the repository has no remote `dev` branch to target, `main` is unprotected
+  and directly pushable, and there is no automatic production deployment.
+  The repository-wide default remains to use an existing remote `dev`; this
+  goal-specific exception avoids creating an unauthorized aggregation branch.
 - The preexisting goal at
   `goals/profile-aware-global-skill-reconciler.md` is complete; this is the
   only active goal in the `ROADMAP.md` planning scope.

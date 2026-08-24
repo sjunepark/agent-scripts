@@ -99,3 +99,14 @@ func TestDiscoverProjectRootRejectsSymlinkedManifest(t *testing.T) {
 		t.Fatalf("symlinked manifest error = %v, want malformed input", err)
 	}
 }
+
+func TestDiscoverProjectRootRejectsManifestDirectory(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, ManifestFileName), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_, err := DiscoverProjectRoot(root)
+	if err == nil || !issueCode(err, IssueMalformedInput) {
+		t.Fatalf("manifest directory error = %v, want malformed input", err)
+	}
+}

@@ -10,11 +10,7 @@ import (
 
 func fixtureRegistry(t *testing.T) Registry {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("testdata", "registry-v4.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	registry, err := ParseRegistry(data)
+	registry, err := EmbeddedRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}

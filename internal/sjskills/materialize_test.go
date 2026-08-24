@@ -116,7 +116,11 @@ func TestMaterializeUsesPinnedPreflightAndExactInstallArguments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer plan.Cleanup()
+	defer func() {
+		if err := plan.Cleanup(); err != nil {
+			t.Errorf("cleanup materialization: %v", err)
+		}
+	}()
 	if len(runner.calls) != 3 {
 		t.Fatalf("calls = %d, want preflight twice plus one install", len(runner.calls))
 	}
@@ -186,7 +190,11 @@ func TestMaterializeFullDepthFalseDoesNotAddFlag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer plan.Cleanup()
+	defer func() {
+		if err := plan.Cleanup(); err != nil {
+			t.Errorf("cleanup materialization: %v", err)
+		}
+	}()
 	install := runner.calls[len(runner.calls)-1].args
 	if containsArg(install, "--full-depth") {
 		t.Fatalf("unexpected --full-depth in default install args: %q", install)
@@ -543,7 +551,11 @@ func TestMaterializeIsolatesHomeSignalsAndPreservesCredentialHelpers(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer plan.Cleanup()
+	defer func() {
+		if err := plan.Cleanup(); err != nil {
+			t.Errorf("cleanup materialization: %v", err)
+		}
+	}()
 	env := runner.calls[0].env
 	root := plan.Root()
 	want := map[string]string{

@@ -324,7 +324,7 @@ func (tx *restoreTransaction) loadManifest(id string) error {
 	if manifest.Status != ProjectQuarantineCommitted && manifest.Status != ProjectQuarantineRestored {
 		return restoreConflict("quarantine manifest requires a different recovery workflow")
 	}
-	for index, entry := range manifest.Entries {
+	for _, entry := range manifest.Entries {
 		quarantined := filepath.Join(runPath, filepath.FromSlash(entry.QuarantinedPlacement))
 		if !pathWithin(runPath, quarantined) || filepath.Clean(quarantined) != filepath.Join(runPath, filepath.FromSlash(projectQuarantinedPlacement(entry.Target, entry.Skill))) {
 			return restoreConflict("quarantine entry path is invalid")
@@ -340,7 +340,6 @@ func (tx *restoreTransaction) loadManifest(id string) error {
 			}
 			identities[path] = info
 		}
-		_ = index
 	}
 	tx.boundary = &restoreBoundary{identities: identities}
 	tx.quarantine = &projectQuarantineTransaction{
@@ -670,10 +669,8 @@ func (tx *restoreTransaction) restoreMoveBecameAmbiguous(entry restoreEntry) boo
 
 func (tx *restoreTransaction) ensureManagedAncestors(target Target) error {
 	before := len(tx.createdDirs)
-	err := tx.applyTransaction.checkRootAndAncestors(target)
-	for _, created := range tx.createdDirs[before:] {
-		tx.createdManaged = append(tx.createdManaged, created)
-	}
+	err := tx.checkRootAndAncestors(target)
+	tx.createdManaged = append(tx.createdManaged, tx.createdDirs[before:]...)
 	if err != nil {
 		return restoreApplyError(err, "managed placement boundary changed during restore", "managed placement boundary could not be prepared")
 	}
@@ -800,9 +797,9 @@ func (tx *restoreTransaction) writeRestoreManifest(manifest ProjectQuarantineMan
 		return restoreConflict("quarantine manifest changed during restore")
 	}
 	if replaceErr := tx.deps.ReplaceFileAtomic(temporaryPath, tx.quarantine.manifestPath); replaceErr != nil {
-		if tx.observeManifestData(data) {
-			return restoreUnavailable("quarantine manifest could not be atomically replaced")
-		}
+		// An atomic replacement may land even when its wrapper reports an error.
+		// Adopt exact landed bytes so rollback retains their ownership evidence.
+		_ = tx.observeManifestData(data)
 		return restoreUnavailable("quarantine manifest could not be atomically replaced")
 	}
 	storedInfo, storedData, valid := tx.readOwnedManifest(data, manifest.ID)
@@ -1256,7 +1253,7 @@ func (tx *restoreTransaction) persistRecoveryEvidence() {
 	}
 	manifest.Entries = append([]ProjectQuarantineManifestEntry(nil), manifest.Entries...)
 	for index := range manifest.Entries {
-		if tx.ambiguous[index] || !tx.rolledBack[index] && index < len(tx.entries) && tx.entryWasMoved(index) {
+		if tx.ambiguous[index] || (!tx.rolledBack[index] && index < len(tx.entries) && tx.entryWasMoved(index)) {
 			manifest.Entries[index].Status = ProjectQuarantineEntryRecoveryRequired
 			continue
 		}

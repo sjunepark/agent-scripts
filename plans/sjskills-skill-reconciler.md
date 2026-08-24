@@ -353,9 +353,11 @@ truthfully reports the current machine without mutating it.
 
 ### 6. Complete operator workflow and documentation
 
-- [ ] Implement `init`, `profiles`, human plan presentation, confirmation,
-      `--yes`, JSON mode, quarantine identifiers, and restore guidance against
-      the same canonical command model used by execution.
+- [x] Implement `init`, `profiles`, confirmation, `--yes`, JSON mode,
+      quarantine identifiers, and restore through the same canonical command
+      model used by execution.
+- [ ] Complete human plan presentation and restore guidance for the supported
+      operator workflow.
 - [ ] Update `README.md`, `AGENTS.md`, registry documentation, Skills CLI
       guidance, and sync guidance only when their described behavior is live.
 - [ ] Explain how projects commit `sjskills.toml`, ignore or regenerate derived

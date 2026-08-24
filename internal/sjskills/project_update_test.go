@@ -17,7 +17,7 @@ import (
 const testQuarantineID = "0123456789abcdef0123456789abcdef"
 
 func TestApplyProjectChangesUpdatesThroughCommittedQuarantine(t *testing.T) {
-	session, _, skill, oldHash := newApplyFixture(t, []Target{TargetAgents})
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	oldExecutable := filepath.Join(session.Materialized.snapshots[skill.Name].Path, "run.sh")
 	if err := os.WriteFile(oldExecutable, []byte("#!/bin/sh\necho old\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestApplyProjectChangesUpdatesThroughCommittedQuarantine(t *testing.T) {
 	rehashApplySnapshot(t, session, skill.Name)
 	makeSessionPlanCurrent(t, session)
 	applyFixture(t, session)
-	oldHash = hashPlacedSkill(t, session, skill.Name, TargetAgents)
+	oldHash := hashPlacedSkill(t, session, skill.Name, TargetAgents)
 
 	if err := os.WriteFile(filepath.Join(session.Materialized.snapshots[skill.Name].Path, "run.sh"), []byte("#!/bin/sh\necho new\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -780,7 +780,10 @@ func TestProjectQuarantineManifestDecodingIsStrictAndBounded(t *testing.T) {
 		t.Fatal("oversized manifest was accepted")
 	}
 	manifest.Entries[0].Status = "invented"
-	invalid, _ := json.Marshal(manifest)
+	invalid, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, ok := DecodeProjectQuarantineManifest(invalid); ok {
 		t.Fatal("invalid entry status was accepted")
 	}
@@ -807,8 +810,15 @@ func TestProjectQuarantineManifestDecodingIsStrictAndBounded(t *testing.T) {
 	if err := json.Unmarshal(removeData, &removeObject); err != nil {
 		t.Fatal(err)
 	}
-	removeEntries := removeObject["entries"].([]any)
-	removeEntries[0].(map[string]any)["newTreeHash"] = ""
+	removeEntries, ok := removeObject["entries"].([]any)
+	if !ok || len(removeEntries) == 0 {
+		t.Fatalf("remove manifest entries shape = %#v", removeObject["entries"])
+	}
+	removeEntry, ok := removeEntries[0].(map[string]any)
+	if !ok {
+		t.Fatalf("remove manifest entry shape = %#v", removeEntries[0])
+	}
+	removeEntry["newTreeHash"] = ""
 	explicitEmpty, err := json.Marshal(removeObject)
 	if err != nil {
 		t.Fatal(err)

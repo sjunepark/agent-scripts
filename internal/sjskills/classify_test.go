@@ -290,8 +290,14 @@ func TestClassifyProjectValidatesInputsAndIsDeterministicDetached(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	firstJSON, _ := json.Marshal(first)
-	secondJSON, _ := json.Marshal(second)
+	firstJSON, err := json.Marshal(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondJSON, err := json.Marshal(second)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(firstJSON) != string(secondJSON) {
 		t.Fatalf("classification JSON differs:\n%s\n%s", firstJSON, secondJSON)
 	}

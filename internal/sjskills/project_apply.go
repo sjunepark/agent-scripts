@@ -1349,7 +1349,7 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 			record, managed := records[key]
 			oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
 			expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
-			if managed == false || record.Scope != ScopeProject || record.Skill != operation.Skill ||
+			if !managed || record.Scope != ScopeProject || record.Skill != operation.Skill ||
 				record.Target != operation.Target || record.SourceIdentity != operation.Source ||
 				!isCanonicalProjectSourceIdentity(operation.Source) || !oldHashOK || !expectedHashOK || expectedHash != oldHash ||
 				record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {

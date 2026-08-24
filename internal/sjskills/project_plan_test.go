@@ -45,21 +45,30 @@ func TestTranslateProjectClassificationStableOperationsAndEvidence(t *testing.T)
 			Path: "/private/project/.agents/skills/alpha", Manager: ManagerSkillsCLI,
 			Reason: ProjectStateReasonVerifiedExact, Current: &expectedAlpha, Expected: &expectedAlpha,
 		},
+		{
+			Kind: ProjectStateExact, Action: PlanActionQuarantine, Skill: "gamma", Target: TargetAgents,
+			Path: "/private/project/.agents/skills/gamma", Manager: ManagerSkillsCLI,
+			SourceIdentity: "github:example/gamma", Reason: ProjectStateReasonPreviouslyManagedNotDesired,
+			Current: &expectedAlpha, Expected: &expectedAlpha,
+		},
 	}}
 
 	translated, err := TranslateProjectClassification(plan, classification)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(translated.Operations) != 2 {
-		t.Fatalf("operations = %#v, want desired placements only", translated.Operations)
+	if len(translated.Operations) != 3 {
+		t.Fatalf("operations = %#v, want desired placements plus managed removal", translated.Operations)
 	}
-	alpha, beta := translated.Operations[0], translated.Operations[1]
+	alpha, gamma, beta := translated.Operations[0], translated.Operations[1], translated.Operations[2]
 	if alpha.Skill != "alpha" || alpha.Target != TargetAgents || alpha.Action != PlanActionUnchanged || alpha.SourceID != "catalog" || alpha.Source != desired.Skills[0].Source {
 		t.Fatalf("alpha operation = %#v", alpha)
 	}
 	if alpha.Current != (PlanEvidence{Kind: projectEvidenceTreeHash, Detail: expectedAlpha.Algorithm + ":" + expectedAlpha.Digest}) || alpha.Expected != alpha.Current {
 		t.Fatalf("alpha evidence = %#v", alpha)
+	}
+	if gamma.Skill != "gamma" || gamma.Target != TargetAgents || gamma.Action != PlanActionQuarantine || gamma.Manager != ManagerSkillsCLI || gamma.SourceID != "" || gamma.Source != "github:example/gamma" {
+		t.Fatalf("gamma operation = %#v", gamma)
 	}
 	if beta.Skill != "beta" || beta.Target != TargetClaude || beta.Action != PlanActionInstall || beta.SourceID != "" || beta.Source != "example/beta" {
 		t.Fatalf("beta operation = %#v", beta)

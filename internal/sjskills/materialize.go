@@ -1250,31 +1250,19 @@ func (r boundedExecRunner) Run(ctx context.Context, command string, args []strin
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Env = env
 	cmd.Stdin = nil
-	// A descendant can inherit stdout/stderr and keep those pipes open after
-	// CommandContext kills the direct child. WaitDelay closes the pipes after a
-	// short grace period so cancellation cannot leave this adapter blocked in
-	// Wait forever.
+	// A descendant can inherit stdout/stderr after CommandContext kills the
+	// direct child. WaitDelay bounds the internal copy goroutines that os/exec
+	// owns for these writers so cancellation cannot leave Wait blocked forever.
 	cmd.WaitDelay = boundedExecWaitDelay
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return ProcessResult{}, err
-	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return ProcessResult{}, err
-	}
-	if err := cmd.Start(); err != nil {
-		return ProcessResult{}, err
-	}
 	var stdout, stderr boundedBuffer
 	stdout.limit = r.limits.MaxStdoutBytes
 	stderr.limit = r.limits.MaxStderrBytes
-	copyDone := make(chan struct{}, 2)
-	go func() { copyBounded(&stdout, stdoutPipe); copyDone <- struct{}{} }()
-	go func() { copyBounded(&stderr, stderrPipe); copyDone <- struct{}{} }()
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		return ProcessResult{}, err
+	}
 	waitErr := cmd.Wait()
-	<-copyDone
-	<-copyDone
 	result := ProcessResult{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
 	if stdout.exceeded {
 		return result, materializationError("process", "stdout exceeded its bound", nil)
@@ -1291,21 +1279,8 @@ func (r boundedExecRunner) Run(ctx context.Context, command string, args []strin
 	return result, waitErr
 }
 
-func copyBounded(destination *boundedBuffer, source io.Reader) {
-	buffer := make([]byte, 32*1024)
-	for {
-		count, err := source.Read(buffer)
-		if count > 0 {
-			_, _ = destination.Write(buffer[:count])
-		}
-		if err != nil {
-			return
-		}
-	}
-}
-
 type boundedBuffer struct {
-	bytes.Buffer
+	buffer   bytes.Buffer
 	limit    int64
 	exceeded bool
 }
@@ -1315,18 +1290,22 @@ func (b *boundedBuffer) Write(data []byte) (int, error) {
 		b.exceeded = true
 		return len(data), nil
 	}
-	remaining := b.limit - int64(b.Len())
+	remaining := b.limit - int64(b.buffer.Len())
 	if remaining <= 0 {
 		b.exceeded = len(data) > 0
 		return len(data), nil
 	}
 	if int64(len(data)) > remaining {
-		_, _ = b.Buffer.Write(data[:remaining])
+		_, _ = b.buffer.Write(data[:remaining])
 		b.exceeded = true
 		return len(data), nil
 	}
-	_, _ = b.Buffer.Write(data)
+	_, _ = b.buffer.Write(data)
 	return len(data), nil
+}
+
+func (b *boundedBuffer) Bytes() []byte {
+	return b.buffer.Bytes()
 }
 
 var (
@@ -1498,7 +1477,11 @@ func stageRootVariants(root string) []string {
 	add(filepath.FromSlash(root))
 	add(strings.ReplaceAll(root, "/", `\`))
 	add(strings.ReplaceAll(root, `\`, "/"))
+	baseVariants := make([]string, 0, len(seen))
 	for value := range seen {
+		baseVariants = append(baseVariants, value)
+	}
+	for _, value := range baseVariants {
 		add(strings.ReplaceAll(value, `\`, `\\`))
 	}
 	variants := make([]string, 0, len(seen))
