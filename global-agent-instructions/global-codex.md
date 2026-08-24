@@ -65,6 +65,9 @@ files are loaded after this file and take precedence when they conflict.
 - Treat unrelated working-tree changes as intentional.
 - Do not delete, reset, restore, checkout, or clean up files you did not create
   without explicit confirmation.
+- Use an existing `dev` branch as the normal development base and target pull
+  requests to `dev`. If `dev` does not exist, ask before creating it. Use or
+  target `main` only when the user explicitly requires it.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,
