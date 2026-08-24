@@ -2,6 +2,8 @@ package sjskills
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -26,15 +28,16 @@ type projectJournalState struct {
 }
 
 type projectJournalEntry struct {
-	Action             PlanAction `json:"action"`
-	Skill              string     `json:"skill"`
-	Target             Target     `json:"target"`
-	ManagedRootExisted bool       `json:"managedRootExisted"`
-	OldSourceIdentity  string     `json:"oldSourceIdentity,omitempty"`
-	NewSourceIdentity  string     `json:"newSourceIdentity,omitempty"`
-	TreeHashAlgorithm  string     `json:"treeHashAlgorithm"`
-	OldTreeHash        string     `json:"oldTreeHash,omitempty"`
-	NewTreeHash        string     `json:"newTreeHash,omitempty"`
+	Action               PlanAction `json:"action"`
+	Skill                string     `json:"skill"`
+	Target               Target     `json:"target"`
+	ManagedParentExisted bool       `json:"managedParentExisted"`
+	ManagedRootExisted   bool       `json:"managedRootExisted"`
+	OldSourceIdentity    string     `json:"oldSourceIdentity,omitempty"`
+	NewSourceIdentity    string     `json:"newSourceIdentity,omitempty"`
+	TreeHashAlgorithm    string     `json:"treeHashAlgorithm"`
+	OldTreeHash          string     `json:"oldTreeHash,omitempty"`
+	NewTreeHash          string     `json:"newTreeHash,omitempty"`
 }
 
 // projectTransactionJournal is private crash-recovery evidence. It contains
@@ -141,7 +144,7 @@ func (tx *applyTransaction) prepareTransactionJournal(preimage *applyStatePreima
 		return err
 	}
 	for index := range journal.Entries {
-		journal.Entries[index].ManagedRootExisted = applyManagedRootExisted(tx.ancestors[journal.Entries[index].Target])
+		journal.Entries[index].ManagedParentExisted, journal.Entries[index].ManagedRootExisted = applyManagedAncestorExistence(tx.ancestors[journal.Entries[index].Target])
 	}
 	return tx.writeTransactionJournal(journal)
 }
@@ -174,12 +177,14 @@ func (tx *restoreTransaction) prepareRestoreJournal() error {
 		journal.PreState.Data = append([]byte(nil), tx.statePreimage.data...)
 	}
 	for _, restoreEntry := range tx.entries {
+		parentExisted, rootExisted := applyManagedAncestorExistence(tx.ancestors[restoreEntry.entry.Target])
 		entry := projectJournalEntry{
 			Skill: restoreEntry.entry.Skill, Target: restoreEntry.entry.Target,
-			ManagedRootExisted: applyManagedRootExisted(tx.ancestors[restoreEntry.entry.Target]),
-			TreeHashAlgorithm:  restoreEntry.entry.TreeHashAlgorithm,
-			OldTreeHash:        restoreEntry.entry.OldTreeHash,
-			OldSourceIdentity:  restoreEntry.entry.OldSourceIdentity,
+			ManagedParentExisted: parentExisted,
+			ManagedRootExisted:   rootExisted,
+			TreeHashAlgorithm:    restoreEntry.entry.TreeHashAlgorithm,
+			OldTreeHash:          restoreEntry.entry.OldTreeHash,
+			OldSourceIdentity:    restoreEntry.entry.OldSourceIdentity,
 		}
 		if restoreEntry.entry.Action == ProjectQuarantineEntryActionUpdate {
 			entry.Action = PlanActionUpdate
@@ -199,8 +204,11 @@ func (tx *restoreTransaction) prepareRestoreJournal() error {
 	return nil
 }
 
-func applyManagedRootExisted(ancestors []*applyAncestor) bool {
-	return len(ancestors) > 0 && ancestors[len(ancestors)-1].exists
+func applyManagedAncestorExistence(ancestors []*applyAncestor) (bool, bool) {
+	if len(ancestors) == 0 {
+		return false, false
+	}
+	return ancestors[0].exists, ancestors[len(ancestors)-1].exists
 }
 
 func validProjectTransactionJournal(journal projectTransactionJournal) bool {
@@ -245,6 +253,11 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 		return false
 	}
 	seen := make(map[string]struct{}, len(journal.Entries))
+	type managedAncestorExistence struct {
+		parent bool
+		root   bool
+	}
+	ancestorExistenceByTarget := make(map[Target]managedAncestorExistence)
 	requiresQuarantine := false
 	for _, entry := range journal.Entries {
 		if !isPortableName(entry.Skill) {
@@ -253,6 +266,14 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 		if _, ok := supportedTargets[entry.Target]; !ok || entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 {
 			return false
 		}
+		if entry.ManagedRootExisted && !entry.ManagedParentExisted {
+			return false
+		}
+		existence := managedAncestorExistence{parent: entry.ManagedParentExisted, root: entry.ManagedRootExisted}
+		if previous, ok := ancestorExistenceByTarget[entry.Target]; ok && previous != existence {
+			return false
+		}
+		ancestorExistenceByTarget[entry.Target] = existence
 		switch entry.Action {
 		case PlanActionInstall:
 			if entry.OldTreeHash != "" || entry.OldSourceIdentity != "" || !validTreeDigest(entry.NewTreeHash) || !isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) {
@@ -456,6 +477,11 @@ func (tx *applyTransaction) writeTransactionJournal(journal projectTransactionJo
 		_ = temporary.Close()
 		return applyUnavailable("transaction recovery evidence could not be synced")
 	}
+	temporaryInfo, err := temporary.Stat()
+	if err != nil {
+		_ = temporary.Close()
+		return applyUnavailable("transaction recovery evidence identity could not be captured")
+	}
 	if err := temporary.Close(); err != nil {
 		return applyUnavailable("transaction recovery evidence could not be closed")
 	}
@@ -464,8 +490,13 @@ func (tx *applyTransaction) writeTransactionJournal(journal projectTransactionJo
 	}
 	if err := publishNoReplace(temporaryPath, path); err != nil {
 		if stored, readErr := readBoundedInspectionFile(path, maxProjectTransactionJournalSize); readErr == nil && bytes.Equal(stored, data) {
+			info, statErr := os.Lstat(path)
+			if statErr != nil || !os.SameFile(temporaryInfo, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) {
+				return applyUnavailable("transaction recovery evidence publication was not confirmed")
+			}
 			tx.journal = &journal
 			tx.journalData = append([]byte(nil), data...)
+			tx.journalInfo = info
 			return applyUnavailable("transaction recovery evidence publication was not confirmed")
 		}
 		if errors.Is(err, os.ErrExist) {
@@ -475,7 +506,7 @@ func (tx *applyTransaction) writeTransactionJournal(journal projectTransactionJo
 	}
 	stored, readErr := readBoundedInspectionFile(path, maxProjectTransactionJournalSize)
 	info, statErr := os.Lstat(path)
-	if readErr != nil || statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) || !bytes.Equal(stored, data) {
+	if readErr != nil || statErr != nil || !os.SameFile(temporaryInfo, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) || !bytes.Equal(stored, data) {
 		return applyUnavailable("transaction recovery evidence could not be verified")
 	}
 	if err := tx.deps.SyncDir(tx.layout.DerivedDirectoryPath); err != nil {
@@ -483,6 +514,7 @@ func (tx *applyTransaction) writeTransactionJournal(journal projectTransactionJo
 	}
 	tx.journal = &journal
 	tx.journalData = append([]byte(nil), data...)
+	tx.journalInfo = info
 	return nil
 }
 
@@ -508,6 +540,7 @@ func (tx *applyTransaction) loadTransactionJournal() (projectTransactionJournal,
 	}
 	tx.journal = &journal
 	tx.journalData = append([]byte(nil), data...)
+	tx.journalInfo = probe.info
 	return journal, true, nil
 }
 
@@ -516,27 +549,63 @@ func (tx *applyTransaction) clearTransactionJournal() error {
 		return nil
 	}
 	path := projectTransactionJournalPath(tx.layout)
+	digest := sha256.Sum256(tx.journalData)
+	tombstoneName := "transaction-" + tx.journal.Kind + "-" + hex.EncodeToString(digest[:]) + ".cleared"
+	tombstone := filepath.Join(projectRecoveryRunPath(tx.layout, tx.journal.ID), tombstoneName)
+	if err := ensureRecoveryParent(tx, filepath.Dir(tombstone)); err != nil {
+		return err
+	}
 	data, err := readBoundedInspectionFile(path, maxProjectTransactionJournalSize)
 	if err != nil || !bytes.Equal(data, tx.journalData) {
 		return applyConflict("transaction recovery evidence changed")
 	}
+	if tx.deps.beforeJournalClear != nil {
+		tx.deps.beforeJournalClear()
+	}
 	if err := tx.checkLock(); err != nil {
 		return err
 	}
-	if err := os.Remove(path); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return applyConflict("transaction recovery evidence disappeared")
-		}
-		return applyUnavailable("transaction recovery evidence could not be removed")
+	info, err := os.Lstat(path)
+	if err != nil || tx.journalInfo == nil || !os.SameFile(tx.journalInfo, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) {
+		return applyConflict("transaction recovery evidence changed")
 	}
-	// The unlink is the transaction commit point. Once it succeeds, callers
-	// must not roll managed state back even if directory durability cannot be
-	// confirmed, because the journal may no longer exist after a crash.
+	if _, err := os.Lstat(tombstone); err == nil || !errors.Is(err, os.ErrNotExist) {
+		return applyConflict("transaction recovery finalization path is occupied")
+	}
+	moveErr := publishNoReplace(path, tombstone)
+	if tx.deps.afterJournalMove != nil {
+		tx.deps.afterJournalMove()
+	}
+	landedData, landedReadErr := readBoundedInspectionFile(tombstone, maxProjectTransactionJournalSize)
+	landedInfo, landedErr := os.Lstat(tombstone)
+	_, activeErr := os.Lstat(path)
+	landedOwned := landedReadErr == nil && landedErr == nil && tx.journalInfo != nil &&
+		os.SameFile(tx.journalInfo, landedInfo) && landedInfo.Mode()&os.ModeSymlink == 0 &&
+		landedInfo.Mode().IsRegular() && validApplyPrivateFileMode(landedInfo.Mode()) && bytes.Equal(landedData, tx.journalData)
+	activeAbsent := errors.Is(activeErr, os.ErrNotExist)
+	if !landedOwned || !activeAbsent {
+		if landedErr == nil && activeAbsent {
+			// The pathname was swapped after validation. Return the unknown file
+			// to the active location when possible and retain the journal.
+			_ = publishNoReplace(tombstone, path)
+		}
+		return applyConflict("transaction recovery evidence changed during finalization")
+	}
+	// Moving the owned journal away from its active pathname is the transaction
+	// commit point. The private tombstone is retained so finalization never
+	// unlinks a byte-identical external replacement by pathname.
 	tx.journalCleared = true
 	tx.journal = nil
 	tx.journalData = nil
+	tx.journalInfo = nil
+	if moveErr != nil {
+		return applyUnavailable("transaction recovery evidence finalization was not confirmed")
+	}
 	if err := tx.deps.SyncDir(tx.layout.DerivedDirectoryPath); err != nil {
 		return applyUnavailable("transaction recovery directory could not be synced")
+	}
+	if err := tx.deps.SyncDir(filepath.Dir(tombstone)); err != nil {
+		return applyUnavailable("transaction recovery finalization directory could not be synced")
 	}
 	return nil
 }
@@ -553,13 +622,16 @@ func (tx *applyTransaction) recoverInterruptedTransaction() (bool, error) {
 	if err != nil {
 		return true, applyConflict("interrupted provenance state is unavailable")
 	}
-	preStateMatches := journalStateMatches(current, journal.PreState)
-	candidateMatches := current.exists && bytes.Equal(current.data, journal.CandidateState)
-	if !preStateMatches && !candidateMatches {
-		return true, applyConflict("interrupted provenance state is ambiguous")
-	}
 	if err := tx.loadRecoveryQuarantine(journal); err != nil {
 		return true, err
+	}
+	preStateMatches := journalStateMatches(current, journal.PreState)
+	candidateMatches := journalCandidateStateMatches(current, journal.CandidateState)
+	if !preStateMatches && !candidateMatches {
+		if tx.quarantine != nil {
+			_ = tx.setQuarantineStatus(ProjectQuarantineRecoveryRequired)
+		}
+		return true, applyConflict("interrupted provenance state is ambiguous")
 	}
 	for index := len(journal.Entries) - 1; index >= 0; index-- {
 		if err := tx.recoverApplyEntry(journal, journal.Entries[index]); err != nil {
@@ -607,13 +679,16 @@ func (tx *applyTransaction) recoverInterruptedRestore(journal projectTransaction
 	if err != nil {
 		return applyConflict("interrupted provenance state is unavailable")
 	}
-	preStateMatches := journalStateMatches(current, journal.PreState)
-	candidateMatches := current.exists && bytes.Equal(current.data, journal.CandidateState)
-	if !preStateMatches && !candidateMatches {
-		return applyConflict("interrupted provenance state is ambiguous")
-	}
 	if err := tx.loadRecoveryQuarantine(journal); err != nil {
 		return err
+	}
+	preStateMatches := journalStateMatches(current, journal.PreState)
+	candidateMatches := journalCandidateStateMatches(current, journal.CandidateState)
+	if !preStateMatches && !candidateMatches {
+		if tx.quarantine != nil {
+			_ = tx.setQuarantineStatus(ProjectQuarantineRecoveryRequired)
+		}
+		return applyConflict("interrupted provenance state is ambiguous")
 	}
 	for index := len(journal.Entries) - 1; index >= 0; index-- {
 		entry := journal.Entries[index]
@@ -693,8 +768,10 @@ func (tx *applyTransaction) cleanupInterruptedManagedRoots(journal projectTransa
 			return applyUnavailable("interrupted managed root could not be cleaned up")
 		}
 		parent := filepath.Dir(root)
-		if err := removeInterruptedEmptyDirectory(parent); err != nil {
-			return applyUnavailable("interrupted managed ancestor could not be cleaned up")
+		if !entry.ManagedParentExisted {
+			if err := removeInterruptedEmptyDirectory(parent); err != nil {
+				return applyUnavailable("interrupted managed ancestor could not be cleaned up")
+			}
 		}
 		if err := tx.deps.SyncDir(filepath.Dir(parent)); err != nil {
 			return applyUnavailable("interrupted managed ancestor directory could not be synced")
@@ -718,7 +795,11 @@ func journalStateMatches(current *applyStatePreimage, expected projectJournalSta
 	if current == nil || current.exists != expected.Exists {
 		return false
 	}
-	return !expected.Exists || bytes.Equal(current.data, expected.Data)
+	return !expected.Exists || current.mode.Perm() == os.FileMode(expected.Mode).Perm() && bytes.Equal(current.data, expected.Data)
+}
+
+func journalCandidateStateMatches(current *applyStatePreimage, data []byte) bool {
+	return current != nil && current.exists && validApplyPrivateFileMode(current.mode) && bytes.Equal(current.data, data)
 }
 
 func (tx *applyTransaction) loadRecoveryQuarantine(journal projectTransactionJournal) error {
@@ -938,24 +1019,36 @@ func (tx *applyTransaction) recoverApplyEntry(journal projectTransactionJournal,
 }
 
 func inspectRecoveryTree(boundary, path string) (TreeHash, bool, error) {
+	hash, _, exists, err := inspectRecoveryTreeIdentity(boundary, path, nil)
+	return hash, exists, err
+}
+
+func inspectRecoveryTreeIdentity(boundary, path string, afterHash func()) (TreeHash, os.FileInfo, bool, error) {
 	if !pathWithin(boundary, path) {
-		return TreeHash{}, false, applyConflict("interrupted recovery path escapes its boundary")
+		return TreeHash{}, nil, false, applyConflict("interrupted recovery path escapes its boundary")
 	}
 	probe := proveInspectionPath(boundary, path)
 	if probe.unsafe {
-		return TreeHash{}, false, applyConflict("interrupted recovery path is unsafe")
+		return TreeHash{}, nil, false, applyConflict("interrupted recovery path is unsafe")
 	}
 	if !probe.exists {
-		return TreeHash{}, false, nil
+		return TreeHash{}, nil, false, nil
 	}
 	if probe.info == nil || probe.info.Mode()&os.ModeSymlink != 0 || !probe.info.IsDir() {
-		return TreeHash{}, true, applyConflict("interrupted recovery entry is not a real directory")
+		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery entry is not a real directory")
 	}
 	hash, err := HashSkillTree(path)
 	if err != nil {
-		return TreeHash{}, true, applyConflict("interrupted recovery content could not be verified")
+		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery content could not be verified")
 	}
-	return hash, true, nil
+	if afterHash != nil {
+		afterHash()
+	}
+	current, err := os.Lstat(path)
+	if err != nil || !os.SameFile(probe.info, current) || current.Mode()&os.ModeSymlink != 0 || !current.IsDir() {
+		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery entry changed during verification")
+	}
+	return hash, probe.info, true, nil
 }
 
 func ensureRecoveryParent(tx *applyTransaction, parent string) error {
@@ -982,7 +1075,7 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 	if err := tx.checkLock(); err != nil {
 		return err
 	}
-	before, exists, err := inspectRecoveryTree(tx.root, source)
+	before, sourceInfo, exists, err := inspectRecoveryTreeIdentity(tx.root, source, tx.deps.afterRecoveryTreeHash)
 	if err != nil || !exists || before != expected {
 		return applyConflict("interrupted recovery source changed before move")
 	}
@@ -997,9 +1090,14 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 	}
 	if err := publishNoReplace(source, destination); err != nil {
 		landed, landedExists, _ := inspectRecoveryTree(tx.root, destination)
+		landedInfo, landedStatErr := os.Lstat(destination)
 		_, sourceExists, _ := inspectRecoveryTree(tx.root, source)
 		if landedExists && landed == expected && !sourceExists {
-			return applyUnavailable("interrupted recovery move was not confirmed")
+			if landedStatErr == nil && os.SameFile(sourceInfo, landedInfo) {
+				return applyUnavailable("interrupted recovery move was not confirmed")
+			}
+			_ = publishNoReplace(destination, source)
+			return applyConflict("interrupted recovery tree changed during move")
 		}
 		if errors.Is(err, os.ErrExist) {
 			return applyConflict("interrupted recovery destination appeared")
@@ -1007,8 +1105,9 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 		return applyUnavailable("interrupted recovery move could not be completed")
 	}
 	landed, landedExists, err := inspectRecoveryTree(tx.root, destination)
+	landedInfo, landedStatErr := os.Lstat(destination)
 	_, sourceExists, sourceErr := inspectRecoveryTree(tx.root, source)
-	if err != nil || sourceErr != nil || !landedExists || landed != expected || sourceExists {
+	if err != nil || sourceErr != nil || landedStatErr != nil || !landedExists || landed != expected || sourceExists || !os.SameFile(sourceInfo, landedInfo) {
 		if landedExists && !sourceExists {
 			// The moved tree was not ours. Return it to the public source path
 			// when that path remains absent; otherwise retain both copies.
@@ -1027,7 +1126,7 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 
 func (tx *applyTransaction) restoreJournalPreState(journal projectTransactionJournal) error {
 	current, err := captureApplyStatePreimage(tx.layout)
-	if err != nil || !current.exists || !bytes.Equal(current.data, journal.CandidateState) {
+	if err != nil || !journalCandidateStateMatches(current, journal.CandidateState) {
 		return applyConflict("interrupted provenance state changed before recovery")
 	}
 	if journal.PreState.Exists {

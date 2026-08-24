@@ -79,6 +79,7 @@ func TestApplyProjectChangesRecoversJournalCommittedBeforeQuarantinePublication(
 		t.Fatal(err)
 	}
 	journal.Entries[0].ManagedRootExisted = true
+	journal.Entries[0].ManagedParentExisted = true
 	journalData, err := marshalProjectTransactionJournal(journal)
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +165,49 @@ func TestApplyRecoversAfterAbruptExitWithEmptyDurableQuarantineRun(t *testing.T)
 	}
 }
 
+func TestApplyAbruptTemporaryPlacementRemainsPrivate(t *testing.T) {
+	const childEnv = "SJSKILLS_ABRUPT_PRIVATE_STAGE_CHILD"
+	const rootEnv = "SJSKILLS_ABRUPT_PRIVATE_STAGE_ROOT"
+	const stageEnv = "SJSKILLS_ABRUPT_PRIVATE_STAGE_SOURCE"
+	if os.Getenv(childEnv) == "1" {
+		session, _, _, _ := newApplyFixtureAt(t, os.Getenv(rootEnv), os.Getenv(stageEnv), []Target{TargetAgents})
+		deps := ApplyDeps{
+			newQuarantineID: func() (string, error) { return testQuarantineID, nil },
+			BeforePublish:   func(AppliedPlacement) error { os.Exit(99); return nil },
+		}
+		_, _ = ApplyProjectChanges(context.Background(), session, deps)
+		os.Exit(98)
+	}
+	project := t.TempDir()
+	stage := t.TempDir()
+	child := exec.Command(os.Args[0], "-test.run=^TestApplyAbruptTemporaryPlacementRemainsPrivate$")
+	child.Env = append(os.Environ(), childEnv+"=1", rootEnv+"="+project, stageEnv+"="+stage)
+	output, err := child.CombinedOutput()
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 99 {
+		t.Fatalf("abrupt private-stage child err=%v output=%q", err, output)
+	}
+	session, _, skill, expected := newApplyFixtureAt(t, project, stage, []Target{TargetAgents})
+	managedEntries, err := os.ReadDir(session.Layout.AgentsSkillsPath)
+	if err != nil || len(managedEntries) != 0 {
+		t.Fatalf("managed root contains interrupted staging: entries=%v err=%v", managedEntries, err)
+	}
+	privatePattern := filepath.Join(projectRecoveryRunPath(session.Layout, testQuarantineID), "staging", string(TargetAgents), applyInstallPattern+"*")
+	privateStages, err := filepath.Glob(privatePattern)
+	if err != nil || len(privateStages) != 1 {
+		t.Fatalf("private interrupted staging=%v err=%v", privateStages, err)
+	}
+	if got := hashSkillAt(t, privateStages[0]); got != expected {
+		t.Fatalf("private interrupted staging hash=%#v want=%#v", got, expected)
+	}
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil || err.Error() != "project apply unavailable: interrupted project transaction was recovered; rerun apply" {
+		t.Fatalf("private-stage recovery error=%v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("private stage became a managed placement: %v", err)
+	}
+}
+
 func TestApplyProjectChangesDoesNotRollbackAfterJournalUnlinkCommit(t *testing.T) {
 	session, _, skill, expected := newApplyFixture(t, []Target{TargetAgents})
 	armed := false
@@ -232,8 +276,84 @@ func TestApplyRollbackPreservesProvenanceReplacementRacedDuringRemoval(t *testin
 	}
 }
 
+func TestApplyJournalFinalizationPreservesByteIdenticalReplacement(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	swapped := false
+	deps := ApplyDeps{beforeJournalClear: func() {
+		if swapped {
+			return
+		}
+		swapped = true
+		path := projectTransactionJournalPath(session.Layout)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			panic(err)
+		}
+		if err := os.Remove(path); err != nil {
+			panic(err)
+		}
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			panic(err)
+		}
+	}}
+	_, err := ApplyProjectChanges(context.Background(), session, deps)
+	if err == nil || err.Error() != "project apply conflict: transaction recovery evidence changed" {
+		t.Fatalf("journal replacement error=%v", err)
+	}
+	if !swapped {
+		t.Fatal("journal replacement hook did not run")
+	}
+	if info, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil || !info.Mode().IsRegular() {
+		t.Fatalf("external journal replacement was not preserved: info=%v err=%v", info, statErr)
+	}
+	if _, statErr := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("journal replacement left managed placement: %v", statErr)
+	}
+}
+
+func TestApplyJournalFinalizationPreservesInPlaceRewriteAfterMove(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	rewritten := false
+	deps := ApplyDeps{
+		newQuarantineID: func() (string, error) { return testQuarantineID, nil },
+		afterJournalMove: func() {
+			if rewritten {
+				return
+			}
+			rewritten = true
+			matches, err := filepath.Glob(filepath.Join(projectRecoveryRunPath(session.Layout, testQuarantineID), "transaction-apply-*.cleared"))
+			if err != nil || len(matches) != 1 {
+				panic("journal tombstone was not found")
+			}
+			file, err := os.OpenFile(matches[0], os.O_WRONLY|os.O_TRUNC, 0)
+			if err != nil {
+				panic(err)
+			}
+			if _, err := file.WriteString("external\n"); err != nil {
+				panic(err)
+			}
+			if err := file.Close(); err != nil {
+				panic(err)
+			}
+		},
+	}
+	_, err := ApplyProjectChanges(context.Background(), session, deps)
+	if err == nil || err.Error() != "project apply conflict: transaction recovery evidence changed during finalization" {
+		t.Fatalf("in-place journal rewrite error=%v", err)
+	}
+	if !rewritten {
+		t.Fatal("in-place journal rewrite hook did not run")
+	}
+	if data, readErr := os.ReadFile(projectTransactionJournalPath(session.Layout)); readErr != nil || string(data) != "external\n" {
+		t.Fatalf("in-place journal rewrite was not returned: data=%q err=%v", data, readErr)
+	}
+	if _, statErr := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("in-place journal rewrite left managed placement: %v", statErr)
+	}
+}
+
 func TestInterruptedInstallRecoveryReturnsTreeSwappedBeforeMove(t *testing.T) {
-	session, skill := simulateInterruptedInstallForRecovery(t)
+	session, skill := simulateInterruptedInstallForRecovery(t, false)
 	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
 	swapped := false
 	deps := ApplyDeps{beforeRecoveryTreeMove: func() {
@@ -260,6 +380,99 @@ func TestInterruptedInstallRecoveryReturnsTreeSwappedBeforeMove(t *testing.T) {
 	}
 	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
 		t.Fatalf("recovery tree swap journal disappeared: %v", statErr)
+	}
+}
+
+func TestInterruptedInstallRecoveryRejectsByteIdenticalTreeSwap(t *testing.T) {
+	session, skill := simulateInterruptedInstallForRecovery(t, false)
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	swapped := false
+	deps := ApplyDeps{beforeRecoveryTreeMove: func() {
+		if swapped {
+			return
+		}
+		swapped = true
+		replacement := filepath.Join(session.Layout.Root, "identical-external")
+		if err := os.Mkdir(replacement, 0o755); err != nil {
+			panic(err)
+		}
+		if err := copyApplyTree(destination, replacement, func(*os.File) error { return nil }); err != nil {
+			panic(err)
+		}
+		if err := os.RemoveAll(destination); err != nil {
+			panic(err)
+		}
+		if err := os.Rename(replacement, destination); err != nil {
+			panic(err)
+		}
+	}}
+	_, err := ApplyProjectChanges(context.Background(), session, deps)
+	if err == nil || err.Error() != "project apply conflict: interrupted recovery tree changed during move" {
+		t.Fatalf("byte-identical recovery swap error=%v", err)
+	}
+	if !swapped {
+		t.Fatal("byte-identical recovery swap hook did not run")
+	}
+	if got := hashSkillAt(t, destination); got != session.Expected[skill.Name] {
+		t.Fatalf("byte-identical external tree was not returned: got=%#v", got)
+	}
+	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
+		t.Fatalf("byte-identical swap journal disappeared: %v", statErr)
+	}
+}
+
+func TestInterruptedInstallRecoveryRejectsSwapAfterHashBeforeIdentityProof(t *testing.T) {
+	session, skill := simulateInterruptedInstallForRecovery(t, false)
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	swapped := false
+	deps := ApplyDeps{afterRecoveryTreeHash: func() {
+		if swapped {
+			return
+		}
+		swapped = true
+		replacement := filepath.Join(session.Layout.Root, "post-hash-identical-external")
+		if err := os.Mkdir(replacement, 0o755); err != nil {
+			panic(err)
+		}
+		if err := copyApplyTree(destination, replacement, func(*os.File) error { return nil }); err != nil {
+			panic(err)
+		}
+		if err := os.RemoveAll(destination); err != nil {
+			panic(err)
+		}
+		if err := os.Rename(replacement, destination); err != nil {
+			panic(err)
+		}
+	}}
+	_, err := ApplyProjectChanges(context.Background(), session, deps)
+	if err == nil || err.Error() != "project apply conflict: interrupted recovery source changed before move" {
+		t.Fatalf("post-hash recovery swap error=%v", err)
+	}
+	if !swapped {
+		t.Fatal("post-hash recovery swap hook did not run")
+	}
+	if got := hashSkillAt(t, destination); got != session.Expected[skill.Name] {
+		t.Fatalf("post-hash external tree changed: got=%#v", got)
+	}
+	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
+		t.Fatalf("post-hash swap journal disappeared: %v", statErr)
+	}
+}
+
+func TestInterruptedInstallRecoveryPreservesPreexistingManagedParent(t *testing.T) {
+	session, skill := simulateInterruptedInstallForRecovery(t, true)
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil || err.Error() != "project apply unavailable: interrupted project transaction was recovered; rerun apply" {
+		t.Fatalf("pre-existing parent recovery error=%v", err)
+	}
+	parent := filepath.Dir(session.Layout.AgentsSkillsPath)
+	if info, err := os.Lstat(parent); err != nil || !info.IsDir() {
+		t.Fatalf("pre-existing managed parent was removed: info=%v err=%v", info, err)
+	}
+	if _, err := os.Lstat(session.Layout.AgentsSkillsPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("transaction-created managed root survived: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("interrupted placement survived: %v", err)
 	}
 }
 
@@ -346,6 +559,29 @@ func TestProjectTransactionJournalDecodingIsStrictAndBounded(t *testing.T) {
 	if decoded, valid := decodeProjectTransactionJournal(data); !valid || decoded.ID != testQuarantineID {
 		t.Fatalf("valid journal decoded=%#v valid=%v", decoded, valid)
 	}
+	secondRecord := candidate.Records[0]
+	secondRecord.Skill = "other"
+	candidate.Records = append(candidate.Records, secondRecord)
+	twoSkillState, err := marshalApplyState(candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	twoSkillJournal := journal
+	twoSkillJournal.CandidateState = twoSkillState
+	twoSkillJournal.Entries = append([]projectJournalEntry(nil), journal.Entries...)
+	twoSkillJournal.Entries[0].ManagedParentExisted = true
+	twoSkillJournal.Entries[0].ManagedRootExisted = true
+	secondEntry := twoSkillJournal.Entries[0]
+	secondEntry.Skill = "other"
+	twoSkillJournal.Entries = append(twoSkillJournal.Entries, secondEntry)
+	if !validProjectTransactionJournal(twoSkillJournal) {
+		t.Fatal("consistent two-skill ancestor evidence was rejected")
+	}
+	twoSkillJournal.Entries[1].ManagedParentExisted = false
+	twoSkillJournal.Entries[1].ManagedRootExisted = false
+	if validProjectTransactionJournal(twoSkillJournal) {
+		t.Fatal("inconsistent per-target ancestor evidence was accepted")
+	}
 	unknown := append([]byte(nil), data[:len(data)-2]...)
 	unknown = append(unknown, []byte(",\n  \"unknown\": true\n}\n")...)
 	badHash := bytes.Replace(data, []byte(session.Expected["demo"].Digest), []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), 1)
@@ -399,6 +635,70 @@ func TestApplyProjectChangesPreservesAmbiguousInterruptedUpdate(t *testing.T) {
 	}
 }
 
+func TestApplyProvenanceAmbiguityReportsQuarantineHandleBeforeMutation(t *testing.T) {
+	session, skill, oldHash, newHash := simulateInterruptedUpdate(t)
+	state := readApplyState(t, session)
+	state.Records[0].RecordedAt = state.Records[0].RecordedAt.Add(time.Second)
+	thirdState, err := marshalApplyState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(session.Layout.ReconcilerStatePath, thirdState, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err == nil || err.Error() != "project apply conflict: interrupted provenance state is ambiguous" {
+		t.Fatalf("provenance ambiguity error=%v", err)
+	}
+	if result.Quarantine == nil || result.Quarantine.ID != testQuarantineID || result.Quarantine.Status != ProjectQuarantineRecoveryRequired {
+		t.Fatalf("provenance ambiguity handle=%#v", result.Quarantine)
+	}
+	if got := hashPlacedSkill(t, session, skill.Name, TargetAgents); got != newHash {
+		t.Fatalf("provenance ambiguity mutated placement=%#v want=%#v", got, newHash)
+	}
+	quarantined := filepath.Join(session.Layout.QuarantinePath, testQuarantineID, filepath.FromSlash(projectQuarantinedPlacement(TargetAgents, skill.Name)))
+	if got := hashSkillAt(t, quarantined); got != oldHash {
+		t.Fatalf("provenance ambiguity mutated quarantine=%#v want=%#v", got, oldHash)
+	}
+	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
+		t.Fatalf("provenance ambiguity removed journal: %v", statErr)
+	}
+}
+
+func TestApplyRecoveryRejectsPreStatePermissionDrift(t *testing.T) {
+	session, skill, _, newHash := simulateInterruptedUpdate(t)
+	journalData, err := os.ReadFile(projectTransactionJournalPath(session.Layout))
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal, valid := decodeProjectTransactionJournal(journalData)
+	if !valid || !journal.PreState.Exists {
+		t.Fatal("interrupted journal pre-state is invalid")
+	}
+	if err := os.WriteFile(session.Layout.ReconcilerStatePath, journal.PreState.Data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(session.Layout.ReconcilerStatePath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err == nil || err.Error() != "project apply conflict: interrupted provenance state is ambiguous" {
+		t.Fatalf("pre-state permission drift error=%v", err)
+	}
+	if result.Quarantine == nil || result.Quarantine.ID != testQuarantineID || result.Quarantine.Status != ProjectQuarantineRecoveryRequired {
+		t.Fatalf("pre-state permission drift handle=%#v", result.Quarantine)
+	}
+	if got := hashPlacedSkill(t, session, skill.Name, TargetAgents); got != newHash {
+		t.Fatalf("pre-state permission drift mutated placement=%#v want=%#v", got, newHash)
+	}
+	if info, statErr := os.Lstat(session.Layout.ReconcilerStatePath); statErr != nil || info.Mode().Perm() != 0o644 {
+		t.Fatalf("pre-state permission drift was silently restored: info=%v err=%v", info, statErr)
+	}
+	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
+		t.Fatalf("pre-state permission drift removed journal: %v", statErr)
+	}
+}
+
 func TestRestoreProjectQuarantineRecoversInterruptedRestoreBeforeRerun(t *testing.T) {
 	session, skill, oldHash := simulateInterruptedRestore(t)
 	result, err := RestoreProjectQuarantine(context.Background(), session.Layout, testQuarantineID, ApplyDeps{})
@@ -426,6 +726,33 @@ func TestRestoreProjectQuarantineRecoversInterruptedRestoreBeforeRerun(t *testin
 	}
 	if got := hashSkillAt(t, destination); got != oldHash {
 		t.Fatalf("post-recovery restored hash=%#v, want %#v", got, oldHash)
+	}
+}
+
+func TestRestoreProvenanceAmbiguityReportsQuarantineHandleBeforeMutation(t *testing.T) {
+	session, skill, oldHash := simulateInterruptedRestore(t)
+	state := readApplyState(t, session)
+	state.Records[0].RecordedAt = state.Records[0].RecordedAt.Add(time.Second)
+	thirdState, err := marshalApplyState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(session.Layout.ReconcilerStatePath, thirdState, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := RestoreProjectQuarantine(context.Background(), session.Layout, testQuarantineID, ApplyDeps{})
+	if err == nil || err.Error() != "project restore conflict: interrupted project transaction is ambiguous" {
+		t.Fatalf("restore provenance ambiguity result=%#v err=%v", result, err)
+	}
+	if result.ID != testQuarantineID || result.Status != ProjectQuarantineRecoveryRequired {
+		t.Fatalf("restore provenance ambiguity handle=%#v", result)
+	}
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	if got := hashSkillAt(t, destination); got != oldHash {
+		t.Fatalf("restore provenance ambiguity mutated placement=%#v want=%#v", got, oldHash)
+	}
+	if _, statErr := os.Lstat(projectTransactionJournalPath(session.Layout)); statErr != nil {
+		t.Fatalf("restore provenance ambiguity removed journal: %v", statErr)
 	}
 }
 
@@ -510,6 +837,8 @@ func simulateInterruptedUpdate(t *testing.T) (*ProjectApplySession, DesiredSkill
 	if err != nil {
 		t.Fatal(err)
 	}
+	journal.Entries[0].ManagedParentExisted = true
+	journal.Entries[0].ManagedRootExisted = true
 	journalData, err := marshalProjectTransactionJournal(journal)
 	if err != nil {
 		t.Fatal(err)
@@ -560,9 +889,14 @@ func simulateInterruptedUpdate(t *testing.T) (*ProjectApplySession, DesiredSkill
 	return session, skill, oldHash, newHash
 }
 
-func simulateInterruptedInstallForRecovery(t *testing.T) (*ProjectApplySession, DesiredSkill) {
+func simulateInterruptedInstallForRecovery(t *testing.T, parentExisted bool) (*ProjectApplySession, DesiredSkill) {
 	t.Helper()
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	if parentExisted {
+		if err := os.MkdirAll(filepath.Dir(session.Layout.AgentsSkillsPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := os.MkdirAll(session.Layout.DerivedDirectoryPath, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -579,6 +913,7 @@ func simulateInterruptedInstallForRecovery(t *testing.T) (*ProjectApplySession, 
 	if err != nil {
 		t.Fatal(err)
 	}
+	journal.Entries[0].ManagedParentExisted = parentExisted
 	journalData, err := marshalProjectTransactionJournal(journal)
 	if err != nil {
 		t.Fatal(err)
@@ -636,8 +971,9 @@ func simulateInterruptedRestore(t *testing.T) (*ProjectApplySession, DesiredSkil
 		PreState: projectJournalState{Exists: true, Mode: uint32(preimage.mode.Perm()), Data: preimage.data},
 		Entries: []projectJournalEntry{{
 			Action: PlanActionUpdate, Skill: skill.Name, Target: TargetAgents,
-			ManagedRootExisted: true,
-			OldSourceIdentity:  entry.OldSourceIdentity, NewSourceIdentity: entry.NewSourceIdentity,
+			ManagedParentExisted: true,
+			ManagedRootExisted:   true,
+			OldSourceIdentity:    entry.OldSourceIdentity, NewSourceIdentity: entry.NewSourceIdentity,
 			TreeHashAlgorithm: entry.TreeHashAlgorithm, OldTreeHash: entry.OldTreeHash, NewTreeHash: entry.NewTreeHash,
 		}},
 	}

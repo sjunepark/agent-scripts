@@ -115,7 +115,10 @@ type ApplyDeps struct {
 	beforeStateRecoveryMove  func()
 	afterQuarantineRunSync   func()
 	beforeRecoveryTreeMove   func()
+	afterRecoveryTreeHash    func()
 	afterInitialManifestSync func()
+	beforeJournalClear       func()
+	afterJournalMove         func()
 }
 
 func defaultApplyDeps() ApplyDeps {
@@ -690,6 +693,7 @@ type applyTransaction struct {
 	quarantine     *projectQuarantineTransaction
 	journal        *projectTransactionJournal
 	journalData    []byte
+	journalInfo    os.FileInfo
 	journalCleared bool
 	lock           *applyLock
 	layout         DerivedLayout
@@ -947,7 +951,14 @@ func (tx *applyTransaction) applyOperations(ctx context.Context, session *Projec
 		if err != nil {
 			return applyConflict("target placement path changed after planning")
 		}
-		temp, err := tx.deps.MakeTempDir(root, applyInstallPattern)
+		if tx.journal == nil {
+			return applyUnavailable("transaction recovery evidence is unavailable")
+		}
+		stagingParent := filepath.Join(projectRecoveryRunPath(tx.layout, tx.journal.ID), "staging", string(operation.Target))
+		if err := ensureRecoveryParent(tx, stagingParent); err != nil {
+			return err
+		}
+		temp, err := tx.deps.MakeTempDir(stagingParent, applyInstallPattern)
 		if err != nil {
 			return applyUnavailable("temporary placement could not be created")
 		}

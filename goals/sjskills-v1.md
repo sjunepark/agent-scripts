@@ -262,3 +262,9 @@ and keep all real-home validation read-only.
   AIX/Solaris build, 55 legacy Node safety tests, 35 skill validations, local
   catalog validation, formatting, and diff checks passed using temporary
   projects and homes only.
+- PR review then closed six additional exact-state boundaries: pre-existing
+  managed parents survive cleanup, temporary placement copies remain private,
+  journal finalization and recovery moves retain inode ownership, ambiguous
+  provenance still exposes durable quarantine evidence, and provenance modes
+  participate in recovery matching. Focused race and crash regressions cover
+  each boundary.
