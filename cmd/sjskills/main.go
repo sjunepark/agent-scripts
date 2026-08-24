@@ -379,7 +379,7 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	}
 	applyProject := a.applyProject
 	if applyProject == nil {
-		applyProject = sjskills.ApplyProjectInstalls
+		applyProject = sjskills.ApplyProjectChanges
 	}
 	result, applyErr := applyProject(ctx, prepared.project, sjskills.ApplyDeps{})
 	if result.Plan.Desired.Scope != "" {

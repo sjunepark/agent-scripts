@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func TestApplyProjectInstallsRejectsBlockedPlanBeforeLock(t *testing.T) {
+func TestApplyProjectChangesRejectsBlockedPlanBeforeLock(t *testing.T) {
 	root := t.TempDir()
 	layout, err := LayoutForProject(root)
 	if err != nil {
@@ -34,12 +34,12 @@ func TestApplyProjectInstallsRejectsBlockedPlanBeforeLock(t *testing.T) {
 		Expected:     map[string]TreeHash{"blocked": {Algorithm: TreeHashAlgorithmSHA256V2, Digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
 		Materialized: &MaterializationPlan{snapshots: map[string]*SkillSnapshot{}},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{}); err == nil {
-		t.Fatal("ApplyProjectInstalls unexpectedly accepted blocked plan")
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil {
+		t.Fatal("ApplyProjectChanges unexpectedly accepted blocked plan")
 	} else {
 		var applyErr *ApplyError
 		if !errors.As(err, &applyErr) || !applyErr.Conflict() {
-			t.Fatalf("ApplyProjectInstalls() error = %v, want conflict", err)
+			t.Fatalf("ApplyProjectChanges() error = %v, want conflict", err)
 		}
 	}
 	if _, err := os.Lstat(layout.DerivedDirectoryPath); !os.IsNotExist(err) {
@@ -60,7 +60,7 @@ func TestApplyErrorConflictClassification(t *testing.T) {
 	}
 }
 
-func TestApplyProjectInstallsCopiesOnePlacementAndWritesSortedProvenance(t *testing.T) {
+func TestApplyProjectChangesCopiesOnePlacementAndWritesSortedProvenance(t *testing.T) {
 	project := t.TempDir()
 	stage := t.TempDir()
 	canonicalProject, err := filepath.EvalSymlinks(project)
@@ -110,7 +110,7 @@ func TestApplyProjectInstallsCopiesOnePlacementAndWritesSortedProvenance(t *test
 		Expected: map[string]TreeHash{skill.Name: hash}, Materialized: materialized,
 	}
 	recordedAt := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
-	result, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt }})
+	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt }})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,16 +142,16 @@ func TestApplyProjectInstallsCopiesOnePlacementAndWritesSortedProvenance(t *test
 	}
 }
 
-func TestApplyProjectInstallsReportsCommittedPlacementsOnFinalizationFailure(t *testing.T) {
+func TestApplyProjectChangesReportsCommittedPlacementsOnFinalizationFailure(t *testing.T) {
 	session, _, skill, hash := newApplyFixture(t, []Target{TargetAgents})
-	result, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{
+	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{
 		Now: func() time.Time { return time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC) },
 		beforeUnlock: func() error {
 			return errors.New("injected finalization failure")
 		},
 	})
 	if err == nil {
-		t.Fatal("ApplyProjectInstalls unexpectedly succeeded after finalization failure")
+		t.Fatal("ApplyProjectChanges unexpectedly succeeded after finalization failure")
 	}
 	if len(result.Installed) != 1 || result.Installed[0] != (AppliedPlacement{Skill: skill.Name, Target: TargetAgents}) {
 		t.Fatalf("installed = %#v, want retained committed placement", result.Installed)
@@ -166,7 +166,7 @@ func TestApplyProjectInstallsReportsCommittedPlacementsOnFinalizationFailure(t *
 	}
 }
 
-func TestApplyProjectInstallsRollsBackEarlierPlacementsOnPublishFailure(t *testing.T) {
+func TestApplyProjectChangesRollsBackEarlierPlacementsOnPublishFailure(t *testing.T) {
 	session, project, skill, hash := newApplyFixture(t, []Target{TargetAgents, TargetClaude})
 	publishCalls := 0
 	deps := ApplyDeps{
@@ -179,8 +179,8 @@ func TestApplyProjectInstallsRollsBackEarlierPlacementsOnPublishFailure(t *testi
 			return publishNoReplace(source, destination)
 		},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
-		t.Fatal("ApplyProjectInstalls unexpectedly succeeded after injected publication failure")
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
+		t.Fatal("ApplyProjectChanges unexpectedly succeeded after injected publication failure")
 	}
 	if publishCalls != 3 {
 		t.Fatalf("publish calls = %d, want two publications plus rollback move", publishCalls)
@@ -205,7 +205,7 @@ func TestApplyProjectInstallsRollsBackEarlierPlacementsOnPublishFailure(t *testi
 	}
 }
 
-func TestApplyProjectInstallsPreservesNoReplaceCollision(t *testing.T) {
+func TestApplyProjectChangesPreservesNoReplaceCollision(t *testing.T) {
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	deps := ApplyDeps{
 		BeforePublish: func(placement AppliedPlacement) error {
@@ -220,8 +220,8 @@ func TestApplyProjectInstallsPreservesNoReplaceCollision(t *testing.T) {
 			return os.WriteFile(filepath.Join(destination, "external"), []byte("keep\n"), 0o644)
 		},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
-		t.Fatal("ApplyProjectInstalls unexpectedly replaced a raced destination")
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
+		t.Fatal("ApplyProjectChanges unexpectedly replaced a raced destination")
 	}
 	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name, "external")
 	content, err := os.ReadFile(destination)
@@ -230,7 +230,40 @@ func TestApplyProjectInstallsPreservesNoReplaceCollision(t *testing.T) {
 	}
 }
 
-func TestApplyProjectInstallsRejectsSnapshotTamperBeforePublication(t *testing.T) {
+func TestApplyProjectChangesDoesNotOwnSwappedInstallPublication(t *testing.T) {
+	session, _, skill, expected := newApplyFixture(t, []Target{TargetAgents})
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	var externalInfo os.FileInfo
+	deps := ApplyDeps{PublishNoReplace: func(source, target string) error {
+		info, err := publishThenSwapWithIdenticalExternal(source, target)
+		externalInfo = info
+		return err
+	}}
+
+	result, err := ApplyProjectChanges(context.Background(), session, deps)
+	if err == nil {
+		t.Fatal("apply unexpectedly owned a swapped install publication")
+	}
+	var applyErr *ApplyError
+	if !errors.As(err, &applyErr) || !applyErr.Conflict() {
+		t.Fatalf("swapped install error = %v, want conflict", err)
+	}
+	if len(result.Installed) != 0 || result.Quarantine != nil {
+		t.Fatalf("swapped install result = %#v", result)
+	}
+	currentInfo, statErr := os.Lstat(destination)
+	if statErr != nil || externalInfo == nil || !os.SameFile(externalInfo, currentInfo) {
+		t.Fatalf("external install destination was not preserved: info=%v err=%v", currentInfo, statErr)
+	}
+	if got := hashSkillAt(t, destination); got != expected {
+		t.Fatalf("external install hash = %#v, want %#v", got, expected)
+	}
+	if _, statErr := os.Lstat(session.Layout.ReconcilerStatePath); !os.IsNotExist(statErr) {
+		t.Fatalf("swapped install wrote provenance: err=%v", statErr)
+	}
+}
+
+func TestApplyProjectChangesRejectsSnapshotTamperBeforePublication(t *testing.T) {
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	deps := ApplyDeps{
 		BeforePublish: func(AppliedPlacement) error {
@@ -241,15 +274,15 @@ func TestApplyProjectInstallsRejectsSnapshotTamperBeforePublication(t *testing.T
 			return os.WriteFile(filepath.Join(snapshot.Path, "tampered"), []byte("changed\n"), 0o644)
 		},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
-		t.Fatal("ApplyProjectInstalls unexpectedly published a tampered snapshot")
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
+		t.Fatal("ApplyProjectChanges unexpectedly published a tampered snapshot")
 	}
 	if _, err := os.Stat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !os.IsNotExist(err) {
 		t.Fatalf("tampered snapshot was published: err=%v", err)
 	}
 }
 
-func TestApplyProjectInstallsNoOpRevalidatesAfterReviewedPlan(t *testing.T) {
+func TestApplyProjectChangesNoOpRevalidatesAfterReviewedPlan(t *testing.T) {
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	applyFixture(t, session)
 	makeSessionPlanCurrent(t, session)
@@ -260,7 +293,7 @@ func TestApplyProjectInstallsNoOpRevalidatesAfterReviewedPlan(t *testing.T) {
 	deps := ApplyDeps{beforeCommit: func() error {
 		return os.WriteFile(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name, "drift"), []byte("changed\n"), 0o644)
 	}}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
 		t.Fatal("no-op apply unexpectedly reported success after placement drift")
 	}
 	stateAfter, err := os.ReadFile(session.Layout.ReconcilerStatePath)
@@ -272,7 +305,7 @@ func TestApplyProjectInstallsNoOpRevalidatesAfterReviewedPlan(t *testing.T) {
 	}
 }
 
-func TestApplyProjectInstallsMixedPlanRevalidatesUnchangedPlacementBeforeCommit(t *testing.T) {
+func TestApplyProjectChangesMixedPlanRevalidatesUnchangedPlacementBeforeCommit(t *testing.T) {
 	session, _, prior, _ := newApplyFixture(t, []Target{TargetAgents})
 	applyFixture(t, session)
 	priorState, err := os.ReadFile(session.Layout.ReconcilerStatePath)
@@ -291,7 +324,7 @@ func TestApplyProjectInstallsMixedPlanRevalidatesUnchangedPlacementBeforeCommit(
 	deps := ApplyDeps{beforeCommit: func() error {
 		return os.WriteFile(filepath.Join(session.Layout.AgentsSkillsPath, prior.Name, "drift"), []byte("changed\n"), 0o644)
 	}}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
 		t.Fatal("mixed apply unexpectedly committed after unchanged placement drift")
 	}
 	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, added.Name)); !os.IsNotExist(err) {
@@ -309,7 +342,7 @@ func TestApplyProjectInstallsMixedPlanRevalidatesUnchangedPlacementBeforeCommit(
 	}
 }
 
-func TestApplyProjectInstallsRollbackPreservesRacedReplacement(t *testing.T) {
+func TestApplyProjectChangesRollbackPreservesRacedReplacement(t *testing.T) {
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents, TargetClaude})
 	publishCalls := 0
 	replaced := false
@@ -336,7 +369,7 @@ func TestApplyProjectInstallsRollbackPreservesRacedReplacement(t *testing.T) {
 			return os.WriteFile(filepath.Join(destination, "external"), []byte("preserve\n"), 0o644)
 		},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
 		t.Fatal("apply unexpectedly succeeded after rollback race")
 	}
 	if !replaced {
@@ -358,10 +391,10 @@ func TestApplyProjectInstallsRollbackPreservesRacedReplacement(t *testing.T) {
 	}
 }
 
-func TestApplyProjectInstallsLockAcquisitionCleansOnlyCreatedDirectory(t *testing.T) {
+func TestApplyProjectChangesLockAcquisitionCleansOnlyCreatedDirectory(t *testing.T) {
 	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
 	deps := ApplyDeps{beforeLock: func() error { return errors.New("injected preflight failure") }}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
 		t.Fatal("apply unexpectedly succeeded after lock preflight failure")
 	}
 	if _, err := os.Lstat(session.Layout.DerivedDirectoryPath); !os.IsNotExist(err) {
@@ -372,7 +405,7 @@ func TestApplyProjectInstallsLockAcquisitionCleansOnlyCreatedDirectory(t *testin
 	deps.beforeLock = func() error {
 		return os.WriteFile(filepath.Join(session.Layout.DerivedDirectoryPath, applyLockName), competitor, 0o600)
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
 		t.Fatal("apply unexpectedly acquired a raced lock")
 	}
 	data, err := os.ReadFile(filepath.Join(session.Layout.DerivedDirectoryPath, applyLockName))
@@ -381,7 +414,7 @@ func TestApplyProjectInstallsLockAcquisitionCleansOnlyCreatedDirectory(t *testin
 	}
 }
 
-func TestApplyProjectInstallsPreservesExistingUnknownWithoutDuplicatingWarning(t *testing.T) {
+func TestApplyProjectChangesPreservesExistingUnknownWithoutDuplicatingWarning(t *testing.T) {
 	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
 	unknown := filepath.Join(session.Layout.AgentsSkillsPath, "unknown")
 	if err := os.MkdirAll(unknown, 0o755); err != nil {
@@ -394,7 +427,7 @@ func TestApplyProjectInstallsPreservesExistingUnknownWithoutDuplicatingWarning(t
 	if len(session.Plan.Warnings) != 1 {
 		t.Fatalf("reviewed warnings = %#v, want one", session.Plan.Warnings)
 	}
-	result, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{})
+	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +439,7 @@ func TestApplyProjectInstallsPreservesExistingUnknownWithoutDuplicatingWarning(t
 	}
 }
 
-func TestApplyProjectInstallsReportsUnknownAppearingBeforeLockedRefresh(t *testing.T) {
+func TestApplyProjectChangesReportsUnknownAppearingBeforeLockedRefresh(t *testing.T) {
 	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
 	unknown := filepath.Join(session.Layout.AgentsSkillsPath, "raced-unknown")
 	deps := ApplyDeps{beforeLock: func() error {
@@ -415,7 +448,7 @@ func TestApplyProjectInstallsReportsUnknownAppearingBeforeLockedRefresh(t *testi
 		}
 		return os.WriteFile(filepath.Join(unknown, "SKILL.md"), []byte("preserve\n"), 0o644)
 	}}
-	result, err := ApplyProjectInstalls(context.Background(), session, deps)
+	result, err := ApplyProjectChanges(context.Background(), session, deps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,7 +460,7 @@ func TestApplyProjectInstallsReportsUnknownAppearingBeforeLockedRefresh(t *testi
 	}
 }
 
-func TestApplyProjectInstallsReportsLostOrReplacedLock(t *testing.T) {
+func TestApplyProjectChangesReportsLostOrReplacedLock(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		replace bool
@@ -447,8 +480,8 @@ func TestApplyProjectInstallsReportsLostOrReplacedLock(t *testing.T) {
 				}
 				return nil
 			}}
-			if _, err := ApplyProjectInstalls(context.Background(), session, deps); err == nil || !strings.Contains(err.Error(), "lock changed") {
-				t.Fatalf("ApplyProjectInstalls() error = %v, want lock changed", err)
+			if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil || !strings.Contains(err.Error(), "lock changed") {
+				t.Fatalf("ApplyProjectChanges() error = %v, want lock changed", err)
 			}
 			if test.replace {
 				data, err := os.ReadFile(lockPath)
@@ -460,7 +493,7 @@ func TestApplyProjectInstallsReportsLostOrReplacedLock(t *testing.T) {
 	}
 }
 
-func TestApplyProjectInstallsSyncsStagedHierarchyAndPublishedParent(t *testing.T) {
+func TestApplyProjectChangesSyncsStagedHierarchyAndPublishedParent(t *testing.T) {
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	snapshot, _ := session.Materialized.SnapshotFor(skill.Name)
 	nested := filepath.Join(snapshot.Path, "nested")
@@ -489,7 +522,7 @@ func TestApplyProjectInstallsSyncsStagedHierarchyAndPublishedParent(t *testing.T
 			return syncApplyDirectory(path)
 		},
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, deps); err != nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err != nil {
 		t.Fatal(err)
 	}
 	if len(syncedFiles) < 3 { // two copied files plus the provenance temporary file
@@ -516,7 +549,7 @@ func TestApplyProjectInstallsSyncsStagedHierarchyAndPublishedParent(t *testing.T
 	}
 }
 
-func TestApplyProjectInstallsRejectsMaterializedSymlinkBeforeWrite(t *testing.T) {
+func TestApplyProjectChangesRejectsMaterializedSymlinkBeforeWrite(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink fixture requires Windows privileges")
 	}
@@ -538,7 +571,7 @@ func TestApplyProjectInstallsRejectsMaterializedSymlinkBeforeWrite(t *testing.T)
 	if err := snapshot.Verify(); err != nil {
 		t.Fatalf("safe in-tree symlink was not accepted by materializer verification: %v", err)
 	}
-	if _, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{}); err == nil {
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil {
 		t.Fatal("apply unexpectedly accepted a symlink copy tree")
 	}
 	if _, err := os.Lstat(session.Layout.DerivedDirectoryPath); !os.IsNotExist(err) {
@@ -582,7 +615,7 @@ func newApplyFixture(t *testing.T, targets []Target) (*ProjectApplySession, stri
 
 func applyFixture(t *testing.T, session *ProjectApplySession) {
 	t.Helper()
-	if _, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{Now: func() time.Time {
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{Now: func() time.Time {
 		return time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
 	}}); err != nil {
 		t.Fatal(err)
@@ -627,4 +660,32 @@ func addApplyFixtureSkill(t *testing.T, session *ProjectApplySession, name strin
 	})
 	session.Expected[name] = hash
 	return skill
+}
+
+func publishThenSwapWithIdenticalExternal(source, destination string) (os.FileInfo, error) {
+	if err := publishNoReplace(source, destination); err != nil {
+		return nil, err
+	}
+	external, err := os.MkdirTemp(filepath.Dir(destination), ".external-swap-")
+	if err != nil {
+		return nil, err
+	}
+	if err := copyApplyTree(destination, external, func(*os.File) error { return nil }); err != nil {
+		return nil, err
+	}
+	displaced := destination + ".published-swap"
+	if err := publishNoReplace(destination, displaced); err != nil {
+		return nil, err
+	}
+	if err := publishNoReplace(external, destination); err != nil {
+		return nil, err
+	}
+	info, err := os.Lstat(destination)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.RemoveAll(displaced); err != nil {
+		return nil, err
+	}
+	return info, nil
 }

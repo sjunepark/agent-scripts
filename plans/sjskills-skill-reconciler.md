@@ -64,20 +64,22 @@ without granting ownership from byte equality alone. Version 1 adopts
 copy-only placement for Skills CLI entries (manual/workflow entries remain
 externally managed), and the read-only project plan now translates those
 verified states into deterministic operations and preservation warnings. An
-internal install-only transaction now provides locked replanning, no-replace
-copy publication, candidate-provenance proof, durable parent syncing, and
-ownership-preserving rollback in temporary projects. Project `apply` retains
-that verified materialization session through one confirmation and transaction,
-installs missing copies, reports only proven execution state, and cleans its
-temporary session on every exit. Update, quarantine, restore, and interruption
-recovery remain deliberately unimplemented.
+internal project transaction now provides locked replanning, no-replace copy
+publication, candidate-provenance proof, durable parent syncing, and
+ownership-preserving rollback in temporary projects. It installs missing copies
+and can replace an unchanged managed copy only after preserving the old tree in
+a durable, manifest-backed quarantine. Project `apply` retains one verified
+materialization session through confirmation and transaction, but the public
+CLI still blocks update operations. Removed-skill quarantine, restore, and
+interruption recovery remain deliberately unimplemented.
 
 ## Next action
 
-Extend the reviewed project transaction to verified update with recoverable,
-manifest-backed quarantine. Keep removal and restore behind later independently
-reviewed slices; reserve bounded real-source validation for the final
-validation phase.
+Wire the reviewed verified-update transaction through the public project
+`apply` workflow with one confirmation and truthful path-free recovery
+evidence. Keep removed-skill quarantine, restore, and interruption recovery
+behind later independently reviewed slices; reserve bounded real-source
+validation for the final validation phase.
 
 ## Accepted product contract
 
@@ -293,8 +295,12 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Wire install-only project `apply` through one live verified materialization
       session, one human confirmation unless `--yes`, locked fresh-plan checks,
       truthful execution evidence, and cleanup on every process path.
+- [x] Implement internal verified update without clobbering changed targets,
+      preserving prior content in durable manifest-backed quarantine before
+      replacement and returning path-free recovery evidence.
 - [ ] Apply verified updates without clobbering changed targets. Preserve prior
-      content in manifest-backed quarantine before replacement.
+      content in manifest-backed quarantine before replacement through the
+      public project `apply` workflow.
 - [ ] Quarantine previously managed skills removed from project intent while
       preserving unknown entries, and implement overwrite-refusing restore.
 - [ ] Revalidate approval state before every move or replacement and recover

@@ -17,9 +17,10 @@ import (
 const (
 	applyLockName       = "apply.lock"
 	applyInstallPattern = ".sjskills-install-"
+	applyManifestName   = "manifest.json"
 )
 
-// ApplyFailureKind is the stable result class for an install-only project
+// ApplyFailureKind is the stable result class for a project
 // transaction.  The implementation deliberately does not expose filesystem
 // or operating-system diagnostics: callers can report this error safely.
 type ApplyFailureKind string
@@ -57,7 +58,7 @@ func applyConflict(reason string) error {
 }
 
 // ProjectApplySession is the reviewed project plan plus its still-live,
-// verified materialization session.  ApplyProjectInstalls owns the session
+// verified materialization session. ApplyProjectChanges owns the session
 // only for the duration of the call; the CLI cleans it on every return path.
 type ProjectApplySession struct {
 	Layout       DerivedLayout
@@ -75,8 +76,17 @@ type AppliedPlacement struct {
 }
 
 type ApplyResult struct {
-	Plan      Plan
-	Installed []AppliedPlacement
+	Plan       Plan
+	Installed  []AppliedPlacement
+	Updated    []AppliedPlacement
+	Quarantine *ProjectQuarantineResult
+}
+
+// ProjectQuarantineResult is the path-free recovery handle returned when an
+// update transaction created durable quarantine state.
+type ProjectQuarantineResult struct {
+	ID     string                  `json:"id"`
+	Status ProjectQuarantineStatus `json:"status"`
 }
 
 // ApplyDeps contains the small set of platform and fault-injection seams.
@@ -89,6 +99,8 @@ type ApplyDeps struct {
 	SyncFile          func(*os.File) error
 	SyncDir           func(path string) error
 	BeforePublish     func(AppliedPlacement) error
+	beforeQuarantine  func(AppliedPlacement) error
+	newQuarantineID   func() (string, error)
 	beforeRollback    func(AppliedPlacement) error
 	beforeLock        func() error
 	beforeCommit      func() error
@@ -103,15 +115,17 @@ func defaultApplyDeps() ApplyDeps {
 		ReplaceFileAtomic: replaceFileAtomic,
 		SyncFile:          func(file *os.File) error { return file.Sync() },
 		SyncDir:           syncApplyDirectory,
+		newQuarantineID:   newProjectQuarantineID,
 	}
 }
 
-// ApplyProjectInstalls is the install-only mutation seam. It validates the
+// ApplyProjectChanges is the project mutation seam. It validates the
 // reviewed plan before taking the lock, refreshes inventory and translation,
-// then copies verified snapshots into empty destinations and commits one
-// deterministic provenance state. Updates, removals, quarantine, and blocked
-// operations are rejected before any write.
-func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, deps ApplyDeps) (ApplyResult, error) {
+// then copies verified snapshots into empty destinations or quarantines an
+// unchanged managed preimage before verified replacement. It commits one
+// deterministic provenance state. Removed-skill quarantine and blocked
+// operations remain rejected before any write.
+func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps ApplyDeps) (ApplyResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -140,6 +154,7 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 		ancestors:   make(map[Target][]*applyAncestor),
 		createdDirs: createdDerived,
 		published:   make([]publishedPlacement, 0),
+		quarantined: make([]quarantinedPlacement, 0),
 		lock:        lock,
 		layout:      session.Layout,
 		deps:        deps,
@@ -154,8 +169,8 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 	if !sameReviewedPlan(session.Plan, freshPlan) {
 		return finishApplySetup(&tx, freshPlan, applyConflict("project state changed after planning"))
 	}
-	installOperations := reviewedInstallOperations(&ProjectApplySession{Plan: freshPlan})
-	if len(installOperations) == 0 {
+	mutationOperations := reviewedMutationOperations(&ProjectApplySession{Plan: freshPlan})
+	if len(mutationOperations) == 0 {
 		if tx.deps.beforeCommit != nil {
 			if hookErr := tx.deps.beforeCommit(); hookErr != nil {
 				return finishApplySetup(&tx, freshPlan, applyUnavailable("apply verification preflight failed"))
@@ -176,7 +191,7 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 	if err := tx.syncCreatedDirectoryParents(createdDerived); err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
-	ancestors, err := captureApplyAncestors(session.Layout, installOperations)
+	ancestors, err := captureApplyAncestors(session.Layout, mutationOperations)
 	if err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
@@ -185,25 +200,51 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 	if err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
-	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}}
-	primary := tx.install(ctx, session, installOperations)
+	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}}
+	updateOperations := operationsWithAction(mutationOperations, PlanActionUpdate)
+	var primary error
+	if len(updateOperations) > 0 {
+		primary = tx.prepareQuarantine(session, preimage, updateOperations)
+	}
+	if primary == nil {
+		primary = tx.applyOperations(ctx, session, preimage, mutationOperations)
+	}
 	var commit *stateCommit
 	if primary == nil {
 		commit, primary = tx.commitState(preimage, session)
 	}
+	if primary == nil {
+		primary = tx.commitQuarantine()
+	}
+	recoveryRequired := false
 	if primary != nil && commit != nil && commit.replaced {
 		if restoreErr := tx.restoreState(preimage, commit); restoreErr != nil {
 			primary = applyUnavailable("provenance restoration could not be verified")
+			recoveryRequired = true
 		}
 	}
 	if primary != nil {
 		if rollbackErr := tx.rollback(); rollbackErr != nil {
 			primary = applyUnavailable("rollback could not be verified")
+			recoveryRequired = true
 		}
+	}
+	if recoveryRequired && tx.quarantine != nil {
+		if statusErr := tx.setQuarantineStatus(ProjectQuarantineRecoveryRequired); statusErr != nil {
+			tx.quarantine.manifest.Status = ProjectQuarantineRecoveryRequired
+		}
+	}
+	if tx.quarantine != nil {
+		result.Quarantine = &ProjectQuarantineResult{ID: tx.quarantine.manifest.ID, Status: tx.quarantine.manifest.Status}
 	}
 	if primary == nil {
 		for _, placement := range tx.published {
-			result.Installed = append(result.Installed, AppliedPlacement{Skill: placement.skill, Target: placement.target})
+			value := AppliedPlacement{Skill: placement.skill, Target: placement.target}
+			if placement.action == PlanActionUpdate {
+				result.Updated = append(result.Updated, value)
+			} else {
+				result.Installed = append(result.Installed, value)
+			}
 		}
 		if tx.deps.beforeUnlock != nil {
 			if hookErr := tx.deps.beforeUnlock(); hookErr != nil {
@@ -243,6 +284,9 @@ func normalizeApplyDeps(deps ApplyDeps) ApplyDeps {
 	if deps.SyncDir == nil {
 		deps.SyncDir = defaults.SyncDir
 	}
+	if deps.newQuarantineID == nil {
+		deps.newQuarantineID = defaults.newQuarantineID
+	}
 	return deps
 }
 
@@ -271,7 +315,7 @@ func validateApplySession(session *ProjectApplySession) error {
 			return applyUnavailable("expected materialized content is unavailable")
 		}
 		snapshot, exists := session.Materialized.SnapshotFor(skill.Name)
-		if !exists || snapshot == nil || snapshot.Skill.Name != skill.Name || snapshot.Hash != expected {
+		if !exists || snapshot == nil || !sameDesiredSkill(skill, snapshot.Skill) || snapshot.Hash != expected {
 			return applyConflict("verified materialized snapshot identity changed")
 		}
 		if err := snapshot.Verify(); err != nil {
@@ -289,15 +333,23 @@ func validateApplySession(session *ProjectApplySession) error {
 		switch operation.Action {
 		case PlanActionUnchanged, PlanActionManual, PlanActionWorkflow:
 			continue
-		case PlanActionInstall:
+		case PlanActionInstall, PlanActionUpdate:
 			if !desiredPlacement || skill.Manager != ManagerSkillsCLI || skill.Mode != ModeCopy {
-				return applyConflict("reviewed install operation has no copy-owned desired identity")
+				return applyConflict("reviewed mutation has no copy-owned desired identity")
 			}
 			if operation.Manager != ManagerSkillsCLI || operation.SourceID != skill.SourceID || operation.Source != skill.Source {
-				return applyConflict("reviewed install operation identity changed")
+				return applyConflict("reviewed mutation identity changed")
+			}
+			if operation.Expected.Kind != projectEvidenceTreeHash || operation.Expected.Detail != expectedEvidence(session.Expected[skill.Name]) {
+				return applyConflict("reviewed expected content identity changed")
+			}
+			if operation.Action == PlanActionUpdate {
+				if _, ok := treeHashFromPlanEvidence(operation.Current); !ok {
+					return applyConflict("reviewed update preimage identity is invalid")
+				}
 			}
 		default:
-			return applyConflict("reviewed plan contains a non-install mutation")
+			return applyConflict("reviewed plan contains an unsupported mutation")
 		}
 		if _, duplicate := seen[key]; duplicate {
 			return applyConflict("reviewed plan contains a duplicate placement")
@@ -370,10 +422,10 @@ func desiredByPlacement(desired DesiredState) map[string]DesiredSkill {
 	return result
 }
 
-func reviewedInstallOperations(session *ProjectApplySession) []PlanOperation {
+func reviewedMutationOperations(session *ProjectApplySession) []PlanOperation {
 	result := make([]PlanOperation, 0)
 	for _, operation := range session.Plan.Operations {
-		if operation.Action == PlanActionInstall {
+		if operation.Action == PlanActionInstall || operation.Action == PlanActionUpdate {
 			result = append(result, operation)
 		}
 	}
@@ -384,6 +436,32 @@ func reviewedInstallOperations(session *ProjectApplySession) []PlanOperation {
 		return compareUTF16(result[i].Skill, result[j].Skill) < 0
 	})
 	return result
+}
+
+func operationsWithAction(operations []PlanOperation, action PlanAction) []PlanOperation {
+	result := make([]PlanOperation, 0)
+	for _, operation := range operations {
+		if operation.Action == action {
+			result = append(result, operation)
+		}
+	}
+	return result
+}
+
+func expectedEvidence(hash TreeHash) string {
+	return hash.Algorithm + ":" + hash.Digest
+}
+
+func treeHashFromPlanEvidence(evidence PlanEvidence) (TreeHash, bool) {
+	const prefix = TreeHashAlgorithmSHA256V2 + ":"
+	if evidence.Kind != projectEvidenceTreeHash || !strings.HasPrefix(evidence.Detail, prefix) {
+		return TreeHash{}, false
+	}
+	digest := strings.TrimPrefix(evidence.Detail, prefix)
+	if !lowercaseDigestPattern.MatchString(digest) {
+		return TreeHash{}, false
+	}
+	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: digest}, true
 }
 
 func findPlanOperation(operations []PlanOperation, key string) (PlanOperation, bool) {
@@ -479,9 +557,31 @@ type applyLock struct {
 type publishedPlacement struct {
 	skill    string
 	target   Target
+	action   PlanAction
 	dest     string
 	info     os.FileInfo
 	expected TreeHash
+}
+
+type quarantinedPlacement struct {
+	skill         string
+	target        Target
+	dest          string
+	quarantined   string
+	originalInfo  os.FileInfo
+	oldHash       TreeHash
+	manifestIndex int
+}
+
+type projectQuarantineTransaction struct {
+	runPath      string
+	runDurable   bool
+	rootInfo     os.FileInfo
+	runInfo      os.FileInfo
+	manifestPath string
+	manifestInfo os.FileInfo
+	manifestData []byte
+	manifest     ProjectQuarantineManifest
 }
 
 type applyStatePreimage struct {
@@ -504,6 +604,8 @@ type applyTransaction struct {
 	ancestors   map[Target][]*applyAncestor
 	createdDirs []*applyAncestor
 	published   []publishedPlacement
+	quarantined []quarantinedPlacement
+	quarantine  *projectQuarantineTransaction
 	lock        *applyLock
 	layout      DerivedLayout
 	deps        ApplyDeps
@@ -667,7 +769,7 @@ func ensureApplyDirectory(root, target string) ([]*applyAncestor, error) {
 	return created, nil
 }
 
-func (tx *applyTransaction) install(ctx context.Context, session *ProjectApplySession, operations []PlanOperation) error {
+func (tx *applyTransaction) applyOperations(ctx context.Context, session *ProjectApplySession, preimage *applyStatePreimage, operations []PlanOperation) error {
 	desired := desiredByPlacement(session.Desired)
 	for _, operation := range operations {
 		if err := contextErr(ctx); err != nil {
@@ -720,7 +822,24 @@ func (tx *applyTransaction) install(ctx context.Context, session *ProjectApplySe
 			_ = os.RemoveAll(temp)
 			return err
 		}
+		stagedInfo, err := os.Lstat(temp)
+		if err != nil || stagedInfo.Mode()&os.ModeSymlink != 0 || !stagedInfo.IsDir() {
+			_ = os.RemoveAll(temp)
+			return applyUnavailable("temporary placement identity could not be verified")
+		}
 		destination := filepath.Join(root, skill.Name)
+		if operation.Action == PlanActionUpdate {
+			if tx.deps.beforeQuarantine != nil {
+				if hookErr := tx.deps.beforeQuarantine(AppliedPlacement{Skill: skill.Name, Target: operation.Target}); hookErr != nil {
+					_ = os.RemoveAll(temp)
+					return applyUnavailable("quarantine preflight failed")
+				}
+			}
+			if err := tx.quarantineUpdate(session, preimage, operation, destination); err != nil {
+				_ = os.RemoveAll(temp)
+				return err
+			}
+		}
 		if tx.deps.BeforePublish != nil {
 			if hookErr := tx.deps.BeforePublish(AppliedPlacement{Skill: skill.Name, Target: operation.Target}); hookErr != nil {
 				_ = os.RemoveAll(temp)
@@ -747,10 +866,13 @@ func (tx *applyTransaction) install(ctx context.Context, session *ProjectApplySe
 			return applyUnavailable("desired placement could not be published")
 		}
 		info, statErr := os.Lstat(destination)
-		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		if statErr != nil {
 			return applyUnavailable("published placement could not be verified")
 		}
-		published := publishedPlacement{skill: skill.Name, target: operation.Target, dest: destination, info: info, expected: snapshot.Hash}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() || !os.SameFile(stagedInfo, info) {
+			return applyConflict("published placement identity changed during publication")
+		}
+		published := publishedPlacement{skill: skill.Name, target: operation.Target, action: operation.Action, dest: destination, info: info, expected: snapshot.Hash}
 		tx.published = append(tx.published, published)
 		if syncErr := tx.deps.SyncDir(root); syncErr != nil {
 			return applyUnavailable("published placement could not be synced")
@@ -758,6 +880,11 @@ func (tx *applyTransaction) install(ctx context.Context, session *ProjectApplySe
 		finalHash, finalErr := HashSkillTree(destination)
 		if finalErr != nil || finalHash != snapshot.Hash {
 			return applyConflict("published placement changed during verification")
+		}
+		if operation.Action == PlanActionUpdate {
+			if err := tx.setQuarantineEntryStatus(operation.Target, operation.Skill, ProjectQuarantineEntryReplaced); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -858,18 +985,33 @@ func (tx *applyTransaction) checkLock() error {
 }
 
 func (tx *applyTransaction) rollback() error {
-	if len(tx.published) == 0 {
+	if len(tx.published) == 0 && len(tx.quarantined) == 0 {
+		if tx.quarantine != nil {
+			return tx.setQuarantineStatus(ProjectQuarantineRolledBack)
+		}
 		return nil
 	}
-	recoveryDir, err := tx.deps.MakeTempDir(filepath.Dir(tx.layout.ReconcilerStatePath), ".sjskills-recovery-")
-	if err != nil {
-		return applyUnavailable("rollback recovery could not be created")
-	}
-	recoveryInfo, err := os.Lstat(recoveryDir)
-	if err != nil || !recoveryInfo.IsDir() || recoveryInfo.Mode()&os.ModeSymlink != 0 {
-		return applyUnavailable("rollback recovery could not be verified")
-	}
 	var failed bool
+	if tx.quarantine != nil {
+		if err := tx.checkQuarantineBoundary(); err != nil {
+			return applyUnavailable("rollback preserved recoverable project state")
+		}
+		if err := tx.setQuarantineStatus(ProjectQuarantineRecoveryRequired); err != nil {
+			failed = true
+		}
+	}
+	var recoveryDir string
+	if len(tx.published) > 0 {
+		var err error
+		recoveryDir, err = tx.deps.MakeTempDir(filepath.Dir(tx.layout.ReconcilerStatePath), ".sjskills-recovery-")
+		if err != nil {
+			return applyUnavailable("rollback recovery could not be created")
+		}
+		recoveryInfo, err := os.Lstat(recoveryDir)
+		if err != nil || !recoveryInfo.IsDir() || recoveryInfo.Mode()&os.ModeSymlink != 0 {
+			return applyUnavailable("rollback recovery could not be verified")
+		}
+	}
 	for index := len(tx.published) - 1; index >= 0; index-- {
 		placement := tx.published[index]
 		info, err := os.Lstat(placement.dest)
@@ -907,13 +1049,61 @@ func (tx *applyTransaction) rollback() error {
 			failed = true
 		}
 	}
-	if !failed {
+	for index := len(tx.quarantined) - 1; index >= 0; index-- {
+		placement := tx.quarantined[index]
+		entryIndex := placement.manifestIndex
+		if tx.quarantine == nil || entryIndex < 0 || entryIndex >= len(tx.quarantine.manifest.Entries) {
+			failed = true
+			continue
+		}
+		if _, err := os.Lstat(placement.dest); err == nil || !errors.Is(err, os.ErrNotExist) {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		info, err := os.Lstat(placement.quarantined)
+		hash, hashErr := HashSkillTree(placement.quarantined)
+		if err != nil || !os.SameFile(placement.originalInfo, info) ||
+			info.Mode()&os.ModeSymlink != 0 || !info.IsDir() || hashErr != nil || hash != placement.oldHash {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		if moveErr := tx.deps.PublishNoReplace(placement.quarantined, placement.dest); moveErr != nil {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		restoredInfo, statErr := os.Lstat(placement.dest)
+		restoredHash, restoredHashErr := HashSkillTree(placement.dest)
+		if statErr != nil || !os.SameFile(placement.originalInfo, restoredInfo) || restoredInfo.Mode()&os.ModeSymlink != 0 ||
+			!restoredInfo.IsDir() || restoredHashErr != nil || restoredHash != placement.oldHash {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		root, _ := tx.layout.ManagedSkillsPath(placement.target)
+		if tx.deps.SyncDir(root) != nil || tx.deps.SyncDir(filepath.Dir(placement.quarantined)) != nil {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		if err := tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRestored); err != nil {
+			failed = true
+		}
+	}
+	if !failed && recoveryDir != "" {
 		if removeErr := os.RemoveAll(recoveryDir); removeErr != nil {
 			failed = true
 		}
 	}
+	if !failed && tx.quarantine != nil {
+		if err := tx.setQuarantineStatus(ProjectQuarantineRolledBack); err != nil {
+			failed = true
+		}
+	}
 	if failed {
-		return applyUnavailable("rollback preserved an ambiguous placement")
+		return applyUnavailable("rollback preserved recoverable project state")
 	}
 	return nil
 }
@@ -1052,7 +1242,7 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 		records[projectPlacementKey(record.Target, record.Skill)] = record
 	}
 	desired := desiredByPlacement(session.Desired)
-	for _, operation := range reviewedInstallOperations(session) {
+	for _, operation := range reviewedMutationOperations(session) {
 		skill, ok := desired[projectPlacementKey(operation.Target, operation.Skill)]
 		if !ok {
 			return ProvenanceState{}, applyConflict("desired identity disappeared before provenance commit")

@@ -38,9 +38,10 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Extend the reviewed project transaction to verified update with recoverable,
-manifest-backed quarantine. Keep removal, restore, and interruption recovery
-behind later independently reviewed slices.
+Wire the reviewed verified-update transaction through the public project
+`apply` workflow with one confirmation and truthful path-free recovery
+evidence. Keep removal, restore, and interruption recovery behind later
+independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -137,3 +138,21 @@ behind later independently reviewed slices.
   catalog validation, formatting, and diff checks. The affected-doc audit
   updated this goal and implementation plan; operator docs remain deferred
   until the complete workflow is live.
+- The internal project executor now applies verified installs and updates in
+  one locked transaction. For each update it proves the reviewed provenance
+  and old tree, publishes a strict path-free manifest before moving content,
+  moves the old tree without replacement into a unique `0700` quarantine run,
+  publishes only the verified staged inode, commits deterministic provenance,
+  and retains the old tree under a committed recovery handle.
+- Partial and raced updates restore only re-proven content. Ambiguous
+  destinations preserve both external bytes and quarantined originals with a
+  `recovery-required` manifest; preparation failures after run creation still
+  return durable rollback evidence. Install-only and no-op transactions create
+  no quarantine, and the public CLI continues to reject update operations.
+- The bounded code-review loop fixed a post-publication ownership race by
+  requiring the destination inode to match the staged inode before recording
+  rollback ownership, and kept new fault-injection seams package-private.
+  Fresh Go unit/race/vet, twenty repeated Darwin lifecycle and swap tests,
+  Windows test compilation and CLI build, all 55 legacy Node tests,
+  `scripts/validate-skills` (35 skills), temporary-home catalog validation,
+  formatting, and diff checks passed without real-home mutation.
