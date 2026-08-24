@@ -623,6 +623,11 @@ func TestMaterializeSkipsManagerOwnedEntriesAndRejectsUnsupportedSources(t *test
 	if _, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("bad", "https://user:pass@example.test/repo")}); err == nil {
 		t.Fatal("credential-bearing source unexpectedly accepted")
 	}
+	legacyMode := desiredMaterializeSkill("legacy-mode", "example/legacy-mode")
+	legacyMode.Mode = InstallMode("symlink")
+	if _, err := m.Materialize(context.Background(), []DesiredSkill{legacyMode}); err == nil || !strings.Contains(err.Error(), "copy mode") {
+		t.Fatalf("legacy mode error = %v, want copy-mode rejection", err)
+	}
 	if _, err := m.Materialize(context.Background(), []DesiredSkill{
 		desiredMaterializeSkill("same", "example/one"),
 		desiredMaterializeSkill("same", "example/two"),

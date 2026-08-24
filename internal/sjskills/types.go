@@ -34,13 +34,12 @@ const (
 	ManagerNone      Manager = "none"
 )
 
-// InstallMode controls the placement semantics delegated to the future
-// materialization adapter.
+// InstallMode controls reconciler-owned placement semantics. Version 1 uses
+// verified directory copies exclusively.
 type InstallMode string
 
 const (
-	ModeCopy    InstallMode = "copy"
-	ModeSymlink InstallMode = "symlink"
+	ModeCopy InstallMode = "copy"
 )
 
 // SourceKind distinguishes a repository-backed catalog from an external
@@ -110,10 +109,10 @@ type SkillDeclaration struct {
 	FullDepth bool        `json:"fullDepth,omitempty"`
 }
 
-// DirectSkill is a project-local third-party declaration. Ownership, target
-// exceptions, and installation mode stay in the central registry contract;
-// v1 direct entries carry only their portable name, installable source, and
-// optional full-depth hint.
+// DirectSkill is a project-local third-party declaration. Version 1 fixes its
+// ownership to Skills CLI, its placement to copy mode, and its targets to the
+// registry defaults; the manifest carries only a portable name, installable
+// source, and optional full-depth hint.
 type DirectSkill struct {
 	Name      string `toml:"name" json:"name"`
 	Source    string `toml:"source" json:"source"`
@@ -158,10 +157,8 @@ type ResolveRequest struct {
 	Global   bool
 }
 
-// PlanAction is the stable action vocabulary shared by pure planning and the
-// later inventory/execution adapters. The v1 resolver does not claim any
-// filesystem-derived action, but the complete vocabulary is frozen now so a
-// later adapter can add exact-state results without changing the envelope.
+// PlanAction is the stable action vocabulary shared by pure resolution,
+// inventory-backed planning, and execution.
 type PlanAction string
 
 const (
@@ -174,17 +171,16 @@ const (
 	PlanActionBlocked    PlanAction = "blocked"
 )
 
-// PlanEvidence is deliberately source-agnostic. Current is populated by a
-// later inventory adapter; Expected can describe desired state without
-// claiming that a filesystem was inspected.
+// PlanEvidence is deliberately source-agnostic. Inventory-backed project plans
+// populate Current and verified materialization populates Expected.
 type PlanEvidence struct {
 	Kind   string `json:"kind"`
 	Detail string `json:"detail"`
 }
 
 // PlanOperation is one future reconciliation action. SourceID and Source
-// preserve central/direct provenance, while Current and Expected leave a
-// typed place for exact-state evidence once materialization is implemented.
+// preserve central/direct provenance, while Current and Expected carry bounded
+// exact-state evidence.
 type PlanOperation struct {
 	Action   PlanAction   `json:"action"`
 	Skill    string       `json:"skill"`

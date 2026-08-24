@@ -31,8 +31,8 @@ const (
 	InventoryEntryOther     InventoryEntryKind = "other"
 )
 
-// InventoryProblemReason is a bounded, stable reason suitable for a later
-// classifier.  It never contains an operating-system error or a filesystem
+// InventoryProblemReason is a bounded, stable reason consumed by the project
+// classifier. It never contains an operating-system error or a filesystem
 // path.  The path and (when applicable) observed name are separate typed
 // fields on InventoryProblem.
 type InventoryProblemReason string

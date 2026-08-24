@@ -246,6 +246,39 @@ func TestValidationRejectsSourceAndCollisionsBeforeResolution(t *testing.T) {
 	}
 }
 
+func TestValidationRejectsLegacySymlinkMode(t *testing.T) {
+	registry := fixtureRegistry(t)
+	for index := range registry.Skills {
+		if registry.Skills[index].Manager == ManagerSkillsCLI {
+			registry.Skills[index].Mode = InstallMode("symlink")
+			break
+		}
+	}
+	if err := ValidateRegistry(registry); err == nil || !issueCode(err, IssueInvalidMode) {
+		t.Fatalf("legacy symlink mode error = %v, want invalid mode", err)
+	}
+
+	desired := DesiredState{Scope: ScopeProject, Skills: []DesiredSkill{{
+		Name: "legacy", Source: "owner/repo", Scope: ScopeProject,
+		Manager: ManagerSkillsCLI, Mode: InstallMode("symlink"), Targets: []Target{TargetAgents},
+	}}}
+	root := t.TempDir()
+	layout, err := LayoutForProject(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inventory := ProjectInventory{
+		Root: root, StatePath: layout.ReconcilerStatePath, StateTrusted: true,
+		Roots: []ProjectSkillsRootInventory{
+			{Target: TargetAgents, Path: layout.AgentsSkillsPath, Safe: true},
+			{Target: TargetClaude, Path: layout.ClaudeSkillsPath, Safe: true},
+		},
+	}
+	if _, err := ClassifyProject(desired, map[string]TreeHash{"legacy": classificationHash('1')}, inventory); err == nil || !issueCode(err, IssueInvalidMode) {
+		t.Fatalf("legacy desired symlink mode error = %v, want invalid mode", err)
+	}
+}
+
 func TestSelectionScopedCollisionsAndUnselectedDirectCatalog(t *testing.T) {
 	registry := fixtureRegistry(t)
 	registry.Profiles["dev"] = Profile{Skills: append([]string{"brainstorming"}, registry.Profiles["dev"].Skills...)}

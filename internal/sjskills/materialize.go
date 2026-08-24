@@ -365,12 +365,15 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 				skipped = append(skipped, skill)
 			}
 		case ManagerSkillsCLI:
+			if skill.Mode != ModeCopy {
+				return nil, nil, materializationError(safeSkillName(skill.Name), "skills-cli installation must use copy mode", nil)
+			}
 			if previous, ok := seen[skill.Name]; ok {
 				if previous.Manager != ManagerSkillsCLI || previous.Source != skill.Source || previous.FullDepth != skill.FullDepth {
 					return nil, nil, materializationError("classify", "skill identity has contradictory source or options", nil)
 				}
-				// The exact identity was already scheduled.  Targets and mode
-				// differ at placement time, not at materialization time.
+				// The exact identity was already scheduled. Targets differ at
+				// placement time, not at materialization time.
 				continue
 			}
 			if problem := SkillsCLIPathProblem(skill.Source); problem != "" {

@@ -24,8 +24,7 @@ var supportedManagers = map[Manager]struct{}{
 }
 
 var supportedModes = map[InstallMode]struct{}{
-	ModeCopy:    {},
-	ModeSymlink: {},
+	ModeCopy: {},
 }
 
 var requiredProfiles = []string{"dev", "go", "kicpa", "rust"}
@@ -166,7 +165,7 @@ func validateInstallation(path string, manager Manager, mode InstallMode, workfl
 			addIssue(issues, IssueInvalidSource, path+".source", "skills-cli requires a git shorthand or credential-free https source: %s", problem)
 		}
 		if mode == "" {
-			addIssue(issues, IssueInvalidMode, path+".mode", "skills-cli installation must define mode")
+			addIssue(issues, IssueInvalidMode, path+".mode", "skills-cli installation must define copy mode")
 		}
 		if workflow != "" {
 			addIssue(issues, IssueInvalidSource, path+".workflow", "skills-cli installation must not define workflow")

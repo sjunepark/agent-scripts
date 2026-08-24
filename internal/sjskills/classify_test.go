@@ -195,15 +195,12 @@ func TestClassifyProjectRemovedManagedAndUntrustedState(t *testing.T) {
 	}
 }
 
-func TestClassifyProjectManagerAndSymlinkPolicyBoundaries(t *testing.T) {
-	root := t.TempDir()
-	hash := classificationHash('1')
+func TestClassifyProjectManagerBoundaries(t *testing.T) {
 	desired := DesiredState{Scope: ScopeProject, Skills: []DesiredSkill{
 		{Name: "manual", Scope: ScopeProject, Manager: ManagerManual, Targets: []Target{TargetAgents}},
 		{Name: "workflow", Scope: ScopeProject, Manager: ManagerWorkflow, Targets: []Target{TargetClaude}, Workflow: "external"},
-		{Name: "linked", Source: "owner/repo", Scope: ScopeProject, Manager: ManagerSkillsCLI, Mode: ModeSymlink, Targets: []Target{TargetAgents}},
 	}}
-	classification, err := ClassifyProject(desired, map[string]TreeHash{"linked": hash}, classificationInventory(t, root, nil, nil, true, nil))
+	classification, err := ClassifyProject(desired, nil, classificationInventory(t, t.TempDir(), nil, nil, true, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,10 +211,6 @@ func TestClassifyProjectManagerAndSymlinkPolicyBoundaries(t *testing.T) {
 	workflow := findProjectState(t, classification, TargetClaude, "workflow")
 	if workflow.Kind != ProjectStateProtected || workflow.Action != PlanActionWorkflow || workflow.Expected != nil {
 		t.Fatalf("workflow = %#v", workflow)
-	}
-	linked := findProjectState(t, classification, TargetAgents, "linked")
-	if linked.Kind != ProjectStateProtected || linked.Action != PlanActionBlocked || linked.Reason != ProjectStateReasonPlacementPolicyUnavailable {
-		t.Fatalf("symlink mode = %#v", linked)
 	}
 }
 

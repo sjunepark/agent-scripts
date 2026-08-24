@@ -60,16 +60,18 @@ only the canonical project `.agents/skills` and `.claude/skills` roots, hashes
 real directory entries without following symlinks, and loads strict bounded
 reconciler provenance. A pure classifier now distinguishes missing, exact,
 outdated, modified, unmanaged, malformed, misplaced, and protected state
-without granting ownership from byte equality alone. Symlink placement policy,
-planning integration, and every mutation remain deliberately unimplemented.
+without granting ownership from byte equality alone. Version 1 adopts
+copy-only placement for Skills CLI entries (manual/workflow entries remain
+externally managed), and the read-only project plan now translates those
+verified states into deterministic operations and preservation warnings. Every
+mutation, quarantine, and restore remains deliberately unimplemented.
 
 ## Next action
 
-Define and fixture the canonical project placement policy, including the
-portable meaning of registry copy and symlink modes, then integrate the
-reviewed inventory/classifier into the read-only project plan. Keep mutation,
-quarantine, and restore behind later independently reviewed slices; reserve
-bounded real-source validation for the final validation phase.
+Implement project mutation against the copy-only placement policy using the
+reviewed operations and provenance evidence. Keep quarantine and restore
+behind later independently reviewed slices; reserve bounded real-source
+validation for the final validation phase.
 
 ## Accepted product contract
 
@@ -273,9 +275,11 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Classify missing, exact, outdated, modified, unmanaged, malformed,
       misplaced, and protected state without treating Skills CLI metadata as a
       verified local-content hash.
-- [ ] Plan canonical `.agents` and `.claude` placements with portable behavior
-      across macOS and Windows; choose copy/symlink details only after fixtures
-      prove identical discovery and recovery semantics.
+- [x] Plan canonical `.agents` and `.claude` placements with portable copy
+      behavior across macOS and Windows. Translate verified inventory state
+      into deterministic operations while preserving unknown entries as
+      warnings and blocking unmanaged, modified, malformed, or protected
+      desired paths.
 - [ ] Apply additions and verified updates without clobbering changed targets.
       Preserve prior content in manifest-backed quarantine before replacement.
 - [ ] Quarantine previously managed skills removed from project intent while

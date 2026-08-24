@@ -30,7 +30,6 @@ const (
 type ProjectStateReason string
 
 const (
-	ProjectStateReasonPlacementPolicyUnavailable  ProjectStateReason = "placement-policy-unavailable"
 	ProjectStateReasonRootUnavailable             ProjectStateReason = "root-unavailable"
 	ProjectStateReasonExpectedEntryAbsent         ProjectStateReason = "expected-entry-absent"
 	ProjectStateReasonCurrentEntryUnverifiable    ProjectStateReason = "current-entry-unverifiable"
@@ -125,13 +124,7 @@ func ClassifyProject(desired DesiredState, expected map[string]TreeHash, invento
 		case ManagerSkillsCLI:
 			state.Expected = cloneTreeHashPointer(&expectedHash)
 			state.SourceIdentity, _ = canonicalProjectSourceIdentity(placement.skill.Source)
-			if placement.skill.Mode == ModeSymlink {
-				state.Kind = ProjectStateProtected
-				state.Action = PlanActionBlocked
-				state.Reason = ProjectStateReasonPlacementPolicyUnavailable
-			} else {
-				classifyCopyPlacement(&state, placement.skill, root, recordsByKey, expectedHash)
-			}
+			classifyCopyPlacement(&state, placement.skill, root, recordsByKey, expectedHash)
 		}
 		result.States = append(result.States, state)
 	}
@@ -347,8 +340,8 @@ func validateProjectClassificationInputs(desired DesiredState, expected map[stri
 		}
 		switch skill.Manager {
 		case ManagerSkillsCLI:
-			if skill.Mode != ModeCopy && skill.Mode != ModeSymlink {
-				issues = append(issues, Issue{Code: IssueInvalidMode, Path: path + ".mode", Message: "unsupported skills-cli mode"})
+			if skill.Mode != ModeCopy {
+				issues = append(issues, Issue{Code: IssueInvalidMode, Path: path + ".mode", Message: "skills-cli installation must use copy mode"})
 			}
 			if _, ok := canonicalProjectSourceIdentity(skill.Source); !ok {
 				issues = append(issues, Issue{Code: IssueInvalidSource, Path: path + ".source", Message: "must be a credential-free remote source"})

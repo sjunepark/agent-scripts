@@ -38,10 +38,9 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Define and fixture canonical project copy/symlink placement semantics, then
-integrate the reviewed inventory and classifier into the read-only project
-plan. Keep project mutation, quarantine, and restore behind later independently
-reviewed slices.
+Implement recoverable project copy placement and verified update against the
+reviewed operations and provenance evidence. Keep removal quarantine, restore,
+and interruption recovery behind later independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -88,8 +87,21 @@ reviewed slices.
 - The pure project classifier uses only verified expected hashes and trusted
   reconciler provenance. It deterministically distinguishes all eight planned
   state classes, preserves unknown content, refuses byte-equality ownership,
-  proposes update/quarantine only for unchanged managed bytes, and keeps
-  unresolved symlink placement protected.
+  proposes update/quarantine only for unchanged managed bytes, and blocks
+  symlinks or otherwise unverifiable desired copy placements. Version 1 accepts
+  only `mode: copy` for Skills CLI declarations; legacy v3 registry/JS behavior
+  remains unchanged.
+- The read-only project `plan` and planning portion of `apply` now materialize
+  exactly once, verify once, copy verified expected hashes into the classifier,
+  translate deterministic desired operations, preserve non-conflicting unknown
+  entries as warnings, and clean the temporary session on every path. Project,
+  `.sjskills`, quarantine, and supplied home sentinels remain byte-for-byte
+  unchanged.
+- The bounded project-plan review closed two safe gaps: the materializer now
+  rejects non-copy desired input instead of silently invoking `--copy`, and
+  warning text escapes invalid observed filenames. Full Go unit/race/vet,
+  Windows compile-only, all 55 legacy Node tests, skill/catalog validation,
+  formatting, and diff checks passed.
 - The bounded read-only slice review applied the source-identity compatibility
   fix for credential-free HTTPS remotes with explicit ports. Unit, race, vet,
   Windows compile-only, formatting, and diff validation passed; one external

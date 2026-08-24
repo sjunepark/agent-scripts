@@ -167,7 +167,7 @@
       "name": "clear-rust",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "code-review",
@@ -296,13 +296,13 @@
       "name": "modern-go",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "modern-rust",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "next-goal",
@@ -332,13 +332,13 @@
       "name": "release-please-release",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "review-campaign",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "skill-cleaner",
@@ -361,7 +361,7 @@
       "name": "ui-lab",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     },
     {
       "name": "update-base-branch",
@@ -379,7 +379,7 @@
       "name": "write-go-docs",
       "source": "agent-scripts",
       "manager": "skills-cli",
-      "mode": "symlink"
+      "mode": "copy"
     }
   ]
 }

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sjunepark/agent-scripts/internal/sjskills"
 )
@@ -179,7 +180,7 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
 		t.Fatalf("plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"operations":[]`) || !strings.Contains(stdout, `"resolved 26 desired skills"`) {
+	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"action":"install"`) || !strings.Contains(stdout, `"resolved 26 desired skills"`) || strings.Contains(stdout, `"warnings":null`) {
 		t.Fatalf("plan output = %q", stdout)
 	}
 
@@ -195,6 +196,150 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	if code != 65 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) {
 		t.Fatalf("restore missing id code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
+}
+
+func TestExternalProjectPlanClassifiesCopyPlacementsAndRemainsReadOnly(t *testing.T) {
+	directory := t.TempDir()
+	manifest := `version = 1
+profiles = []
+
+[[direct]]
+name = "collision"
+source = "example/collision"
+
+[[direct]]
+name = "fixture-skill"
+source = "example/fixture-skill"
+
+[[direct]]
+name = "modified-skill"
+source = "example/modified-skill"
+`
+	if err := os.WriteFile(filepath.Join(directory, "sjskills.toml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	layout, err := sjskills.LayoutForProject(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedFixture := writePlanFixtureSkill(t, filepath.Join(directory, ".agents", "skills", "fixture-skill"), "# fixture-skill\n")
+	oldFixture := writePlanFixtureSkill(t, filepath.Join(directory, ".claude", "skills", "fixture-skill"), "# old fixture\n")
+	oldModifiedRoot := filepath.Join(t.TempDir(), "modified-skill")
+	oldModified := writePlanFixtureSkill(t, oldModifiedRoot, "# old modified\n")
+	writePlanFixtureSkill(t, filepath.Join(directory, ".agents", "skills", "modified-skill"), "# changed modified\n")
+	writePlanFixtureSkill(t, filepath.Join(directory, ".agents", "skills", "collision"), "# collision\n")
+	writePlanFixtureSkill(t, filepath.Join(directory, ".claude", "skills", "unknown"), "# unknown\n")
+	if err := os.MkdirAll(layout.QuarantinePath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(layout.QuarantinePath, "sentinel"), []byte("keep\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	state := sjskills.ProvenanceState{Version: sjskills.ProvenanceStateVersion, Records: []sjskills.ProvenanceRecord{
+		{Scope: sjskills.ScopeProject, Skill: "fixture-skill", Target: sjskills.TargetAgents, SourceIdentity: "github:example/fixture-skill", TreeHashAlgorithm: expectedFixture.Algorithm, TreeHash: expectedFixture.Digest, RecordedAt: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)},
+		{Scope: sjskills.ScopeProject, Skill: "fixture-skill", Target: sjskills.TargetClaude, SourceIdentity: "github:example/fixture-skill", TreeHashAlgorithm: oldFixture.Algorithm, TreeHash: oldFixture.Digest, RecordedAt: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)},
+		{Scope: sjskills.ScopeProject, Skill: "modified-skill", Target: sjskills.TargetAgents, SourceIdentity: "github:example/modified-skill", TreeHashAlgorithm: oldModified.Algorithm, TreeHash: oldModified.Digest, RecordedAt: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)},
+	}}
+	stateData, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(layout.ReconcilerStatePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(layout.ReconcilerStatePath, stateData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	before := map[string]fixtureTree{
+		"agents":     captureFixtureTree(t, layout.AgentsSkillsPath),
+		"claude":     captureFixtureTree(t, layout.ClaudeSkillsPath),
+		"derived":    captureFixtureTree(t, layout.DerivedDirectoryPath),
+		"quarantine": captureFixtureTree(t, layout.QuarantinePath),
+	}
+	globalHome, globalUserProfile, globalAgents, globalClaude := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
+	overrides := map[string]string{
+		"HOME": globalHome, "USERPROFILE": globalUserProfile,
+		"CODEX_HOME": globalAgents, "CLAUDE_CONFIG_DIR": globalClaude,
+	}
+
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "plan")
+	if code != 0 || stderr != "" {
+		t.Fatalf("project plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Plan == nil || len(envelope.Plan.Operations) != 6 {
+		t.Fatalf("plan operations = %#v, want six desired placements", envelope.Plan)
+	}
+	want := []struct {
+		target sjskills.Target
+		skill  string
+		action string
+		reason string
+	}{
+		{sjskills.TargetAgents, "collision", "blocked", "desired-path-unmanaged"},
+		{sjskills.TargetAgents, "fixture-skill", "unchanged", "verified-exact"},
+		{sjskills.TargetAgents, "modified-skill", "blocked", "local-modification"},
+		{sjskills.TargetClaude, "collision", "install", "expected-entry-absent"},
+		{sjskills.TargetClaude, "fixture-skill", "update", "verified-update"},
+		{sjskills.TargetClaude, "modified-skill", "install", "expected-entry-absent"},
+	}
+	for index, operation := range envelope.Plan.Operations {
+		if operation.Target != string(want[index].target) || operation.Skill != want[index].skill || operation.Action != want[index].action || operation.Reason != want[index].reason {
+			t.Errorf("operation[%d] = %#v, want %s/%s/%s/%s", index, operation, want[index].target, want[index].skill, want[index].action, want[index].reason)
+		}
+	}
+	if !hasWarning(envelope.Warnings, "unmanaged-preserved") {
+		t.Fatalf("warnings = %#v, want preserved unknown entry warning", envelope.Warnings)
+	}
+	if strings.Contains(stdout, "sjskills-materialize-") || strings.Contains(stdout, filepath.Join(directory, ".agents", "skills")) || strings.Contains(stdout, filepath.Join(directory, ".claude", "skills")) {
+		t.Fatalf("plan leaked staging or project placement path: %q", stdout)
+	}
+	if got := captureFixtureTree(t, layout.AgentsSkillsPath); !reflect.DeepEqual(got, before["agents"]) {
+		t.Fatalf(".agents changed after plan: before=%#v after=%#v", before["agents"], got)
+	}
+	if got := captureFixtureTree(t, layout.ClaudeSkillsPath); !reflect.DeepEqual(got, before["claude"]) {
+		t.Fatalf(".claude changed after plan: before=%#v after=%#v", before["claude"], got)
+	}
+	if got := captureFixtureTree(t, layout.DerivedDirectoryPath); !reflect.DeepEqual(got, before["derived"]) {
+		t.Fatalf(".sjskills changed after plan: before=%#v after=%#v", before["derived"], got)
+	}
+	if got := captureFixtureTree(t, layout.QuarantinePath); !reflect.DeepEqual(got, before["quarantine"]) {
+		t.Fatalf("quarantine changed after plan: before=%#v after=%#v", before["quarantine"], got)
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 2 || stderr != "" || !strings.Contains(stdout, `"result":"unavailable"`) || !strings.Contains(stdout, `"action":"blocked"`) {
+		t.Fatalf("project apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	for name, root := range map[string]string{"agents": layout.AgentsSkillsPath, "claude": layout.ClaudeSkillsPath, "derived": layout.DerivedDirectoryPath, "quarantine": layout.QuarantinePath} {
+		if got := captureFixtureTree(t, root); !reflect.DeepEqual(got, before[name]) {
+			t.Fatalf("%s changed after apply: before=%#v after=%#v", name, before[name], got)
+		}
+	}
+}
+
+func writePlanFixtureSkill(t *testing.T, path, content string) sjskills.TreeHash {
+	t.Helper()
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	hash, err := sjskills.HashSkillTree(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return hash
+}
+
+func hasWarning(warnings []sjskillsWarning, code string) bool {
+	for _, warning := range warnings {
+		if warning.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func TestExternalPlanMaterializesExpectedContentReadOnly(t *testing.T) {
@@ -284,6 +429,9 @@ func TestExternalPlanMaterializesExpectedContentReadOnly(t *testing.T) {
 	}
 	globalEnvelope := decodeEnvelope(t, stdout)
 	assertExpectedContentEvidence(t, globalEnvelope)
+	if globalEnvelope.Plan == nil || len(globalEnvelope.Plan.Operations) != 0 {
+		t.Fatalf("global plan operations = %#v, want empty", globalEnvelope.Plan)
+	}
 	for _, output := range []string{stdout, stderr} {
 		if strings.Contains(output, "sjskills-materialize-") {
 			t.Fatalf("global materialization path leaked in output: %q", output)
@@ -394,6 +542,86 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		}
 		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
 			t.Fatalf("temporary parent after verify failure: entries=%d err=%v", len(entries), err)
+		}
+	})
+
+	t.Run("project classification failure cleans up before return", func(t *testing.T) {
+		directory := t.TempDir()
+		if err := os.WriteFile(filepath.Join(directory, "sjskills.toml"), []byte("version = 1\nprofiles = [\"dev\"]\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		materializer, parent := testInjectedMaterializer(t)
+		calls := 0
+		var stagedRoot string
+		app := &application{
+			directory: directory,
+			materialize: func(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+				calls++
+				materialized, err := materializer.Materialize(ctx, skills)
+				if err != nil {
+					return nil, err
+				}
+				stagedRoot = materialized.Root()
+				snapshot := materialized.Snapshots()[0]
+				unexpectedName := "unexpected-materialized-name"
+				unexpectedPath := filepath.Join(filepath.Dir(snapshot.Path), unexpectedName)
+				if err := os.Rename(snapshot.Path, unexpectedPath); err != nil {
+					t.Fatalf("rename staged snapshot: %v", err)
+				}
+				snapshot.Skill.Name = unexpectedName
+				snapshot.Path = unexpectedPath
+				return materialized, nil
+			},
+		}
+		envelope := app.plan(context.Background(), false)
+		if calls != 1 || envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueMissingReference {
+			t.Fatalf("calls=%d envelope=%#v", calls, envelope)
+		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
+		}
+		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
+			t.Fatalf("staging root still exists after classification failure: %q err=%v", stagedRoot, err)
+		}
+		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
+			t.Fatalf("temporary parent after classification failure: entries=%d err=%v", len(entries), err)
+		}
+	})
+
+	t.Run("project translation failure cleans up before return", func(t *testing.T) {
+		directory := t.TempDir()
+		if err := os.WriteFile(filepath.Join(directory, "sjskills.toml"), []byte("version = 1\nprofiles = [\"dev\"]\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		materializer, parent := testInjectedMaterializer(t)
+		calls := 0
+		var stagedRoot string
+		app := &application{
+			directory: directory,
+			materialize: func(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+				calls++
+				materialized, err := materializer.Materialize(ctx, skills)
+				if err == nil {
+					stagedRoot = materialized.Root()
+				}
+				return materialized, err
+			},
+			translateProject: func(sjskills.Plan, sjskills.ProjectClassification) (sjskills.Plan, error) {
+				return sjskills.Plan{}, errors.New("translation failed")
+			},
+		}
+		envelope := app.plan(context.Background(), false)
+		if calls != 1 || envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueUnavailable || envelope.Error.Message != "translation failed" {
+			t.Fatalf("calls=%d envelope=%#v", calls, envelope)
+		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
+		}
+		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
+			t.Fatalf("staging root still exists after translation failure: %q err=%v", stagedRoot, err)
+		}
+		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
+			t.Fatalf("temporary parent after translation failure: entries=%d err=%v", len(entries), err)
 		}
 	})
 
@@ -733,4 +961,18 @@ type sjskillsPlanEnvelope struct {
 			Manager string `json:"manager"`
 		} `json:"skills"`
 	} `json:"desired"`
+	Operations []struct {
+		Action  string `json:"action"`
+		Skill   string `json:"skill"`
+		Target  string `json:"target"`
+		Reason  string `json:"reason"`
+		Current struct {
+			Kind   string `json:"kind"`
+			Detail string `json:"detail"`
+		} `json:"current"`
+		Expected struct {
+			Kind   string `json:"kind"`
+			Detail string `json:"detail"`
+		} `json:"expected"`
+	} `json:"operations"`
 }

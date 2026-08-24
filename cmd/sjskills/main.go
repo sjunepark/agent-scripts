@@ -76,16 +76,20 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 }
 
 type application struct {
-	directory   string
-	envelope    sjskills.Envelope
-	materialize materializeFunc
+	directory        string
+	envelope         sjskills.Envelope
+	materialize      materializeFunc
+	translateProject projectTranslationFunc
 }
 
 // materializeFunc is the one process and temporary-state seam owned by the
-// CLI. It deliberately mirrors Materializer.Materialize so planning does not
-// grow an inventory or managed-root abstraction before those responsibilities
-// are implemented.
+// CLI. It deliberately mirrors Materializer.Materialize so the lifecycle can
+// retain one verified snapshot session until planning has copied its hashes.
 type materializeFunc func(context.Context, []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error)
+
+// projectTranslationFunc keeps the pure project-to-plan boundary injectable
+// for lifecycle tests without introducing a second plan model.
+type projectTranslationFunc func(sjskills.Plan, sjskills.ProjectClassification) (sjskills.Plan, error)
 
 // productionMaterialize keeps construction lazy: profiles, init, help, and
 // version never construct or invoke the Skills CLI adapter.
@@ -204,29 +208,34 @@ func (a *application) plan(ctx context.Context, global bool) sjskills.Envelope {
 		return a.invalid(sjskills.CommandOperationPlan, err)
 	}
 	request := sjskills.ResolveRequest{Registry: registry, Global: global}
+	var project *sjskills.ProjectRoot
 	if !global {
-		project, discoverErr := sjskills.DiscoverProjectRoot(a.directory)
+		discovered, discoverErr := sjskills.DiscoverProjectRoot(a.directory)
 		if discoverErr != nil {
 			return a.invalid(sjskills.CommandOperationPlan, discoverErr)
 		}
-		manifest, readErr := sjskills.ReadManifest(project.ManifestPath)
+		manifest, readErr := sjskills.ReadManifest(discovered.ManifestPath)
 		if readErr != nil {
 			if errors.Is(readErr, os.ErrNotExist) {
-				return a.invalid(sjskills.CommandOperationPlan, &sjskills.Issue{Code: sjskills.IssueManifestMissing, Path: project.ManifestPath, Message: "sjskills.toml was not found"})
+				return a.invalid(sjskills.CommandOperationPlan, &sjskills.Issue{Code: sjskills.IssueManifestMissing, Path: discovered.ManifestPath, Message: "sjskills.toml was not found"})
 			}
 			return a.invalid(sjskills.CommandOperationPlan, readErr)
 		}
 		request.Manifest = &manifest
-		envelope.Path = project.ManifestPath
+		project = &discovered
+		envelope.Path = discovered.ManifestPath
 	}
 	plan, err := sjskills.BuildPlan(request)
 	if err != nil {
 		return a.invalid(sjskills.CommandOperationPlan, err)
 	}
 	envelope.Plan = &plan
-	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "registry", Detail: "embedded version 4"})
-	envelope.Evidence = append(envelope.Evidence, plan.Evidence...)
-	envelope.Warnings = append(envelope.Warnings, plan.Warnings...)
+	syncPlan := func() {
+		envelope.Plan = &plan
+		envelope.Warnings = append([]sjskills.Warning{}, plan.Warnings...)
+		envelope.Evidence = append([]sjskills.Evidence{{Kind: "registry", Detail: "embedded version 4"}}, plan.Evidence...)
+	}
+	syncPlan()
 
 	materialize := a.materialize
 	if materialize == nil {
@@ -246,21 +255,62 @@ func (a *application) plan(ctx context.Context, global bool) sjskills.Envelope {
 	if materialized == nil {
 		return unavailableWithPlan(envelope, errors.New("materialization returned no session"))
 	}
+	cleanup := func(stage string, primary error) sjskills.Envelope {
+		cleanupErr := materialized.Cleanup()
+		if primary != nil {
+			return unavailableWithPlan(envelope, lifecycleError(stage, primary, cleanupErr))
+		}
+		if cleanupErr != nil {
+			return unavailableWithPlan(envelope, lifecycleError(stage, nil, cleanupErr))
+		}
+		return envelope
+	}
 
 	if verifyErr := materialized.Verify(); verifyErr != nil {
-		cleanupErr := materialized.Cleanup()
-		return unavailableWithPlan(envelope, lifecycleError("verify", verifyErr, cleanupErr))
+		return cleanup("verify", verifyErr)
 	}
 	snapshots := materialized.Snapshots()
+	expected := make(map[string]sjskills.TreeHash, len(snapshots))
 	for _, snapshot := range snapshots {
 		if snapshot == nil {
-			cleanupErr := materialized.Cleanup()
-			return unavailableWithPlan(envelope, lifecycleError("verify", errors.New("materialization returned a nil snapshot"), cleanupErr))
+			return cleanup("verify", errors.New("materialization returned a nil snapshot"))
 		}
+		expected[snapshot.Skill.Name] = snapshot.Hash
 		envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{
 			Kind:   "expected-content",
 			Detail: fmt.Sprintf("%s %s:%s", snapshot.Skill.Name, sjskills.TreeHashAlgorithmSHA256V2, snapshot.Hash.Digest),
 		})
+	}
+
+	if !global {
+		layout, layoutErr := sjskills.LayoutForProject(project.Root)
+		if layoutErr != nil {
+			return cleanup("layout", layoutErr)
+		}
+		inventory, inspectErr := sjskills.InspectProject(layout)
+		if inspectErr != nil {
+			return cleanup("inspect", inspectErr)
+		}
+		classification, classifyErr := sjskills.ClassifyProject(plan.Desired, expected, inventory)
+		if classifyErr != nil {
+			return cleanup("classify", classifyErr)
+		}
+		translateProject := a.translateProject
+		if translateProject == nil {
+			translateProject = sjskills.TranslateProjectClassification
+		}
+		translated, translateErr := translateProject(plan, classification)
+		if translateErr != nil {
+			return cleanup("translate", translateErr)
+		}
+		plan = translated
+		syncPlan()
+		for _, snapshot := range snapshots {
+			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{
+				Kind:   "expected-content",
+				Detail: fmt.Sprintf("%s %s:%s", snapshot.Skill.Name, sjskills.TreeHashAlgorithmSHA256V2, snapshot.Hash.Digest),
+			})
+		}
 	}
 	if cleanupErr := materialized.Cleanup(); cleanupErr != nil {
 		return unavailableWithPlan(envelope, lifecycleError("cleanup", nil, cleanupErr))
