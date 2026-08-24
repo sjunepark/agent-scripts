@@ -1,0 +1,7 @@
+version = 1
+profiles = ["dev", "go"]
+
+[[direct]]
+name = "third-party-review"
+source = "example/third-party-skills/review"
+full_depth = true

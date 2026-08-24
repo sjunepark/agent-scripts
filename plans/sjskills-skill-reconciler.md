@@ -29,21 +29,27 @@ installer with deletion and ownership decisions.
   restore, and mutation-race refusal.
 - The existing global reconciler is JavaScript and global-only. It requires a
   machine profile and has no committed project-intent model.
-- The repository has no Go module or `sjskills` command today. Stable
-  user-facing commands belong in `bin/`; repository maintenance helpers remain
-  in `scripts/`.
+- The implementation branch now has a Go module, typed `cmd/sjskills` entry
+  point, and source wrapper at `bin/sjskills`; generated binaries remain
+  uncommitted and repository maintenance helpers remain in `scripts/`.
 - Skills CLI 1.5.23 is present through `bunx` at planning time. It can discover
   and materialize remote skills, but its install process is not the public
   process contract for `sjskills`.
 - The historical machine-profile plan is complete within its authorized goal.
   Its unstarted migration and rollout work has not mutated either real machine.
 
+The first implementation result is complete on `codex/sjskills-v1`:
+fixture-backed registry v4 and strict project-manifest contracts, pure global
+and project resolution, project-root discovery, derived project layout and
+minimal provenance shapes, stable plan/process contracts, and a typed Kong CLI
+shell all validate without touching a managed root or network. The live
+registry remains version 3 until the later atomic cutover.
+
 ## Next action
 
-Define fixture-backed version 4 registry, project manifest, and CLI process
-contracts before scaffolding the Go executable. Keep the live version 3
-registry and existing global command operational until the Go path has
-read-only parity and an explicit cutover is ready.
+Implement the exactly pinned, isolated, bounded Skills CLI materialization
+adapter and verified staged-tree contract. Keep all subprocess homes and
+outputs in temporary fixtures and leave real managed roots unchanged.
 
 ## Accepted product contract
 
@@ -176,20 +182,20 @@ Excluded from version 1:
 
 ### 1. Freeze the version 4 contracts in fixtures
 
-- [ ] Define the registry's fixed global baseline, project profile membership,
+- [x] Define the registry's fixed global baseline, project profile membership,
       catalog/source records, target exceptions, and installation managers
       without duplicating skill declarations.
-- [ ] Define the strict `sjskills.toml` shape for selected profiles and direct
+- [x] Define the strict `sjskills.toml` shape for selected profiles and direct
       source declarations. Reject unknown fields, duplicate names, invalid
       sources, empty selections, and collisions with global/profile skills.
-- [ ] Define project-root discovery and the relationship between committed
+- [x] Define project-root discovery and the relationship between committed
       intent, generated placements, and machine-local provenance.
-- [ ] Define structured plan operations, issue categories, warnings, evidence,
+- [x] Define structured plan operations, issue categories, warnings, evidence,
       JSON result envelopes, and exit statuses before formatting human output.
-- [ ] Add resolver fixtures for the fixed baseline, `dev + go`, `kicpa`, direct
+- [x] Add resolver fixtures for the fixed baseline, `dev + go`, `kicpa`, direct
       third-party entries, target exceptions, manager boundaries, and every
       collision class.
-- [ ] Keep the live version 3 registry unchanged during this slice so the
+- [x] Keep the live version 3 registry unchanged during this slice so the
       existing global audit remains usable.
 
 Exit condition: pure fixtures describe every accepted product rule and reject
@@ -197,20 +203,20 @@ ambiguous desired state without touching a managed root or network.
 
 ### 2. Build the deep Go planning module and CLI shell
 
-- [ ] Add the repository's Go module and typed Kong command entry point, then
+- [x] Add the repository's Go module and typed Kong command entry point, then
       define a stable installation into a PATH location consistent with the
       repository's `bin/` command convention without committing generated
       binaries.
-- [ ] Implement strict registry and TOML parsing as project-owned types rather
+- [x] Implement strict registry and TOML parsing as project-owned types rather
       than passing raw maps through the program.
-- [ ] Implement profile/direct/global resolution as a pure operation that
+- [x] Implement profile/direct/global resolution as a pure operation that
       returns desired placements or typed validation errors.
-- [ ] Expose planning and application through a small internal interface;
+- [x] Expose planning and application through a small internal interface;
       keep filesystem, process, and presentation details behind it.
-- [ ] Implement human help plus JSON discovery/validation without granting
+- [x] Implement human help plus JSON discovery/validation without granting
       those code paths filesystem-write, subprocess, credential, or network
       capabilities.
-- [ ] Test the compiled executable as an external process for help, version,
+- [x] Test the compiled executable as an external process for help, version,
       malformed input, stdout/stderr separation, JSON newline behavior, and
       exit statuses.
 

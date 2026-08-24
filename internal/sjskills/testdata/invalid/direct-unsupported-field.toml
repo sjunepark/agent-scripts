@@ -1,0 +1,6 @@
+version = 1
+
+[[direct]]
+name = "third-party-review"
+source = "example/third-party-review"
+manager = "skills-cli"

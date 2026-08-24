@@ -29,16 +29,16 @@ _None._
 
 ### Completed included results
 
-_None._
+- Version 4 desired-state contracts and pure resolution.
 
 ### Current in-scope result
 
-Version 4 desired-state contracts and pure resolution.
+Isolated Skills CLI materialization.
 
 ### Next in-scope action
 
-Define the registry v4, project-manifest, resolution, operation, and process
-contracts in fixtures, then implement the pure Go resolver and CLI shell.
+Implement the exactly pinned, isolated, bounded Skills CLI materialization
+adapter and verified staged-tree contract without touching real managed roots.
 
 ### Evidence and blockers
 
@@ -52,3 +52,10 @@ contracts in fixtures, then implement the pure Go resolver and CLI shell.
   only active goal in the `ROADMAP.md` planning scope.
 - Real-home mutation remains excluded. All development mutation and validation
   must use repository fixtures, temporary projects, or temporary homes.
+- Registry v4, strict manifest, project discovery, derived layout/provenance,
+  pure resolution, operation/envelope, and CLI-shell contracts are implemented
+  in Go fixtures while the live version 3 registry and legacy engine remain
+  operational.
+- Parent validation passed: Go formatting, unit tests, race tests, vet, all 55
+  legacy registry/global-state tests, `scripts/validate-skills` (35 skills),
+  local published-catalog validation, and `git diff --check`.
