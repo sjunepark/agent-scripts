@@ -142,6 +142,30 @@ func TestApplyProjectInstallsCopiesOnePlacementAndWritesSortedProvenance(t *test
 	}
 }
 
+func TestApplyProjectInstallsReportsCommittedPlacementsOnFinalizationFailure(t *testing.T) {
+	session, _, skill, hash := newApplyFixture(t, []Target{TargetAgents})
+	result, err := ApplyProjectInstalls(context.Background(), session, ApplyDeps{
+		Now: func() time.Time { return time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC) },
+		beforeUnlock: func() error {
+			return errors.New("injected finalization failure")
+		},
+	})
+	if err == nil {
+		t.Fatal("ApplyProjectInstalls unexpectedly succeeded after finalization failure")
+	}
+	if len(result.Installed) != 1 || result.Installed[0] != (AppliedPlacement{Skill: skill.Name, Target: TargetAgents}) {
+		t.Fatalf("installed = %#v, want retained committed placement", result.Installed)
+	}
+	placedHash, hashErr := HashSkillTree(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name))
+	if hashErr != nil || placedHash != hash {
+		t.Fatalf("retained placement hash=%#v err=%v, want %#v", placedHash, hashErr, hash)
+	}
+	inventory, inspectErr := InspectProject(session.Layout)
+	if inspectErr != nil || !inventory.StateTrusted || len(inventory.State.Records) != 1 {
+		t.Fatalf("committed provenance inventory=%#v err=%v", inventory, inspectErr)
+	}
+}
+
 func TestApplyProjectInstallsRollsBackEarlierPlacementsOnPublishFailure(t *testing.T) {
 	session, project, skill, hash := newApplyFixture(t, []Target{TargetAgents, TargetClaude})
 	publishCalls := 0

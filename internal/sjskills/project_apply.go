@@ -92,6 +92,7 @@ type ApplyDeps struct {
 	beforeRollback    func(AppliedPlacement) error
 	beforeLock        func() error
 	beforeCommit      func() error
+	beforeUnlock      func() error
 }
 
 func defaultApplyDeps() ApplyDeps {
@@ -200,6 +201,16 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 			primary = applyUnavailable("rollback could not be verified")
 		}
 	}
+	if primary == nil {
+		for _, placement := range tx.published {
+			result.Installed = append(result.Installed, AppliedPlacement{Skill: placement.skill, Target: placement.target})
+		}
+		if tx.deps.beforeUnlock != nil {
+			if hookErr := tx.deps.beforeUnlock(); hookErr != nil {
+				primary = applyUnavailable("apply finalization preflight failed")
+			}
+		}
+	}
 	if unlockErr := tx.closeLock(); unlockErr != nil && primary == nil {
 		primary = unlockErr
 	}
@@ -208,9 +219,6 @@ func ApplyProjectInstalls(ctx context.Context, session *ProjectApplySession, dep
 	}
 	if primary != nil {
 		return result, primary
-	}
-	for _, placement := range tx.published {
-		result.Installed = append(result.Installed, AppliedPlacement{Skill: placement.skill, Target: placement.target})
 	}
 	return result, nil
 }

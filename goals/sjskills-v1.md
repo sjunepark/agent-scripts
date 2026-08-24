@@ -38,10 +38,9 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Wire the reviewed install-only transaction into the project `apply` lifecycle
-without losing its live materialization session, then extend the same boundary
-to verified update with recoverable quarantine. Keep removal, restore, and
-interruption recovery behind later independently reviewed slices.
+Extend the reviewed project transaction to verified update with recoverable,
+manifest-backed quarantine. Keep removal, restore, and interruption recovery
+behind later independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -120,5 +119,21 @@ interruption recovery behind later independently reviewed slices.
   duplication, and ancestor durability gaps. Full Go unit/race/vet, repeated
   Darwin no-replace, Windows compile/build, all 55 legacy Node tests,
   `scripts/validate-skills` (35 skills), local catalog, formatting, and diff
-  validation passed. The engine is not yet wired into the external CLI, so no
-  user-visible project mutation is claimed by this milestone.
+  validation passed.
+- Project `apply` now retains exactly one verified materialization session
+  through confirmation and the locked install transaction, requires `--yes`
+  for JSON automation, installs missing copies idempotently, preserves unknown
+  entries, blocks unsupported mutations before prompting or writing, and maps
+  conflicts through a stable process issue. Global apply remains read-only and
+  unavailable.
+- Parent review corrected ambiguous failure evidence so the CLI reports only
+  known committed placements rather than inferring unchanged roots. Packaged
+  executable tests cover default decline, stdin confirmation, JSON silence,
+  idempotence, strict provenance, unknown preservation, temporary cleanup, and
+  isolated project/home sentinels.
+- The clean review loop passed fresh Go unit/race/vet, repeated Darwin
+  no-replace behavior, Windows test compilation and CLI build, all 55 legacy
+  Node tests, `scripts/validate-skills` (35 skills), temporary-home local
+  catalog validation, formatting, and diff checks. The affected-doc audit
+  updated this goal and implementation plan; operator docs remain deferred
+  until the complete workflow is live.
