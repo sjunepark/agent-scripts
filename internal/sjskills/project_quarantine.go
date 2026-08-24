@@ -37,6 +37,17 @@ const (
 	ProjectQuarantineEntryRecoveryRequired ProjectQuarantineEntryStatus = "recovery-required"
 )
 
+// ProjectQuarantineEntryAction identifies whether a quarantined preimage is
+// being replaced by a new desired tree or is being removed because it is no
+// longer part of project intent.  The action is durable recovery evidence;
+// entry status alone cannot distinguish a committed removal from an update.
+type ProjectQuarantineEntryAction string
+
+const (
+	ProjectQuarantineEntryActionUpdate ProjectQuarantineEntryAction = "update"
+	ProjectQuarantineEntryActionRemove ProjectQuarantineEntryAction = "remove"
+)
+
 // ProjectQuarantineManifest is durable recovery evidence for one project
 // update transaction. Placement identifiers are relative modeled identities,
 // never process-private absolute filesystem paths.
@@ -49,15 +60,16 @@ type ProjectQuarantineManifest struct {
 }
 
 type ProjectQuarantineManifestEntry struct {
+	Action               ProjectQuarantineEntryAction `json:"action"`
 	Skill                string                       `json:"skill"`
 	Target               Target                       `json:"target"`
 	OriginalPlacement    string                       `json:"originalPlacement"`
 	QuarantinedPlacement string                       `json:"quarantinedPlacement"`
 	OldSourceIdentity    string                       `json:"oldSourceIdentity"`
-	NewSourceIdentity    string                       `json:"newSourceIdentity"`
+	NewSourceIdentity    string                       `json:"newSourceIdentity,omitempty"`
 	TreeHashAlgorithm    string                       `json:"treeHashAlgorithm"`
 	OldTreeHash          string                       `json:"oldTreeHash"`
-	NewTreeHash          string                       `json:"newTreeHash"`
+	NewTreeHash          string                       `json:"newTreeHash,omitempty"`
 	Status               ProjectQuarantineEntryStatus `json:"status"`
 }
 
@@ -85,6 +97,9 @@ func DecodeProjectQuarantineManifest(data []byte) (ProjectQuarantineManifest, bo
 	if len(data) == 0 || len(data) > maxProjectQuarantineManifestSize {
 		return ProjectQuarantineManifest{}, false
 	}
+	if !validProjectQuarantineJSONShape(data) {
+		return ProjectQuarantineManifest{}, false
+	}
 	var manifest ProjectQuarantineManifest
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -102,6 +117,40 @@ func DecodeProjectQuarantineManifest(data []byte) (ProjectQuarantineManifest, bo
 	return manifest, true
 }
 
+func validProjectQuarantineJSONShape(data []byte) bool {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(data, &object); err != nil || object == nil {
+		return false
+	}
+	entriesData, ok := object["entries"]
+	if !ok {
+		return true
+	}
+	var entries []map[string]json.RawMessage
+	if err := json.Unmarshal(entriesData, &entries); err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		actionData, ok := entry["action"]
+		if !ok {
+			continue
+		}
+		var action ProjectQuarantineEntryAction
+		if err := json.Unmarshal(actionData, &action); err != nil {
+			return false
+		}
+		if action == ProjectQuarantineEntryActionRemove {
+			if _, present := entry["newSourceIdentity"]; present {
+				return false
+			}
+			if _, present := entry["newTreeHash"]; present {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func validProjectQuarantineManifest(manifest ProjectQuarantineManifest) bool {
 	if manifest.Version != ProjectQuarantineManifestVersion ||
 		!projectQuarantineIDPattern.MatchString(manifest.ID) ||
@@ -112,16 +161,7 @@ func validProjectQuarantineManifest(manifest ProjectQuarantineManifest) bool {
 	}
 	seen := make(map[string]struct{}, len(manifest.Entries))
 	for _, entry := range manifest.Entries {
-		if !isPortableName(entry.Skill) ||
-			(entry.Target != TargetAgents && entry.Target != TargetClaude) ||
-			entry.OriginalPlacement != projectOriginalPlacement(entry.Target, entry.Skill) ||
-			entry.QuarantinedPlacement != projectQuarantinedPlacement(entry.Target, entry.Skill) ||
-			!isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) || entry.NewSourceIdentity != entry.OldSourceIdentity ||
-			entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
-			!lowercaseDigestPattern.MatchString(entry.OldTreeHash) ||
-			!lowercaseDigestPattern.MatchString(entry.NewTreeHash) ||
-			entry.NewTreeHash == entry.OldTreeHash ||
-			!validProjectQuarantineEntryStatus(entry.Status) {
+		if !validProjectQuarantineEntry(entry) {
 			return false
 		}
 		key := projectPlacementKey(entry.Target, entry.Skill)
@@ -131,19 +171,8 @@ func validProjectQuarantineManifest(manifest ProjectQuarantineManifest) bool {
 		seen[key] = struct{}{}
 	}
 	for _, entry := range manifest.Entries {
-		switch manifest.Status {
-		case ProjectQuarantinePrepared:
-			if entry.Status != ProjectQuarantineEntryPending {
-				return false
-			}
-		case ProjectQuarantineCommitted:
-			if entry.Status != ProjectQuarantineEntryReplaced {
-				return false
-			}
-		case ProjectQuarantineRolledBack:
-			if entry.Status != ProjectQuarantineEntryPending && entry.Status != ProjectQuarantineEntryRestored {
-				return false
-			}
+		if !validProjectQuarantineEntryState(manifest.Status, entry) {
+			return false
 		}
 	}
 	return sort.SliceIsSorted(manifest.Entries, func(i, j int) bool {
@@ -152,6 +181,72 @@ func validProjectQuarantineManifest(manifest ProjectQuarantineManifest) bool {
 		}
 		return compareUTF16(manifest.Entries[i].Skill, manifest.Entries[j].Skill) < 0
 	})
+}
+
+func validProjectQuarantineEntryState(manifestStatus ProjectQuarantineStatus, entry ProjectQuarantineManifestEntry) bool {
+	switch manifestStatus {
+	case ProjectQuarantinePrepared:
+		return entry.Status == ProjectQuarantineEntryPending
+	case ProjectQuarantineActive:
+		if entry.Status == ProjectQuarantineEntryPending {
+			return true
+		}
+		if entry.Action == ProjectQuarantineEntryActionUpdate {
+			return entry.Status == ProjectQuarantineEntryQuarantined || entry.Status == ProjectQuarantineEntryReplaced
+		}
+		return entry.Status == ProjectQuarantineEntryQuarantined
+	case ProjectQuarantineCommitted:
+		if entry.Action == ProjectQuarantineEntryActionUpdate {
+			return entry.Status == ProjectQuarantineEntryReplaced
+		}
+		return entry.Status == ProjectQuarantineEntryQuarantined
+	case ProjectQuarantineRolledBack:
+		return entry.Status == ProjectQuarantineEntryPending || entry.Status == ProjectQuarantineEntryRestored
+	case ProjectQuarantineRecoveryRequired:
+		// Recovery may contain a mixture of untouched, restored, and ambiguous
+		// entries. The entry action and bounded status vocabulary still make the
+		// durable state unambiguous to a later restore operation.
+		if entry.Action == ProjectQuarantineEntryActionUpdate {
+			return entry.Status == ProjectQuarantineEntryPending ||
+				entry.Status == ProjectQuarantineEntryQuarantined ||
+				entry.Status == ProjectQuarantineEntryReplaced ||
+				entry.Status == ProjectQuarantineEntryRestored ||
+				entry.Status == ProjectQuarantineEntryRecoveryRequired
+		}
+		return entry.Status == ProjectQuarantineEntryPending ||
+			entry.Status == ProjectQuarantineEntryQuarantined ||
+			entry.Status == ProjectQuarantineEntryRestored ||
+			entry.Status == ProjectQuarantineEntryRecoveryRequired
+	default:
+		return false
+	}
+}
+
+func validProjectQuarantineEntry(entry ProjectQuarantineManifestEntry) bool {
+	if !isPortableName(entry.Skill) ||
+		(entry.Target != TargetAgents && entry.Target != TargetClaude) ||
+		entry.OriginalPlacement != projectOriginalPlacement(entry.Target, entry.Skill) ||
+		entry.QuarantinedPlacement != projectQuarantinedPlacement(entry.Target, entry.Skill) ||
+		entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
+		!lowercaseDigestPattern.MatchString(entry.OldTreeHash) ||
+		!validProjectQuarantineEntryStatus(entry.Status) {
+		return false
+	}
+	switch entry.Action {
+	case ProjectQuarantineEntryActionUpdate:
+		return isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) &&
+			isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) &&
+			entry.NewSourceIdentity == entry.OldSourceIdentity &&
+			lowercaseDigestPattern.MatchString(entry.NewTreeHash) &&
+			entry.NewTreeHash != entry.OldTreeHash
+	case ProjectQuarantineEntryActionRemove:
+		// Empty replacement fields are intentionally omitted by encoding/json so
+		// a remove entry cannot be mistaken for an update by restore.
+		return isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) &&
+			entry.NewSourceIdentity == "" && entry.NewTreeHash == ""
+	default:
+		return false
+	}
 }
 
 func validProjectQuarantineStatus(status ProjectQuarantineStatus) bool {

@@ -73,15 +73,18 @@ materialization session through one confirmation and now applies both verified
 installs and updates. Human and JSON output report separate committed counts
 and a validated path-free quarantine handle when recovery state exists.
 Removed-skill quarantine, restore, and interruption recovery remain
-deliberately unimplemented.
+deliberately unavailable through the public CLI. The internal transaction now
+also handles verified removals: it moves only exact trusted managed content
+into the same action-typed durable quarantine, deletes its provenance record,
+and preserves unknown, modified, or ambiguous content.
 
 ## Next action
 
-Extend the internal project transaction to quarantine previously managed skills
-removed from project intent while preserving unknown and modified content. Keep
-the public removal workflow, restore, and interruption recovery behind later
-independently reviewed slices; reserve bounded real-source validation for the
-final validation phase.
+Wire reviewed removed-skill quarantine through the public project `apply`
+workflow with the existing single confirmation, truthful separate execution
+evidence, and the validated recovery handle. Keep restore and interruption
+recovery behind later independently reviewed slices; reserve bounded
+real-source validation for the final validation phase.
 
 ## Accepted product contract
 
@@ -303,8 +306,11 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Apply verified updates without clobbering changed targets. Preserve prior
       content in manifest-backed quarantine before replacement through the
       public project `apply` workflow.
-- [ ] Quarantine previously managed skills removed from project intent while
-      preserving unknown entries, and implement overwrite-refusing restore.
+- [x] Extend the internal transaction to quarantine exact previously managed
+      skills removed from project intent while preserving unknown and modified
+      entries and committing action-typed recovery evidence.
+- [ ] Wire removed-skill quarantine through public project `apply`, and
+      implement overwrite-refusing restore.
 - [ ] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
 - [ ] Cover symlink ancestors, path escapes, executable bits, source changes,

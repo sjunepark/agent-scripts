@@ -38,10 +38,10 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Extend the internal project transaction to quarantine previously managed skills
-removed from project intent while preserving unknown and modified content. Keep
-the public removal workflow, restore, and interruption recovery behind later
-independently reviewed slices.
+Wire reviewed removed-skill quarantine through the public project `apply`
+workflow with the existing single confirmation, truthful separate execution
+evidence, and the validated recovery handle. Keep restore and interruption
+recovery behind later independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -148,7 +148,8 @@ independently reviewed slices.
   destinations preserve both external bytes and quarantined originals with a
   `recovery-required` manifest; preparation failures after run creation still
   return durable rollback evidence. Install-only and no-op transactions create
-  no quarantine, and the public CLI continues to reject update operations.
+  no quarantine; at that internal-only checkpoint, the public CLI still
+  rejected update operations.
 - The bounded code-review loop fixed a post-publication ownership race by
   requiring the destination inode to match the staged inode before recording
   rollback ownership, and kept new fault-injection seams package-private.
@@ -168,3 +169,19 @@ independently reviewed slices.
   content. The clean bounded review passed ten repeated high-risk update runs,
   full Go unit/race/vet, all 55 legacy Node tests, 35 skill validations,
   temporary-home catalog validation, formatting, and diff checks.
+- The internal project transaction now accepts a freshly reviewed removal only
+  when its canonical source and exact current/expected hash match one trusted
+  provenance record. It moves the unchanged managed tree without replacement,
+  deletes that record atomically, and records an action-typed strict manifest
+  whose removal entries omit replacement fields and remain restorable.
+- Removal-only and mixed install/update/remove transactions share one durable
+  quarantine and preserve unknown or modified content. Rollback restores only
+  re-proven originals; raced external replacements retain both the external
+  bytes and quarantined original under `recovery-required` evidence. Public
+  removal remains blocked before prompting or writing.
+- The bounded review corrected strict update-source identity, exact removal
+  expected-hash validation, and direct provenance-drift coverage. Twenty
+  repeated removal lifecycle and race tests, full Go unit/race/vet, Windows
+  compilation/build, all 55 legacy Node tests, 35 skill validations,
+  temporary-home catalog validation, formatting, and diff checks passed
+  without real-home mutation.

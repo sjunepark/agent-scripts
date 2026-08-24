@@ -76,10 +76,11 @@ type AppliedPlacement struct {
 }
 
 type ApplyResult struct {
-	Plan       Plan
-	Installed  []AppliedPlacement
-	Updated    []AppliedPlacement
-	Quarantine *ProjectQuarantineResult
+	Plan        Plan
+	Installed   []AppliedPlacement
+	Updated     []AppliedPlacement
+	Quarantined []AppliedPlacement
+	Quarantine  *ProjectQuarantineResult
 }
 
 // ProjectQuarantineResult is the path-free recovery handle returned when an
@@ -121,10 +122,11 @@ func defaultApplyDeps() ApplyDeps {
 
 // ApplyProjectChanges is the project mutation seam. It validates the
 // reviewed plan before taking the lock, refreshes inventory and translation,
-// then copies verified snapshots into empty destinations or quarantines an
-// unchanged managed preimage before verified replacement. It commits one
-// deterministic provenance state. Removed-skill quarantine and blocked
-// operations remain rejected before any write.
+// then copies verified snapshots into empty destinations, quarantines an
+// unchanged managed preimage before verified replacement, or moves an
+// unchanged managed placement whose desired identity was removed into durable
+// quarantine. It commits one deterministic provenance state. Public CLI
+// removal remains blocked before this internal seam is called.
 func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps ApplyDeps) (ApplyResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -200,11 +202,11 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	if err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
-	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}}
-	updateOperations := operationsWithAction(mutationOperations, PlanActionUpdate)
+	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}, Quarantined: []AppliedPlacement{}}
 	var primary error
-	if len(updateOperations) > 0 {
-		primary = tx.prepareQuarantine(session, preimage, updateOperations)
+	quarantineOperations := operationsWithActions(mutationOperations, PlanActionUpdate, PlanActionQuarantine)
+	if len(quarantineOperations) > 0 {
+		primary = tx.prepareQuarantine(session, preimage, quarantineOperations)
 	}
 	if primary == nil {
 		primary = tx.applyOperations(ctx, session, preimage, mutationOperations)
@@ -244,6 +246,11 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 				result.Updated = append(result.Updated, value)
 			} else {
 				result.Installed = append(result.Installed, value)
+			}
+		}
+		for _, placement := range tx.quarantined {
+			if placement.action == PlanActionQuarantine {
+				result.Quarantined = append(result.Quarantined, AppliedPlacement{Skill: placement.skill, Target: placement.target})
 			}
 		}
 		if tx.deps.beforeUnlock != nil {
@@ -291,7 +298,7 @@ func normalizeApplyDeps(deps ApplyDeps) ApplyDeps {
 }
 
 func validateApplySession(session *ProjectApplySession) error {
-	if session == nil || session.Materialized == nil {
+	if session == nil {
 		return applyUnavailable("materialization session is unavailable")
 	}
 	if session.Plan.Desired.Scope != ScopeProject || session.Desired.Scope != ScopeProject {
@@ -313,6 +320,9 @@ func validateApplySession(session *ProjectApplySession) error {
 		expected, exists := session.Expected[skill.Name]
 		if !exists {
 			return applyUnavailable("expected materialized content is unavailable")
+		}
+		if session.Materialized == nil {
+			return applyUnavailable("materialization session is unavailable")
 		}
 		snapshot, exists := session.Materialized.SnapshotFor(skill.Name)
 		if !exists || snapshot == nil || !sameDesiredSkill(skill, snapshot.Skill) || snapshot.Hash != expected {
@@ -347,6 +357,24 @@ func validateApplySession(session *ProjectApplySession) error {
 				if _, ok := treeHashFromPlanEvidence(operation.Current); !ok {
 					return applyConflict("reviewed update preimage identity is invalid")
 				}
+			}
+		case PlanActionQuarantine:
+			if desiredPlacement {
+				return applyConflict("reviewed removal still has a desired identity")
+			}
+			if operation.Manager != ManagerSkillsCLI || operation.SourceID != "" {
+				return applyConflict("reviewed removal identity changed")
+			}
+			if !isCanonicalProjectSourceIdentity(operation.Source) {
+				return applyConflict("reviewed removal source identity is not canonical")
+			}
+			oldHash, ok := treeHashFromPlanEvidence(operation.Current)
+			if !ok {
+				return applyConflict("reviewed removal preimage identity is invalid")
+			}
+			expectedHash, expectedOK := treeHashFromPlanEvidence(operation.Expected)
+			if !expectedOK || expectedHash != oldHash {
+				return applyConflict("reviewed removal provenance identity is invalid")
 			}
 		default:
 			return applyConflict("reviewed plan contains an unsupported mutation")
@@ -422,10 +450,19 @@ func desiredByPlacement(desired DesiredState) map[string]DesiredSkill {
 	return result
 }
 
+func candidateRecordByKey(state ProvenanceState, key string) (ProvenanceRecord, bool) {
+	for _, record := range state.Records {
+		if projectPlacementKey(record.Target, record.Skill) == key {
+			return record, true
+		}
+	}
+	return ProvenanceRecord{}, false
+}
+
 func reviewedMutationOperations(session *ProjectApplySession) []PlanOperation {
 	result := make([]PlanOperation, 0)
 	for _, operation := range session.Plan.Operations {
-		if operation.Action == PlanActionInstall || operation.Action == PlanActionUpdate {
+		if operation.Action == PlanActionInstall || operation.Action == PlanActionUpdate || operation.Action == PlanActionQuarantine {
 			result = append(result, operation)
 		}
 	}
@@ -438,11 +475,14 @@ func reviewedMutationOperations(session *ProjectApplySession) []PlanOperation {
 	return result
 }
 
-func operationsWithAction(operations []PlanOperation, action PlanAction) []PlanOperation {
+func operationsWithActions(operations []PlanOperation, actions ...PlanAction) []PlanOperation {
 	result := make([]PlanOperation, 0)
 	for _, operation := range operations {
-		if operation.Action == action {
-			result = append(result, operation)
+		for _, action := range actions {
+			if operation.Action == action {
+				result = append(result, operation)
+				break
+			}
 		}
 	}
 	return result
@@ -566,6 +606,7 @@ type publishedPlacement struct {
 type quarantinedPlacement struct {
 	skill         string
 	target        Target
+	action        PlanAction
 	dest          string
 	quarantined   string
 	originalInfo  os.FileInfo
@@ -578,6 +619,7 @@ type projectQuarantineTransaction struct {
 	runDurable   bool
 	rootInfo     os.FileInfo
 	runInfo      os.FileInfo
+	ancestors    map[string]os.FileInfo
 	manifestPath string
 	manifestInfo os.FileInfo
 	manifestData []byte
@@ -781,7 +823,25 @@ func (tx *applyTransaction) applyOperations(ctx context.Context, session *Projec
 		if err := tx.checkLock(); err != nil {
 			return err
 		}
+		if operation.Action == PlanActionQuarantine {
+			if tx.deps.beforeQuarantine != nil {
+				if hookErr := tx.deps.beforeQuarantine(AppliedPlacement{Skill: operation.Skill, Target: operation.Target}); hookErr != nil {
+					return applyUnavailable("quarantine preflight failed")
+				}
+			}
+			root, err := tx.layout.ManagedSkillsPath(operation.Target)
+			if err != nil {
+				return applyConflict("target placement path changed after planning")
+			}
+			if err := tx.quarantineRemoval(session, preimage, operation, filepath.Join(root, operation.Skill)); err != nil {
+				return err
+			}
+			continue
+		}
 		skill := desired[projectPlacementKey(operation.Target, operation.Skill)]
+		if session.Materialized == nil {
+			return applyUnavailable("materialized snapshot is unavailable")
+		}
 		snapshot, ok := session.Materialized.SnapshotFor(skill.Name)
 		if !ok || snapshot == nil {
 			return applyUnavailable("materialized snapshot is unavailable")
@@ -1056,6 +1116,16 @@ func (tx *applyTransaction) rollback() error {
 			failed = true
 			continue
 		}
+		if err := tx.checkQuarantineEntryAncestors(filepath.Dir(placement.quarantined)); err != nil {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
+		if err := tx.checkRootAndAncestors(placement.target); err != nil || tx.checkLock() != nil {
+			failed = true
+			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
+			continue
+		}
 		if _, err := os.Lstat(placement.dest); err == nil || !errors.Is(err, os.ErrNotExist) {
 			failed = true
 			_ = tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRecoveryRequired)
@@ -1219,6 +1289,33 @@ func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, ca
 			}
 		}
 	}
+	for _, operation := range reviewedMutationOperations(session) {
+		if operation.Action != PlanActionQuarantine {
+			continue
+		}
+		key := projectPlacementKey(operation.Target, operation.Skill)
+		if _, stillManaged := candidateRecordByKey(candidate, key); stillManaged {
+			return applyConflict("removed placement remained managed before commit")
+		}
+		root, ok := inventory.RootFor(operation.Target)
+		if !ok || !root.Safe {
+			return applyConflict("removed placement root changed before commit")
+		}
+		// A destination that reappeared is acceptable only as an unowned
+		// observation.  It must not be claimed by the candidate state; the
+		// ownership-preserving rollback will retain it if a later step fails.
+		for _, entry := range root.Entries {
+			if entry.Name != operation.Skill {
+				continue
+			}
+			for _, state := range classification.States {
+				if state.Target == operation.Target && state.Skill == operation.Skill &&
+					state.Action == PlanActionQuarantine {
+					return applyConflict("removed placement remained managed before commit")
+				}
+			}
+		}
+	}
 	for _, placement := range tx.published {
 		info, statErr := os.Lstat(placement.dest)
 		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() || !os.SameFile(placement.info, info) {
@@ -1243,7 +1340,21 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 	}
 	desired := desiredByPlacement(session.Desired)
 	for _, operation := range reviewedMutationOperations(session) {
-		skill, ok := desired[projectPlacementKey(operation.Target, operation.Skill)]
+		key := projectPlacementKey(operation.Target, operation.Skill)
+		if operation.Action == PlanActionQuarantine {
+			record, managed := records[key]
+			oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
+			expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
+			if managed == false || record.Scope != ScopeProject || record.Skill != operation.Skill ||
+				record.Target != operation.Target || record.SourceIdentity != operation.Source ||
+				!isCanonicalProjectSourceIdentity(operation.Source) || !oldHashOK || !expectedHashOK || expectedHash != oldHash ||
+				record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
+				return ProvenanceState{}, applyConflict("removed provenance identity changed before commit")
+			}
+			delete(records, key)
+			continue
+		}
+		skill, ok := desired[key]
 		if !ok {
 			return ProvenanceState{}, applyConflict("desired identity disappeared before provenance commit")
 		}

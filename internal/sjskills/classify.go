@@ -258,6 +258,7 @@ func classifyRemovedManagedEntry(entry InventoryEntry, record ProvenanceRecord) 
 		Path:           entry.Path,
 		Manager:        ManagerSkillsCLI,
 		SourceIdentity: record.SourceIdentity,
+		Expected:       treeHashPointerFromRecord(record),
 	}
 	if entry.Problem == "" && entry.Kind == InventoryEntryDirectory && entry.Hash != nil {
 		state.Current = cloneTreeHashPointer(entry.Hash)
@@ -271,7 +272,6 @@ func classifyRemovedManagedEntry(entry InventoryEntry, record ProvenanceRecord) 
 	state.Kind = ProjectStateModified
 	state.Action = PlanActionBlocked
 	state.Reason = ProjectStateReasonPreviouslyManagedModified
-	state.Expected = treeHashPointerFromRecord(record)
 	return state
 }
 

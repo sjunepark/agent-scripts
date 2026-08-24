@@ -5,11 +5,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, preimage *applyStatePreimage, operations []PlanOperation) error {
-	if tx.quarantine != nil || len(operations) == 0 || len(operations) > maxProjectQuarantineEntries {
-		return applyConflict("update quarantine request is invalid")
+	if tx.quarantine != nil || preimage == nil || len(operations) == 0 || len(operations) > maxProjectQuarantineEntries {
+		return applyConflict("quarantine request is invalid")
 	}
 	createdAt := tx.deps.Now().UTC()
 	if createdAt.IsZero() {
@@ -27,24 +28,47 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 	entries := make([]ProjectQuarantineManifestEntry, 0, len(operations))
 	for _, operation := range operations {
 		key := projectPlacementKey(operation.Target, operation.Skill)
-		skill, wanted := desired[key]
 		record, managed := records[key]
 		oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
-		newHash, newHashOK := session.Expected[skill.Name]
-		newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)
-		if !wanted || !managed || !oldHashOK || !newHashOK || !sourceOK ||
+		expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
+		if !managed || !oldHashOK ||
 			record.Scope != ScopeProject || record.Skill != operation.Skill || record.Target != operation.Target ||
-			record.SourceIdentity != newSource || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
-			return applyConflict("reviewed update provenance identity changed")
+			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
+			return applyConflict("reviewed quarantine provenance identity changed")
 		}
-		entries = append(entries, ProjectQuarantineManifestEntry{
-			Skill: operation.Skill, Target: operation.Target,
+		entry := ProjectQuarantineManifestEntry{
+			Action:               ProjectQuarantineEntryActionRemove,
+			Skill:                operation.Skill,
+			Target:               operation.Target,
 			OriginalPlacement:    projectOriginalPlacement(operation.Target, operation.Skill),
 			QuarantinedPlacement: projectQuarantinedPlacement(operation.Target, operation.Skill),
-			OldSourceIdentity:    record.SourceIdentity, NewSourceIdentity: newSource,
-			TreeHashAlgorithm: oldHash.Algorithm, OldTreeHash: oldHash.Digest, NewTreeHash: newHash.Digest,
-			Status: ProjectQuarantineEntryPending,
-		})
+			OldSourceIdentity:    record.SourceIdentity,
+			TreeHashAlgorithm:    oldHash.Algorithm,
+			OldTreeHash:          oldHash.Digest,
+			Status:               ProjectQuarantineEntryPending,
+		}
+		switch operation.Action {
+		case PlanActionUpdate:
+			skill, wanted := desired[key]
+			newHash, newHashOK := session.Expected[skill.Name]
+			newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)
+			if !wanted || skill.Manager != ManagerSkillsCLI || skill.Mode != ModeCopy || !newHashOK || !sourceOK ||
+				operation.Manager != ManagerSkillsCLI || operation.Source != skill.Source ||
+				record.SourceIdentity != newSource || newHash != expectedHash || newHash.Algorithm != oldHash.Algorithm || newHash.Digest == oldHash.Digest {
+				return applyConflict("reviewed update provenance identity changed")
+			}
+			entry.Action = ProjectQuarantineEntryActionUpdate
+			entry.NewSourceIdentity = newSource
+			entry.NewTreeHash = newHash.Digest
+		case PlanActionQuarantine:
+			if _, wanted := desired[key]; wanted || operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != record.SourceIdentity ||
+				!expectedHashOK || expectedHash != oldHash {
+				return applyConflict("reviewed removal provenance identity changed")
+			}
+		default:
+			return applyConflict("unsupported quarantine operation")
+		}
+		entries = append(entries, entry)
 	}
 	created, err := ensureApplyDirectory(tx.root, tx.layout.QuarantinePath)
 	tx.createdDirs = append(tx.createdDirs, created...)
@@ -76,7 +100,8 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 		return applyUnavailable("quarantine run could not be verified")
 	}
 	quarantine := &projectQuarantineTransaction{
-		runPath: runPath, rootInfo: quarantineRootInfo, runInfo: runInfo, manifestPath: filepath.Join(runPath, applyManifestName),
+		runPath: runPath, rootInfo: quarantineRootInfo, runInfo: runInfo,
+		ancestors: make(map[string]os.FileInfo), manifestPath: filepath.Join(runPath, applyManifestName),
 		manifest: ProjectQuarantineManifest{Version: ProjectQuarantineManifestVersion, ID: id, CreatedAt: createdAt, Status: ProjectQuarantinePrepared, Entries: entries},
 	}
 	// Attach ownership as soon as the unique run has been proven. Any later
@@ -90,6 +115,9 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 	for _, operation := range operations {
 		parent := filepath.Join(runPath, "entries", string(operation.Target))
 		if err := ensureOwnedQuarantineDirectory(runPath, parent, tx.deps.SyncDir); err != nil {
+			return err
+		}
+		if err := captureQuarantineEntryAncestors(runPath, parent, quarantine.ancestors); err != nil {
 			return err
 		}
 	}
@@ -147,15 +175,23 @@ func splitApplyPath(relative string) []string {
 }
 
 func (tx *applyTransaction) quarantineUpdate(session *ProjectApplySession, preimage *applyStatePreimage, operation PlanOperation, destination string) error {
+	return tx.quarantineExisting(session, preimage, operation, destination, ProjectQuarantineEntryActionUpdate)
+}
+
+func (tx *applyTransaction) quarantineRemoval(session *ProjectApplySession, preimage *applyStatePreimage, operation PlanOperation, destination string) error {
+	return tx.quarantineExisting(session, preimage, operation, destination, ProjectQuarantineEntryActionRemove)
+}
+
+func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, preimage *applyStatePreimage, operation PlanOperation, destination string, action ProjectQuarantineEntryAction) error {
 	if tx.quarantine == nil {
-		return applyUnavailable("update quarantine is unavailable")
+		return applyUnavailable("quarantine is unavailable")
 	}
 	if err := tx.checkQuarantineBoundary(); err != nil {
 		return err
 	}
 	index := tx.quarantineEntryIndex(operation.Target, operation.Skill)
-	if index < 0 || tx.quarantine.manifest.Entries[index].Status != ProjectQuarantineEntryPending {
-		return applyConflict("update quarantine entry identity changed")
+	if index < 0 || tx.quarantine.manifest.Entries[index].Action != action || tx.quarantine.manifest.Entries[index].Status != ProjectQuarantineEntryPending {
+		return applyConflict("quarantine entry identity changed")
 	}
 	currentState, err := captureApplyStatePreimage(tx.layout)
 	if err != nil || !sameApplyState(preimage, currentState) {
@@ -169,20 +205,54 @@ func (tx *applyTransaction) quarantineUpdate(session *ProjectApplySession, preim
 	}
 	oldHash, ok := treeHashFromPlanEvidence(operation.Current)
 	if !ok {
-		return applyConflict("reviewed update preimage identity changed")
+		return applyConflict("reviewed quarantine preimage identity changed")
+	}
+	expectedHash, expectedOK := treeHashFromPlanEvidence(operation.Expected)
+	record, recordOK := quarantineRecord(preimage.state, operation.Target, operation.Skill)
+	entry := tx.quarantine.manifest.Entries[index]
+	if !recordOK || record.Scope != ScopeProject || record.Skill != operation.Skill || record.Target != operation.Target ||
+		record.SourceIdentity != entry.OldSourceIdentity || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest ||
+		(action == ProjectQuarantineEntryActionRemove &&
+			(operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != record.SourceIdentity || !expectedOK || expectedHash != oldHash)) {
+		return applyConflict("quarantine provenance identity changed before move")
+	}
+	if action == ProjectQuarantineEntryActionUpdate {
+		skill, wanted := desiredByPlacement(session.Desired)[projectPlacementKey(operation.Target, operation.Skill)]
+		newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)
+		newHash, hashOK := session.Expected[skill.Name]
+		if !wanted || skill.Manager != ManagerSkillsCLI || skill.Mode != ModeCopy || !sourceOK || !hashOK ||
+			operation.SourceID != skill.SourceID || operation.Source != skill.Source ||
+			newSource != entry.NewSourceIdentity || newHash.Digest != entry.NewTreeHash || newHash.Algorithm != entry.TreeHashAlgorithm {
+			return applyConflict("update provenance identity changed before move")
+		}
+	}
+	managedRoot, rootErr := tx.layout.ManagedSkillsPath(operation.Target)
+	if rootErr != nil || filepath.Clean(destination) != filepath.Join(filepath.Clean(managedRoot), operation.Skill) || !pathWithin(tx.root, destination) {
+		return applyConflict("quarantine destination path changed before move")
 	}
 	originalInfo, err := os.Lstat(destination)
 	if err != nil || originalInfo.Mode()&os.ModeSymlink != 0 || !originalInfo.IsDir() {
-		return applyConflict("managed update placement changed before quarantine")
+		return applyConflict("managed quarantine placement changed before move")
 	}
 	currentHash, err := HashSkillTree(destination)
 	if err != nil || currentHash != oldHash {
-		return applyConflict("managed update content changed before quarantine")
+		return applyConflict("managed quarantine content changed before move")
 	}
-	entry := tx.quarantine.manifest.Entries[index]
 	quarantined := filepath.Join(tx.quarantine.runPath, filepath.FromSlash(entry.QuarantinedPlacement))
+	if !pathWithin(tx.quarantine.runPath, quarantined) {
+		return applyConflict("quarantine destination escapes its run")
+	}
+	if err := tx.checkQuarantineEntryAncestors(filepath.Dir(quarantined)); err != nil {
+		return err
+	}
 	if _, err := os.Lstat(quarantined); err == nil || !errors.Is(err, os.ErrNotExist) {
 		return applyConflict("quarantine destination already exists")
+	}
+	if err := tx.checkRootAndAncestors(operation.Target); err != nil {
+		return err
+	}
+	if err := tx.checkLock(); err != nil {
+		return err
 	}
 	if err := tx.deps.PublishNoReplace(destination, quarantined); err != nil {
 		if errors.Is(err, os.ErrExist) {
@@ -194,7 +264,7 @@ func (tx *applyTransaction) quarantineUpdate(session *ProjectApplySession, preim
 	movedHash, hashErr := HashSkillTree(quarantined)
 	placement := quarantinedPlacement{
 		skill: operation.Skill, target: operation.Target, dest: destination, quarantined: quarantined,
-		originalInfo: originalInfo, oldHash: oldHash, manifestIndex: index,
+		originalInfo: originalInfo, oldHash: oldHash, manifestIndex: index, action: operation.Action,
 	}
 	tx.quarantined = append(tx.quarantined, placement)
 	if statErr != nil || quarantineInfo.Mode()&os.ModeSymlink != 0 || !quarantineInfo.IsDir() ||
@@ -211,6 +281,42 @@ func (tx *applyTransaction) quarantineUpdate(session *ProjectApplySession, preim
 	return tx.setQuarantineEntryStatus(operation.Target, operation.Skill, ProjectQuarantineEntryQuarantined)
 }
 
+func captureQuarantineEntryAncestors(runPath, parent string, ancestors map[string]os.FileInfo) error {
+	if ancestors == nil {
+		return applyConflict("quarantine entry directory identity is unavailable")
+	}
+	if !pathWithin(runPath, parent) {
+		return applyConflict("quarantine entry path escapes its run")
+	}
+	relative, err := filepath.Rel(filepath.Clean(runPath), filepath.Clean(parent))
+	if err != nil || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return applyConflict("quarantine entry path is invalid")
+	}
+	current := filepath.Clean(runPath)
+	for _, part := range splitApplyPath(relative) {
+		current = filepath.Join(current, part)
+		info, statErr := os.Lstat(current)
+		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return applyConflict("quarantine entry directory changed")
+		}
+		if expected, exists := ancestors[current]; exists && !os.SameFile(expected, info) {
+			return applyConflict("quarantine entry directory changed")
+		}
+		ancestors[current] = info
+	}
+	return nil
+}
+
+func (tx *applyTransaction) checkQuarantineEntryAncestors(parent string) error {
+	if tx.quarantine == nil {
+		return applyUnavailable("quarantine is unavailable")
+	}
+	if err := captureQuarantineEntryAncestors(tx.quarantine.runPath, parent, tx.quarantine.ancestors); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (tx *applyTransaction) quarantineEntryIndex(target Target, skill string) int {
 	if tx.quarantine == nil {
 		return -1
@@ -221,6 +327,15 @@ func (tx *applyTransaction) quarantineEntryIndex(target Target, skill string) in
 		}
 	}
 	return -1
+}
+
+func quarantineRecord(state ProvenanceState, target Target, skill string) (ProvenanceRecord, bool) {
+	for _, record := range state.Records {
+		if record.Target == target && record.Skill == skill {
+			return record, true
+		}
+	}
+	return ProvenanceRecord{}, false
 }
 
 func (tx *applyTransaction) setQuarantineEntryStatus(target Target, skill string, status ProjectQuarantineEntryStatus) error {
@@ -260,7 +375,11 @@ func (tx *applyTransaction) commitQuarantine() error {
 		return nil
 	}
 	for _, entry := range tx.quarantine.manifest.Entries {
-		if entry.Status != ProjectQuarantineEntryReplaced {
+		want := ProjectQuarantineEntryReplaced
+		if entry.Action == ProjectQuarantineEntryActionRemove {
+			want = ProjectQuarantineEntryQuarantined
+		}
+		if entry.Status != want {
 			return applyConflict("quarantine manifest is incomplete before commit")
 		}
 	}
