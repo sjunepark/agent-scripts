@@ -13,8 +13,12 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Subagents
 
-- Use subagents for broad reconnaissance or independent work that would
-  otherwise bloat the main thread.
+- For substantive, well-bounded code or file implementation, invoke
+  `$delegate`; use `$delegate-ui-to-claude` instead for frontend/UI work. The
+  parent retains scope, decisions, independent review, iteration, and final
+  validation. Make clearly correct, localized, low-risk changes directly.
+- Use ordinary subagents for broad reconnaissance or independent
+  non-implementation work that would otherwise bloat the main thread.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
 
