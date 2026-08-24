@@ -72,19 +72,21 @@ a durable, manifest-backed quarantine. Project `apply` retains one verified
 materialization session through one confirmation and now applies both verified
 installs and updates. Human and JSON output report separate committed counts
 and a validated path-free quarantine handle when recovery state exists.
-Removed-skill quarantine, restore, and interruption recovery remain
-deliberately unavailable through the public CLI. The internal transaction now
-also handles verified removals: it moves only exact trusted managed content
-into the same action-typed durable quarantine, deletes its provenance record,
-and preserves unknown, modified, or ambiguous content.
+Removed-skill quarantine now uses that same public `apply` contract and reports
+its own non-inferred execution count plus a path-free recovery handle. The
+internal transaction moves only exact trusted managed content into the same
+action-typed durable quarantine, deletes its provenance record, and preserves
+unknown, modified, or ambiguous content. Restore and interruption recovery
+remain deliberately unavailable.
 
 ## Next action
 
-Wire reviewed removed-skill quarantine through the public project `apply`
-workflow with the existing single confirmation, truthful separate execution
-evidence, and the validated recovery handle. Keep restore and interruption
-recovery behind later independently reviewed slices; reserve bounded
-real-source validation for the final validation phase.
+Implement the internal overwrite-refusing restore engine for strict project
+quarantine manifests, including path confinement, destination collision
+refusal, durable manifest/provenance updates, and recoverable partial-failure
+behavior. Keep public restore wiring and interruption recovery behind later
+independently reviewed slices; reserve bounded real-source validation for the
+final validation phase.
 
 ## Accepted product contract
 
@@ -309,8 +311,10 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Extend the internal transaction to quarantine exact previously managed
       skills removed from project intent while preserving unknown and modified
       entries and committing action-typed recovery evidence.
-- [ ] Wire removed-skill quarantine through public project `apply`, and
-      implement overwrite-refusing restore.
+- [x] Wire removed-skill quarantine through public project `apply` with one
+      confirmation, separate truthful evidence, and a path-free recovery
+      handle.
+- [ ] Implement overwrite-refusing restore for durable project quarantine.
 - [ ] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
 - [ ] Cover symlink ancestors, path escapes, executable bits, source changes,

@@ -38,10 +38,11 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Wire reviewed removed-skill quarantine through the public project `apply`
-workflow with the existing single confirmation, truthful separate execution
-evidence, and the validated recovery handle. Keep restore and interruption
-recovery behind later independently reviewed slices.
+Implement the internal overwrite-refusing restore engine for strict project
+quarantine manifests, including path confinement, destination collision
+refusal, durable manifest/provenance updates, and recoverable partial-failure
+behavior. Keep public restore wiring and interruption recovery behind later
+independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -185,3 +186,17 @@ recovery behind later independently reviewed slices.
   compilation/build, all 55 legacy Node tests, 35 skill validations,
   temporary-home catalog validation, formatting, and diff checks passed
   without real-home mutation.
+- Public project `apply` now includes reviewed removed-skill quarantine in its
+  single mutation confirmation. Success and post-commit failure evidence report
+  installed, updated, and quarantined removal counts separately without
+  inferring state, while normal and recovery output expose only the validated
+  quarantine handle and omit the absolute manifest path.
+- Packaged-process tests prove default-declined removal is byte-preserving,
+  confirmed removal retains the exact source/hash/bytes in a strict committed
+  manifest, unrelated content survives, provenance retains only desired
+  placements, modified former managed content blocks before prompting, and
+  reruns create no new quarantine. Restore remains explicitly unavailable.
+- The clean bounded review passed ten repeated removal and recovery-sensitive
+  CLI runs, full Go unit/race/vet, Windows test compilation and CLI build, all
+  55 legacy Node tests, 35 skill validations, temporary-home catalog
+  validation, formatting, and diff checks without real-home mutation.

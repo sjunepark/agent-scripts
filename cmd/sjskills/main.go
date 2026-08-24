@@ -23,8 +23,8 @@ type cli struct {
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
-	Apply    applyCommand    `cmd:"" help:"Apply verified project skill installs and updates."`
-	Restore  restoreCommand  `cmd:"" help:"Restore a recorded quarantine entry."`
+	Apply    applyCommand    `cmd:"" help:"Apply verified project skill installs, updates, and removals to quarantine."`
+	Restore  restoreCommand  `cmd:"" help:"Restore is unavailable in this slice."`
 }
 
 type initCommand struct {
@@ -350,6 +350,11 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	if prepared == nil {
 		return envelope
 	}
+	// Apply output is an operator result, not a path-discovery response. Keep
+	// the manifest path out of normal and recovery output alongside the other
+	// path-free execution evidence.
+	envelope.Path = ""
+	prepared.envelope.Path = ""
 	if global {
 		envelope.Result = sjskills.ResultUnavailable
 		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "global reconciliation is not implemented in this slice"}
@@ -364,8 +369,9 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	}
 	installCount := planActionCount(prepared.plan, sjskills.PlanActionInstall)
 	updateCount := planActionCount(prepared.plan, sjskills.PlanActionUpdate)
-	if installCount+updateCount > 0 && !yes {
-		confirmed, confirmErr := confirmProjectApply(a.input, a.promptOutput, installCount, updateCount)
+	quarantineCount := planActionCount(prepared.plan, sjskills.PlanActionQuarantine)
+	if installCount+updateCount+quarantineCount > 0 && !yes {
+		confirmed, confirmErr := confirmProjectApply(a.input, a.promptOutput, installCount, updateCount, quarantineCount)
 		if confirmErr != nil {
 			envelope.Result = sjskills.ResultUnavailable
 			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "confirmation could not be read"}
@@ -402,12 +408,14 @@ func applyExecutionEvidence(result sjskills.ApplyResult, err error) []sjskills.E
 		return []sjskills.Evidence{
 			{Kind: "execution", Detail: fmt.Sprintf("installed %d project placements", len(result.Installed))},
 			{Kind: "execution", Detail: fmt.Sprintf("updated %d project placements", len(result.Updated))},
+			{Kind: "execution", Detail: fmt.Sprintf("quarantined %d removed project placements", len(result.Quarantined))},
 		}
 	}
-	if len(result.Installed)+len(result.Updated) > 0 {
+	if len(result.Installed)+len(result.Updated)+len(result.Quarantined) > 0 {
 		return []sjskills.Evidence{
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed project placements before apply failure", len(result.Installed))},
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated project placements before apply failure", len(result.Updated))},
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed quarantined removed project placements before apply failure", len(result.Quarantined))},
 		}
 	}
 	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before apply failure"}}
@@ -497,12 +505,10 @@ func copyExpected(expected map[string]sjskills.TreeHash) map[string]sjskills.Tre
 func unsupportedApplyAction(plan sjskills.Plan) string {
 	for _, operation := range plan.Operations {
 		switch operation.Action {
-		case sjskills.PlanActionInstall, sjskills.PlanActionUpdate, sjskills.PlanActionUnchanged, sjskills.PlanActionManual, sjskills.PlanActionWorkflow:
+		case sjskills.PlanActionInstall, sjskills.PlanActionUpdate, sjskills.PlanActionQuarantine, sjskills.PlanActionUnchanged, sjskills.PlanActionManual, sjskills.PlanActionWorkflow:
 			continue
 		case sjskills.PlanActionBlocked:
 			return "reviewed plan contains a blocked project placement"
-		case sjskills.PlanActionQuarantine:
-			return "reviewed plan requires project mutation not implemented in this slice"
 		default:
 			return "reviewed plan contains an unsupported project action"
 		}
@@ -520,7 +526,7 @@ func planActionCount(plan sjskills.Plan, action sjskills.PlanAction) int {
 	return count
 }
 
-func confirmProjectApply(input io.Reader, output io.Writer, installs, updates int) (bool, error) {
+func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, removals int) (bool, error) {
 	if input == nil {
 		input = strings.NewReader("")
 	}
@@ -528,13 +534,28 @@ func confirmProjectApply(input io.Reader, output io.Writer, installs, updates in
 		output = io.Discard
 	}
 	var prompt string
+	count := installs + updates + removals
 	switch {
-	case updates == 0:
+	case count == 0:
+		return false, nil
+	case updates == 0 && removals == 0:
 		prompt = fmt.Sprintf("Apply %d project skill installs? [y/N] ", installs)
-	case installs == 0:
+	case installs == 0 && removals == 0:
 		prompt = fmt.Sprintf("Apply %d project skill updates? [y/N] ", updates)
+	case installs == 0 && updates == 0:
+		prompt = fmt.Sprintf("Apply %d project skill removals to quarantine? [y/N] ", removals)
 	default:
-		prompt = fmt.Sprintf("Apply %d project skill changes (%s, %s)? [y/N] ", installs+updates, mutationCount(installs, "install"), mutationCount(updates, "update"))
+		categories := make([]string, 0, 3)
+		if installs > 0 {
+			categories = append(categories, mutationCount(installs, "install"))
+		}
+		if updates > 0 {
+			categories = append(categories, mutationCount(updates, "update"))
+		}
+		if removals > 0 {
+			categories = append(categories, mutationCount(removals, "removal")+" to quarantine")
+		}
+		prompt = fmt.Sprintf("Apply %d project skill changes (%s)? [y/N] ", count, strings.Join(categories, ", "))
 	}
 	if _, err := io.WriteString(output, prompt); err != nil {
 		return false, err

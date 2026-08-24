@@ -135,7 +135,7 @@ exit 4
 func TestExternalHelpAndVersion(t *testing.T) {
 	directory := t.TempDir()
 	code, stdout, stderr := runCLI(t, directory, "--help")
-	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || stderr != "" {
+	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to quarantine") || !strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
 		t.Fatalf("help code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--version")
@@ -542,6 +542,206 @@ func TestExternalJSONProjectUpdateAndIdempotence(t *testing.T) {
 	}
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRerun) {
 		t.Fatalf("idempotent update changed project: before=%#v after=%#v", beforeRerun, after)
+	}
+}
+
+func TestExternalProjectRemovalConfirmationAndIdempotence(t *testing.T) {
+	directory := t.TempDir()
+	manifest := "version = 1\nprofiles = []\n\n[[direct]]\nname = \"fixture-skill\"\nsource = \"example/fixture-skill\"\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"
+	manifestPath := filepath.Join(directory, "sjskills.toml")
+	if err := os.WriteFile(manifestPath, []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	discovered, err := sjskills.DiscoverProjectRoot(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout, err := sjskills.LayoutForProject(discovered.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides := isolatedExternalHomes(t)
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 4 project placements"`) || strings.Contains(stdout, `"kind":"quarantine"`) {
+		t.Fatalf("v1 fixture install code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	fixtureHash, err := sjskills.HashSkillTree(filepath.Join(layout.AgentsSkillsPath, "fixture-skill"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		got, hashErr := sjskills.HashSkillTree(filepath.Join(root, "fixture-skill"))
+		if hashErr != nil || got != fixtureHash {
+			t.Fatalf("installed fixture hash under %q = %#v, want %#v (err=%v)", root, got, fixtureHash, hashErr)
+		}
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		writePlanFixtureSkill(t, filepath.Join(root, "unrelated"), "# unrelated\n")
+	}
+	if err := os.WriteFile(manifestPath, []byte("version = 1\nprofiles = []\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	beforeDeclined := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, overrides, "\n", "apply")
+	if code != 2 || !strings.Contains(stdout, "apply: unavailable") || strings.Count(stderr, "Apply 2 project skill removals to quarantine? [y/N] ") != 1 || !strings.Contains(stderr, "project apply was not confirmed") {
+		t.Fatalf("declined removal code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeDeclined) {
+		t.Fatalf("default-declined removal mutated project: before=%#v after=%#v", beforeDeclined, after)
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"quarantined 2 removed project placements"`) {
+		t.Fatalf("confirmed removal code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Operation != "apply" || envelope.Result != "success" || envelope.Path != "" {
+		t.Fatalf("confirmed removal envelope metadata=%#v", envelope)
+	}
+	var executionDetails []string
+	var quarantineEvidence []sjskillsEvidence
+	for _, evidence := range envelope.Evidence {
+		switch evidence.Kind {
+		case "execution":
+			executionDetails = append(executionDetails, evidence.Detail)
+		case "quarantine":
+			quarantineEvidence = append(quarantineEvidence, evidence)
+		}
+	}
+	wantExecution := []string{
+		"installed 0 project placements",
+		"updated 0 project placements",
+		"quarantined 2 removed project placements",
+	}
+	if !reflect.DeepEqual(executionDetails, wantExecution) {
+		t.Fatalf("confirmed removal execution evidence=%#v, want %#v", executionDetails, wantExecution)
+	}
+	if len(quarantineEvidence) != 1 {
+		t.Fatalf("confirmed removal quarantine evidence=%#v, want exactly one detail", quarantineEvidence)
+	}
+	quarantineDetail := quarantineEvidence[0].Detail
+	quarantineFields := strings.Fields(quarantineDetail)
+	if len(quarantineFields) != 2 || !strings.HasPrefix(quarantineFields[0], "id=") || quarantineFields[1] != "status=committed" || strings.ContainsAny(quarantineDetail, `/\\`) {
+		t.Fatalf("confirmed removal quarantine detail=%q", quarantineDetail)
+	}
+	quarantineID := strings.TrimPrefix(quarantineFields[0], "id=")
+	if len(quarantineID) != 32 {
+		t.Fatalf("confirmed removal quarantine id=%q", quarantineID)
+	}
+	for _, char := range quarantineID {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+			t.Fatalf("confirmed removal quarantine id=%q is not lowercase hex", quarantineID)
+		}
+	}
+	for _, output := range []string{stdout, stderr} {
+		if strings.Contains(output, layout.Root) || strings.Contains(output, "sjskills-materialize-") || strings.Contains(output, ".sjskills-install-") {
+			t.Fatalf("removal output leaked a private path: %q", output)
+		}
+	}
+	runs, err := os.ReadDir(layout.QuarantinePath)
+	if err != nil || len(runs) != 1 || !runs[0].IsDir() || runs[0].Name() != quarantineID {
+		t.Fatalf("quarantine runs=%d err=%v", len(runs), err)
+	}
+	manifestData, err := os.ReadFile(filepath.Join(layout.QuarantinePath, quarantineID, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarantine, valid := sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || quarantine.Status != sjskills.ProjectQuarantineCommitted || len(quarantine.Entries) != 2 {
+		t.Fatalf("committed removal manifest=%#v valid=%v", quarantine, valid)
+	}
+	if strings.Contains(string(manifestData), "newSourceIdentity") || strings.Contains(string(manifestData), "newTreeHash") {
+		t.Fatalf("removal manifest contains update-only fields: %s", manifestData)
+	}
+	for _, entry := range quarantine.Entries {
+		if entry.Action != sjskills.ProjectQuarantineEntryActionRemove || entry.Status != sjskills.ProjectQuarantineEntryQuarantined ||
+			entry.OldSourceIdentity != "github:example/fixture-skill" || entry.TreeHashAlgorithm != fixtureHash.Algorithm || entry.OldTreeHash != fixtureHash.Digest ||
+			entry.NewSourceIdentity != "" || entry.NewTreeHash != "" {
+			t.Fatalf("removal manifest entry=%#v", entry)
+		}
+		oldData, readErr := os.ReadFile(filepath.Join(layout.QuarantinePath, quarantineID, filepath.FromSlash(entry.QuarantinedPlacement), "SKILL.md"))
+		if readErr != nil || string(oldData) != "# fixture-skill v1\n" {
+			t.Fatalf("quarantined old bytes for %#v: data=%q err=%v", entry, oldData, readErr)
+		}
+		if _, statErr := os.Lstat(filepath.Join(layout.Root, filepath.FromSlash(entry.OriginalPlacement))); !os.IsNotExist(statErr) {
+			t.Fatalf("removed placement still exists for %#v: %v", entry, statErr)
+		}
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		data, readErr := os.ReadFile(filepath.Join(root, "unrelated", "SKILL.md"))
+		if readErr != nil || string(data) != "# unrelated\n" {
+			t.Fatalf("unrelated entry under %q changed: data=%q err=%v", root, data, readErr)
+		}
+	}
+	inventory, err := sjskills.InspectProject(layout)
+	if err != nil || len(inventory.State.Records) != 2 {
+		t.Fatalf("removed provenance records=%#v err=%v", inventory.State.Records, err)
+	}
+	wantTargets := []sjskills.Target{sjskills.TargetAgents, sjskills.TargetClaude}
+	for index, target := range wantTargets {
+		record := inventory.State.Records[index]
+		if record.Scope != sjskills.ScopeProject || record.Skill != "retained-skill" || record.Target != target || record.SourceIdentity != "github:example/retained-skill" {
+			t.Fatalf("remaining provenance record[%d]=%#v, want retained-skill at %s", index, record, target)
+		}
+	}
+
+	beforeRerun := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("idempotent removal code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope = decodeEnvelope(t, stdout)
+	if !hasSerializedEvidence(envelope.Evidence, "execution", "quarantined 0 removed project placements") || serializedEvidenceDetail(envelope.Evidence, "quarantine") != "" {
+		t.Fatalf("idempotent removal envelope=%#v", envelope)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRerun) {
+		t.Fatalf("idempotent removal changed project: before=%#v after=%#v", beforeRerun, after)
+	}
+	runsAfter, err := os.ReadDir(layout.QuarantinePath)
+	if err != nil || len(runsAfter) != 1 || runsAfter[0].Name() != quarantineID {
+		t.Fatalf("idempotent removal quarantine runs=%v err=%v", runsAfter, err)
+	}
+}
+
+func TestExternalProjectRemovalBlocksModifiedPlacementBeforePrompt(t *testing.T) {
+	directory := t.TempDir()
+	manifestPath := filepath.Join(directory, "sjskills.toml")
+	initialManifest := "version = 1\nprofiles = []\n\n[[direct]]\nname = \"fixture-skill\"\nsource = \"example/fixture-skill\"\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"
+	if err := os.WriteFile(manifestPath, []byte(initialManifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	discovered, err := sjskills.DiscoverProjectRoot(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout, err := sjskills.LayoutForProject(discovered.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides := isolatedExternalHomes(t)
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 4 project placements"`) {
+		t.Fatalf("v1 fixture install code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if err := os.WriteFile(filepath.Join(layout.AgentsSkillsPath, "fixture-skill", "SKILL.md"), []byte("# locally modified\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, []byte("version = 1\nprofiles = []\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	before := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, overrides, "yes\n", "apply")
+	if code != 2 || !strings.Contains(stdout, "apply: conflict") || !strings.Contains(stderr, "blocked project placement") || strings.Contains(stderr, "Apply ") {
+		t.Fatalf("modified removal code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, before) {
+		t.Fatalf("modified removal mutated project: before=%#v after=%#v", before, after)
+	}
+	if _, err := os.Stat(layout.QuarantinePath); !os.IsNotExist(err) {
+		t.Fatalf("blocked modified removal created quarantine: %v", err)
 	}
 }
 
@@ -1096,6 +1296,7 @@ func TestApplicationProjectApplyLifecycle(t *testing.T) {
 		wantCode     sjskills.IssueCode
 		installed    []sjskills.AppliedPlacement
 		updated      []sjskills.AppliedPlacement
+		quarantined  []sjskills.AppliedPlacement
 		quarantine   *sjskills.ProjectQuarantineResult
 		wantDetails  []string
 		wantRecovery bool
@@ -1104,8 +1305,9 @@ func TestApplicationProjectApplyLifecycle(t *testing.T) {
 		{name: "unavailable after commit", failure: &sjskills.ApplyError{Kind: sjskills.ApplyFailureUnavailable, Reason: "apply finalization preflight failed"}, wantResult: sjskills.ResultUnavailable, wantCode: sjskills.IssueUnavailable,
 			installed:   []sjskills.AppliedPlacement{{Skill: "fixture-skill", Target: sjskills.TargetAgents}},
 			updated:     []sjskills.AppliedPlacement{{Skill: "fixture-skill", Target: sjskills.TargetClaude}},
+			quarantined: []sjskills.AppliedPlacement{{Skill: "removed-skill", Target: sjskills.TargetAgents}},
 			quarantine:  &sjskills.ProjectQuarantineResult{ID: "0123456789abcdef0123456789abcdef", Status: sjskills.ProjectQuarantineRecoveryRequired},
-			wantDetails: []string{"reported 1 committed installed project placements before apply failure", "reported 1 committed updated project placements before apply failure"}, wantRecovery: true},
+			wantDetails: []string{"reported 1 committed installed project placements before apply failure", "reported 1 committed updated project placements before apply failure", "reported 1 committed quarantined removed project placements before apply failure"}, wantRecovery: true},
 	} {
 		t.Run("apply failure maps "+test.name, func(t *testing.T) {
 			materializer, parent := testInjectedMaterializer(t)
@@ -1113,7 +1315,7 @@ func TestApplicationProjectApplyLifecycle(t *testing.T) {
 				directory:   newProject(t),
 				materialize: materializer.Materialize,
 				applyProject: func(_ context.Context, session *sjskills.ProjectApplySession, _ sjskills.ApplyDeps) (sjskills.ApplyResult, error) {
-					return sjskills.ApplyResult{Plan: session.Plan, Installed: test.installed, Updated: test.updated, Quarantine: test.quarantine}, test.failure
+					return sjskills.ApplyResult{Plan: session.Plan, Installed: test.installed, Updated: test.updated, Quarantined: test.quarantined, Quarantine: test.quarantine}, test.failure
 				},
 			}
 			envelope := app.apply(context.Background(), false, true)
@@ -1202,7 +1404,7 @@ func TestConfirmProjectApplyVocabulary(t *testing.T) {
 		{"y\n", true}, {"YES\n", true}, {"n\n", false}, {"\n", false}, {"", false}, {"sure\n", false},
 	} {
 		var output bytes.Buffer
-		got, err := confirmProjectApply(strings.NewReader(test.input), &output, 2, 0)
+		got, err := confirmProjectApply(strings.NewReader(test.input), &output, 2, 0, 0)
 		if err != nil || got != test.want || strings.Count(output.String(), "Apply 2 project skill installs?") != 1 {
 			t.Errorf("input=%q got=%v err=%v output=%q", test.input, got, err, output.String())
 		}
@@ -1213,17 +1415,49 @@ func TestConfirmProjectApplyPromptShapes(t *testing.T) {
 	for _, test := range []struct {
 		installs int
 		updates  int
+		removals int
 		want     string
 	}{
-		{2, 0, "Apply 2 project skill installs? [y/N] "},
-		{0, 2, "Apply 2 project skill updates? [y/N] "},
-		{1, 2, "Apply 3 project skill changes (1 install, 2 updates)? [y/N] "},
+		{2, 0, 0, "Apply 2 project skill installs? [y/N] "},
+		{0, 2, 0, "Apply 2 project skill updates? [y/N] "},
+		{0, 0, 2, "Apply 2 project skill removals to quarantine? [y/N] "},
+		{1, 2, 1, "Apply 4 project skill changes (1 install, 2 updates, 1 removal to quarantine)? [y/N] "},
 	} {
 		var output bytes.Buffer
-		confirmed, err := confirmProjectApply(strings.NewReader("n\n"), &output, test.installs, test.updates)
+		confirmed, err := confirmProjectApply(strings.NewReader("n\n"), &output, test.installs, test.updates, test.removals)
 		if err != nil || confirmed || output.String() != test.want {
 			t.Errorf("installs=%d updates=%d confirmed=%v err=%v output=%q want=%q", test.installs, test.updates, confirmed, err, output.String(), test.want)
 		}
+	}
+}
+
+func TestApplyExecutionEvidenceSeparatesRemovedPlacements(t *testing.T) {
+	result := sjskills.ApplyResult{
+		Installed:   []sjskills.AppliedPlacement{{Skill: "installed", Target: sjskills.TargetAgents}},
+		Updated:     []sjskills.AppliedPlacement{{Skill: "updated", Target: sjskills.TargetClaude}},
+		Quarantined: []sjskills.AppliedPlacement{{Skill: "removed", Target: sjskills.TargetAgents}},
+	}
+	for _, detail := range []string{
+		"installed 1 project placements",
+		"updated 1 project placements",
+		"quarantined 1 removed project placements",
+	} {
+		if !hasEvidence(applyExecutionEvidence(result, nil), "execution", detail) {
+			t.Fatalf("success evidence=%#v, want %q", applyExecutionEvidence(result, nil), detail)
+		}
+	}
+	failureEvidence := applyExecutionEvidence(result, errors.New("apply failed"))
+	for _, detail := range []string{
+		"reported 1 committed installed project placements before apply failure",
+		"reported 1 committed updated project placements before apply failure",
+		"reported 1 committed quarantined removed project placements before apply failure",
+	} {
+		if !hasEvidence(failureEvidence, "execution", detail) {
+			t.Fatalf("failure evidence=%#v, want %q", failureEvidence, detail)
+		}
+	}
+	if got := applyExecutionEvidence(sjskills.ApplyResult{}, errors.New("apply failed")); len(got) != 1 || got[0].Detail != "no committed project placements were reported before apply failure" {
+		t.Fatalf("empty failure evidence=%#v", got)
 	}
 }
 
@@ -1499,6 +1733,7 @@ func testInjectedMaterializer(t *testing.T) (*sjskills.Materializer, string) {
 type sjskillsEnvelope struct {
 	Operation string                `json:"operation"`
 	Result    string                `json:"result"`
+	Path      string                `json:"path"`
 	Error     *sjskillsIssue        `json:"error"`
 	Warnings  []sjskillsWarning     `json:"warnings"`
 	Evidence  []sjskillsEvidence    `json:"evidence"`
