@@ -37,16 +37,16 @@ Goal contract
 - Version 4 desired-state contracts and pure resolution.
 - Isolated Skills CLI materialization.
 - Recoverable project exact-state reconciliation.
+- Fixed global baseline and legacy-engine cutover.
 
 ### Current in-scope result
 
-Fixed global baseline and legacy-engine cutover.
+PR delivery and review-feedback closure.
 
 ### Next in-scope action
 
-Implement the locked, recoverable global apply transaction, then perform the
-atomic v4 registry and legacy-engine cutover while keeping real-home validation
-read-only.
+Commit and push the validated implementation, deliver the final PR, address
+review feedback, and merge while keeping real-home validation read-only.
 
 ### Evidence and blockers
 
@@ -62,10 +62,9 @@ read-only.
   only active goal in the `ROADMAP.md` planning scope.
 - Real-home mutation remains excluded. All development mutation and validation
   must use repository fixtures, temporary projects, or temporary homes.
-- Registry v4, strict manifest, project discovery, derived layout/provenance,
-  pure resolution, operation/envelope, and CLI-shell contracts are implemented
-  in Go fixtures while the live version 3 registry and legacy engine remain
-  operational.
+- The live registry exactly matches the embedded version 4 contract. The
+  legacy command is now a read-only wrapper for `sjskills plan --global`;
+  profile and mutation arguments are retired.
 - Parent validation passed: Go formatting, unit tests, race tests, vet, all 55
   legacy registry/global-state tests, `scripts/validate-skills` (35 skills),
   local published-catalog validation, and `git diff --check`.
@@ -132,8 +131,8 @@ read-only.
   through confirmation and the locked install transaction, requires `--yes`
   for JSON automation, installs missing copies idempotently, preserves unknown
   entries, blocks unsupported mutations before prompting or writing, and maps
-  conflicts through a stable process issue. Global apply remains read-only and
-  unavailable.
+  conflicts through a stable process issue. At that earlier checkpoint,
+  global apply remained deliberately unavailable.
 - Parent review corrected ambiguous failure evidence so the CLI reports only
   known committed placements rather than inferring unchanged roots. Packaged
   executable tests cover default decline, stdin confirmation, JSON silence,
@@ -280,11 +279,53 @@ read-only.
   and stale absent records are path-free report-only migration warnings with
   no quarantine operation in this slice.
 - External-process coverage proves an empty temporary home yields the 18
-  expected baseline placements without mutation or home-path leakage. A
-  cross-schema fixture proves the live v3 `dev` and `kicpa` profiles equal the
-  staged v4 baseline unions, so v3 remains operational until atomic cutover.
+  expected baseline placements without mutation or home-path leakage. The
+  pre-cutover cross-schema fixture proved the former v3 selections equal the
+  v4 baseline plus their project profiles.
 - The bounded review applied the report-only former-placement correction and
   removed an unnecessary exported inventory mutator. Full Go unit/race/vet,
   Windows test compilation, AIX/Solaris builds, all 56 legacy/parity Node
   tests, 35 skill validations, temporary-home catalog validation, formatting,
   and diff checks passed without real-home mutation.
+- Global apply and restore now reuse the locked, journaled exact-state
+  transaction engine with a home-scoped layout. Temporary-home tests cover
+  install, idempotence, verified update with durable quarantine, restore,
+  partial-install rollback, and strict legacy provenance migration.
+- Global v2 provenance remains at
+  `~/.agents/.global-skill-state.json`; private transaction and quarantine
+  data moved to `~/.agents/.sjskills-global/`. Former profile placements,
+  legacy Pi copies, vendor metadata, runtime roots, and the legacy quarantine
+  are report-only or protected.
+- At the superseded registry-cutover checkpoint, the live v4 registry and
+  JavaScript validator agreed, and
+  `scripts/audit-global-skills` delegates only to the read-only global plan.
+  Current Go unit tests and vet, all 33 dependency-free Node tests, and
+  `scripts/validate-skills` passed; the full final matrix and bounded review
+  were still pending at that checkpoint.
+- `plans/sjskills-global-rollout.md` records the separate evidence-bound
+  real-machine rollout. It is proposed, not authorized, and no real-home
+  mutation has occurred.
+- The final bounded review closed one mutation-approval gap: trusted legacy
+  provenance migration now participates in interactive confirmation, reports
+  committed migration evidence, and fails closed if migration status changes
+  after planning. It also corrected stale scope comments and operator wording;
+  no deferred code finding remains.
+- Final validation passed full Go unit/race/vet, 20 repeated internal global
+  lifecycle runs, 10 repeated packaged migration/update/restore runs, Windows
+  test compilation and CLI builds for Windows, macOS amd64/arm64, AIX, and
+  Solaris, all 12 current dependency-free Node tests, 35 skill validations,
+  direct `skills-cli` validation, shell/Node syntax checks, disposable-home
+  catalog validation, formatting, and diff checks.
+- The Node counts reflect deliberate retirement stages: 56 covered the legacy
+  engine plus parity fixtures, 33 covered the transitional cutover surface,
+  and the final 12 cover the version 4 validator and read-only wrapper after
+  the obsolete mutation engine and its tests were removed.
+- Bounded real-source parity used disposable homes only: `sjskills plan
+  --global` and the transition wrapper produced identical path-free output
+  (`sha256:598d6da659984fb5d7f19c3c677248e28167c4317ec7d16e758c7ce731abe762`),
+  preserved sentinels, and created no managed or reconciler-state paths. The
+  real home remained unmodified.
+- `$harmonize-docs` was unavailable in the active session, so the affected-doc
+  audit was completed manually across the README, repository instructions,
+  registry contract, sync guidance, Skills CLI skill, goal, and implementation
+  and rollout plans.

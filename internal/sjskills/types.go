@@ -178,7 +178,7 @@ type PlanEvidence struct {
 	Detail string `json:"detail"`
 }
 
-// PlanOperation is one future reconciliation action. SourceID and Source
+// PlanOperation is one planned reconciliation action. SourceID and Source
 // preserve central/direct provenance, while Current and Expected carry bounded
 // exact-state evidence.
 type PlanOperation struct {

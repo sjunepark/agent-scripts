@@ -1,21 +1,71 @@
 {
-  "version": 3,
-  "description": "Authoritative classification and installation policy for repository and recommended external skills.",
+  "version": 4,
+  "description": "Version 4 desired-state registry for sjskills.",
+  "defaults": {
+    "targets": [
+      ".agents",
+      ".claude"
+    ]
+  },
   "global": {
-    "allowUnlistedSkills": false,
-    "profiles": {
-      "dev": {
-        "audiences": [
-          "common",
-          "dev"
-        ]
-      },
-      "kicpa": {
-        "audiences": [
-          "common",
-          "kicpa"
-        ]
-      }
+    "baseline": [
+      "brainstorming",
+      "clarify",
+      "codex-cleanup",
+      "distill-response",
+      "end-state-review",
+      "interview",
+      "next-goal",
+      "pdf-to-markdown",
+      "progress",
+      "skills-cli"
+    ]
+  },
+  "profiles": {
+    "dev": {
+      "skills": [
+        "address-pr-feedback",
+        "agents-md-writer",
+        "architecture-md-writer",
+        "baton",
+        "change-explainer",
+        "code-review",
+        "codebase-design",
+        "context7-cli",
+        "context7-mcp",
+        "create-pr",
+        "delegate",
+        "delegate-ui-to-claude",
+        "develop-skills",
+        "doc-comment-writer",
+        "domain-modeling",
+        "explore-repo",
+        "harmonize-docs",
+        "improve-codebase-architecture",
+        "macos-storage-cleanup",
+        "merge-branch",
+        "project-status",
+        "skill-cleaner",
+        "teach",
+        "update-base-branch"
+      ]
+    },
+    "go": {
+      "skills": [
+        "modern-go",
+        "write-go-docs"
+      ]
+    },
+    "kicpa": {
+      "skills": [
+        "windows-cleanup"
+      ]
+    },
+    "rust": {
+      "skills": [
+        "clear-rust",
+        "modern-rust"
+      ]
     }
   },
   "sources": {
@@ -47,689 +97,289 @@
       "kind": "external"
     }
   },
+  "targetExceptions": {
+    "brainstorming": [
+      ".agents"
+    ],
+    "codex-cleanup": [
+      ".agents"
+    ],
+    "delegate": [
+      ".agents"
+    ],
+    "delegate-ui-to-claude": [
+      ".agents"
+    ],
+    "impeccable": [
+      ".claude"
+    ],
+    "macos-storage-cleanup": [
+      ".agents"
+    ],
+    "windows-cleanup": [
+      ".agents"
+    ]
+  },
   "skills": [
     {
       "name": "address-pr-feedback",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "agents-md-writer",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "architecture-md-writer",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "baton",
       "source": "baton",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "brainstorming",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "change-explainer",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "clarify",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "clear-rust",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository contains maintained Rust code."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "code-review",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "codebase-design",
       "source": "matt-pocock",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy",
-        "fullDepth": true
-      }
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
     },
     {
       "name": "codex-cleanup",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "context7-cli",
       "source": "context7",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy",
-        "fullDepth": true
-      }
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
     },
     {
       "name": "context7-mcp",
       "source": "context7-mcp-manual",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "manual"
-      }
+      "manager": "manual"
     },
     {
       "name": "create-pr",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "delegate",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "delegate-ui-to-claude",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "develop-skills",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "distill-response",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "doc-comment-writer",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "domain-modeling",
       "source": "matt-pocock",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy",
-        "fullDepth": true
-      }
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
     },
     {
       "name": "end-state-review",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "explore-repo",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "harmonize-docs",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "impeccable",
       "source": "impeccable",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".claude"
-        ],
-        "when": "The delegate-ui-to-claude workflow operates in a UI repository."
-      },
-      "installation": {
-        "manager": "workflow",
-        "workflow": "delegate-ui-to-claude"
-      }
+      "manager": "workflow",
+      "workflow": "delegate-ui-to-claude"
     },
     {
       "name": "improve-codebase-architecture",
       "source": "matt-pocock",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy",
-        "fullDepth": true
-      }
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
     },
     {
       "name": "interview",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "macos-storage-cleanup",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "merge-branch",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "modern-go",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository contains maintained Go code."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "modern-rust",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository contains maintained Rust code."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "next-goal",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "pdf-to-markdown",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "progress",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "project-status",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "release-please-release",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository uses Release Please or is explicitly adopting it."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "review-campaign",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository needs a persistent whole-repository review campaign."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "skill-cleaner",
       "source": "skill-cleaner-manual",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "manual"
-      }
+      "manager": "manual"
     },
     {
       "name": "skills-cli",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "common",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "teach",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "ui-lab",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository has a user interface that benefits from deterministic development scenarios."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "update-base-branch",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "dev",
-        "targets": [
-          ".agents",
-          ".claude"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "windows-cleanup",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "global",
-        "audience": "kicpa",
-        "targets": [
-          ".agents"
-        ]
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "copy"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "write-go-docs",
       "source": "agent-scripts",
-      "recommendation": {
-        "scope": "project",
-        "targets": [
-          ".agents",
-          ".claude"
-        ],
-        "when": "The repository contains maintained Go code."
-      },
-      "installation": {
-        "manager": "skills-cli",
-        "mode": "symlink"
-      }
+      "manager": "skills-cli",
+      "mode": "copy"
     }
   ]
 }

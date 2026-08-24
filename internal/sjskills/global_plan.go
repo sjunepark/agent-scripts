@@ -45,9 +45,9 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 		}
 		_, desiredPlacement := desiredPlacements[key]
 		if !desiredPlacement && state.SourceIdentity != "" {
-			// The read-only migration slice identifies prior global ownership but
-			// deliberately grants no removal authority. Global apply introduces
-			// that authority only after its own reviewed cutover.
+			// Legacy provenance identifies prior global ownership but deliberately
+			// grants no removal authority. Former-profile and other non-baseline
+			// placements remain report-only through the v1 global apply boundary.
 			state.Action = PlanActionUnchanged
 			if state.Reason == ProjectStateReasonPreviouslyManagedNotDesired {
 				state.Reason = ProjectStateReasonUnmanagedEntryPreserved
@@ -287,7 +287,7 @@ func TranslateGlobalClassification(plan Plan, classification GlobalClassificatio
 	result := translateManagedClassification(plan, classification.Managed, globalStateWarning, globalPreservedWarning)
 	result.Evidence = append(result.Evidence, Evidence{Kind: "global-inventory", Detail: "fixed managed and migration roots inspected read-only"})
 	if classification.MigrationRequired {
-		result.Evidence = append(result.Evidence, Evidence{Kind: "provenance-migration", Detail: "trusted legacy version 1 provenance recognized read-only"})
+		result.Evidence = append(result.Evidence, Evidence{Kind: "provenance-migration", Detail: "trusted legacy version 1 provenance requires version 2 migration"})
 	}
 	for _, entry := range classification.LegacyRoot.Entries {
 		result.Warnings = append(result.Warnings, Warning{

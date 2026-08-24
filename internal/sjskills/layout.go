@@ -16,7 +16,7 @@ const (
 )
 
 // DerivedLayout maps one already-discovered canonical project root to every
-// path owned by later reconciliation slices. The manifest is the only
+// path owned by reconciliation. The manifest is the only
 // committed intent; placements and .sjskills state are generated, local
 // derived state and are never another configuration source.
 type DerivedLayout struct {
@@ -53,7 +53,7 @@ func LayoutForProject(root string) (DerivedLayout, error) {
 }
 
 // ManagedSkillsPath returns the generated project placement for one supported
-// target. Target is validated independently so future callers cannot turn a
+// target. Target is validated independently so callers cannot turn a
 // target value into an escaped path.
 func (layout DerivedLayout) ManagedSkillsPath(target Target) (string, error) {
 	if err := validateLayoutRootOnly(layout.Root); err != nil {

@@ -146,6 +146,8 @@ func establishGlobalInspectionBoundary(layout GlobalLayout) (string, error) {
 		!sameInspectionPath(layout.AgentsSkillsPath, expected.AgentsSkillsPath) ||
 		!sameInspectionPath(layout.ClaudeSkillsPath, expected.ClaudeSkillsPath) ||
 		!sameInspectionPath(layout.ProvenanceStatePath, expected.ProvenanceStatePath) ||
+		!sameInspectionPath(layout.DerivedStatePath, expected.DerivedStatePath) ||
+		!sameInspectionPath(layout.QuarantinePath, expected.QuarantinePath) ||
 		!sameInspectionPath(layout.AgentsVendorLockPath, expected.AgentsVendorLockPath) ||
 		!sameInspectionPath(layout.ClaudeVendorLockPath, expected.ClaudeVendorLockPath) ||
 		!sameInspectionPath(layout.LegacyPiSkillsPath, expected.LegacyPiSkillsPath) ||

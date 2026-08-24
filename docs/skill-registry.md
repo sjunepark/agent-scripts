@@ -1,133 +1,100 @@
 # Skill registry
 
-`skill-registry.json` is the authoritative classification and installation
-policy for this repository's published skills and deliberately recommended
-external skills.
+`skill-registry.json` is the version 4 desired-state contract consumed by
+`sjskills`. It classifies this repository's published skills and deliberately
+recommended external skills without duplicating a skill declaration across
+global and project policy.
 
-## Contract
+## Desired sets
 
-Each skill has one record that separates three concerns:
+`global.baseline` is one fixed, machine-independent set. It is the only
+selection resolved by `sjskills plan --global`; global machine profiles and
+hostname inference do not exist.
 
-- `source` identifies where the skill definition comes from.
-- `recommendation` identifies its intended scope, installation targets, and, for a
-  project recommendation, when it applies.
-- `installation` identifies who manages the install and any required mode.
+`profiles` contains composable project selections such as `dev`, `go`,
+`rust`, and `kicpa`. A project's committed `sjskills.toml` selects those
+profiles and may add direct third-party declarations. Profile membership does
+not make a skill global.
 
-Recommendation scopes are:
+Every selected skill name must be unique across the global baseline, selected
+project profiles, and direct project declarations. Duplicate names,
+contradictory sources, and overlap between centrally declared desired sets fail
+before materialization or managed-root writes.
 
-- `global`: part of a named machine audience and desired at its declared
-  installation targets when the selected profile includes that audience.
-- `project`: install only when the record's `when` condition matches a
-  repository.
-- `catalog`: published or tracked for discovery, but not recommended for
-  installation by default.
+The default targets are `.agents` and `.claude`, mapping to the
+`.agents/skills` and `.claude/skills` roots in the selected project or
+home. `targetExceptions` records the small set of skills that support only
+one target. The reconciler never synthesizes a Pi placement and never invokes
+the Skills CLI with `--all`.
 
-Installation managers are:
+## Skill and source records
 
-- `skills-cli`: install from the recorded source with `bunx skills`.
-- `manual`: audit the desired presence, but do not synthesize an install
-  command because the source or procedure is maintained elsewhere.
-- `workflow`: let the named workflow provision the skill in context.
-- `none`: no default installation; required for catalog-only entries.
+Each `skills` entry records:
 
-The manager and the source location are coupled. `skills-cli` clones git
-shorthand (`owner/repo[/path]`) or credential-free `https:` remotes; it cannot
-install from an npm specifier, another URL scheme, or a local path. A record
-whose `source` location falls outside that set must therefore use `manual`,
-`workflow`, or `none`, and validation rejects the `skills-cli` combination at
-any scope.
+- `name`: the portable skill identity.
+- `source`: a key in `sources`.
+- `manager`: `skills-cli`, `manual`, `workflow`, or `none`.
+- `mode`: `copy` for Skills CLI-managed entries.
+- `fullDepth`: an optional Skills CLI materialization requirement.
+- `workflow`: the provisioning workflow for workflow-managed entries.
 
-For those records, `location` names the provisioning entry point rather than a
-tree the Skills CLI could clone. A skill whose own installer compiles or
-selects per-agent content is the usual reason: name-based skill discovery can
-pick the wrong agent's variant or the uncompiled source, and the resulting
-install looks successful while pointing at paths and command prefixes that do
-not match the target agent. `impeccable` is the current example; the
-`delegate-ui-to-claude` workflow provisions it with its own CLI, scoped to one
-project and one agent.
+A `repository` source names the published GitHub `skills/` catalog.
+An `external` source names a deliberately tracked upstream or a manual
+boundary. Skills CLI-managed sources must be public Git shorthand
+(`owner/repo[/path]`) or credential-free HTTPS. Local paths, embedded
+credentials, URL query strings, npm specifiers, and other schemes are rejected
+for that manager.
 
-The version 3 global contract defines two profiles:
+`manual` entries remain externally owned. `workflow` entries are provisioned
+by the named project workflow. `none` entries are catalog-only: they are
+classified for discovery but never selected by a desired set.
 
-- `dev` resolves `common` and `dev` audiences.
-- `kicpa` resolves `common` and `kicpa` audiences.
+## Ownership and reconciliation
 
-Every global recommendation declares exactly one `audience`: `common`, `dev`,
-or `kicpa`. Project and catalog recommendations cannot declare an audience.
-Profile audience arrays are nonempty, sorted, deduplicated, and fixed to the
-compositions above. Callers must select `dev` or `kicpa` explicitly; there is
-no inferred or default profile.
+The registry owns desired classification; each `SKILL.md` owns skill
+behavior. Installed trees and reconciler provenance are derived state, not
+additional configuration.
 
-`global.allowUnlistedSkills` is retained as an explicit strictness declaration
-and must be `false`; installed skills outside the selected profile are drift.
+`sjskills` invokes the exactly pinned Skills CLI only inside isolated
+temporary homes, verifies one staged tree per desired skill, and owns final
+placement itself. Byte equality and Skills CLI lock metadata do not grant
+ownership. A placement is updated or removed only when trusted reconciler
+provenance still matches its source and current tree hash.
 
-`recommendation.targets` records installation destinations directly. The only
-supported values are `.agents`, which maps to `~/.agents/skills`, and
-`.claude`, which maps to `~/.claude/skills`. Global and project recommendations
-must declare at least one sorted target; catalog recommendations declare none.
-The Skills CLI adapter uses an
-explicit Codex command target to populate `.agents` and an explicit Claude Code
-command target to populate `.claude`; those client names are implementation
-details rather than registry classification. The reconciler never synthesizes
-a Pi target or uses `--all`.
+Unknown entries are reported and preserved. An unknown entry at a desired path,
+a locally modified managed tree, malformed provenance, or an unsafe filesystem
+boundary blocks the affected operation. Former global-profile placements,
+legacy Pi copies, and stale legacy provenance are migration evidence only; v1
+does not automatically adopt or remove them.
 
-## Ownership
-
-The registry owns desired classification. Each `SKILL.md` owns skill behavior.
-Installation and audit scripts are consumers of the registry; documentation
-should explain policy without copying skill lists from it.
-
-The registry is not an inventory of every system skill or every skill exposed
-by an installed plugin. Include an external skill only when this repository
-deliberately recommends or manages it. A command shown as an example does not
-make its referenced skill a recommendation.
+Global provenance is stored at
+`~/.agents/.global-skill-state.json`. Private global locks, journals,
+recovery data, and manifest-backed quarantine live under
+`~/.agents/.sjskills-global/`. The prior `~/.skill-quarantine` location is
+protected and never reused by `sjskills`.
 
 ## Validation and consumers
 
-Run `scripts/validate-skills` after changing the registry or published catalog.
-It requires every `skills/*/SKILL.md` to have exactly one repository-source
-record, rejects missing sources and incomplete classifications, and validates
-the supported scope and installation combinations. It also rejects a
-`skills-cli` record whose source location the Skills CLI cannot clone. That
-check is total: the reconciler's runtime guard sees only the selected profile,
-so validation is the only protection for project-scoped records.
+After changing the registry or published catalog, run:
 
-Run `scripts/audit-global-skills --profile <dev|kicpa>` to compare the selected
-profile with exact entries in the managed and explicitly known legacy roots.
-The command materializes each Skills CLI-managed remote skill once in a
-temporary home to establish expected content; apply reuses that exact verified
-snapshot for every modeled placement in the run and never uses a local source
-path.
-The default mode is read-only and exits nonzero for missing, outdated,
-modified, misplaced, unexpected, unclassified, or verified legacy duplicate
-state. Runtime-owned roots are reported as protected and not enumerated.
+```bash
+scripts/validate-skills
+node --test scripts/lib/skill-registry.test.js \
+  scripts/audit-global-skills.test.js
+go test ./...
+```
 
-`--apply` installs or updates only unambiguous Skills CLI-managed placements.
-It also adopts already-exact placements into the reconciler-owned verified
-state file; a later update is authorized only while the installed tree still
-matches that record. Before a verified update, apply moves the old tree into a
-manifest-backed quarantine and installs the staged snapshot at the now-absent
-target. A failed or interrupted update therefore leaves the prior tree and a
-restore manifest available; move any active replacement aside before restore.
-Skills CLI v3 `skillFolderHash` values are source-tree
-metadata, not verified local-content hashes. Reconciler tree hashes cover file
-content, paths, symlink targets, and executable bits. Apply does not prune.
-When a first-run copy differs from remote content and has no trustworthy local
-hash, the audit prints an exact `--replace-unverified <sha256:digest> --yes`
-command instead of treating it as an update. That separate boundary
-quarantines the existing copy with a restore manifest before installing and
-verifying remote content. For rollback after a partial or complete
-replacement, first inspect all modeled destinations and move every active
-replacement aside; restore never overwrites a destination. The printed
-`--prune <sha256:digest> --yes` command is a separate boundary that moves only
-the exact reviewed legacy duplicates into a timestamped quarantine. A changed
-candidate set invalidates either digest, and a replacement digest also changes
-when its verified remote snapshot changes. The output prints a
-manifest-specific `--restore ... --yes` command, and restoration refuses to
-overwrite an existing path. Manual entries remain with their recorded manager:
-their exact placement is audited, their content is reported as externally
-managed when no remote expected content exists, and no install command is
-synthesized.
+`scripts/validate-skills` requires every `skills/*/SKILL.md` to have exactly
+one repository-source record and rejects missing sources, unused sources,
+invalid desired-set membership, unsupported target exceptions, and invalid
+manager/source combinations.
 
-Project, workflow, and catalog-only records are excluded from profile
-resolution. The public `kicpa` profile currently contains only public common
-entries; private KICPA source overlays are not part of this registry contract.
+Use `sjskills plan` in a project and `sjskills plan --global` for the fixed
+baseline. Planning establishes current remote content in temporary storage but
+does not change managed roots. `scripts/audit-global-skills` remains only as a
+read-only compatibility wrapper for the global plan; its version 3 profile and
+mutation arguments are retired.
+
+Real-home global apply, restore, migration, and quarantine are operational
+changes, not repository validation. They require a separate reviewed,
+evidence-bound rollout plan and explicit authorization.

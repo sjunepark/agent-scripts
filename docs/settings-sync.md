@@ -142,12 +142,10 @@ does not mean it belongs in every global agent install. Use
 and installation manager; install project recommendations only when their
 `when` condition matches.
 
-Run `scripts/audit-global-skills --profile <dev|kicpa>` from this repo to audit
-exact managed-root state. The command, not chezmoi, owns profile
-reconciliation: the default is read-only, `--apply` installs or updates remote
-Skills CLI entries, and the separately printed `--prune <sha256:digest> --yes`
-command moves only the exact reviewed legacy duplicates into quarantine.
-Manual entries remain with their recorded manager.
+Run `bin/sjskills plan --global` from this repo to inspect exact managed-root
+state against the one fixed baseline. `sjskills`, not chezmoi, owns
+reconciliation. Machine profiles and host inference are retired; manual and
+workflow entries remain with their recorded manager.
 
 The `delegate-ui-to-claude` orchestration skill is intentionally installed only
 for Codex. Impeccable is not a machine-global prerequisite: when the skill
@@ -172,33 +170,31 @@ when Impeccable needs it to derive the next options. Scoped work that inherits
 an established product and visual world can use a one-shot run; so can work
 for which the user explicitly authorizes unattended design decisions.
 
-Do not reproduce the reconciler's target commands in chezmoi. It deliberately
-maps the registry's `.agents` target to `~/.agents/skills` and its `.claude`
-target to `~/.claude/skills`, and creates no Pi-specific copy. Bootstrap with:
+Do not reproduce the reconciler's placement work in chezmoi. It maps the
+registry's `.agents` target to `~/.agents/skills` and `.claude` to
+`~/.claude/skills`, and creates no Pi-specific copy. Read-only inspection is:
 
 ```bash
-PROFILE="dev" # or kicpa
-scripts/audit-global-skills --profile "$PROFILE"
-scripts/audit-global-skills --profile "$PROFILE" --apply
-scripts/audit-global-skills --profile "$PROFILE"
+bin/sjskills plan --global
 ```
 
-If a preexisting stale copy predates the reconciler's verified state, review
-the proposed recoverable replacement and copy its exact printed
-`--replace-unverified <sha256:digest> --yes` command. That operation
-quarantines the old tree before installing the same verified staged snapshot;
-it is never implied by ordinary apply, and a changed candidate set invalidates
-the digest; changed verified replacement content does too. Ordinary verified
-updates also quarantine the old tree and print a
-restore manifest before installing their staged snapshot.
+Global apply uses trusted provenance only; it does not adopt or replace a
+preexisting desired-path tree merely because the bytes happen to match.
+Verified global updates preserve prior content in manifest-backed quarantine
+under `~/.agents/.sjskills-global/`. Former-profile and other non-baseline
+placements remain report-only in v1. Restore uses the reported identifier and
+refuses to overwrite:
 
-After approving the printed verified-duplicate source candidates, run
-the exact printed `--prune <sha256:digest> --yes` command; retain its manifest
-until the machine has completed a normal work cycle. A changed candidate set
-invalidates the digest. Prune allocates a fresh timestamped destination and
-revalidates every source immediately before moving it. Chezmoi may run
-the read-only audit after this repo is cloned, but it should not own or copy the
-generated skill roots.
+```bash
+bin/sjskills restore --global <quarantine-id>
+```
+
+Do not put `bin/sjskills apply --global` or global restore into chezmoi bootstrap.
+Those real-home mutations require a separate reviewed, evidence-bound rollout
+plan and explicit authorization. Chezmoi may run the read-only global plan
+after this repo is cloned, but it must not own or copy the generated skill
+roots. `scripts/audit-global-skills` is only a read-only transition wrapper
+for that plan; its former profile and mutation arguments are retired.
 
 ## Global Agent Instructions
 
@@ -227,10 +223,9 @@ maintained outside chezmoi.
 4. Provision `op-agent` using [the 1Password host setup](1password.md).
 5. Run `scripts/validate-skills`.
 6. Register the repo Codex marketplace and install local repo plugins.
-7. Select `dev` or `kicpa`, run the exact-state audit, and use its `--apply`
-   mode only after the registry's public remote ref contains the intended
-   changes; compare each intended skill tree with that remote ref. Keep pruning
-   as a separately reviewed step.
+7. Run `bin/sjskills plan --global` to inspect managed-root state without
+   changing it. Use [the separate rollout plan](../plans/sjskills-global-rollout.md)
+   for any explicitly authorized global mutation.
 8. Apply or verify Codex stable config keys.
 9. Re-authenticate other tools locally; do not copy auth files from another
    machine.

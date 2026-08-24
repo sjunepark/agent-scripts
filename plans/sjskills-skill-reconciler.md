@@ -16,19 +16,11 @@ installer with deletion and ownership decisions.
 - The product intent has been clarified and approved. Project manifests are
   committed, reconciliation is managed-exact, unknown entries are preserved,
   and profile or global name collisions fail closed.
-- `skill-registry.json` version 3 fixes every skill to `global`, `project`, or
-  `catalog` scope and composes the machine-global `dev` and `kicpa` profiles
-  from audiences. That model cannot express a single machine-independent
-  global baseline plus project-selected `dev + go` or `kicpa` profiles.
-- Project applicability is currently explanatory prose in `recommendation.when`;
-  it is not executable desired-state input.
-- `scripts/audit-global-skills` and `scripts/lib/global-skill-state.js` already
-  implement valuable global safety behavior: isolated Skills CLI
-  materialization, deterministic tree hashing, exact-root inventory,
-  provenance checks, path confinement, verified replacement, quarantine,
-  restore, and mutation-race refusal.
-- The existing global reconciler is JavaScript and global-only. It requires a
-  machine profile and has no committed project-intent model.
+- `skill-registry.json` version 4 now defines one machine-independent global
+  baseline plus composable project profiles and direct project declarations.
+- `scripts/audit-global-skills` is a read-only transition wrapper for
+  `sjskills plan --global`; its independent profile and mutation engine is
+  retired.
 - The implementation branch now has a Go module, typed `cmd/sjskills` entry
   point, and source wrapper at `bin/sjskills`; generated binaries remain
   uncommitted and repository maintenance helpers remain in `scripts/`.
@@ -38,12 +30,12 @@ installer with deletion and ownership decisions.
 - The historical machine-profile plan is complete within its authorized goal.
   Its unstarted migration and rollout work has not mutated either real machine.
 
-The first implementation result is complete on `codex/sjskills-v1`:
+The first implementation result is complete:
 fixture-backed registry v4 and strict project-manifest contracts, pure global
 and project resolution, project-root discovery, derived project layout and
 minimal provenance shapes, stable plan/process contracts, and a typed Kong CLI
 shell all validate without touching a managed root or network. The live
-registry remains version 3 until the later atomic cutover.
+registry now matches the embedded version 4 contract exactly.
 
 The isolated materialization result is complete and independently validated:
 the adapter invokes exactly Skills CLI 1.5.23 through `bunx`, confines all
@@ -85,8 +77,8 @@ use a crash-releasing platform lock plus a strict private transaction journal;
 the next invocation rolls an exact interrupted transaction back or preserves
 ambiguous bytes with durable recovery evidence.
 
-The read-only global state boundary is now implemented behind the staged v4
-registry. It derives exactly two managed roots from the selected OS home,
+The global state boundary now consumes the live version 4 registry. It derives
+exactly two managed roots from the selected OS home,
 observes the Pi legacy root, and protects vendor metadata, backups, Codex
 runtime state, and plugin caches without enumerating them. Strict legacy v1
 global provenance is translated in memory to the new typed state; malformed
@@ -94,16 +86,17 @@ state is wholly untrusted. Unlike the legacy engine, byte equality and Skills
 CLI lock metadata never grant ownership, and special or unsafe trees fail
 closed. Former profile placements and absent stale records are reported as
 path-free migration warnings with no quarantine operation in this slice.
-Cross-schema tests prove that the live v3 `dev` and `kicpa` selections still
-equal the staged v4 baseline plus their respective project profiles, so the
-legacy command remains functional until atomic cutover.
+The global apply and restore path now reuses the locked project transaction
+engine with a scope-specific layout. It installs and updates only trusted
+baseline placements, preserves verified prior content in durable quarantine,
+migrates strict legacy provenance to version 2, recovers interrupted
+transactions, and leaves former-profile and legacy Pi placements report-only.
 
 ## Next action
 
-Add the locked, recoverable global apply transaction, then atomically migrate
-the live registry and retire the independent machine-profile policy engine.
-Keep real-home validation read-only and reserve bounded real-source
-materialization for the final validation phase.
+Finish operator documentation and the full validation/review matrix, then
+deliver the final implementation PR. Keep real-home validation read-only;
+`plans/sjskills-global-rollout.md` remains proposed and unauthorized.
 
 ## Accepted product contract
 
@@ -164,6 +157,7 @@ sjskills apply
 sjskills plan --global
 sjskills apply --global
 sjskills restore <quarantine-id>
+sjskills restore --global <quarantine-id>
 ```
 
 - `init` creates project intent without overwriting an existing manifest; it
@@ -346,7 +340,7 @@ every removal or replacement remains recoverable.
 
 ### 5. Replace machine profiles with the fixed global baseline
 
-- [ ] Port or reuse every applicable safety invariant and fixture from
+- [x] Port or reuse every applicable safety invariant and fixture from
       `global-skill-state.js`; document any deliberate semantic difference.
 - [x] Teach the Go planner to inventory user-level `.agents` and `.claude`
       roots under an explicitly selected test home, protecting vendor, cache,
@@ -356,10 +350,10 @@ every removal or replacement remains recoverable.
 - [x] Produce a read-only migration plan showing which former `dev` or `kicpa`
       global skills fall outside the new baseline. Do not quarantine them as
       part of validation or registry migration.
-- [ ] Migrate the live registry to version 4 only after the Go command resolves
+- [x] Migrate the live registry to version 4 only after the Go command resolves
       and audits the fixed baseline with parity. Keep the version 3 command
       functional until that atomic cutover.
-- [ ] Remove the profile argument from the new global interface and either
+- [x] Remove the profile argument from the new global interface and either
       retire `scripts/audit-global-skills` or leave a short, explicit
       transition wrapper; do not maintain two independent policy engines.
 
@@ -371,16 +365,16 @@ truthfully reports the current machine without mutating it.
 - [x] Implement `init`, `profiles`, confirmation, `--yes`, JSON mode,
       quarantine identifiers, and restore through the same canonical command
       model used by execution.
-- [ ] Complete human plan presentation and restore guidance for the supported
+- [x] Complete human plan presentation and restore guidance for the supported
       operator workflow.
-- [ ] Update `README.md`, `AGENTS.md`, registry documentation, Skills CLI
+- [x] Update `README.md`, `AGENTS.md`, registry documentation, Skills CLI
       guidance, and sync guidance only when their described behavior is live.
-- [ ] Explain how projects commit `sjskills.toml`, ignore or regenerate derived
+- [x] Explain how projects commit `sjskills.toml`, ignore or regenerate derived
       placements/state, add third-party skills, review updates, resolve local
       modifications, and restore quarantined content.
-- [ ] Document the transition from global machine profiles to the fixed
+- [x] Document the transition from global machine profiles to the fixed
       baseline and the separately authorized real-machine rollout sequence.
-- [ ] Provide installation/update instructions for the Go command without
+- [x] Provide installation/update instructions for the Go command without
       adding an unneeded release platform or auto-updater.
 
 Exit condition: a fresh session can configure and reconcile a project or audit
@@ -388,22 +382,22 @@ the global baseline without relying on this plan or historical documents.
 
 ### 7. Validate, review, and prepare cutover
 
-- [ ] Run all Go unit, fixture, race, vet, and external-process tests.
-- [ ] Cross-compile the command for the intended macOS and Windows targets and
+- [x] Run all Go unit, fixture, race, vet, and external-process tests.
+- [x] Cross-compile the command for the intended macOS and Windows targets and
       run platform-specific path/placement fixtures where execution is
       available.
-- [ ] Run the existing dependency-free registry and global-state Node tests
+- [x] Run the existing dependency-free registry and global-state Node tests
       until their consumer is deliberately retired.
-- [ ] Run `scripts/validate-skills`, local published-catalog validation, syntax
+- [x] Run `scripts/validate-skills`, local published-catalog validation, syntax
       checks, and `git diff --check` after final changes.
-- [ ] Run bounded real-source materialization tests only into temporary homes
+- [x] Run bounded real-source materialization tests only into temporary homes
       and projects.
-- [ ] Run both the legacy global audit and `sjskills plan --global` read-only
+- [x] Run both the legacy global audit and `sjskills plan --global` read-only
       during parity validation; do not apply either to the real home.
-- [ ] Run `$code-review`, apply safe findings, repeat validation, and run
+- [x] Run `$code-review`, apply safe findings, repeat validation, and run
       `$harmonize-docs changes` if the final implementation changes documented
       behavior, operations, commands, architecture, or delivery status.
-- [ ] Prepare a separate digest- or evidence-bound rollout plan before any
+- [x] Prepare a separate digest- or evidence-bound rollout plan before any
       real global removal, replacement, or quarantine.
 
 Exit condition: the Go CLI is reviewable, documented, read-only parity is
@@ -412,20 +406,20 @@ validation.
 
 ## Completion criteria
 
-- [ ] Every machine resolves the same fixed minimal global baseline without a
+- [x] Every machine resolves the same fixed minimal global baseline without a
       profile argument.
-- [ ] A committed project manifest can resolve `dev + go`, `kicpa`, or another
+- [x] A committed project manifest can resolve `dev + go`, `kicpa`, or another
       profile union plus direct third-party skills.
-- [ ] Name and source collisions across global, profile, and direct declarations
+- [x] Name and source collisions across global, profile, and direct declarations
       fail before network access or filesystem writes.
-- [ ] `.agents` and `.claude` work by default without routine harness flags.
-- [ ] Plan is read-only; apply is managed-exact, race-safe, and recoverable.
-- [ ] Unknown and modified entries are preserved and truthfully reported.
-- [ ] Skills CLI is pinned and isolated behind `sjskills`; it never writes a
+- [x] `.agents` and `.claude` work by default without routine harness flags.
+- [x] Plan is read-only; apply is managed-exact, race-safe, and recoverable.
+- [x] Unknown and modified entries are preserved and truthfully reported.
+- [x] Skills CLI is pinned and isolated behind `sjskills`; it never writes a
       real managed root directly.
-- [ ] Human and JSON process contracts are tested through the packaged
+- [x] Human and JSON process contracts are tested through the packaged
       executable.
-- [ ] The live registry, CLI, tests, and documentation describe one current
+- [x] The live registry, CLI, tests, and documentation describe one current
       workflow, with the legacy policy engine retired or explicitly transitional.
-- [ ] Real-home rollout remains a separate, reviewed, explicitly authorized
+- [x] Real-home rollout remains a separate, reviewed, explicitly authorized
       action after implementation and read-only validation.

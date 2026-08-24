@@ -79,7 +79,7 @@ func newApplyJournal(preimage *applyStatePreimage, session *ProjectApplySession,
 		journal.PreState.Mode = uint32(preimage.mode.Perm())
 		journal.PreState.Data = append([]byte(nil), preimage.data...)
 	}
-	candidate, valid := decodeProvenanceState(candidateData)
+	candidate, valid := decodeTransactionProvenanceState(candidateData, session.Desired.Scope, false)
 	if !valid {
 		return projectTransactionJournal{}, applyConflict("transaction candidate state is invalid")
 	}
@@ -157,7 +157,7 @@ func (tx *restoreTransaction) prepareRestoreJournal() error {
 	if now.IsZero() {
 		return restoreUnavailable("provenance timestamp is unavailable")
 	}
-	candidate, err := buildRestoreProvenanceState(tx.statePreimage.state, tx.entries, now)
+	candidate, err := buildRestoreProvenanceState(tx.statePreimage.state, tx.entries, now, tx.scope)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 		!projectQuarantineIDPattern.MatchString(journal.ID) ||
 		(journal.QuarantineID != "" && !projectQuarantineIDPattern.MatchString(journal.QuarantineID)) ||
 		len(journal.CandidateState) == 0 || int64(len(journal.CandidateState)) > maxProvenanceStateBytes ||
-		journal.Entries == nil || len(journal.Entries) == 0 || len(journal.Entries) > maxProjectQuarantineEntries {
+		journal.Entries == nil || len(journal.Entries) > maxProjectQuarantineEntries {
 		return false
 	}
 	switch journal.Kind {
@@ -235,16 +235,25 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 	default:
 		return false
 	}
-	candidateState, valid := decodeProvenanceState(journal.CandidateState)
+	candidateScope, candidateState, valid := decodeJournalCandidateState(journal.CandidateState)
 	if !valid {
 		return false
+	}
+	if len(journal.Entries) == 0 {
+		if journal.Kind != projectTransactionKindApply || candidateScope != ScopeGlobal || !journal.PreState.Exists || journal.QuarantineID != "" {
+			return false
+		}
+		_, format, legacyValid := decodeGlobalProvenanceState(journal.PreState.Data)
+		if !legacyValid || format != GlobalProvenanceLegacyV1 {
+			return false
+		}
 	}
 	preState := ProvenanceState{Version: candidateState.Version, Records: []ProvenanceRecord{}}
 	if journal.PreState.Exists {
 		if len(journal.PreState.Data) == 0 || int64(len(journal.PreState.Data)) > maxProvenanceStateBytes || journal.PreState.Mode > 0o777 {
 			return false
 		}
-		decoded, valid := decodeProvenanceState(journal.PreState.Data)
+		decoded, valid := decodeTransactionProvenanceState(journal.PreState.Data, candidateScope, true)
 		if !valid {
 			return false
 		}
@@ -303,7 +312,7 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 	if requiresQuarantine != (journal.QuarantineID != "") {
 		return false
 	}
-	if !journalStateTransitionMatches(journal, preState, candidateState) {
+	if !journalStateTransitionMatches(journal, preState, candidateState, candidateScope) {
 		return false
 	}
 	if journal.Kind == projectTransactionKindRestore && !journalMatchesQuarantine(journal, mustDecodeRecoveryManifest(journal.PreManifest)) {
@@ -325,7 +334,17 @@ func recoveryRecordMap(state ProvenanceState) map[string]ProvenanceRecord {
 	return records
 }
 
-func journalStateTransitionMatches(journal projectTransactionJournal, preState, candidateState ProvenanceState) bool {
+func decodeJournalCandidateState(data []byte) (Scope, ProvenanceState, bool) {
+	if state, valid := decodeTransactionProvenanceState(data, ScopeProject, false); valid {
+		return ScopeProject, state, true
+	}
+	if state, valid := decodeTransactionProvenanceState(data, ScopeGlobal, false); valid {
+		return ScopeGlobal, state, true
+	}
+	return "", ProvenanceState{}, false
+}
+
+func journalStateTransitionMatches(journal projectTransactionJournal, preState, candidateState ProvenanceState, scope Scope) bool {
 	if preState.Version != candidateState.Version {
 		return false
 	}
@@ -337,8 +356,8 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 		changed[key] = struct{}{}
 		pre, preExists := preRecords[key]
 		candidate, candidateExists := candidateRecords[key]
-		oldMatches := preExists && recoveryRecordMatches(pre, entry, false)
-		newMatches := candidateExists && recoveryRecordMatches(candidate, entry, true)
+		oldMatches := preExists && recoveryRecordMatches(pre, entry, false, scope)
+		newMatches := candidateExists && recoveryRecordMatches(candidate, entry, true, scope)
 		if journal.Kind == projectTransactionKindApply {
 			switch entry.Action {
 			case PlanActionInstall:
@@ -358,11 +377,11 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 		}
 		switch entry.Action {
 		case PlanActionUpdate:
-			if !preExists || pre.SourceIdentity != entry.NewSourceIdentity || pre.TreeHashAlgorithm != entry.TreeHashAlgorithm || pre.TreeHash != entry.NewTreeHash || !oldRecoveryRecordMatches(candidate, candidateExists, entry) {
+			if !preExists || pre.SourceIdentity != entry.NewSourceIdentity || pre.TreeHashAlgorithm != entry.TreeHashAlgorithm || pre.TreeHash != entry.NewTreeHash || !oldRecoveryRecordMatches(candidate, candidateExists, entry, scope) {
 				return false
 			}
 		case PlanActionQuarantine:
-			if preExists || !oldRecoveryRecordMatches(candidate, candidateExists, entry) {
+			if preExists || !oldRecoveryRecordMatches(candidate, candidateExists, entry, scope) {
 				return false
 			}
 		default:
@@ -389,17 +408,17 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 	return true
 }
 
-func recoveryRecordMatches(record ProvenanceRecord, entry projectJournalEntry, useNew bool) bool {
+func recoveryRecordMatches(record ProvenanceRecord, entry projectJournalEntry, useNew bool, scope Scope) bool {
 	source, hash := entry.OldSourceIdentity, entry.OldTreeHash
 	if useNew {
 		source, hash = entry.NewSourceIdentity, entry.NewTreeHash
 	}
-	return record.Scope == ScopeProject && record.Skill == entry.Skill && record.Target == entry.Target &&
+	return record.Scope == scope && record.Skill == entry.Skill && record.Target == entry.Target &&
 		record.SourceIdentity == source && record.TreeHashAlgorithm == entry.TreeHashAlgorithm && record.TreeHash == hash
 }
 
-func oldRecoveryRecordMatches(record ProvenanceRecord, exists bool, entry projectJournalEntry) bool {
-	return exists && recoveryRecordMatches(record, entry, false)
+func oldRecoveryRecordMatches(record ProvenanceRecord, exists bool, entry projectJournalEntry, scope Scope) bool {
+	return exists && recoveryRecordMatches(record, entry, false, scope)
 }
 
 func mustDecodeRecoveryManifest(data []byte) ProjectQuarantineManifest {
@@ -618,7 +637,7 @@ func (tx *applyTransaction) recoverInterruptedTransaction() (bool, error) {
 	if journal.Kind == projectTransactionKindRestore {
 		return true, tx.recoverInterruptedRestore(journal)
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil {
 		return true, applyConflict("interrupted provenance state is unavailable")
 	}
@@ -675,7 +694,7 @@ func (tx *applyTransaction) recoverInterruptedTransaction() (bool, error) {
 }
 
 func (tx *applyTransaction) recoverInterruptedRestore(journal projectTransactionJournal) error {
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil {
 		return applyConflict("interrupted provenance state is unavailable")
 	}
@@ -1125,7 +1144,7 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 }
 
 func (tx *applyTransaction) restoreJournalPreState(journal projectTransactionJournal) error {
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !journalCandidateStateMatches(current, journal.CandidateState) {
 		return applyConflict("interrupted provenance state changed before recovery")
 	}
@@ -1146,7 +1165,7 @@ func (tx *applyTransaction) moveOwnedStateToRecovery(expected *applyStatePreimag
 	if err := tx.checkLock(); err != nil {
 		return err
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !current.exists || !bytes.Equal(current.data, expected.data) || !os.SameFile(current.info, expected.info) {
 		return applyConflict(description + " changed before removal")
 	}

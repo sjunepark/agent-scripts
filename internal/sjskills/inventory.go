@@ -69,7 +69,7 @@ type InventoryProblem struct {
 // InventoryEntry is one immediate child of a safe modeled skills root.
 // Hash is non-nil only when a directory was hashed successfully with
 // HashSkillTree.  Symlinks record only their textual target and are never
-// followed or hashed by this inventory slice.
+// followed or hashed by inventory.
 type InventoryEntry struct {
 	Target     Target                 `json:"target"`
 	Name       string                 `json:"name"`

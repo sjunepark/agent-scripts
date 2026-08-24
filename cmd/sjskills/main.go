@@ -23,8 +23,8 @@ type cli struct {
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
-	Apply    applyCommand    `cmd:"" help:"Apply verified project skill installs, updates, and removals to quarantine."`
-	Restore  restoreCommand  `cmd:"" help:"Restore a committed project quarantine without overwriting managed placements."`
+	Apply    applyCommand    `cmd:"" help:"Apply verified project or global changes; move project removals to quarantine."`
+	Restore  restoreCommand  `cmd:"" help:"Restore a committed project or global quarantine without overwriting managed placements."`
 }
 
 type initCommand struct {
@@ -38,13 +38,14 @@ type planCommand struct {
 }
 
 type applyCommand struct {
-	Global bool `name:"global" help:"Resolve the fixed global baseline without applying it."`
+	Global bool `name:"global" help:"Apply the fixed global baseline."`
 	Yes    bool `name:"yes" help:"Apply without prompting for confirmation."`
 }
 
 type restoreCommand struct {
-	ID  string `arg:"" name:"quarantine-id" help:"Manifest-backed quarantine identifier."`
-	Yes bool   `name:"yes" help:"Restore without prompting for confirmation."`
+	ID     string `arg:"" name:"quarantine-id" help:"Manifest-backed quarantine identifier."`
+	Global bool   `name:"global" help:"Restore a fixed-global quarantine."`
+	Yes    bool   `name:"yes" help:"Restore without prompting for confirmation."`
 }
 
 type commandContext struct {
@@ -73,7 +74,7 @@ func (c *applyCommand) Run(ctx *commandContext) error {
 }
 
 func (c *restoreCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.restore(ctx.context, c.ID, c.Yes)
+	ctx.application.envelope = ctx.application.restoreScoped(ctx.context, c.ID, c.Global, c.Yes)
 	return nil
 }
 
@@ -90,7 +91,9 @@ type application struct {
 	translateProject    projectTranslationFunc
 	translateGlobal     globalTranslationFunc
 	applyProject        projectApplyFunc
+	applyGlobal         globalApplyFunc
 	restoreProject      projectRestoreFunc
+	restoreGlobal       globalRestoreFunc
 }
 
 // materializeFunc is the one process and temporary-state seam owned by the
@@ -110,7 +113,11 @@ type globalTranslationFunc func(sjskills.Plan, sjskills.GlobalClassification) (s
 
 type projectApplyFunc func(context.Context, *sjskills.ProjectApplySession, sjskills.ApplyDeps) (sjskills.ApplyResult, error)
 
+type globalApplyFunc func(context.Context, *sjskills.GlobalApplySession, sjskills.ApplyDeps) (sjskills.ApplyResult, error)
+
 type projectRestoreFunc func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error)
+
+type globalRestoreFunc func(context.Context, sjskills.GlobalLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error)
 
 // productionMaterialize keeps construction lazy: profiles, init, help, and
 // version never construct or invoke the Skills CLI adapter.
@@ -229,6 +236,7 @@ type preparedPlan struct {
 	snapshots    []*sjskills.SkillSnapshot
 	expected     map[string]sjskills.TreeHash
 	project      *sjskills.ProjectApplySession
+	global       *sjskills.GlobalApplySession
 	cleanup      materializationCleanupFunc
 	cleaned      bool
 	verified     bool
@@ -328,6 +336,11 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 			envelope = unavailableWithPlan(prepared.envelope, inspectErr)
 			return nil, prepared.finish(envelope, "inspect")
 		}
+		layout, layoutErr = sjskills.LayoutForGlobal(inventory.Home)
+		if layoutErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, layoutErr)
+			return nil, prepared.finish(envelope, "layout")
+		}
 		classification, classifyErr := sjskills.ClassifyGlobal(registry, plan.Desired, prepared.expected, inventory)
 		if classifyErr != nil {
 			envelope = unavailableWithPlan(prepared.envelope, classifyErr)
@@ -344,6 +357,10 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 		}
 		plan = translated
 		prepared.syncPlan(plan)
+		prepared.global = &sjskills.GlobalApplySession{
+			Layout: layout, Registry: registry, Desired: plan.Desired, Plan: plan,
+			Expected: copyExpected(prepared.expected), Materialized: materialized,
+		}
 	} else {
 		layout, layoutErr := sjskills.LayoutForProject(project.Root)
 		if layoutErr != nil {
@@ -408,70 +425,98 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	// path-free execution evidence.
 	envelope.Path = ""
 	prepared.envelope.Path = ""
-	if global {
-		envelope.Result = sjskills.ResultUnavailable
-		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "global reconciliation is not implemented in this slice"}
-		envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "global managed roots unchanged"})
-		return prepared.finish(envelope, "apply")
-	}
-	if reason := unsupportedApplyAction(prepared.plan); reason != "" {
+	if reason := unsupportedApplyActionForScope(prepared.plan, global); reason != "" {
 		envelope.Result = sjskills.ResultConflict
 		envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "apply", Message: reason}
-		envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+		envelope.Evidence = append(envelope.Evidence, unchangedExecutionEvidence(global))
 		return prepared.finish(envelope, "apply")
 	}
 	installCount := planActionCount(prepared.plan, sjskills.PlanActionInstall)
 	updateCount := planActionCount(prepared.plan, sjskills.PlanActionUpdate)
 	quarantineCount := planActionCount(prepared.plan, sjskills.PlanActionQuarantine)
-	if installCount+updateCount+quarantineCount > 0 && !yes {
-		confirmed, confirmErr := confirmProjectApply(a.input, a.promptOutput, installCount, updateCount, quarantineCount)
+	migrateProvenance := global && planHasEvidence(prepared.plan, "provenance-migration")
+	if (installCount+updateCount+quarantineCount > 0 || migrateProvenance) && !yes {
+		confirmed, confirmErr := confirmApply(a.input, a.promptOutput, global, installCount, updateCount, quarantineCount, migrateProvenance)
 		if confirmErr != nil {
 			envelope.Result = sjskills.ResultUnavailable
 			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "confirmation could not be read"}
 		} else if !confirmed {
 			envelope.Result = sjskills.ResultUnavailable
-			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "project apply was not confirmed"}
+			scope := "project"
+			if global {
+				scope = "global"
+			}
+			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: scope + " apply was not confirmed"}
 		}
 		if envelope.Result != sjskills.ResultSuccess {
-			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+			envelope.Evidence = append(envelope.Evidence, unchangedExecutionEvidence(global))
 			return prepared.finish(envelope, "apply")
 		}
 	}
-	applyProject := a.applyProject
-	if applyProject == nil {
-		applyProject = sjskills.ApplyProjectChanges
+	var result sjskills.ApplyResult
+	var applyErr error
+	if global {
+		applyGlobal := a.applyGlobal
+		if applyGlobal == nil {
+			applyGlobal = sjskills.ApplyGlobalChanges
+		}
+		result, applyErr = applyGlobal(ctx, prepared.global, sjskills.ApplyDeps{})
+	} else {
+		applyProject := a.applyProject
+		if applyProject == nil {
+			applyProject = sjskills.ApplyProjectChanges
+		}
+		result, applyErr = applyProject(ctx, prepared.project, sjskills.ApplyDeps{})
 	}
-	result, applyErr := applyProject(ctx, prepared.project, sjskills.ApplyDeps{})
 	if result.Plan.Desired.Scope != "" {
 		prepared.syncPlan(result.Plan)
 	}
 	envelope = prepared.envelope
-	envelope.Evidence = append(envelope.Evidence, applyExecutionEvidence(result, applyErr)...)
+	envelope.Evidence = append(envelope.Evidence, applyExecutionEvidenceForScope(result, applyErr, global)...)
 	if evidence, ok := projectQuarantineEvidence(result.Quarantine); ok {
 		envelope.Evidence = append(envelope.Evidence, evidence)
+		if result.Quarantine.Status == sjskills.ProjectQuarantineCommitted {
+			envelope.Evidence = append(envelope.Evidence, restoreCommandEvidence(result.Quarantine.ID, global))
+		}
 	}
 	if applyErr != nil {
-		setApplyFailure(&envelope, applyErr)
+		setApplyFailureForScope(&envelope, applyErr, global)
 	}
 	return prepared.finish(envelope, "apply")
 }
 
 func applyExecutionEvidence(result sjskills.ApplyResult, err error) []sjskills.Evidence {
+	return applyExecutionEvidenceForScope(result, err, false)
+}
+
+func applyExecutionEvidenceForScope(result sjskills.ApplyResult, err error, global bool) []sjskills.Evidence {
+	scope := "project"
+	if global {
+		scope = "global"
+	}
 	if err == nil {
-		return []sjskills.Evidence{
-			{Kind: "execution", Detail: fmt.Sprintf("installed %d project placements", len(result.Installed))},
-			{Kind: "execution", Detail: fmt.Sprintf("updated %d project placements", len(result.Updated))},
-			{Kind: "execution", Detail: fmt.Sprintf("quarantined %d removed project placements", len(result.Quarantined))},
+		evidence := []sjskills.Evidence{
+			{Kind: "execution", Detail: fmt.Sprintf("installed %d %s placements", len(result.Installed), scope)},
+			{Kind: "execution", Detail: fmt.Sprintf("updated %d %s placements", len(result.Updated), scope)},
+			{Kind: "execution", Detail: fmt.Sprintf("quarantined %d removed %s placements", len(result.Quarantined), scope)},
 		}
-	}
-	if len(result.Installed)+len(result.Updated)+len(result.Quarantined) > 0 {
-		return []sjskills.Evidence{
-			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed project placements before apply failure", len(result.Installed))},
-			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated project placements before apply failure", len(result.Updated))},
-			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed quarantined removed project placements before apply failure", len(result.Quarantined))},
+		if result.Migrated {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: "trusted global provenance migrated to version 2"})
 		}
+		return evidence
 	}
-	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before apply failure"}}
+	if len(result.Installed)+len(result.Updated)+len(result.Quarantined) > 0 || result.Migrated {
+		evidence := []sjskills.Evidence{
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed %s placements before apply failure", len(result.Installed), scope)},
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated %s placements before apply failure", len(result.Updated), scope)},
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed quarantined removed %s placements before apply failure", len(result.Quarantined), scope)},
+		}
+		if result.Migrated {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: "trusted global provenance migration committed before apply failure"})
+		}
+		return evidence
+	}
+	return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("no committed %s placements were reported before apply failure", scope)}}
 }
 
 func projectQuarantineEvidence(result *sjskills.ProjectQuarantineResult) (sjskills.Evidence, bool) {
@@ -479,6 +524,14 @@ func projectQuarantineEvidence(result *sjskills.ProjectQuarantineResult) (sjskil
 		return sjskills.Evidence{}, false
 	}
 	return sjskills.Evidence{Kind: "quarantine", Detail: fmt.Sprintf("id=%s status=%s", result.ID, result.Status)}, true
+}
+
+func restoreCommandEvidence(id string, global bool) sjskills.Evidence {
+	command := "sjskills restore " + id
+	if global {
+		command = "sjskills restore --global " + id
+	}
+	return sjskills.Evidence{Kind: "recovery-command", Detail: command}
 }
 
 func validQuarantineID(id string) bool {
@@ -562,15 +615,16 @@ func copyExpected(expected map[string]sjskills.TreeHash) map[string]sjskills.Tre
 	return result
 }
 
-func unsupportedApplyAction(plan sjskills.Plan) string {
+func unsupportedApplyActionForScope(plan sjskills.Plan, global bool) string {
+	scope := scopeName(global)
 	for _, operation := range plan.Operations {
 		switch operation.Action {
 		case sjskills.PlanActionInstall, sjskills.PlanActionUpdate, sjskills.PlanActionQuarantine, sjskills.PlanActionUnchanged, sjskills.PlanActionManual, sjskills.PlanActionWorkflow:
 			continue
 		case sjskills.PlanActionBlocked:
-			return "reviewed plan contains a blocked project placement"
+			return fmt.Sprintf("reviewed plan contains a blocked %s placement", scope)
 		default:
-			return "reviewed plan contains an unsupported project action"
+			return fmt.Sprintf("reviewed plan contains an unsupported %s action", scope)
 		}
 	}
 	return ""
@@ -586,7 +640,16 @@ func planActionCount(plan sjskills.Plan, action sjskills.PlanAction) int {
 	return count
 }
 
-func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, removals int) (bool, error) {
+func planHasEvidence(plan sjskills.Plan, kind string) bool {
+	for _, evidence := range plan.Evidence {
+		if evidence.Kind == kind {
+			return true
+		}
+	}
+	return false
+}
+
+func confirmApply(input io.Reader, output io.Writer, global bool, installs, updates, removals int, migrateProvenance bool) (bool, error) {
 	if input == nil {
 		input = strings.NewReader("")
 	}
@@ -594,16 +657,37 @@ func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, r
 		output = io.Discard
 	}
 	var prompt string
+	scope := "project"
+	if global {
+		scope = "global"
+	}
 	count := installs + updates + removals
 	switch {
+	case migrateProvenance:
+		categories := make([]string, 0, 4)
+		if installs > 0 {
+			categories = append(categories, mutationCount(installs, "install"))
+		}
+		if updates > 0 {
+			categories = append(categories, mutationCount(updates, "update"))
+		}
+		if removals > 0 {
+			categories = append(categories, mutationCount(removals, "removal")+" to quarantine")
+		}
+		categories = append(categories, "provenance migration")
+		changeWord := "changes"
+		if count == 0 {
+			changeWord = "change"
+		}
+		prompt = fmt.Sprintf("Apply %d global %s (%s)? [y/N] ", count+1, changeWord, strings.Join(categories, ", "))
 	case count == 0:
 		return false, nil
 	case updates == 0 && removals == 0:
-		prompt = fmt.Sprintf("Apply %d project skill installs? [y/N] ", installs)
+		prompt = fmt.Sprintf("Apply %d %s skill installs? [y/N] ", installs, scope)
 	case installs == 0 && removals == 0:
-		prompt = fmt.Sprintf("Apply %d project skill updates? [y/N] ", updates)
+		prompt = fmt.Sprintf("Apply %d %s skill updates? [y/N] ", updates, scope)
 	case installs == 0 && updates == 0:
-		prompt = fmt.Sprintf("Apply %d project skill removals to quarantine? [y/N] ", removals)
+		prompt = fmt.Sprintf("Apply %d %s skill removals to quarantine? [y/N] ", removals, scope)
 	default:
 		categories := make([]string, 0, 3)
 		if installs > 0 {
@@ -615,7 +699,7 @@ func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, r
 		if removals > 0 {
 			categories = append(categories, mutationCount(removals, "removal")+" to quarantine")
 		}
-		prompt = fmt.Sprintf("Apply %d project skill changes (%s)? [y/N] ", count, strings.Join(categories, ", "))
+		prompt = fmt.Sprintf("Apply %d %s skill changes (%s)? [y/N] ", count, scope, strings.Join(categories, ", "))
 	}
 	if _, err := io.WriteString(output, prompt); err != nil {
 		return false, err
@@ -632,6 +716,10 @@ func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, r
 	return answer == "y" || answer == "yes", nil
 }
 
+func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, removals int) (bool, error) {
+	return confirmApply(input, output, false, installs, updates, removals, false)
+}
+
 func mutationCount(count int, singular string) string {
 	if count == 1 {
 		return fmt.Sprintf("%d %s", count, singular)
@@ -639,19 +727,20 @@ func mutationCount(count int, singular string) string {
 	return fmt.Sprintf("%d %ss", count, singular)
 }
 
-func setApplyFailure(envelope *sjskills.Envelope, err error) {
+func setApplyFailureForScope(envelope *sjskills.Envelope, err error, global bool) {
+	message := scopedOperationError(err, "apply", global)
 	var applyErr *sjskills.ApplyError
 	if errors.As(err, &applyErr) && applyErr.Conflict() {
 		envelope.Result = sjskills.ResultConflict
-		envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "apply", Message: applyErr.Error()}
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "apply", Message: message}
 		return
 	}
 	envelope.Result = sjskills.ResultUnavailable
 	if errors.As(err, &applyErr) {
-		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: applyErr.Error()}
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: message}
 		return
 	}
-	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "project apply unavailable"}
+	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: scopeName(global) + " apply unavailable"}
 }
 
 func unavailableWithPlan(envelope sjskills.Envelope, err error) sjskills.Envelope {
@@ -676,6 +765,10 @@ func lifecycleError(stage string, primary, cleanup error) error {
 }
 
 func (a *application) restore(ctx context.Context, id string, yes bool) sjskills.Envelope {
+	return a.restoreScoped(ctx, id, false, yes)
+}
+
+func (a *application) restoreScoped(ctx context.Context, id string, global, yes bool) sjskills.Envelope {
 	const invalidIDMessage = "quarantine-id must be exactly 32 lowercase hexadecimal characters"
 	if !validQuarantineID(id) {
 		return a.invalid(sjskills.CommandOperationRestore, &sjskills.Issue{
@@ -692,49 +785,78 @@ func (a *application) restore(ctx context.Context, id string, yes bool) sjskills
 		})
 	}
 
-	// Restore is project-scoped but does not need the manifest contents or a
-	// remote materialization. Discovery proves the canonical root; the derived
-	// layout then supplies the internal transaction's bounded paths.
-	discovered, discoverErr := sjskills.DiscoverProjectRoot(a.directory)
-	if discoverErr != nil {
-		return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
-	}
-	layout, layoutErr := sjskills.LayoutForProject(discovered.Root)
-	if layoutErr != nil {
-		return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
+	var projectLayout sjskills.DerivedLayout
+	var globalLayout sjskills.GlobalLayout
+	if global {
+		home, homeErr := a.selectedGlobalHome()
+		if homeErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, "global home is unavailable for restore")
+		}
+		layout, layoutErr := sjskills.LayoutForGlobal(home)
+		if layoutErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical global home is required for restore")
+		}
+		inventory, inspectErr := sjskills.InspectGlobal(layout)
+		if inspectErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical global home is required for restore")
+		}
+		globalLayout, layoutErr = sjskills.LayoutForGlobal(inventory.Home)
+		if layoutErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical global home is required for restore")
+		}
+	} else {
+		discovered, discoverErr := sjskills.DiscoverProjectRoot(a.directory)
+		if discoverErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
+		}
+		layout, layoutErr := sjskills.LayoutForProject(discovered.Root)
+		if layoutErr != nil {
+			return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
+		}
+		projectLayout = layout
 	}
 
 	if !yes {
-		confirmed, confirmErr := confirmProjectRestore(a.input, a.promptOutput, id)
+		confirmed, confirmErr := confirmRestore(a.input, a.promptOutput, id, global)
 		if confirmErr != nil {
 			envelope := restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, "confirmation could not be read")
-			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+			envelope.Evidence = append(envelope.Evidence, unchangedExecutionEvidence(global))
 			return envelope
 		}
 		if !confirmed {
-			envelope := restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, "project restore was not confirmed")
-			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+			envelope := restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, scopeName(global)+" restore was not confirmed")
+			envelope.Evidence = append(envelope.Evidence, unchangedExecutionEvidence(global))
 			return envelope
 		}
 	}
 
-	projectRestore := a.restoreProject
-	if projectRestore == nil {
-		projectRestore = sjskills.RestoreProjectQuarantine
+	var result sjskills.RestoreResult
+	var restoreErr error
+	if global {
+		globalRestore := a.restoreGlobal
+		if globalRestore == nil {
+			globalRestore = sjskills.RestoreGlobalQuarantine
+		}
+		result, restoreErr = globalRestore(ctx, globalLayout, id, sjskills.ApplyDeps{})
+	} else {
+		projectRestore := a.restoreProject
+		if projectRestore == nil {
+			projectRestore = sjskills.RestoreProjectQuarantine
+		}
+		result, restoreErr = projectRestore(ctx, projectLayout, id, sjskills.ApplyDeps{})
 	}
-	result, restoreErr := projectRestore(ctx, layout, id, sjskills.ApplyDeps{})
 	envelope := a.base(sjskills.CommandOperationRestore)
 	// Restore output is an operator result. The canonical root and all derived
 	// paths remain private implementation details, including on failures.
 	envelope.Path = ""
-	envelope.Evidence = append(envelope.Evidence, restoreExecutionEvidence(result, restoreErr)...)
+	envelope.Evidence = append(envelope.Evidence, restoreExecutionEvidenceForScope(result, restoreErr, global)...)
 	if result.ID != "" {
 		if evidence, ok := projectQuarantineEvidence(&sjskills.ProjectQuarantineResult{ID: result.ID, Status: result.Status}); ok {
 			envelope.Evidence = append(envelope.Evidence, evidence)
 		}
 	}
 	if restoreErr != nil {
-		setRestoreFailure(&envelope, restoreErr)
+		setRestoreFailureForScope(&envelope, restoreErr, global)
 	}
 	return envelope
 }
@@ -750,6 +872,10 @@ func restoreErrorEnvelope(result sjskills.Result, code sjskills.IssueCode, messa
 }
 
 func confirmProjectRestore(input io.Reader, output io.Writer, id string) (bool, error) {
+	return confirmRestore(input, output, id, false)
+}
+
+func confirmRestore(input io.Reader, output io.Writer, id string, global bool) (bool, error) {
 	if !validQuarantineID(id) {
 		return false, errors.New("invalid quarantine identifier")
 	}
@@ -759,7 +885,11 @@ func confirmProjectRestore(input io.Reader, output io.Writer, id string) (bool, 
 	if output == nil {
 		output = io.Discard
 	}
-	if _, err := fmt.Fprintf(output, "Quarantined project placements for %s will be restored without overwrite? [y/N] ", id); err != nil {
+	scope := "project"
+	if global {
+		scope = "global"
+	}
+	if _, err := fmt.Fprintf(output, "Quarantined %s placements for %s will be restored without overwrite? [y/N] ", scope, id); err != nil {
 		return false, err
 	}
 	scanner := bufio.NewScanner(input)
@@ -774,30 +904,57 @@ func confirmProjectRestore(input io.Reader, output io.Writer, id string) (bool, 
 	return answer == "y" || answer == "yes", nil
 }
 
-func restoreExecutionEvidence(result sjskills.RestoreResult, err error) []sjskills.Evidence {
+func restoreExecutionEvidenceForScope(result sjskills.RestoreResult, err error, global bool) []sjskills.Evidence {
+	scope := "project"
+	if global {
+		scope = "global"
+	}
 	if err == nil {
-		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("restored %d project placements", len(result.Restored))}}
+		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("restored %d %s placements", len(result.Restored), scope)}}
 	}
 	if len(result.Restored) > 0 {
-		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("reported %d committed restored project placements before restore failure", len(result.Restored))}}
+		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("reported %d committed restored %s placements before restore failure", len(result.Restored), scope)}}
 	}
-	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before restore failure"}}
+	return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("no committed %s placements were reported before restore failure", scope)}}
 }
 
-func setRestoreFailure(envelope *sjskills.Envelope, err error) {
+func setRestoreFailureForScope(envelope *sjskills.Envelope, err error, global bool) {
+	message := scopedOperationError(err, "restore", global)
 	var restoreErr *sjskills.RestoreError
 	if errors.As(err, &restoreErr) {
 		if restoreErr.Conflict() {
 			envelope.Result = sjskills.ResultConflict
-			envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "restore", Message: restoreErr.Error()}
+			envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "restore", Message: message}
 			return
 		}
 		envelope.Result = sjskills.ResultUnavailable
-		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: restoreErr.Error()}
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: message}
 		return
 	}
 	envelope.Result = sjskills.ResultUnavailable
-	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: "project restore unavailable"}
+	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: scopeName(global) + " restore unavailable"}
+}
+
+func scopeName(global bool) string {
+	if global {
+		return "global"
+	}
+	return "project"
+}
+
+func unchangedExecutionEvidence(global bool) sjskills.Evidence {
+	return sjskills.Evidence{Kind: "execution", Detail: scopeName(global) + " managed roots unchanged"}
+}
+
+func scopedOperationError(err error, operation string, global bool) string {
+	if err == nil {
+		return scopeName(global) + " " + operation + " unavailable"
+	}
+	message := err.Error()
+	if global {
+		message = strings.Replace(message, "project "+operation, "global "+operation, 1)
+	}
+	return message
 }
 
 func renderManifest(manifest sjskills.Manifest) string {
@@ -874,6 +1031,7 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		if envelope.Plan != nil {
 			fmt.Fprintf(stdout, "%s: %s (%d skills)\n", envelope.Operation, envelope.Result, len(envelope.Plan.Desired.Skills))
 			renderOperationCounts(stdout, envelope.Plan.Operations)
+			renderPlanOperations(stdout, envelope.Plan.Operations)
 		} else {
 			fmt.Fprintf(stdout, "%s: %s\n", envelope.Operation, envelope.Result)
 		}
@@ -895,6 +1053,12 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		}
 		if evidence.Kind == "quarantine" {
 			fmt.Fprintf(stdout, "quarantine: %s\n", evidence.Detail)
+		}
+		if evidence.Kind == "recovery-command" {
+			fmt.Fprintf(stdout, "restore with: %s\n", evidence.Detail)
+		}
+		if evidence.Kind == "migration" {
+			fmt.Fprintf(stdout, "migration: %s\n", evidence.Detail)
 		}
 	}
 }
@@ -920,6 +1084,19 @@ func renderOperationCounts(output io.Writer, operations []sjskills.PlanOperation
 	}
 	if len(parts) > 0 {
 		fmt.Fprintf(output, "operations: %s\n", strings.Join(parts, ", "))
+	}
+}
+
+func renderPlanOperations(output io.Writer, operations []sjskills.PlanOperation) {
+	for _, operation := range operations {
+		if operation.Action == sjskills.PlanActionUnchanged || operation.Skill == "" {
+			continue
+		}
+		placement := operation.Skill
+		if operation.Target != "" {
+			placement = string(operation.Target) + "/skills/" + operation.Skill
+		}
+		fmt.Fprintf(output, "%s: %s (%s)\n", operation.Action, placement, operation.Reason)
 	}
 }
 

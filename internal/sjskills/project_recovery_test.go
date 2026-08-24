@@ -957,7 +957,7 @@ func simulateInterruptedRestore(t *testing.T) (*ProjectApplySession, DesiredSkil
 	restoreEntries := []restoreEntry{{
 		entry: entry, oldHash: TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.OldTreeHash},
 	}}
-	candidate, err := buildRestoreProvenanceState(preimage.state, restoreEntries, time.Date(2026, time.March, 4, 5, 6, 7, 0, time.UTC))
+	candidate, err := buildRestoreProvenanceState(preimage.state, restoreEntries, time.Date(2026, time.March, 4, 5, 6, 7, 0, time.UTC), ScopeProject)
 	if err != nil {
 		t.Fatal(err)
 	}
