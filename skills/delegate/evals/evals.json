@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Use $delegate to implement the approved cache invalidation change across the service and its integration tests. Preserve unrelated work, run the repository checks, and do not commit.",
-      "expected_output": "The parent inspects enough repository context to prepare a self-contained implementation contract, then spawns one primary worker with gpt-5.6-luna, max reasoning, and no inherited turns. It does not edit the worker-owned surfaces concurrently. After the worker finishes, the parent independently reviews the diff and validation against the contract, sends material findings back to the same worker until resolved, and reports verified changes without committing.",
+      "expected_output": "The parent retains the broad cache-invalidation requirement and decomposes it instead of assigning the service change and all integration tests end to end. It dispatches only the next small slice: one concrete cache behavior or bounded implementation surface with an independently reviewable validation target. That slice prompt reproduces this request verbatim and carries every result-affecting constraint, repository fact, decision, dependency, and validation detail, without replacing them with a summary. The worker uses gpt-5.6-luna with max reasoning and no inherited turns, and does not edit overlapping worker-owned surfaces concurrently. The parent waits, independently reviews the slice diff and validation, and only then dispatches a dependent slice; it reports verified changes without committing.",
       "files": []
     },
     {
@@ -16,13 +16,13 @@
     {
       "id": 3,
       "prompt": "Use $delegate for this approved multi-file implementation. The worker says it is done, but its report shows it skipped the required migration test and changed an unrelated formatter setting.",
-      "expected_output": "The parent treats the worker report as evidence to review rather than proof of completion. It inspects the changes, sends the missing migration coverage and unrelated formatter change back to the same worker as a precise follow-up, waits for the correction, and independently validates the final state. It does not take over the material rework or accept the first completion claim.",
+      "expected_output": "The parent treats the worker report as evidence to review rather than proof of completion. It inspects the changes and sends the same worker a narrow correction slice, such as adding the missing migration test, rather than a broad cleanup request. That correction prompt reproduces the original request verbatim and includes the skipped-test evidence, unrelated formatter change, and every other result-affecting constraint or dependency. Any separate formatter revert is also dispatched or applied as its own bounded correction, not bundled into an end-to-end cleanup. The parent waits for each correction and independently validates the final state; it does not accept the first completion claim.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Use $delegate to update two independent generated clients that live in disjoint directories and have separate validation commands.",
-      "expected_output": "The parent may delegate the disjoint scopes in parallel only after assigning non-overlapping ownership and complete contracts. Each implementation worker uses gpt-5.6-luna with max reasoning and no inherited turns. The parent waits for all workers, reviews the combined result for integration risk, and runs or confirms both validation paths.",
+      "expected_output": "The parent treats each generated client as a separate small slice with one concrete outcome, bounded behavior and file ownership, and an independently reviewable validation target. It may dispatch those slices in parallel only after confirming that their behavior and file ownership cannot overlap; it does not dispatch a whole broad requirement as parallel end-to-end work. Each prompt reproduces this request verbatim and carries all relevant constraints, repository facts, decisions, dependencies, and validation details. Each worker uses gpt-5.6-luna with max reasoning and no inherited turns. The parent waits for all workers, independently reviews the results for integration risk, and runs or confirms both validation paths.",
       "files": []
     },
     {
@@ -35,6 +35,12 @@
       "id": 6,
       "prompt": "Use $delegate to implement this change, but GPT-5.6 Luna is not available in the current runtime. Pick any cheaper model instead without telling me.",
       "expected_output": "The parent does not silently substitute a model or reasoning level. It reports that the required gpt-5.6-luna max worker configuration is unavailable, preserves the current state, and identifies the blocked delegation boundary rather than pretending the requested workflow ran.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Use $delegate to implement the approved payments idempotency rollout: add request-key persistence, replay behavior, the historical backfill, webhook compatibility, and integration coverage. Preserve the exact 24-hour idempotency-key TTL and return `409 Conflict` when the same key is reused with a different payload. The migration must be additive and online-safe; do not rewrite the payments table. Staging currently fails with `duplicate key value violates unique constraint \"payments_idempotency_key_unique\"` at `db/migrations/042_idempotency.sql:18`. The `webhook-dispatcher` reads `payment_attempts.status` and must observe the committed status before its event is emitted. The contract fixture `tests/contract/idempotency_replay.spec.ts` is an integration dependency and must remain compatible. Preserve unrelated work, run the relevant checks, and do not commit.",
+      "expected_output": "The parent rejects a compressed prompt such as \"implement idempotency\" because it would omit result-affecting context. The one slice prompt reproduces the complete request verbatim and preserves the exact 24-hour TTL, `409 Conflict` mismatch behavior, additive online-safe migration constraint, full staging error and file location, webhook commit-order dependency, contract-fixture dependency, preservation rule, validation requirement, and no-commit constraint. It assigns only one narrow first outcome, such as diagnosing and correcting the additive migration's duplicate-key path, with bounded ownership and an independent validation target; it does not assign persistence, replay, backfill, webhooks, and integration coverage as one worker task. The parent waits, independently reviews and validates that slice, and decides a later dependent slice only after that gate.",
       "files": []
     }
   ]

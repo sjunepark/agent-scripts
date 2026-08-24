@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+SOURCE=$0
+while [ -h "$SOURCE" ]; do
+  DIR=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+  LINK=$(readlink "$SOURCE")
+  case "$LINK" in
+    /*) SOURCE=$LINK ;;
+    *) SOURCE=$DIR/$LINK ;;
+  esac
+done
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+PROJECT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/sjskills.XXXXXX")
+trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
+(cd "$PROJECT_ROOT" && go build -o "$TEMP_DIR/sjskills" ./cmd/sjskills)
+set +e
+"$TEMP_DIR/sjskills" "$@"
+STATUS=$?
+set -e
+rm -rf "$TEMP_DIR"
+trap - EXIT HUP INT TERM
+exit "$STATUS"

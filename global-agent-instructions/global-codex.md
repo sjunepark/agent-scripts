@@ -11,18 +11,16 @@ files are loaded after this file and take precedence when they conflict.
   actions. Omit routine steps, repetition, and unrelated context.
 - Expand when asked or when correctness or safety requires it.
 
+## KICPA Files
+
+- When you need KICPA-related files, look in `/Volumes/Audit` and `/Volumes/Learning`.
+
 ## Subagents
 
-- Use subagents for broad reconnaissance or independent work that would
-  otherwise bloat the main thread.
+- Use ordinary subagents for broad reconnaissance or independent
+  non-implementation work that would otherwise bloat the main thread.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
-
-## Frontend and UI
-
-- For frontend or UI work, invoke `$delegate-ui-to-claude`; Claude Code owns
-  the frontend/UI implementation while Codex owns product scope, contracts,
-  coordination, and validation.
 
 ## Browser Interaction
 
@@ -57,6 +55,9 @@ files are loaded after this file and take precedence when they conflict.
 - Treat unrelated working-tree changes as intentional.
 - Do not delete, reset, restore, checkout, or clean up files you did not create
   without explicit confirmation.
+- Use an existing `dev` branch as the normal development base and target pull
+  requests to `dev`. If `dev` does not exist, ask before creating it. Use or
+  target `main` only when the user explicitly requires it.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,

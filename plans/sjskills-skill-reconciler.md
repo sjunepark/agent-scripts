@@ -29,21 +29,66 @@ installer with deletion and ownership decisions.
   restore, and mutation-race refusal.
 - The existing global reconciler is JavaScript and global-only. It requires a
   machine profile and has no committed project-intent model.
-- The repository has no Go module or `sjskills` command today. Stable
-  user-facing commands belong in `bin/`; repository maintenance helpers remain
-  in `scripts/`.
+- The implementation branch now has a Go module, typed `cmd/sjskills` entry
+  point, and source wrapper at `bin/sjskills`; generated binaries remain
+  uncommitted and repository maintenance helpers remain in `scripts/`.
 - Skills CLI 1.5.23 is present through `bunx` at planning time. It can discover
   and materialize remote skills, but its install process is not the public
   process contract for `sjskills`.
 - The historical machine-profile plan is complete within its authorized goal.
   Its unstarted migration and rollout work has not mutated either real machine.
 
+The first implementation result is complete on `codex/sjskills-v1`:
+fixture-backed registry v4 and strict project-manifest contracts, pure global
+and project resolution, project-root discovery, derived project layout and
+minimal provenance shapes, stable plan/process contracts, and a typed Kong CLI
+shell all validate without touching a managed root or network. The live
+registry remains version 3 until the later atomic cutover.
+
+The isolated materialization result is complete and independently validated:
+the adapter invokes exactly Skills CLI 1.5.23 through `bunx`, confines all
+home/config/cache/temp writes to an owned temporary root, bounds subprocess and
+tree resources, computes legacy-compatible verified hashes, reuses one staged
+tree per desired skill, rejects unsafe symlinks and diagnostics, detects
+tampering, and cleans up recoverably. The read-only CLI planning path consumes
+one verified session, emits stable expected-content evidence, sanitizes private
+staging paths before diagnostic truncation, and leaves managed-root sentinels
+byte-for-byte unchanged.
+
+The project read-only state boundary is also complete: `sjskills` inventories
+only the canonical project `.agents/skills` and `.claude/skills` roots, hashes
+real directory entries without following symlinks, and loads strict bounded
+reconciler provenance. A pure classifier now distinguishes missing, exact,
+outdated, modified, unmanaged, malformed, misplaced, and protected state
+without granting ownership from byte equality alone. Version 1 adopts
+copy-only placement for Skills CLI entries (manual/workflow entries remain
+externally managed), and the read-only project plan now translates those
+verified states into deterministic operations and preservation warnings. An
+internal project transaction now provides locked replanning, no-replace copy
+publication, candidate-provenance proof, durable parent syncing, and
+ownership-preserving rollback in temporary projects. It installs missing copies
+and can replace an unchanged managed copy only after preserving the old tree in
+a durable, manifest-backed quarantine. Project `apply` retains one verified
+materialization session through one confirmation and now applies both verified
+installs and updates. Human and JSON output report separate committed counts
+and a validated path-free quarantine handle when recovery state exists.
+Removed-skill quarantine now uses that same public `apply` contract and reports
+its own non-inferred execution count plus a path-free recovery handle. The
+internal transaction moves only exact trusted managed content into the same
+action-typed durable quarantine, deletes its provenance record, and preserves
+unknown, modified, or ambiguous content. An internal overwrite-refusing
+restore transaction now re-proves a whole committed run, moves old trees back
+without replacement, restores provenance, and records durable restored or
+recovery-required state. Public restore now exposes that transaction through
+one confirmed, path-free human/JSON command contract. Interruption recovery
+remains deliberately unavailable.
+
 ## Next action
 
-Define fixture-backed version 4 registry, project manifest, and CLI process
-contracts before scaffolding the Go executable. Keep the live version 3
-registry and existing global command operational until the Go path has
-read-only parity and an explicit cutover is ready.
+Revalidate approved project state immediately before every remaining move or
+replacement and recover coherently from interruption or partial failure. Keep
+all mutation in temporary projects, and reserve bounded real-source validation
+for the final validation phase.
 
 ## Accepted product contract
 
@@ -176,20 +221,20 @@ Excluded from version 1:
 
 ### 1. Freeze the version 4 contracts in fixtures
 
-- [ ] Define the registry's fixed global baseline, project profile membership,
+- [x] Define the registry's fixed global baseline, project profile membership,
       catalog/source records, target exceptions, and installation managers
       without duplicating skill declarations.
-- [ ] Define the strict `sjskills.toml` shape for selected profiles and direct
+- [x] Define the strict `sjskills.toml` shape for selected profiles and direct
       source declarations. Reject unknown fields, duplicate names, invalid
       sources, empty selections, and collisions with global/profile skills.
-- [ ] Define project-root discovery and the relationship between committed
+- [x] Define project-root discovery and the relationship between committed
       intent, generated placements, and machine-local provenance.
-- [ ] Define structured plan operations, issue categories, warnings, evidence,
+- [x] Define structured plan operations, issue categories, warnings, evidence,
       JSON result envelopes, and exit statuses before formatting human output.
-- [ ] Add resolver fixtures for the fixed baseline, `dev + go`, `kicpa`, direct
+- [x] Add resolver fixtures for the fixed baseline, `dev + go`, `kicpa`, direct
       third-party entries, target exceptions, manager boundaries, and every
       collision class.
-- [ ] Keep the live version 3 registry unchanged during this slice so the
+- [x] Keep the live version 3 registry unchanged during this slice so the
       existing global audit remains usable.
 
 Exit condition: pure fixtures describe every accepted product rule and reject
@@ -197,20 +242,20 @@ ambiguous desired state without touching a managed root or network.
 
 ### 2. Build the deep Go planning module and CLI shell
 
-- [ ] Add the repository's Go module and typed Kong command entry point, then
+- [x] Add the repository's Go module and typed Kong command entry point, then
       define a stable installation into a PATH location consistent with the
       repository's `bin/` command convention without committing generated
       binaries.
-- [ ] Implement strict registry and TOML parsing as project-owned types rather
+- [x] Implement strict registry and TOML parsing as project-owned types rather
       than passing raw maps through the program.
-- [ ] Implement profile/direct/global resolution as a pure operation that
+- [x] Implement profile/direct/global resolution as a pure operation that
       returns desired placements or typed validation errors.
-- [ ] Expose planning and application through a small internal interface;
+- [x] Expose planning and application through a small internal interface;
       keep filesystem, process, and presentation details behind it.
-- [ ] Implement human help plus JSON discovery/validation without granting
+- [x] Implement human help plus JSON discovery/validation without granting
       those code paths filesystem-write, subprocess, credential, or network
       capabilities.
-- [ ] Test the compiled executable as an external process for help, version,
+- [x] Test the compiled executable as an external process for help, version,
       malformed input, stdout/stderr separation, JSON newline behavior, and
       exit statuses.
 
@@ -219,18 +264,18 @@ without materializing or installing a skill.
 
 ### 3. Add isolated Skills CLI materialization
 
-- [ ] Pin one Skills CLI version and verify it through `bunx` during preflight.
-- [ ] Translate resolved installable skills into bounded, noninteractive
+- [x] Pin one Skills CLI version and verify it through `bunx` during preflight.
+- [x] Translate resolved installable skills into bounded, noninteractive
       materialization commands with explicit skill selection and full-depth
       behavior where required; never use `--all`.
-- [ ] Isolate `HOME`, `USERPROFILE`, `CODEX_HOME`, and Claude configuration so
+- [x] Isolate `HOME`, `USERPROFILE`, `CODEX_HOME`, and Claude configuration so
       subprocesses can write only inside a temporary staging root.
-- [ ] Materialize each desired remote tree once per plan, compute the
+- [x] Materialize each desired remote tree once per plan, compute the
       reconciler-owned tree hash, and reuse those verified bytes for all
       placements in that plan.
-- [ ] Bound command duration, stdout/stderr bytes, staged tree size, file count,
+- [x] Bound command duration, stdout/stderr bytes, staged tree size, file count,
       path depth, and diagnostic output. Redact credentials and unsafe URLs.
-- [ ] Test source failure, timeout, oversized output/tree, tampering after
+- [x] Test source failure, timeout, oversized output/tree, tampering after
       staging, unsupported source forms, private Git-helper operation, and
       cleanup of temporary state.
 
@@ -239,21 +284,42 @@ the real project and home remain byte-for-byte unchanged.
 
 ### 4. Implement project exact-state reconciliation
 
-- [ ] Inventory only the modeled project roots and prove their canonical paths
+- [x] Inventory only the modeled project roots and prove their canonical paths
       remain inside the selected project before reading ownership files or
       planning mutations.
-- [ ] Define reconciler-owned provenance records for source identity, target,
+- [x] Define reconciler-owned provenance records for source identity, target,
       verified tree hash, install time, and the minimum recovery evidence.
-- [ ] Classify missing, exact, outdated, modified, unmanaged, malformed,
+- [x] Classify missing, exact, outdated, modified, unmanaged, malformed,
       misplaced, and protected state without treating Skills CLI metadata as a
       verified local-content hash.
-- [ ] Plan canonical `.agents` and `.claude` placements with portable behavior
-      across macOS and Windows; choose copy/symlink details only after fixtures
-      prove identical discovery and recovery semantics.
-- [ ] Apply additions and verified updates without clobbering changed targets.
-      Preserve prior content in manifest-backed quarantine before replacement.
-- [ ] Quarantine previously managed skills removed from project intent while
-      preserving unknown entries, and implement overwrite-refusing restore.
+- [x] Plan canonical `.agents` and `.claude` placements with portable copy
+      behavior across macOS and Windows. Translate verified inventory state
+      into deterministic operations while preserving unknown entries as
+      warnings and blocking unmanaged, modified, malformed, or protected
+      desired paths.
+- [x] Implement the internal install-only transaction with a cooperative lock,
+      fresh approval checks, no-replace publication, exact candidate-provenance
+      proof, ownership-preserving rollback, and macOS/Windows platform
+      boundaries.
+- [x] Wire install-only project `apply` through one live verified materialization
+      session, one human confirmation unless `--yes`, locked fresh-plan checks,
+      truthful execution evidence, and cleanup on every process path.
+- [x] Implement internal verified update without clobbering changed targets,
+      preserving prior content in durable manifest-backed quarantine before
+      replacement and returning path-free recovery evidence.
+- [x] Apply verified updates without clobbering changed targets. Preserve prior
+      content in manifest-backed quarantine before replacement through the
+      public project `apply` workflow.
+- [x] Extend the internal transaction to quarantine exact previously managed
+      skills removed from project intent while preserving unknown and modified
+      entries and committing action-typed recovery evidence.
+- [x] Wire removed-skill quarantine through public project `apply` with one
+      confirmation, separate truthful evidence, and a path-free recovery
+      handle.
+- [x] Implement internal overwrite-refusing restore for durable project
+      quarantine with whole-run preflight, exact provenance checks, durable
+      manifest transitions, and ownership-preserving rollback.
+- [x] Wire project restore through the public command and process contracts.
 - [ ] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
 - [ ] Cover symlink ancestors, path escapes, executable bits, source changes,
@@ -287,9 +353,11 @@ truthfully reports the current machine without mutating it.
 
 ### 6. Complete operator workflow and documentation
 
-- [ ] Implement `init`, `profiles`, human plan presentation, confirmation,
-      `--yes`, JSON mode, quarantine identifiers, and restore guidance against
-      the same canonical command model used by execution.
+- [x] Implement `init`, `profiles`, confirmation, `--yes`, JSON mode,
+      quarantine identifiers, and restore through the same canonical command
+      model used by execution.
+- [ ] Complete human plan presentation and restore guidance for the supported
+      operator workflow.
 - [ ] Update `README.md`, `AGENTS.md`, registry documentation, Skills CLI
       guidance, and sync guidance only when their described behavior is live.
 - [ ] Explain how projects commit `sjskills.toml`, ignore or regenerate derived

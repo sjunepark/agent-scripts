@@ -1,0 +1,385 @@
+{
+  "version": 4,
+  "description": "Version 4 desired-state registry for sjskills.",
+  "defaults": {
+    "targets": [
+      ".agents",
+      ".claude"
+    ]
+  },
+  "global": {
+    "baseline": [
+      "brainstorming",
+      "clarify",
+      "codex-cleanup",
+      "distill-response",
+      "end-state-review",
+      "interview",
+      "next-goal",
+      "pdf-to-markdown",
+      "progress",
+      "skills-cli"
+    ]
+  },
+  "profiles": {
+    "dev": {
+      "skills": [
+        "address-pr-feedback",
+        "agents-md-writer",
+        "architecture-md-writer",
+        "baton",
+        "change-explainer",
+        "code-review",
+        "codebase-design",
+        "context7-cli",
+        "context7-mcp",
+        "create-pr",
+        "delegate",
+        "delegate-ui-to-claude",
+        "develop-skills",
+        "doc-comment-writer",
+        "domain-modeling",
+        "explore-repo",
+        "harmonize-docs",
+        "improve-codebase-architecture",
+        "macos-storage-cleanup",
+        "merge-branch",
+        "project-status",
+        "skill-cleaner",
+        "teach",
+        "update-base-branch"
+      ]
+    },
+    "go": {
+      "skills": [
+        "modern-go",
+        "write-go-docs"
+      ]
+    },
+    "kicpa": {
+      "skills": [
+        "windows-cleanup"
+      ]
+    },
+    "rust": {
+      "skills": [
+        "clear-rust",
+        "modern-rust"
+      ]
+    }
+  },
+  "sources": {
+    "agent-scripts": {
+      "kind": "repository",
+      "location": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
+      "catalogPath": "skills"
+    },
+    "baton": {
+      "kind": "external",
+      "location": "sjunepark/baton"
+    },
+    "context7": {
+      "kind": "external",
+      "location": "https://github.com/upstash/context7"
+    },
+    "context7-mcp-manual": {
+      "kind": "external"
+    },
+    "impeccable": {
+      "kind": "external",
+      "location": "npm:impeccable@latest"
+    },
+    "matt-pocock": {
+      "kind": "external",
+      "location": "mattpocock/skills"
+    },
+    "skill-cleaner-manual": {
+      "kind": "external"
+    }
+  },
+  "targetExceptions": {
+    "brainstorming": [
+      ".agents"
+    ],
+    "codex-cleanup": [
+      ".agents"
+    ],
+    "delegate": [
+      ".agents"
+    ],
+    "delegate-ui-to-claude": [
+      ".agents"
+    ],
+    "impeccable": [
+      ".claude"
+    ],
+    "macos-storage-cleanup": [
+      ".agents"
+    ],
+    "windows-cleanup": [
+      ".agents"
+    ]
+  },
+  "skills": [
+    {
+      "name": "address-pr-feedback",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "agents-md-writer",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "architecture-md-writer",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "baton",
+      "source": "baton",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "brainstorming",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "change-explainer",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "clarify",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "clear-rust",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "code-review",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "codebase-design",
+      "source": "matt-pocock",
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
+    },
+    {
+      "name": "codex-cleanup",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "context7-cli",
+      "source": "context7",
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
+    },
+    {
+      "name": "context7-mcp",
+      "source": "context7-mcp-manual",
+      "manager": "manual"
+    },
+    {
+      "name": "create-pr",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "delegate",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "delegate-ui-to-claude",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "develop-skills",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "distill-response",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "doc-comment-writer",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "domain-modeling",
+      "source": "matt-pocock",
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
+    },
+    {
+      "name": "end-state-review",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "explore-repo",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "harmonize-docs",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "impeccable",
+      "source": "impeccable",
+      "manager": "workflow",
+      "workflow": "delegate-ui-to-claude"
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "source": "matt-pocock",
+      "manager": "skills-cli",
+      "mode": "copy",
+      "fullDepth": true
+    },
+    {
+      "name": "interview",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "macos-storage-cleanup",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "merge-branch",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "modern-go",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "modern-rust",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "next-goal",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "pdf-to-markdown",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "progress",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "project-status",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "release-please-release",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "review-campaign",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "skill-cleaner",
+      "source": "skill-cleaner-manual",
+      "manager": "manual"
+    },
+    {
+      "name": "skills-cli",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "teach",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "ui-lab",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "update-base-branch",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "windows-cleanup",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "write-go-docs",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+version = 1
+profiles = ["dev", "go"]
+
+[[direct]]
+name = "modern-go"
+source = "example/third-party-skills/modern-go"
