@@ -21,7 +21,7 @@ For the harnesses used most often in this repo:
 
 - Claude Code global path: `~/.claude/skills/`
 - Pi global path: `~/.pi/agent/skills/`
-- Current raw Codex global copy target: `~/.agents/skills/`
+- Default raw Codex global path: `~/.codex/skills/`
 - Universal shared user-scope path: `~/.agents/skills/`
 
 This repository's `sjskills` reconciler deliberately invokes the explicit Codex
@@ -56,7 +56,6 @@ For this repository specifically:
 - List installs: `bunx skills list [-g] [-a <agent>]`
 - Find skills: `bunx skills find [query]`
 - Remove installs: `bunx skills remove [skill...] [-g] [-a <agent>]`
-- Check for updates: `bunx skills check`
 - Apply updates: `bunx skills update`
 - Initialize a skill: `bunx skills init [name]`
 - Restore from the project lock file: `bunx skills experimental_install`

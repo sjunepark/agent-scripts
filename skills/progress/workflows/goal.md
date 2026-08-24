@@ -65,8 +65,10 @@ request to "continue" does not authorize an unclear expansion.
 
 When every included result and the completion condition are satisfied:
 
-1. Update project planning state truthfully, even when that makes excluded work
-   `Current` or next.
+1. Update project planning state truthfully. Preserve an already-current
+   separate project item when repository evidence supports it; otherwise remove
+   the completed item and leave `Current` empty. Excluded work may become next
+   in the queue, but goal completion never starts or promotes it automatically.
 2. Set goal `Status` to `complete`, set `Next in-scope action` to
    `None — goal complete`, and retain concise completion evidence.
 3. Persist the terminal state using the lifecycle in the contract reference.

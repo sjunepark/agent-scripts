@@ -27,41 +27,31 @@ _None._
 
 ### Completed included results
 
-- Profile-aware registry schema and resolver (phases 1-2).
-- Fixture-only exact filesystem inventory, classification, hashing, and operation planning model (phase 3).
-- Exact-state strict audit and remote-only public-profile apply with explicit Codex and Claude targets (phase 4).
-- Canonically confined, manifest-backed quarantine and crash-resilient restore within the goal boundary.
-- Operator guidance for profile selection, publication verification, verified-state adoption, apply, prune, and restore.
+- Profile-aware registry versions 2 and 3, exact filesystem classification,
+  explicit `.agents` and `.claude` targets, and remote-only materialization.
+- Strict audit, verified apply, separately confirmed prune, and
+  manifest-backed quarantine and restore.
+- Operator guidance and fixture-backed validation. PR #6 merged the
+  implementation and review fixes.
 
 ### Current in-scope result
 
-Delivery complete.
+Delivery complete. The profile model and JavaScript mutation engine are
+historical and superseded by `sjskills` v1.
 
 ### Next in-scope action
 
-None. Any private-source support, machine mutation, migration, or rollout
-requires a separately authorized goal.
+None — goal complete. Private KICPA sources, real-machine mutation, legacy-root
+cleanup, and rollout remain outside this goal.
 
 ### Evidence and blockers
 
-- Inherited pre-goal work is present in commits `1964df1` and `4b2dc11`; both
-  are included in pushed PR #6 with the goal implementation commits.
-- Real-home validation is authorized only in read-only audit mode.
-- Bounded pre-PR review identified symlink confinement, restore idempotence,
-  provenance, source sanitization, stale-copy replacement, and rollback-
-  guidance gaps; all received fixture-backed fixes.
-- PR review identified moving-ref reuse, publication verification, executable-
-  bit hashing, approval binding, subprocess bounds, and operator-documentation
-  gaps. The local feedback patch addresses every actionable thread with a
-  single verified staged snapshot per skill, recoverable verified-update
-  quarantine, digest-bound candidate and replacement-content approval, and
-  updated guidance.
-- Current validation passes 49 dependency-free tests, skill and registry
-  validation, JavaScript syntax checks, `git diff --check`, and local catalog
-  discovery. The final real-home `dev` audit remained read-only and failed
-  strictly on the existing protected, legacy, and unclassified state as
-  intended.
-- PR #6 merged through the required feedback lifecycle as merge commit
-  `7db76d3`; all nine actionable threads were answered and resolved, and the
-  final CodeRabbit and GitGuardian checks passed.
-- Private KICPA source support, real-machine apply/prune, legacy-root migration, and rollout remain excluded.
+- Tests and validation used fixtures or read-only real-home inspection; this
+  goal did not authorize real-machine mutation.
+- `sjskills` v1 replaced global machine profiles with one fixed baseline,
+  project-selected profiles, and a single Go reconciliation engine. The legacy
+  script now delegates only to `sjskills plan --global`.
+- The completed predecessor plan is summarized in
+  [`plans/profile-aware-skill-sync.md`](../plans/profile-aware-skill-sync.md).
+- The only active proposal for global machine mutation is the separately
+  authorized [global rollout plan](../plans/sjskills-global-rollout.md).

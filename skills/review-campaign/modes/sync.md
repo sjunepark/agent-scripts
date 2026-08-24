@@ -2,7 +2,7 @@
 
 Use this mode when the base branch has moved while the campaign branch reviewed against an older base, at latest before each milestone merge. Sync owns only the merge and ledger bookkeeping. It reviews nothing and writes no findings; stale cells are reconciled later by `continue`.
 
-1. Merge base → campaign with a true merge commit (`git merge <base>` on the campaign branch), never the reverse. The profile's merge policy governs only campaign → base milestone merges.
+1. Merge base → campaign with a true merge commit (`git merge --no-ff --no-edit <base>` on the campaign branch), never the reverse. The profile's merge policy governs only campaign → base milestone merges.
    - Integrate the base faithfully without fixing reviewed code; findings reach code only through triage or fix.
    - Under `reviews/`, the campaign side is authoritative.
    - If conflict resolution undoes an applied auto fix, flip that finding back to `open` and retier it to `triage`.

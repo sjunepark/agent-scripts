@@ -2,6 +2,10 @@
 
 Use this mode to review a completed or in-progress merge result, merge-review a branch, or check whether source intent was preserved.
 
+Keep the audit read-only. Recommend fixes, but do not edit the merge result,
+stage changes, commit, or restart the merge unless the user separately
+authorizes integration work.
+
 ## Establish Context
 
 1. Identify the destination branch and working tree state.
@@ -50,8 +54,6 @@ Pass | Needs fixes | Blocked on decision
 ## Refactor opportunities
 
 ## Validation
-
-## Applied low-risk fixes, if any
 
 ## Decisions needed, if any
 

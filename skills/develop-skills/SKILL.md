@@ -11,8 +11,13 @@ coherent purpose, not as a storage place for accumulated advice.
 
 ## Route the work
 
-- For a new skill or a revision, follow [Create or revise](workflows/create-or-revise.md).
-- For overlapping or superseded skills, follow [Merge skills](workflows/merge.md).
+- For a new skill or a revision, follow
+  [Create or revise](workflows/create-or-revise.md), then
+  [Evaluate a skill](workflows/evaluate.md).
+- For overlapping or superseded skills, follow
+  [Merge skills](workflows/merge.md), using
+  [Evaluate a skill](workflows/evaluate.md) to prove the replacement before
+  removing its predecessors.
 - For static, behavior, or trigger testing, follow [Evaluate a skill](workflows/evaluate.md).
 - During any authoring or review pass, apply the [Authoring rubric](rubrics/authoring.md).
 - Whenever structure, metadata, resources, or dependencies may limit reuse, apply

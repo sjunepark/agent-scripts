@@ -17,7 +17,8 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
    - Byte equality alone does not grant reconciler ownership. Managed updates
      and removals proceed only while current content matches trusted state.
 4. Verify ordinary installs with the matching scope command. For this
-   repository's managed project or global state, verify exact placement with `sjskills plan`;
+   repository's managed state, verify exact placement with `sjskills plan` for
+   a project or `sjskills plan --global` for the fixed global baseline;
    shared-root discovery may report incidental agent visibility.
 5. Maintain or remove installs with the same scope and agent targeting used to create them.
    - Before listing filtered installs, removing skills, running generic updates, restoring a lock file, or syncing package-provided skills, read [recipes/manage-installs.md](recipes/manage-installs.md).

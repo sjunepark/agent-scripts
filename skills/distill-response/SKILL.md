@@ -95,3 +95,7 @@ Preserve the established labels for other items. When the elaboration exposes
 meaningful subparts, give those subparts stable labels so the user can continue
 drilling down. Use an example, analogy, or visual only when it resolves the
 specific uncertainty more clearly than additional prose.
+
+Finish when the requested uncertainty is resolved at the requested depth, the
+source's certainty and caveats remain intact, and the reader can place the
+expanded item back in the established map without rereading unrelated material.

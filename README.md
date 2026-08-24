@@ -74,7 +74,9 @@ The plan materializes remote expected content in isolated temporary storage,
 then reads only the two managed skill roots and explicitly modeled migration
 locations. Planning is read-only. Do not run `apply --global` against a real
 home as repository validation; real-machine rollout requires a separately
-reviewed plan and explicit authorization.
+reviewed [rollout plan](plans/sjskills-global-rollout.md) and explicit
+authorization. That plan currently records an unresolved exact-content
+approval-binding gap.
 
 Enable the optional pre-commit hook:
 
@@ -159,12 +161,19 @@ retired.
 
 ## Codex Plugins
 
-Install the remote-backed plugin marketplace and the `chezmoi-sync` plugin:
+Install the remote-backed plugin marketplace, then install the plugins needed
+on the machine:
 
 ```bash
 codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main
 codex plugin add chezmoi-sync@personal
+codex plugin add codex-pushover-notify@personal
 ```
+
+`chezmoi-sync` checks and reviews chezmoi drift. `codex-pushover-notify` sends
+turn-completion notifications and exposes Pushover MCP tools; it requires
+machine-local Pushover credentials. See
+[plugins/codex-pushover-notify/README.md](plugins/codex-pushover-notify/README.md).
 
 Use local plugin marketplace paths only for temporary development testing.
 For ongoing machine setup, commit and push plugin changes first, then run
@@ -173,6 +182,12 @@ For ongoing machine setup, commit and push plugin changes first, then run
 The `chezmoi-sync` startup hook only checks and reports. Use the bundled
 review helper before mutating actions such as `chezmoi apply`, `chezmoi add`,
 `chezmoi update`, commits, or pushes.
+
+Its current hook command expects this repository at
+`$HOME/IT/agent-scripts`, requires executable plugin scripts, and invokes them
+through `bash`; `chezmoi` must also be on the hook's `PATH`. If that exact
+checkout is absent, the startup hook exits without reporting. Run the review
+helper directly when using a different checkout layout.
 
 Use chezmoi for machine-level pointers and config templates, not for copying
 live runtime directories such as `~/.codex`, `~/.pi`, or `~/.claude` wholesale.

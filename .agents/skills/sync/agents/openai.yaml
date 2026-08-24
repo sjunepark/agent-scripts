@@ -1,4 +1,4 @@
 interface:
   display_name: "Sync"
-  short_description: "Publish and reconcile repo skill profiles"
-  default_prompt: "Use $sync to explain or execute this repository's local-catalog, published-source, and exact machine-profile workflow. Preserve read-only requests, publish intended skill changes before apply, and require separate approval for digest-bound replacement or prune operations."
+  short_description: "Publish and reconcile repository skills"
+  default_prompt: "Use $sync to explain or publish repository skills, reconcile a project manifest, or inspect the fixed global baseline with its authorization boundaries."
