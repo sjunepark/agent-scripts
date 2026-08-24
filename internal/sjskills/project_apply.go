@@ -93,19 +93,23 @@ type ProjectQuarantineResult struct {
 // ApplyDeps contains the small set of platform and fault-injection seams.
 // Ordinary bounded filesystem reads and copies remain in this package.
 type ApplyDeps struct {
-	Now               func() time.Time
-	MakeTempDir       func(parent, pattern string) (string, error)
-	PublishNoReplace  func(source, destination string) error
-	ReplaceFileAtomic func(source, destination string) error
-	SyncFile          func(*os.File) error
-	SyncDir           func(path string) error
-	BeforePublish     func(AppliedPlacement) error
-	beforeQuarantine  func(AppliedPlacement) error
-	newQuarantineID   func() (string, error)
-	beforeRollback    func(AppliedPlacement) error
-	beforeLock        func() error
-	beforeCommit      func() error
-	beforeUnlock      func() error
+	Now                   func() time.Time
+	MakeTempDir           func(parent, pattern string) (string, error)
+	PublishNoReplace      func(source, destination string) error
+	ReplaceFileAtomic     func(source, destination string) error
+	SyncFile              func(*os.File) error
+	SyncDir               func(path string) error
+	BeforePublish         func(AppliedPlacement) error
+	beforeQuarantine      func(AppliedPlacement) error
+	newQuarantineID       func() (string, error)
+	beforeRollback        func(AppliedPlacement) error
+	beforeLock            func() error
+	beforeCommit          func() error
+	beforeUnlock          func() error
+	beforeRestoreMove     func(AppliedPlacement) error
+	beforeRestoreRollback func(AppliedPlacement) error
+	beforeRestoreManifest func(ProjectQuarantineStatus) error
+	beforeRestoreCommit   func() error
 }
 
 func defaultApplyDeps() ApplyDeps {

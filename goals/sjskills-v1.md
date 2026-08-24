@@ -38,11 +38,10 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Implement the internal overwrite-refusing restore engine for strict project
-quarantine manifests, including path confinement, destination collision
-refusal, durable manifest/provenance updates, and recoverable partial-failure
-behavior. Keep public restore wiring and interruption recovery behind later
-independently reviewed slices.
+Wire the reviewed internal project-quarantine restore engine through the public
+`sjskills restore <quarantine-id>` command with one explicit confirmation,
+stable human/JSON evidence, and no path disclosure. Keep interruption recovery
+behind a later independently reviewed slice.
 
 ### Evidence and blockers
 
@@ -200,3 +199,21 @@ independently reviewed slices.
   CLI runs, full Go unit/race/vet, Windows test compilation and CLI build, all
   55 legacy Node tests, 35 skill validations, temporary-home catalog
   validation, formatting, and diff checks without real-home mutation.
+- The internal project restore transaction now accepts only exact lower-hex
+  quarantine handles whose strict manifest is `committed`, preflights the whole
+  run before its first move, refuses every occupied destination, and requires
+  exact quarantine bytes plus action-specific current provenance. It moves old
+  trees without replacement, commits restored provenance and durable
+  `restored` manifest state, and proves idempotent reruns against the old bytes
+  and source identity.
+- Parent review closed two rollback gaps: partially created managed ancestors
+  are now retained as transaction ownership even when preparation fails, and a
+  rollback cannot return to `committed` until every quarantined tree, absent
+  destination, provenance preimage, and original manifest is re-proven.
+  Ambiguity preserves external bytes and records `recovery-required` whenever
+  the manifest boundary remains safely writable.
+- The clean bounded restore review passed twenty repeated restore lifecycle and
+  race tests, full Go unit/race/vet, Windows test compilation and CLI build,
+  all 55 legacy Node tests, 35 skill validations, temporary-home catalog
+  validation, formatting, and diff checks without real-home mutation. Public
+  restore dispatch and interruption recovery remain deliberately unavailable.

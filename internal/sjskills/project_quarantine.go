@@ -23,6 +23,8 @@ const (
 	ProjectQuarantinePrepared         ProjectQuarantineStatus = "prepared"
 	ProjectQuarantineActive           ProjectQuarantineStatus = "active"
 	ProjectQuarantineCommitted        ProjectQuarantineStatus = "committed"
+	ProjectQuarantineRestoring        ProjectQuarantineStatus = "restoring"
+	ProjectQuarantineRestored         ProjectQuarantineStatus = "restored"
 	ProjectQuarantineRolledBack       ProjectQuarantineStatus = "rolled-back"
 	ProjectQuarantineRecoveryRequired ProjectQuarantineStatus = "recovery-required"
 )
@@ -200,6 +202,16 @@ func validProjectQuarantineEntryState(manifestStatus ProjectQuarantineStatus, en
 			return entry.Status == ProjectQuarantineEntryReplaced
 		}
 		return entry.Status == ProjectQuarantineEntryQuarantined
+	case ProjectQuarantineRestoring:
+		if entry.Status == ProjectQuarantineEntryRestored {
+			return true
+		}
+		if entry.Action == ProjectQuarantineEntryActionUpdate {
+			return entry.Status == ProjectQuarantineEntryReplaced
+		}
+		return entry.Status == ProjectQuarantineEntryQuarantined
+	case ProjectQuarantineRestored:
+		return entry.Status == ProjectQuarantineEntryRestored
 	case ProjectQuarantineRolledBack:
 		return entry.Status == ProjectQuarantineEntryPending || entry.Status == ProjectQuarantineEntryRestored
 	case ProjectQuarantineRecoveryRequired:
@@ -252,6 +264,7 @@ func validProjectQuarantineEntry(entry ProjectQuarantineManifestEntry) bool {
 func validProjectQuarantineStatus(status ProjectQuarantineStatus) bool {
 	switch status {
 	case ProjectQuarantinePrepared, ProjectQuarantineActive, ProjectQuarantineCommitted,
+		ProjectQuarantineRestoring, ProjectQuarantineRestored,
 		ProjectQuarantineRolledBack, ProjectQuarantineRecoveryRequired:
 		return true
 	default:

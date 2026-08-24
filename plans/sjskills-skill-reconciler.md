@@ -76,17 +76,19 @@ Removed-skill quarantine now uses that same public `apply` contract and reports
 its own non-inferred execution count plus a path-free recovery handle. The
 internal transaction moves only exact trusted managed content into the same
 action-typed durable quarantine, deletes its provenance record, and preserves
-unknown, modified, or ambiguous content. Restore and interruption recovery
+unknown, modified, or ambiguous content. An internal overwrite-refusing
+restore transaction now re-proves a whole committed run, moves old trees back
+without replacement, restores provenance, and records durable restored or
+recovery-required state. Public restore dispatch and interruption recovery
 remain deliberately unavailable.
 
 ## Next action
 
-Implement the internal overwrite-refusing restore engine for strict project
-quarantine manifests, including path confinement, destination collision
-refusal, durable manifest/provenance updates, and recoverable partial-failure
-behavior. Keep public restore wiring and interruption recovery behind later
-independently reviewed slices; reserve bounded real-source validation for the
-final validation phase.
+Wire the reviewed internal restore transaction through the public
+`sjskills restore <quarantine-id>` command with explicit confirmation and
+stable path-free human/JSON evidence. Keep interruption recovery behind a
+later independently reviewed slice; reserve bounded real-source validation for
+the final validation phase.
 
 ## Accepted product contract
 
@@ -314,7 +316,10 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Wire removed-skill quarantine through public project `apply` with one
       confirmation, separate truthful evidence, and a path-free recovery
       handle.
-- [ ] Implement overwrite-refusing restore for durable project quarantine.
+- [x] Implement internal overwrite-refusing restore for durable project
+      quarantine with whole-run preflight, exact provenance checks, durable
+      manifest transitions, and ownership-preserving rollback.
+- [ ] Wire project restore through the public command and process contracts.
 - [ ] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
 - [ ] Cover symlink ancestors, path escapes, executable bits, source changes,
