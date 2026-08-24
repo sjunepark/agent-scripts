@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -135,7 +136,7 @@ exit 4
 func TestExternalHelpAndVersion(t *testing.T) {
 	directory := t.TempDir()
 	code, stdout, stderr := runCLI(t, directory, "--help")
-	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to quarantine") || !strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
+	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to quarantine") || !strings.Contains(stdout, "Restore a committed project quarantine") || !strings.Contains(stdout, "without overwriting managed") || strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
 		t.Fatalf("help code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--version")
@@ -202,11 +203,11 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 		t.Fatalf("apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--json", "restore", "quarantine-1")
-	if code != 2 || stderr != "" || !strings.Contains(stdout, `"result":"unavailable"`) {
+	if code != 65 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) || strings.Contains(stdout, directory) {
 		t.Fatalf("restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--json", "restore")
-	if code != 65 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) {
+	if code != 64 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) {
 		t.Fatalf("restore missing id code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 }
@@ -488,6 +489,39 @@ func TestExternalHumanProjectUpdateConfirmation(t *testing.T) {
 			t.Fatalf("confirmed update leaked a private path: %q", output)
 		}
 	}
+	detail := ""
+	for _, line := range strings.Split(stdout, "\n") {
+		if strings.HasPrefix(line, "quarantine: id=") {
+			detail = strings.TrimPrefix(line, "quarantine: ")
+			break
+		}
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(detail, "id="), " status=committed")
+	if !validQuarantineID(id) {
+		t.Fatalf("human update quarantine detail=%q id=%q", detail, id)
+	}
+	beforeRestoreDeclined := captureFixtureTree(t, directory)
+	code, declinedStdout, declinedStderr := runCLIWithInputEnvironment(t, directory, overrides, "\n", "restore", id)
+	if code != 2 || !strings.Contains(declinedStdout, "restore: unavailable") || !strings.Contains(declinedStdout, "execution: project managed roots unchanged") || strings.Count(declinedStderr, "without overwrite") != 1 || !strings.Contains(declinedStderr, "project restore was not confirmed") {
+		t.Fatalf("declined restore code=%d stdout=%q stderr=%q", code, declinedStdout, declinedStderr)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRestoreDeclined) {
+		t.Fatalf("declined restore changed project: before=%#v after=%#v", beforeRestoreDeclined, after)
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		if err := os.RemoveAll(filepath.Join(root, "fixture-skill")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, overrides, "y\n", "restore", id)
+	if code != 0 || !strings.Contains(stdout, "restore: success") || !strings.Contains(stdout, "execution: restored 2 project placements") || !strings.Contains(stdout, "quarantine: id="+id+" status=restored") || strings.Count(stderr, "without overwrite") != 1 {
+		t.Fatalf("confirmed restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	for _, output := range []string{stdout, stderr} {
+		if strings.Contains(output, layout.Root) || strings.Contains(output, layout.ManifestPath) || strings.Contains(output, layout.QuarantinePath) {
+			t.Fatalf("confirmed restore leaked a private path: %q", output)
+		}
+	}
 }
 
 func TestExternalJSONProjectUpdateAndIdempotence(t *testing.T) {
@@ -543,6 +577,438 @@ func TestExternalJSONProjectUpdateAndIdempotence(t *testing.T) {
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRerun) {
 		t.Fatalf("idempotent update changed project: before=%#v after=%#v", beforeRerun, after)
 	}
+}
+
+func TestExternalJSONProjectRestoreAndIdempotence(t *testing.T) {
+	directory, layout, oldHash, overrides := newExternalUpdateFixture(t)
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v2"
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("update code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	updated := decodeEnvelope(t, stdout)
+	quarantineDetail := serializedEvidenceDetail(updated.Evidence, "quarantine")
+	if !strings.HasSuffix(quarantineDetail, " status=committed") {
+		t.Fatalf("update quarantine evidence=%q", quarantineDetail)
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(quarantineDetail, "id="), " status=committed")
+	if !validQuarantineID(id) {
+		t.Fatalf("update quarantine id=%q", id)
+	}
+
+	oldBytes := map[string][]byte{}
+	manifestData, err := os.ReadFile(filepath.Join(layout.QuarantinePath, id, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, valid := sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || manifest.Status != sjskills.ProjectQuarantineCommitted {
+		t.Fatalf("committed restore manifest=%#v valid=%v", manifest, valid)
+	}
+	for _, entry := range manifest.Entries {
+		path := filepath.Join(layout.QuarantinePath, id, filepath.FromSlash(entry.QuarantinedPlacement), "SKILL.md")
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		oldBytes[string(entry.Target)] = append([]byte(nil), data...)
+	}
+	// Restore is deliberately overwrite-refusing: the caller must remove the
+	// newer managed placements before asking it to publish the quarantined old
+	// trees back into their destinations.
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		if err := os.RemoveAll(filepath.Join(root, "fixture-skill")); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	beforeDeclined := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id)
+	if code != 65 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"path":"restore.yes"`) {
+		t.Fatalf("JSON unconfirmed restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeDeclined) {
+		t.Fatalf("JSON unconfirmed restore changed project: before=%#v after=%#v", beforeDeclined, after)
+	}
+
+	nested := filepath.Join(directory, "nested", "deep")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr = runCLIWithEnvironment(t, nested, overrides, "--json", "restore", id, "--yes")
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("JSON restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Operation != "restore" || envelope.Result != "success" || envelope.Path != "" ||
+		!hasSerializedEvidence(envelope.Evidence, "execution", "restored 2 project placements") ||
+		!hasSerializedEvidence(envelope.Evidence, "quarantine", "id="+id+" status=restored") {
+		t.Fatalf("JSON restore envelope=%#v", envelope)
+	}
+	for _, placement := range []struct {
+		target sjskills.Target
+		root   string
+	}{
+		{target: sjskills.TargetAgents, root: layout.AgentsSkillsPath},
+		{target: sjskills.TargetClaude, root: layout.ClaudeSkillsPath},
+	} {
+		data, readErr := os.ReadFile(filepath.Join(placement.root, "fixture-skill", "SKILL.md"))
+		if readErr != nil || !bytes.Equal(data, oldBytes[string(placement.target)]) {
+			t.Fatalf("restored %s bytes=%q err=%v", placement.target, data, readErr)
+		}
+	}
+	inventory, err := sjskills.InspectProject(layout)
+	if err != nil || !inventory.StateTrusted || len(inventory.State.Records) != 2 {
+		t.Fatalf("restored provenance inventory=%#v err=%v", inventory, err)
+	}
+	for _, record := range inventory.State.Records {
+		if record.Skill != "fixture-skill" || record.SourceIdentity != "github:example/fixture-skill" || record.TreeHash != oldHash.Digest || record.TreeHashAlgorithm != oldHash.Algorithm {
+			t.Fatalf("restored provenance record=%#v", record)
+		}
+	}
+	manifestData, err = os.ReadFile(filepath.Join(layout.QuarantinePath, id, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, valid = sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || manifest.Status != sjskills.ProjectQuarantineRestored {
+		t.Fatalf("restored manifest=%#v valid=%v", manifest, valid)
+	}
+	for _, output := range []string{stdout, stderr} {
+		for _, private := range []string{layout.Root, layout.ManifestPath, layout.QuarantinePath, "sjskills-materialize-", ".sjskills-install-"} {
+			if strings.Contains(output, private) {
+				t.Fatalf("restore output leaked private path %q: %q", private, output)
+			}
+		}
+	}
+
+	beforeRerun := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, nested, overrides, "--json", "restore", id, "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("idempotent restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope = decodeEnvelope(t, stdout)
+	if !hasSerializedEvidence(envelope.Evidence, "execution", "restored 0 project placements") ||
+		!hasSerializedEvidence(envelope.Evidence, "quarantine", "id="+id+" status=restored") {
+		t.Fatalf("idempotent restore envelope=%#v", envelope)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRerun) {
+		t.Fatalf("idempotent restore changed project: before=%#v after=%#v", beforeRerun, after)
+	}
+}
+
+func TestExternalJSONProjectRemovalRestoreAndIdempotence(t *testing.T) {
+	directory := t.TempDir()
+	manifestPath := filepath.Join(directory, sjskills.ManifestFileName)
+	initialManifest := "version = 1\nprofiles = []\n\n[[direct]]\nname = \"fixture-skill\"\nsource = \"example/fixture-skill\"\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"
+	if err := os.WriteFile(manifestPath, []byte(initialManifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	discovered, err := sjskills.DiscoverProjectRoot(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout, err := sjskills.LayoutForProject(discovered.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides := isolatedExternalHomes(t)
+	homeBefore := writeRestoreHomeSentinels(t, overrides)
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 4 project placements"`) {
+		t.Fatalf("initial removal-restore apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	oldBytes := map[sjskills.Target][]byte{}
+	for _, placement := range []struct {
+		target sjskills.Target
+		root   string
+	}{
+		{target: sjskills.TargetAgents, root: layout.AgentsSkillsPath},
+		{target: sjskills.TargetClaude, root: layout.ClaudeSkillsPath},
+	} {
+		data, readErr := os.ReadFile(filepath.Join(placement.root, "fixture-skill", "SKILL.md"))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		oldBytes[placement.target] = append([]byte(nil), data...)
+	}
+	oldHash, err := sjskills.HashSkillTree(filepath.Join(layout.AgentsSkillsPath, "fixture-skill"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, []byte("version = 1\nprofiles = []\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("removal apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	removalApply := decodeEnvelope(t, stdout)
+	if !hasSerializedEvidence(removalApply.Evidence, "execution", "quarantined 2 removed project placements") {
+		t.Fatalf("removal apply evidence=%#v", removalApply.Evidence)
+	}
+	quarantineDetail := serializedEvidenceDetail(removalApply.Evidence, "quarantine")
+	id := strings.TrimSuffix(strings.TrimPrefix(quarantineDetail, "id="), " status=committed")
+	if !validQuarantineID(id) || !strings.HasSuffix(quarantineDetail, " status=committed") {
+		t.Fatalf("removal quarantine detail=%q", quarantineDetail)
+	}
+	manifestData, err := os.ReadFile(filepath.Join(layout.QuarantinePath, id, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarantine, valid := sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || quarantine.Status != sjskills.ProjectQuarantineCommitted || len(quarantine.Entries) != 2 {
+		t.Fatalf("removal quarantine manifest=%#v valid=%v", quarantine, valid)
+	}
+	for _, entry := range quarantine.Entries {
+		if entry.Action != sjskills.ProjectQuarantineEntryActionRemove || entry.Status != sjskills.ProjectQuarantineEntryQuarantined || entry.OldSourceIdentity != "github:example/fixture-skill" || entry.OldTreeHash != oldHash.Digest {
+			t.Fatalf("removal quarantine entry=%#v", entry)
+		}
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		if _, statErr := os.Stat(filepath.Join(root, "fixture-skill")); !os.IsNotExist(statErr) {
+			t.Fatalf("removed placement still exists under %q: %v", root, statErr)
+		}
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id, "--yes")
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("removal restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	restoreEnvelope := decodeEnvelope(t, stdout)
+	if restoreEnvelope.Operation != "restore" || restoreEnvelope.Result != "success" || restoreEnvelope.Path != "" ||
+		!hasSerializedEvidence(restoreEnvelope.Evidence, "execution", "restored 2 project placements") ||
+		!hasSerializedEvidence(restoreEnvelope.Evidence, "quarantine", "id="+id+" status=restored") {
+		t.Fatalf("removal restore envelope=%#v", restoreEnvelope)
+	}
+	for target, want := range oldBytes {
+		root := layout.AgentsSkillsPath
+		if target == sjskills.TargetClaude {
+			root = layout.ClaudeSkillsPath
+		}
+		got, readErr := os.ReadFile(filepath.Join(root, "fixture-skill", "SKILL.md"))
+		if readErr != nil || !bytes.Equal(got, want) {
+			t.Fatalf("restored removal bytes target=%s got=%q want=%q err=%v", target, got, want, readErr)
+		}
+	}
+	inventory, err := sjskills.InspectProject(layout)
+	if err != nil || !inventory.StateTrusted {
+		t.Fatalf("restored removal inventory=%#v err=%v", inventory, err)
+	}
+	fixtureRecords := map[sjskills.Target]sjskills.ProvenanceRecord{}
+	for _, record := range inventory.State.Records {
+		if record.Skill == "fixture-skill" {
+			fixtureRecords[record.Target] = record
+		}
+	}
+	if len(fixtureRecords) != 2 {
+		t.Fatalf("restored removal fixture records=%#v", fixtureRecords)
+	}
+	for target, record := range fixtureRecords {
+		if record.Scope != sjskills.ScopeProject || record.SourceIdentity != "github:example/fixture-skill" || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest || record.Target != target {
+			t.Fatalf("restored removal provenance=%#v", record)
+		}
+	}
+	manifestData, err = os.ReadFile(filepath.Join(layout.QuarantinePath, id, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarantine, valid = sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || quarantine.Status != sjskills.ProjectQuarantineRestored {
+		t.Fatalf("restored removal manifest=%#v valid=%v", quarantine, valid)
+	}
+	for _, entry := range quarantine.Entries {
+		if entry.Action != sjskills.ProjectQuarantineEntryActionRemove || entry.Status != sjskills.ProjectQuarantineEntryRestored {
+			t.Fatalf("restored removal entry=%#v", entry)
+		}
+	}
+	assertRestoreHomeSentinels(t, overrides, homeBefore)
+
+	beforeRerun := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id, "--yes")
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("idempotent removal restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	restoreEnvelope = decodeEnvelope(t, stdout)
+	if !hasSerializedEvidence(restoreEnvelope.Evidence, "execution", "restored 0 project placements") || !hasSerializedEvidence(restoreEnvelope.Evidence, "quarantine", "id="+id+" status=restored") {
+		t.Fatalf("idempotent removal restore envelope=%#v", restoreEnvelope)
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, beforeRerun) {
+		t.Fatalf("idempotent removal restore changed project: before=%#v after=%#v", beforeRerun, after)
+	}
+	assertRestoreHomeSentinels(t, overrides, homeBefore)
+}
+
+func TestExternalJSONProjectRestoreOccupiedDestinationConflict(t *testing.T) {
+	directory, layout, _, overrides := newExternalUpdateFixture(t)
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("occupied restore update code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	updated := decodeEnvelope(t, stdout)
+	quarantineDetail := serializedEvidenceDetail(updated.Evidence, "quarantine")
+	id := strings.TrimSuffix(strings.TrimPrefix(quarantineDetail, "id="), " status=committed")
+	if !validQuarantineID(id) || !strings.HasSuffix(quarantineDetail, " status=committed") {
+		t.Fatalf("occupied restore quarantine detail=%q", quarantineDetail)
+	}
+	manifestPath := filepath.Join(layout.QuarantinePath, id, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarantine, valid := sjskills.DecodeProjectQuarantineManifest(manifestData)
+	if !valid || quarantine.Status != sjskills.ProjectQuarantineCommitted || len(quarantine.Entries) != 2 {
+		t.Fatalf("occupied restore manifest=%#v valid=%v", quarantine, valid)
+	}
+	oldBytes := map[sjskills.Target][]byte{}
+	currentBytes := map[sjskills.Target][]byte{}
+	for _, entry := range quarantine.Entries {
+		if entry.Action != sjskills.ProjectQuarantineEntryActionUpdate {
+			t.Fatalf("occupied restore action=%#v", entry)
+		}
+		oldData, readErr := os.ReadFile(filepath.Join(layout.QuarantinePath, id, filepath.FromSlash(entry.QuarantinedPlacement), "SKILL.md"))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		oldBytes[entry.Target] = append([]byte(nil), oldData...)
+		root := layout.AgentsSkillsPath
+		if entry.Target == sjskills.TargetClaude {
+			root = layout.ClaudeSkillsPath
+		}
+		currentData, readErr := os.ReadFile(filepath.Join(root, "fixture-skill", "SKILL.md"))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		currentBytes[entry.Target] = append([]byte(nil), currentData...)
+	}
+	homeBefore := writeRestoreHomeSentinels(t, overrides)
+	projectBefore := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id, "--yes")
+	if code != 2 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("occupied restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Result != "conflict" || envelope.Path != "" || envelope.Error == nil || envelope.Error.Code != string(sjskills.IssueReconciliationConflict) || envelope.Error.Path != "restore" ||
+		!hasSerializedEvidence(envelope.Evidence, "execution", "no committed project placements were reported before restore failure") || hasSerializedEvidence(envelope.Evidence, "execution", "restored 2 project placements") ||
+		!hasSerializedEvidence(envelope.Evidence, "quarantine", "id="+id+" status=committed") {
+		t.Fatalf("occupied restore envelope=%#v", envelope)
+	}
+	for _, output := range []string{stdout, stderr} {
+		if strings.Contains(output, layout.Root) || strings.Contains(output, layout.ManifestPath) || strings.Contains(output, layout.QuarantinePath) {
+			t.Fatalf("occupied restore leaked private path: %q", output)
+		}
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, projectBefore) {
+		t.Fatalf("occupied restore changed project: before=%#v after=%#v", projectBefore, after)
+	}
+	for target, want := range currentBytes {
+		root := layout.AgentsSkillsPath
+		if target == sjskills.TargetClaude {
+			root = layout.ClaudeSkillsPath
+		}
+		got, readErr := os.ReadFile(filepath.Join(root, "fixture-skill", "SKILL.md"))
+		if readErr != nil || !bytes.Equal(got, want) {
+			t.Fatalf("occupied current bytes target=%s got=%q want=%q err=%v", target, got, want, readErr)
+		}
+		oldData, readErr := os.ReadFile(filepath.Join(layout.QuarantinePath, id, "entries", string(target), "fixture-skill", "SKILL.md"))
+		if readErr != nil || !bytes.Equal(oldData, oldBytes[target]) {
+			t.Fatalf("occupied quarantine bytes target=%s got=%q want=%q err=%v", target, oldData, oldBytes[target], readErr)
+		}
+	}
+	afterManifest, err := os.ReadFile(manifestPath)
+	if err != nil || !bytes.Equal(afterManifest, manifestData) {
+		t.Fatalf("occupied manifest changed: before=%q after=%q err=%v", manifestData, afterManifest, err)
+	}
+	assertRestoreHomeSentinels(t, overrides, homeBefore)
+}
+
+func TestExternalJSONProjectRestoreStrictProvenanceConflict(t *testing.T) {
+	directory, layout, _, overrides := newExternalUpdateFixture(t)
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("strict restore update code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	updated := decodeEnvelope(t, stdout)
+	quarantineDetail := serializedEvidenceDetail(updated.Evidence, "quarantine")
+	id := strings.TrimSuffix(strings.TrimPrefix(quarantineDetail, "id="), " status=committed")
+	if !validQuarantineID(id) || !strings.HasSuffix(quarantineDetail, " status=committed") {
+		t.Fatalf("strict restore quarantine detail=%q", quarantineDetail)
+	}
+	stateData, err := os.ReadFile(layout.ReconcilerStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state sjskills.ProvenanceState
+	if err := json.Unmarshal(stateData, &state); err != nil || len(state.Records) == 0 {
+		t.Fatalf("strict restore state err=%v state=%#v", err, state)
+	}
+	state.Records[0].SourceIdentity = "github:drifted/restore-source"
+	driftedState, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(layout.ReconcilerStatePath, driftedState, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		if err := os.RemoveAll(filepath.Join(root, "fixture-skill")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	homeBefore := writeRestoreHomeSentinels(t, overrides)
+	projectBefore := captureFixtureTree(t, directory)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id, "--yes")
+	if code != 2 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("strict restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Result != "conflict" || envelope.Path != "" || envelope.Error == nil || envelope.Error.Code != string(sjskills.IssueReconciliationConflict) || envelope.Error.Path != "restore" ||
+		!hasSerializedEvidence(envelope.Evidence, "execution", "no committed project placements were reported before restore failure") || hasSerializedEvidence(envelope.Evidence, "execution", "restored 2 project placements") ||
+		!hasSerializedEvidence(envelope.Evidence, "quarantine", "id="+id+" status=committed") {
+		t.Fatalf("strict restore envelope=%#v", envelope)
+	}
+	for _, output := range []string{stdout, stderr} {
+		if strings.Contains(output, layout.Root) || strings.Contains(output, layout.ManifestPath) || strings.Contains(output, layout.QuarantinePath) {
+			t.Fatalf("strict restore leaked private path: %q", output)
+		}
+	}
+	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, projectBefore) {
+		t.Fatalf("strict restore changed project: before=%#v after=%#v", projectBefore, after)
+	}
+	assertRestoreHomeSentinels(t, overrides, homeBefore)
+}
+
+func TestExternalJSONProjectRestoreOutsideProjectIsInvalid(t *testing.T) {
+	directory := filepath.Join(t.TempDir(), "outside-project")
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	overrides := isolatedExternalHomes(t)
+	homeBefore := writeRestoreHomeSentinels(t, overrides)
+	id := "0123456789abcdef0123456789abcdef"
+	for _, invalidID := range []string{"quarantine-1", strings.ToUpper(id), "../" + id, id[:31], id + "0"} {
+		code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "restore", invalidID)
+		if code != 65 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+			t.Fatalf("invalid restore id=%q code=%d stdout=%q stderr=%q", invalidID, code, stdout, stderr)
+		}
+		envelope := decodeEnvelope(t, stdout)
+		if envelope.Result != "invalid" || envelope.Error == nil || envelope.Error.Code != string(sjskills.IssueMalformedInput) || envelope.Error.Path != "restore.quarantine-id" || strings.Contains(stdout, directory) {
+			t.Fatalf("invalid restore id=%q envelope=%#v", invalidID, envelope)
+		}
+	}
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "restore", id, "--yes")
+	if code != 65 || stderr != "" || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("outside-project restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Operation != "restore" || envelope.Result != "invalid" || envelope.Path != "" || envelope.Error == nil || envelope.Error.Code != string(sjskills.IssueInvalidRoot) || envelope.Error.Path != "restore" || envelope.Error.Message != "canonical project root is required for restore" {
+		t.Fatalf("outside-project restore envelope=%#v", envelope)
+	}
+	if strings.Contains(stdout, directory) || strings.Contains(stderr, directory) {
+		t.Fatalf("outside-project restore leaked path: stdout=%q stderr=%q", stdout, stderr)
+	}
+	assertRestoreHomeSentinels(t, overrides, homeBefore)
 }
 
 func TestExternalProjectRemovalConfirmationAndIdempotence(t *testing.T) {
@@ -848,6 +1314,35 @@ func isolatedExternalHomes(t *testing.T) map[string]string {
 	return map[string]string{
 		"HOME": t.TempDir(), "USERPROFILE": t.TempDir(),
 		"CODEX_HOME": t.TempDir(), "CLAUDE_CONFIG_DIR": t.TempDir(),
+	}
+}
+
+func writeRestoreHomeSentinels(t *testing.T, overrides map[string]string) map[string]fixtureTree {
+	t.Helper()
+	before := make(map[string]fixtureTree)
+	for _, key := range []string{"HOME", "USERPROFILE", "CODEX_HOME", "CLAUDE_CONFIG_DIR"} {
+		root := overrides[key]
+		if root == "" {
+			t.Fatalf("missing supplied restore home override %q", key)
+		}
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			t.Fatalf("create supplied restore home %q: %v", key, err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "sjskills-restore-sentinel"), []byte("restore sentinel "+key+"\n"), 0o644); err != nil {
+			t.Fatalf("write supplied restore home sentinel %q: %v", key, err)
+		}
+		before[key] = captureFixtureTree(t, root)
+	}
+	return before
+}
+
+func assertRestoreHomeSentinels(t *testing.T, overrides map[string]string, before map[string]fixtureTree) {
+	t.Helper()
+	for key, want := range before {
+		got := captureFixtureTree(t, overrides[key])
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("supplied restore home %s changed: before=%#v after=%#v", key, want, got)
+		}
 	}
 }
 
@@ -1224,13 +1719,145 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		if envelope := app.init([]string{"dev"}); envelope.Result != sjskills.ResultSuccess {
 			t.Fatalf("init=%#v", envelope)
 		}
-		if envelope := app.restore("quarantine-1"); envelope.Result != sjskills.ResultUnavailable {
+		if envelope := app.restore(context.Background(), "0123456789abcdef0123456789abcdef", true); envelope.Result != sjskills.ResultConflict {
 			t.Fatalf("restore=%#v", envelope)
 		}
 		if calls != 0 {
 			t.Fatalf("materialize calls=%d, want zero", calls)
 		}
 	})
+}
+
+func TestApplicationProjectRestoreLifecycle(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, sjskills.ManifestFileName), []byte("version = 1\nprofiles = []\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	discovered, err := sjskills.DiscoverProjectRoot(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := "0123456789abcdef0123456789abcdef"
+	var prompt bytes.Buffer
+	calls := 0
+	var gotLayout sjskills.DerivedLayout
+	var gotDeps sjskills.ApplyDeps
+	app := &application{
+		directory:    directory,
+		input:        strings.NewReader("y\n"),
+		promptOutput: &prompt,
+		materialize: func(context.Context, []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+			t.Fatal("restore materialized remote skills")
+			return nil, nil
+		},
+		restoreProject: func(ctx context.Context, layout sjskills.DerivedLayout, gotID string, deps sjskills.ApplyDeps) (sjskills.RestoreResult, error) {
+			if ctx == nil {
+				t.Fatal("restore received nil context")
+			}
+			calls++
+			gotLayout, gotDeps = layout, deps
+			if gotID != id {
+				t.Fatalf("restore id=%q, want %q", gotID, id)
+			}
+			return sjskills.RestoreResult{ID: id, Status: sjskills.ProjectQuarantineRestored, Restored: []sjskills.AppliedPlacement{{Skill: "fixture", Target: sjskills.TargetAgents}}}, nil
+		},
+	}
+	envelope := app.restore(context.Background(), id, false)
+	if envelope.Result != sjskills.ResultSuccess || envelope.Path != "" || calls != 1 || gotLayout.Root != discovered.Root || gotDeps.Now != nil || gotDeps.MakeTempDir != nil || gotDeps.PublishNoReplace != nil || gotDeps.ReplaceFileAtomic != nil || gotDeps.SyncFile != nil || gotDeps.SyncDir != nil {
+		t.Fatalf("restore envelope=%#v calls=%d layout=%#v deps=%#v", envelope, calls, gotLayout, gotDeps)
+	}
+	if !hasEvidence(envelope.Evidence, "execution", "restored 1 project placements") || !hasEvidence(envelope.Evidence, "quarantine", "id="+id+" status=restored") || strings.Count(prompt.String(), id) != 1 {
+		t.Fatalf("restore evidence=%#v prompt=%q", envelope.Evidence, prompt.String())
+	}
+	prompt.Reset()
+	app.input = strings.NewReader("n\n")
+	if envelope = app.restore(context.Background(), id, true); envelope.Result != sjskills.ResultSuccess || prompt.Len() != 0 || calls != 2 {
+		t.Fatalf("--yes restore envelope=%#v calls=%d prompt=%q", envelope, calls, prompt.String())
+	}
+
+	declinedCalls := 0
+	declined := &application{
+		directory:    directory,
+		input:        strings.NewReader("n\n"),
+		promptOutput: io.Discard,
+		restoreProject: func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error) {
+			declinedCalls++
+			return sjskills.RestoreResult{}, nil
+		},
+	}
+	declinedEnvelope := declined.restore(context.Background(), id, false)
+	if declinedCalls != 0 || declinedEnvelope.Result != sjskills.ResultUnavailable || !hasEvidence(declinedEnvelope.Evidence, "execution", "project managed roots unchanged") {
+		t.Fatalf("declined restore calls=%d envelope=%#v", declinedCalls, declinedEnvelope)
+	}
+
+	jsonCalls := 0
+	jsonApp := &application{
+		directory: directory + string(filepath.Separator) + "missing",
+		jsonMode:  true,
+		restoreProject: func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error) {
+			jsonCalls++
+			return sjskills.RestoreResult{}, nil
+		},
+	}
+	jsonEnvelope := jsonApp.restore(context.Background(), id, false)
+	if jsonCalls != 0 || jsonEnvelope.Result != sjskills.ResultInvalid || jsonEnvelope.Error == nil || jsonEnvelope.Error.Path != "restore.yes" {
+		t.Fatalf("JSON restore without yes calls=%d envelope=%#v", jsonCalls, jsonEnvelope)
+	}
+	invalidEnvelope := jsonApp.restore(context.Background(), "../"+id, true)
+	if jsonCalls != 0 || invalidEnvelope.Result != sjskills.ResultInvalid || invalidEnvelope.Error == nil || invalidEnvelope.Error.Path != "restore.quarantine-id" {
+		t.Fatalf("invalid restore calls=%d envelope=%#v", jsonCalls, invalidEnvelope)
+	}
+
+	outsideCalls := 0
+	outsideDirectory := filepath.Join(t.TempDir(), "not-a-project")
+	outsidePrompt := &bytes.Buffer{}
+	outside := &application{
+		directory:    outsideDirectory,
+		input:        strings.NewReader("y\n"),
+		promptOutput: outsidePrompt,
+		restoreProject: func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error) {
+			outsideCalls++
+			return sjskills.RestoreResult{}, nil
+		},
+	}
+	outsideEnvelope := outside.restore(context.Background(), id, false)
+	if outsideCalls != 0 || outsidePrompt.Len() != 0 || outsideEnvelope.Result != sjskills.ResultInvalid || outsideEnvelope.Error == nil || outsideEnvelope.Error.Code != sjskills.IssueInvalidRoot || outsideEnvelope.Error.Path != "restore" || outsideEnvelope.Error.Message != "canonical project root is required for restore" {
+		t.Fatalf("outside-project restore calls=%d prompt=%q envelope=%#v", outsideCalls, outsidePrompt.String(), outsideEnvelope)
+	}
+	if strings.Contains(outsideEnvelope.Error.Message, outsideDirectory) {
+		t.Fatalf("outside-project restore leaked path=%#v", outsideEnvelope.Error)
+	}
+
+	for _, test := range []struct {
+		name       string
+		err        error
+		wantResult sjskills.Result
+		wantCode   sjskills.IssueCode
+		wantError  string
+	}{
+		{name: "conflict", err: &sjskills.RestoreError{Kind: sjskills.RestoreFailureConflict, Reason: "restore destination already exists"}, wantResult: sjskills.ResultConflict, wantCode: sjskills.IssueReconciliationConflict, wantError: "project restore conflict: restore destination already exists"},
+		{name: "unavailable", err: &sjskills.RestoreError{Kind: sjskills.RestoreFailureUnavailable, Reason: "provenance state is unavailable"}, wantResult: sjskills.ResultUnavailable, wantCode: sjskills.IssueUnavailable, wantError: "project restore unavailable: provenance state is unavailable"},
+		{name: "unknown", err: errors.New("private /tmp/project restore detail"), wantResult: sjskills.ResultUnavailable, wantCode: sjskills.IssueUnavailable, wantError: "project restore unavailable"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			failureApp := &application{
+				directory: directory,
+				restoreProject: func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error) {
+					return sjskills.RestoreResult{ID: id, Status: sjskills.ProjectQuarantineCommitted}, test.err
+				},
+			}
+			got := failureApp.restore(context.Background(), id, true)
+			if got.Result != test.wantResult || got.Error == nil || got.Error.Code != test.wantCode || got.Error.Path != "restore" || got.Error.Message != test.wantError {
+				t.Fatalf("failure envelope=%#v", got)
+			}
+			if strings.Contains(got.Error.Message, directory) || strings.Contains(got.Error.Message, "/tmp/project") {
+				t.Fatalf("failure leaked private path=%#v", got.Error)
+			}
+			if !hasEvidence(got.Evidence, "quarantine", "id="+id+" status=committed") {
+				t.Fatalf("failure evidence=%#v", got.Evidence)
+			}
+		})
+	}
 }
 
 func TestApplicationProjectApplyLifecycle(t *testing.T) {

@@ -23,7 +23,12 @@ Goal contract
 
 ## Authorized amendments
 
-_None._
+- 2026-08-24: The user selected the active thread contract as governing and
+  authorized it to supersede every differing field in the original contract.
+  The effective outcome, included-result wording, completion condition,
+  exclusions, authority, resume rule, and delivery rule are therefore the
+  active thread contract. In particular, substantive implementation no longer
+  requires `$delegate`; repository-required review delegation still applies.
 
 ## Execution status
 
@@ -38,10 +43,9 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Wire the reviewed internal project-quarantine restore engine through the public
-`sjskills restore <quarantine-id>` command with one explicit confirmation,
-stable human/JSON evidence, and no path disclosure. Keep interruption recovery
-behind a later independently reviewed slice.
+Revalidate approved project state immediately before every remaining move or
+replacement and recover coherently from interruption or partial failure using
+temporary projects only.
 
 ### Evidence and blockers
 
@@ -215,5 +219,18 @@ behind a later independently reviewed slice.
 - The clean bounded restore review passed twenty repeated restore lifecycle and
   race tests, full Go unit/race/vet, Windows test compilation and CLI build,
   all 55 legacy Node tests, 35 skill validations, temporary-home catalog
-  validation, formatting, and diff checks without real-home mutation. Public
-  restore dispatch and interruption recovery remain deliberately unavailable.
+  validation, formatting, and diff checks without real-home mutation. At that
+  internal-only checkpoint, public restore dispatch and interruption recovery
+  remained deliberately unavailable.
+- Public `sjskills restore <quarantine-id>` now validates one exact lower-hex
+  recovery handle, discovers the canonical project without remote
+  materialization, requires one human confirmation or JSON `--yes`, and maps
+  the reviewed internal transaction into truthful path-free human/JSON
+  evidence. Packaged-process coverage proves update and removal restore,
+  idempotence, occupied-destination and provenance conflicts, nested-project
+  discovery, and supplied-home isolation.
+- The bounded public-restore review found no safe fixes or decisions. Fresh Go
+  unit/race/vet, ten repeated restore-package runs, all 55 legacy Node safety
+  tests, skill validation, formatting, and diff checks passed without real-home
+  mutation. Interruption recovery remains the next independently reviewable
+  project-reconciliation slice.

@@ -24,7 +24,7 @@ type cli struct {
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
 	Apply    applyCommand    `cmd:"" help:"Apply verified project skill installs, updates, and removals to quarantine."`
-	Restore  restoreCommand  `cmd:"" help:"Restore is unavailable in this slice."`
+	Restore  restoreCommand  `cmd:"" help:"Restore a committed project quarantine without overwriting managed placements."`
 }
 
 type initCommand struct {
@@ -43,7 +43,8 @@ type applyCommand struct {
 }
 
 type restoreCommand struct {
-	ID string `arg:"" name:"quarantine-id" optional:"" help:"Manifest-backed quarantine identifier."`
+	ID  string `arg:"" name:"quarantine-id" help:"Manifest-backed quarantine identifier."`
+	Yes bool   `name:"yes" help:"Restore without prompting for confirmation."`
 }
 
 type commandContext struct {
@@ -72,7 +73,7 @@ func (c *applyCommand) Run(ctx *commandContext) error {
 }
 
 func (c *restoreCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.restore(c.ID)
+	ctx.application.envelope = ctx.application.restore(ctx.context, c.ID, c.Yes)
 	return nil
 }
 
@@ -87,6 +88,7 @@ type application struct {
 	cleanupMaterialized materializationCleanupFunc
 	translateProject    projectTranslationFunc
 	applyProject        projectApplyFunc
+	restoreProject      projectRestoreFunc
 }
 
 // materializeFunc is the one process and temporary-state seam owned by the
@@ -103,6 +105,8 @@ type materializationCleanupFunc func(*sjskills.MaterializationPlan) error
 type projectTranslationFunc func(sjskills.Plan, sjskills.ProjectClassification) (sjskills.Plan, error)
 
 type projectApplyFunc func(context.Context, *sjskills.ProjectApplySession, sjskills.ApplyDeps) (sjskills.ApplyResult, error)
+
+type projectRestoreFunc func(context.Context, sjskills.DerivedLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error)
 
 // productionMaterialize keeps construction lazy: profiles, init, help, and
 // version never construct or invoke the Skills CLI adapter.
@@ -394,8 +398,8 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	}
 	envelope = prepared.envelope
 	envelope.Evidence = append(envelope.Evidence, applyExecutionEvidence(result, applyErr)...)
-	if result.Quarantine != nil {
-		envelope.Evidence = append(envelope.Evidence, projectQuarantineEvidence(result.Quarantine))
+	if evidence, ok := projectQuarantineEvidence(result.Quarantine); ok {
+		envelope.Evidence = append(envelope.Evidence, evidence)
 	}
 	if applyErr != nil {
 		setApplyFailure(&envelope, applyErr)
@@ -421,28 +425,35 @@ func applyExecutionEvidence(result sjskills.ApplyResult, err error) []sjskills.E
 	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before apply failure"}}
 }
 
-func projectQuarantineEvidence(result *sjskills.ProjectQuarantineResult) sjskills.Evidence {
-	id := "invalid"
-	if len(result.ID) == 32 {
-		valid := true
-		for _, char := range result.ID {
-			if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
-				valid = false
-				break
-			}
-		}
-		if valid {
-			id = result.ID
+func projectQuarantineEvidence(result *sjskills.ProjectQuarantineResult) (sjskills.Evidence, bool) {
+	if result == nil || !validQuarantineID(result.ID) || !validQuarantineStatus(result.Status) {
+		return sjskills.Evidence{}, false
+	}
+	return sjskills.Evidence{Kind: "quarantine", Detail: fmt.Sprintf("id=%s status=%s", result.ID, result.Status)}, true
+}
+
+func validQuarantineID(id string) bool {
+	if len(id) != 32 {
+		return false
+	}
+	for _, char := range id {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+			return false
 		}
 	}
-	status := "invalid"
-	switch result.Status {
+	return true
+}
+
+func validQuarantineStatus(status sjskills.ProjectQuarantineStatus) bool {
+	switch status {
 	case sjskills.ProjectQuarantinePrepared, sjskills.ProjectQuarantineActive,
-		sjskills.ProjectQuarantineCommitted, sjskills.ProjectQuarantineRolledBack,
+		sjskills.ProjectQuarantineCommitted, sjskills.ProjectQuarantineRestoring,
+		sjskills.ProjectQuarantineRestored, sjskills.ProjectQuarantineRolledBack,
 		sjskills.ProjectQuarantineRecoveryRequired:
-		status = string(result.Status)
+		return true
+	default:
+		return false
 	}
-	return sjskills.Evidence{Kind: "quarantine", Detail: fmt.Sprintf("id=%s status=%s", id, status)}
 }
 
 func (a *application) materializationVerify() materializationVerifyFunc {
@@ -615,11 +626,129 @@ func lifecycleError(stage string, primary, cleanup error) error {
 	return fmt.Errorf("materialization %s failed and cleanup failed", stage)
 }
 
-func (a *application) restore(id string) sjskills.Envelope {
-	if strings.TrimSpace(id) == "" {
-		return a.invalid(sjskills.CommandOperationRestore, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "restore.quarantine-id", Message: "quarantine-id is required"})
+func (a *application) restore(ctx context.Context, id string, yes bool) sjskills.Envelope {
+	const invalidIDMessage = "quarantine-id must be exactly 32 lowercase hexadecimal characters"
+	if !validQuarantineID(id) {
+		return a.invalid(sjskills.CommandOperationRestore, &sjskills.Issue{
+			Code:    sjskills.IssueMalformedInput,
+			Path:    "restore.quarantine-id",
+			Message: invalidIDMessage,
+		})
 	}
-	return a.unavailable(sjskills.CommandOperationRestore, &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: "quarantine restore is not implemented in this slice"})
+	if a.jsonMode && !yes {
+		return a.invalid(sjskills.CommandOperationRestore, &sjskills.Issue{
+			Code:    sjskills.IssueMalformedInput,
+			Path:    "restore.yes",
+			Message: "JSON restore requires --yes",
+		})
+	}
+
+	// Restore is project-scoped but does not need the manifest contents or a
+	// remote materialization. Discovery proves the canonical root; the derived
+	// layout then supplies the internal transaction's bounded paths.
+	discovered, discoverErr := sjskills.DiscoverProjectRoot(a.directory)
+	if discoverErr != nil {
+		return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
+	}
+	layout, layoutErr := sjskills.LayoutForProject(discovered.Root)
+	if layoutErr != nil {
+		return restoreErrorEnvelope(sjskills.ResultInvalid, sjskills.IssueInvalidRoot, "canonical project root is required for restore")
+	}
+
+	if !yes {
+		confirmed, confirmErr := confirmProjectRestore(a.input, a.promptOutput, id)
+		if confirmErr != nil {
+			envelope := restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, "confirmation could not be read")
+			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+			return envelope
+		}
+		if !confirmed {
+			envelope := restoreErrorEnvelope(sjskills.ResultUnavailable, sjskills.IssueUnavailable, "project restore was not confirmed")
+			envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "project managed roots unchanged"})
+			return envelope
+		}
+	}
+
+	projectRestore := a.restoreProject
+	if projectRestore == nil {
+		projectRestore = sjskills.RestoreProjectQuarantine
+	}
+	result, restoreErr := projectRestore(ctx, layout, id, sjskills.ApplyDeps{})
+	envelope := a.base(sjskills.CommandOperationRestore)
+	// Restore output is an operator result. The canonical root and all derived
+	// paths remain private implementation details, including on failures.
+	envelope.Path = ""
+	envelope.Evidence = append(envelope.Evidence, restoreExecutionEvidence(result, restoreErr)...)
+	if result.ID != "" {
+		if evidence, ok := projectQuarantineEvidence(&sjskills.ProjectQuarantineResult{ID: result.ID, Status: result.Status}); ok {
+			envelope.Evidence = append(envelope.Evidence, evidence)
+		}
+	}
+	if restoreErr != nil {
+		setRestoreFailure(&envelope, restoreErr)
+	}
+	return envelope
+}
+
+func restoreErrorEnvelope(result sjskills.Result, code sjskills.IssueCode, message string) sjskills.Envelope {
+	return sjskills.Envelope{
+		Operation: sjskills.CommandOperationRestore,
+		Result:    result,
+		Error:     &sjskills.Issue{Code: code, Path: "restore", Message: message},
+		Warnings:  []sjskills.Warning{},
+		Evidence:  []sjskills.Evidence{},
+	}
+}
+
+func confirmProjectRestore(input io.Reader, output io.Writer, id string) (bool, error) {
+	if !validQuarantineID(id) {
+		return false, errors.New("invalid quarantine identifier")
+	}
+	if input == nil {
+		input = strings.NewReader("")
+	}
+	if output == nil {
+		output = io.Discard
+	}
+	if _, err := fmt.Fprintf(output, "Quarantined project placements for %s will be restored without overwrite? [y/N] ", id); err != nil {
+		return false, err
+	}
+	scanner := bufio.NewScanner(input)
+	scanner.Buffer(make([]byte, 64), 64)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	return answer == "y" || answer == "yes", nil
+}
+
+func restoreExecutionEvidence(result sjskills.RestoreResult, err error) []sjskills.Evidence {
+	if err == nil {
+		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("restored %d project placements", len(result.Restored))}}
+	}
+	if len(result.Restored) > 0 {
+		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("reported %d committed restored project placements before restore failure", len(result.Restored))}}
+	}
+	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before restore failure"}}
+}
+
+func setRestoreFailure(envelope *sjskills.Envelope, err error) {
+	var restoreErr *sjskills.RestoreError
+	if errors.As(err, &restoreErr) {
+		if restoreErr.Conflict() {
+			envelope.Result = sjskills.ResultConflict
+			envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "restore", Message: restoreErr.Error()}
+			return
+		}
+		envelope.Result = sjskills.ResultUnavailable
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: restoreErr.Error()}
+		return
+	}
+	envelope.Result = sjskills.ResultUnavailable
+	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "restore", Message: "project restore unavailable"}
 }
 
 func renderManifest(manifest sjskills.Manifest) string {
@@ -711,6 +840,9 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		fmt.Fprintf(stderr, "sjskills warning: %s\n", warning.Message)
 	}
 	for _, evidence := range envelope.Evidence {
+		if envelope.Operation == sjskills.CommandOperationRestore && evidence.Kind == "execution" {
+			fmt.Fprintf(stdout, "execution: %s\n", evidence.Detail)
+		}
 		if evidence.Kind == "quarantine" {
 			fmt.Fprintf(stdout, "quarantine: %s\n", evidence.Detail)
 		}

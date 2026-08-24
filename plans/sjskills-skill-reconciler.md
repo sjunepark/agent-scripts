@@ -79,16 +79,16 @@ action-typed durable quarantine, deletes its provenance record, and preserves
 unknown, modified, or ambiguous content. An internal overwrite-refusing
 restore transaction now re-proves a whole committed run, moves old trees back
 without replacement, restores provenance, and records durable restored or
-recovery-required state. Public restore dispatch and interruption recovery
-remain deliberately unavailable.
+recovery-required state. Public restore now exposes that transaction through
+one confirmed, path-free human/JSON command contract. Interruption recovery
+remains deliberately unavailable.
 
 ## Next action
 
-Wire the reviewed internal restore transaction through the public
-`sjskills restore <quarantine-id>` command with explicit confirmation and
-stable path-free human/JSON evidence. Keep interruption recovery behind a
-later independently reviewed slice; reserve bounded real-source validation for
-the final validation phase.
+Revalidate approved project state immediately before every remaining move or
+replacement and recover coherently from interruption or partial failure. Keep
+all mutation in temporary projects, and reserve bounded real-source validation
+for the final validation phase.
 
 ## Accepted product contract
 
@@ -319,7 +319,7 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Implement internal overwrite-refusing restore for durable project
       quarantine with whole-run preflight, exact provenance checks, durable
       manifest transitions, and ownership-preserving rollback.
-- [ ] Wire project restore through the public command and process contracts.
+- [x] Wire project restore through the public command and process contracts.
 - [ ] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
 - [ ] Cover symlink ancestors, path escapes, executable bits, source changes,
