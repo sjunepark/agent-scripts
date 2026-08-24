@@ -38,9 +38,10 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Implement recoverable project copy placement and verified update against the
-reviewed operations and provenance evidence. Keep removal quarantine, restore,
-and interruption recovery behind later independently reviewed slices.
+Wire the reviewed install-only transaction into the project `apply` lifecycle
+without losing its live materialization session, then extend the same boundary
+to verified update with recoverable quarantine. Keep removal, restore, and
+interruption recovery behind later independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -107,3 +108,17 @@ and interruption recovery behind later independently reviewed slices.
   Windows compile-only, formatting, and diff validation passed; one external
   CLI test pass saw a non-reproducing preflight mismatch, followed by five
   clean standalone CLI-package runs and a clean race run.
+- The internal install-only transaction now locks before its fresh approval
+  check, rejects non-install mutations and non-portable staged symlinks before
+  writing, publishes copy trees without replacement, syncs their directory
+  chain, proves every desired managed placement exact against candidate
+  provenance, and preserves ambiguous rollback content instead of recursively
+  deleting a raced live path. Non-conflicting unknown entries remain preserved
+  and reported.
+- Parent review caught and closed stale no-op convergence, unchanged-placement
+  commit races, rollback ownership TOCTOU, lock loss, dynamic-warning
+  duplication, and ancestor durability gaps. Full Go unit/race/vet, repeated
+  Darwin no-replace, Windows compile/build, all 55 legacy Node tests,
+  `scripts/validate-skills` (35 skills), local catalog, formatting, and diff
+  validation passed. The engine is not yet wired into the external CLI, so no
+  user-visible project mutation is claimed by this milestone.

@@ -63,15 +63,20 @@ outdated, modified, unmanaged, malformed, misplaced, and protected state
 without granting ownership from byte equality alone. Version 1 adopts
 copy-only placement for Skills CLI entries (manual/workflow entries remain
 externally managed), and the read-only project plan now translates those
-verified states into deterministic operations and preservation warnings. Every
-mutation, quarantine, and restore remains deliberately unimplemented.
+verified states into deterministic operations and preservation warnings. An
+internal install-only transaction now provides locked replanning, no-replace
+copy publication, candidate-provenance proof, durable parent syncing, and
+ownership-preserving rollback in temporary projects. It is not yet wired to the
+external `apply` lifecycle; update, quarantine, restore, and interruption
+recovery remain deliberately unimplemented.
 
 ## Next action
 
-Implement project mutation against the copy-only placement policy using the
-reviewed operations and provenance evidence. Keep quarantine and restore
-behind later independently reviewed slices; reserve bounded real-source
-validation for the final validation phase.
+Wire the install-only transaction into the project `apply` lifecycle while its
+verified materialization session is live, then extend the same boundary to
+verified update with recoverable quarantine. Keep removal and restore behind
+later independently reviewed slices; reserve bounded real-source validation
+for the final validation phase.
 
 ## Accepted product contract
 
@@ -280,6 +285,10 @@ the real project and home remain byte-for-byte unchanged.
       into deterministic operations while preserving unknown entries as
       warnings and blocking unmanaged, modified, malformed, or protected
       desired paths.
+- [x] Implement the internal install-only transaction with a cooperative lock,
+      fresh approval checks, no-replace publication, exact candidate-provenance
+      proof, ownership-preserving rollback, and macOS/Windows platform
+      boundaries. External CLI integration remains a separate step.
 - [ ] Apply additions and verified updates without clobbering changed targets.
       Preserve prior content in manifest-backed quarantine before replacement.
 - [ ] Quarantine previously managed skills removed from project intent while
