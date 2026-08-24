@@ -30,16 +30,17 @@ _None._
 ### Completed included results
 
 - Version 4 desired-state contracts and pure resolution.
+- Isolated Skills CLI materialization.
 
 ### Current in-scope result
 
-Isolated Skills CLI materialization.
+Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Integrate the verified materialization session into the read-only planning
-path so `sjskills plan` can establish expected content without touching real
-managed roots.
+Implement a confined, read-only inventory and provenance-aware classifier for
+the modeled project `.agents` and `.claude` roots. Keep project mutation,
+quarantine, and restore behind later independently reviewed slices.
 
 ### Evidence and blockers
 
@@ -68,5 +69,14 @@ managed roots.
 - Parent validation of the adapter passed fresh Go unit and race runs, a
   repeated real subprocess-bound test, vet, Windows compile-only validation,
   all 55 legacy safety tests, `scripts/validate-skills`, formatting, and diff
-  checks. The phase remains active until the CLI planning path consumes the
-  verified session.
+  checks.
+- `sjskills plan` and the planning portion of `apply` now consume one verified
+  materialization session, emit stable expected-content evidence, clean all
+  temporary state before exit, and leave project and global sentinel roots
+  byte-for-byte unchanged in external-process tests.
+- The bounded phase review applied two safe fixes: adapter-owned staging paths
+  are sanitized before diagnostic truncation, and direct cleanup failures use
+  an exact non-leaking lifecycle message. The clean review loop and full Go,
+  Windows compile, legacy Node, skill, catalog, formatting, and diff validation
+  matrix passed. Bounded real-source validation remains assigned to the final
+  validation phase.

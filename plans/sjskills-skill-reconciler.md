@@ -45,22 +45,22 @@ minimal provenance shapes, stable plan/process contracts, and a typed Kong CLI
 shell all validate without touching a managed root or network. The live
 registry remains version 3 until the later atomic cutover.
 
-The isolated materialization adapter is also implemented and independently
-validated: it invokes exactly Skills CLI 1.5.23 through `bunx`, confines all
+The isolated materialization result is complete and independently validated:
+the adapter invokes exactly Skills CLI 1.5.23 through `bunx`, confines all
 home/config/cache/temp writes to an owned temporary root, bounds subprocess and
 tree resources, computes legacy-compatible verified hashes, reuses one staged
 tree per desired skill, rejects unsafe symlinks and diagnostics, detects
-tampering, and cleans up recoverably. Phase 3 remains active until the
-read-only CLI planning path consumes that session and reports expected-content
-evidence.
+tampering, and cleans up recoverably. The read-only CLI planning path consumes
+one verified session, emits stable expected-content evidence, sanitizes private
+staging paths before diagnostic truncation, and leaves managed-root sentinels
+byte-for-byte unchanged.
 
 ## Next action
 
-Integrate the verified materialization session into the read-only planning
-path so `sjskills plan` establishes expected-content evidence while reusing
-each staged tree and cleaning it before exit. Keep tests injected and
-network-free; reserve bounded real-source validation for the final validation
-phase.
+Implement the confined, read-only project inventory and provenance-aware state
+classifier for the modeled `.agents` and `.claude` roots. Keep mutation,
+quarantine, and restore behind later independently reviewed slices; reserve
+bounded real-source validation for the final validation phase.
 
 ## Accepted product contract
 

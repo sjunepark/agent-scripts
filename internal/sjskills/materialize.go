@@ -211,7 +211,7 @@ func (m *Materializer) Preflight(ctx context.Context) error {
 
 func (m *Materializer) preflightIn(ctx context.Context, root string) error {
 	if _, err := m.lookPath(SkillsCLICommand); err != nil {
-		return m.error("preflight", "bunx is unavailable", err)
+		return m.errorAt(root, "preflight", "bunx is unavailable", err)
 	}
 
 	// Keep the two checks separate.  `bunx --version` proves the pinned
@@ -230,13 +230,13 @@ func (m *Materializer) preflightIn(ctx context.Context, root string) error {
 	for _, check := range checks {
 		result, err := m.run(ctx, root, check.args)
 		if err != nil {
-			return m.error("preflight", check.name+" version check failed", combineProcessError(err, result, m.limits.MaxDiagnosticBytes))
+			return m.diagnosticErrorAt(root, "preflight", check.name+" version check failed", err, result)
 		}
 		if result.ExitCode != 0 {
-			return m.error("preflight", fmt.Sprintf("%s version check exited with status %d", check.name, result.ExitCode), diagnostic(result, m.limits.MaxDiagnosticBytes))
+			return m.diagnosticErrorAt(root, "preflight", fmt.Sprintf("%s version check exited with status %d", check.name, result.ExitCode), nil, result)
 		}
 		if len(check.expected) > 0 && !bytes.Equal(result.Stdout, check.expected) {
-			return m.error("preflight", fmt.Sprintf("Skills CLI version output was not exactly %q", check.expected), diagnostic(result, m.limits.MaxDiagnosticBytes))
+			return m.diagnosticErrorAt(root, "preflight", fmt.Sprintf("Skills CLI version output was not exactly %q", check.expected), nil, result)
 		}
 	}
 	return nil
@@ -281,7 +281,7 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 	}
 	installable, skipped, err := classifyMaterializationSkills(skills)
 	if err != nil {
-		return nil, err
+		return nil, m.sanitizeError(err, "")
 	}
 	plan := &MaterializationPlan{
 		snapshots: make(map[string]*SkillSnapshot, len(installable)),
@@ -307,26 +307,26 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 		args, err := skillsCLIAddArgs(skill)
 		if err != nil {
 			_ = plan.Cleanup()
-			return nil, m.error(safeSkillName(skill.Name), "build Skills CLI command", err)
+			return nil, m.errorAt(root, safeSkillName(skill.Name), "build Skills CLI command", err)
 		}
 		result, runErr := m.run(ctx, root, args)
 		if runErr != nil {
 			_ = plan.Cleanup()
-			return nil, m.error(safeSkillName(skill.Name), "Skills CLI command failed", combineProcessError(runErr, result, m.limits.MaxDiagnosticBytes))
+			return nil, m.diagnosticErrorAt(root, safeSkillName(skill.Name), "Skills CLI command failed", runErr, result)
 		}
 		if result.ExitCode != 0 {
 			_ = plan.Cleanup()
-			return nil, m.error(safeSkillName(skill.Name), fmt.Sprintf("Skills CLI command exited with status %d", result.ExitCode), diagnostic(result, m.limits.MaxDiagnosticBytes))
+			return nil, m.diagnosticErrorAt(root, safeSkillName(skill.Name), fmt.Sprintf("Skills CLI command exited with status %d", result.ExitCode), nil, result)
 		}
 		path, err := locateStagedSkill(root, skill.Name)
 		if err != nil {
 			_ = plan.Cleanup()
-			return nil, m.error(safeSkillName(skill.Name), "locate staged skill", err)
+			return nil, m.errorAt(root, safeSkillName(skill.Name), "locate staged skill", err)
 		}
 		digest, err := hashSkillTree(path, m.limits)
 		if err != nil {
 			_ = plan.Cleanup()
-			return nil, m.error(safeSkillName(skill.Name), "verify staged tree", err)
+			return nil, m.errorAt(root, safeSkillName(skill.Name), "verify staged tree", err)
 		}
 		snapshot := &SkillSnapshot{
 			Skill:     skill,
@@ -403,21 +403,21 @@ func sameDesiredSkill(left, right DesiredSkill) bool {
 func (m *Materializer) newStagingRoot() (string, error) {
 	root, err := m.tempRoot()
 	if err != nil {
-		return "", materializationError("staging", "create temporary staging root", err)
+		return "", m.error("staging", "create temporary staging root", err)
 	}
 	if err := validateStagingRoot(root); err != nil {
 		// Ownership is transferred only after the candidate is proven to be a
 		// fresh, empty directory. Invalid candidates are never removed: a caller
 		// may have supplied a shared sentinel, a filesystem root, or a path it
 		// still owns.
-		return "", err
+		return "", m.sanitizeError(err, "")
 	}
 	root = filepath.Clean(root)
 	if err := prepareStagingRoot(root); err != nil {
 		// The empty-directory check transferred ownership immediately before
 		// preparation, so this cleanup is confined to the now-owned root.
 		_ = os.RemoveAll(root)
-		return "", m.error("staging", "prepare isolated staging directories", err)
+		return "", m.errorAt(root, "staging", "prepare isolated staging directories", err)
 	}
 	return root, nil
 }
@@ -455,11 +455,22 @@ func (m *Materializer) run(ctx context.Context, root string, args []string) (Pro
 	defer cancel()
 	env := isolatedEnvironment(m.baseEnv, root, m.platform)
 	result, err := m.runner.Run(commandCtx, SkillsCLICommand, append([]string(nil), args...), env)
-	if int64(len(result.Stdout)) > m.limits.MaxStdoutBytes {
-		return result, m.error("process", "stdout exceeded its bound", nil)
+	stdoutExceeded := int64(len(result.Stdout)) > m.limits.MaxStdoutBytes
+	stderrExceeded := int64(len(result.Stderr)) > m.limits.MaxStderrBytes
+	if stdoutExceeded {
+		// Do not carry an unbounded fake-runner result into diagnostics. The
+		// production runner already retains only its configured bound, while a
+		// test or alternate runner may return a larger slice.
+		result.Stdout = nil
 	}
-	if int64(len(result.Stderr)) > m.limits.MaxStderrBytes {
-		return result, m.error("process", "stderr exceeded its bound", nil)
+	if stderrExceeded {
+		result.Stderr = nil
+	}
+	if stdoutExceeded {
+		return result, errors.New("process: stdout exceeded its bound")
+	}
+	if stderrExceeded {
+		return result, errors.New("process: stderr exceeded its bound")
 	}
 	if commandCtx.Err() != nil {
 		return result, commandCtx.Err()
@@ -686,7 +697,7 @@ func (p *MaterializationPlan) Verify() error {
 	}
 	for _, snapshot := range p.Snapshots() {
 		if err := snapshot.Verify(); err != nil {
-			return err
+			return sanitizeOwnedStageError(err, p.root, p.limits.MaxDiagnosticBytes)
 		}
 	}
 	return nil
@@ -707,7 +718,7 @@ func (p *MaterializationPlan) Cleanup() error {
 	// mistake a concurrently recreated path for the original snapshot.
 	p.cleanedFlag.Store(true)
 	if p.cleanupRoot != "" {
-		p.cleanupErr = os.RemoveAll(p.cleanupRoot)
+		p.cleanupErr = sanitizeOwnedStageError(os.RemoveAll(p.cleanupRoot), p.cleanupRoot, p.limits.MaxDiagnosticBytes)
 	}
 	return p.cleanupErr
 }
@@ -738,23 +749,30 @@ func (s *SkillSnapshot) Verify() error {
 		return materializationError("verify", "nil skill snapshot", nil)
 	}
 	if s.plan != nil && s.plan.cleaned() {
-		return materializationError(safeSkillName(s.Skill.Name), "snapshot has been cleaned up", nil)
+		return s.sanitizeError(materializationError(safeSkillName(s.Skill.Name), "snapshot has been cleaned up", nil))
 	}
 	if err := validateSnapshotPath(s.stageRoot, s.Path); err != nil {
-		return err
+		return s.sanitizeError(err)
 	}
 	expected := filepath.Join(s.stageRoot, ".agents", "skills", s.Skill.Name)
 	if filepath.Clean(s.Path) != filepath.Clean(expected) {
-		return materializationError(safeSkillName(s.Skill.Name), "snapshot path is not the requested staged path", nil)
+		return s.sanitizeError(materializationError(safeSkillName(s.Skill.Name), "snapshot path is not the requested staged path", nil))
 	}
 	digest, err := hashSkillTree(s.Path, s.limits)
 	if err != nil {
-		return fmt.Errorf("verify %s: %w", safeSkillName(s.Skill.Name), err)
+		return s.sanitizeError(fmt.Errorf("verify %s: %w", safeSkillName(s.Skill.Name), err))
 	}
 	if digest != s.Hash {
-		return materializationError(safeSkillName(s.Skill.Name), "staged snapshot content changed", nil)
+		return s.sanitizeError(materializationError(safeSkillName(s.Skill.Name), "staged snapshot content changed", nil))
 	}
 	return nil
+}
+
+func (s *SkillSnapshot) sanitizeError(err error) error {
+	if s == nil {
+		return err
+	}
+	return sanitizeOwnedStageError(err, s.stageRoot, s.limits.MaxDiagnosticBytes)
 }
 
 // Cleanup delegates to the owning plan so callers can use either lifecycle
@@ -1314,26 +1332,19 @@ var (
 	credentialPrefixPattern = regexp.MustCompile(`(?i)\b(?:ghp_|github_pat_|glpat-|xox[baprs]-|sk-)[A-Za-z0-9._~+/=-]+`)
 )
 
-func diagnostic(result ProcessResult, limit int) error {
-	value := diagnosticText(result)
-	if value == "" {
-		return nil
-	}
-	return errors.New(redactDiagnostic(value, limit))
-}
-
-func combineProcessError(processErr error, result ProcessResult, limit int) error {
+func (m *Materializer) diagnosticErrorAt(root, scope, message string, processErr error, result ProcessResult) error {
 	parts := make([]string, 0, 2)
+	if scope != "" {
+		parts = append(parts, scope)
+	}
+	parts = append(parts, message)
 	if processErr != nil {
 		parts = append(parts, processErr.Error())
 	}
 	if output := diagnosticText(result); output != "" {
 		parts = append(parts, output)
 	}
-	if len(parts) == 0 {
-		return nil
-	}
-	return errors.New(redactDiagnostic(strings.Join(parts, ": "), limit))
+	return errors.New(sanitizeOwnedStageDiagnostic(strings.Join(parts, ": "), root, m.limits.MaxDiagnosticBytes))
 }
 
 func diagnosticText(result ProcessResult) string {
@@ -1424,7 +1435,80 @@ func materializationErrorLimit(scope, message string, cause error, limit int) er
 }
 
 func (m *Materializer) error(scope, message string, cause error) error {
-	return materializationErrorLimit(scope, message, cause, m.limits.MaxDiagnosticBytes)
+	return materializationErrorForRoot(scope, message, cause, "", m.limits.MaxDiagnosticBytes)
+}
+
+func (m *Materializer) errorAt(root, scope, message string, cause error) error {
+	return materializationErrorForRoot(scope, message, cause, root, m.limits.MaxDiagnosticBytes)
+}
+
+func (m *Materializer) sanitizeError(err error, root string) error {
+	return sanitizeOwnedStageError(err, root, m.limits.MaxDiagnosticBytes)
+}
+
+func materializationErrorForRoot(scope, message string, cause error, root string, limit int) error {
+	parts := make([]string, 0, 2)
+	if scope != "" {
+		parts = append(parts, scope)
+	}
+	parts = append(parts, message)
+	if cause != nil {
+		parts = append(parts, cause.Error())
+	}
+	return errors.New(sanitizeOwnedStageDiagnostic(strings.Join(parts, ": "), root, limit))
+}
+
+func sanitizeOwnedStageError(err error, root string, limit int) error {
+	if err == nil {
+		return nil
+	}
+	return errors.New(sanitizeOwnedStageDiagnostic(err.Error(), root, limit))
+}
+
+func sanitizeOwnedStageDiagnostic(value, root string, limit int) string {
+	return redactDiagnostic(redactOwnedStagePaths(value, root), limit)
+}
+
+var stagingRootPathPattern = regexp.MustCompile(`(?i)sjskills-materialize-[A-Za-z0-9._-]*`)
+
+func redactOwnedStagePaths(value, root string) string {
+	for _, variant := range stageRootVariants(root) {
+		pattern := regexp.MustCompile(`(?i)` + regexp.QuoteMeta(variant))
+		value = pattern.ReplaceAllString(value, "<staging-root>")
+	}
+	return stagingRootPathPattern.ReplaceAllString(value, "<staging-root>")
+}
+
+func stageRootVariants(root string) []string {
+	if root == "" {
+		return nil
+	}
+	seen := make(map[string]struct{}, 10)
+	add := func(value string) {
+		if value != "" {
+			seen[value] = struct{}{}
+		}
+	}
+	add(root)
+	add(filepath.Clean(root))
+	add(filepath.ToSlash(root))
+	add(filepath.FromSlash(root))
+	add(strings.ReplaceAll(root, "/", `\`))
+	add(strings.ReplaceAll(root, `\`, "/"))
+	for value := range seen {
+		add(strings.ReplaceAll(value, `\`, `\\`))
+	}
+	variants := make([]string, 0, len(seen))
+	for value := range seen {
+		variants = append(variants, value)
+	}
+	sort.Slice(variants, func(i, j int) bool {
+		if len(variants[i]) != len(variants[j]) {
+			return len(variants[i]) > len(variants[j])
+		}
+		return variants[i] < variants[j]
+	})
+	return variants
 }
 
 func safeSkillName(name string) string {

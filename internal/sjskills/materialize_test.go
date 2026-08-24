@@ -303,6 +303,200 @@ func TestMaterializeInstallFailureCleansAndRedactsDiagnostics(t *testing.T) {
 	}
 }
 
+func TestMaterializeRedactsOwnedStagingRootFromPostRootFailure(t *testing.T) {
+	parent := t.TempDir()
+	sentinel := filepath.Join(parent, "keep.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var root string
+	runner := &materializeRunner{invoke: func(_ context.Context, _ string, args []string, env []string) (ProcessResult, error) {
+		root = envValue(env, "HOME")
+		switch {
+		case reflect.DeepEqual(args, []string{"--version"}):
+			return ProcessResult{Stdout: []byte("bunx 1\n")}, nil
+		case reflect.DeepEqual(args, []string{"skills@" + SkillsCLIVersion, "--version"}):
+			return ProcessResult{Stdout: []byte(SkillsCLIVersion + "\n")}, nil
+		default:
+			path := filepath.Join(root, ".agents", "skills", "demo")
+			return ProcessResult{Stderr: []byte("staged path " + path)}, fmt.Errorf("cannot read %s: %w", path, os.ErrPermission)
+		}
+	}}
+	m := NewMaterializer(MaterializerConfig{
+		Runner: runner,
+		TempRootFactory: func() (string, error) {
+			return os.MkdirTemp(parent, "sjskills-materialize-")
+		},
+		BaseEnvironment: []string{"PATH=/bin"},
+		Limits:          MaterializerLimits{MaxDiagnosticBytes: 128},
+	})
+	if _, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("demo", "example/catalog")}); err == nil {
+		t.Fatal("post-root install failure unexpectedly succeeded")
+	} else {
+		message := err.Error()
+		for _, leaked := range []string{root, filepath.Base(root), "sjskills-materialize-"} {
+			if leaked != "" && strings.Contains(message, leaked) {
+				t.Fatalf("error leaked staging path component %q: %v", leaked, err)
+			}
+		}
+		if len([]byte(message)) > 128 {
+			t.Fatalf("error length = %d, want <= 128", len([]byte(message)))
+		}
+	}
+	if root == "" {
+		t.Fatal("runner did not observe an owned staging root")
+	}
+	if _, err := os.Lstat(root); !os.IsNotExist(err) {
+		t.Fatalf("failed materialization left root %q: %v", root, err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("cleanup escaped its root and removed sentinel: %v", err)
+	}
+}
+
+func TestMaterializeSanitizesBeforeDiagnosticTruncation(t *testing.T) {
+	parent := t.TempDir()
+	sentinel := filepath.Join(parent, "keep.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var root string
+	padding := strings.Repeat("x", 1024)
+	runner := &materializeRunner{invoke: func(_ context.Context, _ string, args []string, env []string) (ProcessResult, error) {
+		root = envValue(env, "HOME")
+		switch {
+		case reflect.DeepEqual(args, []string{"--version"}):
+			return ProcessResult{Stdout: []byte("bunx 1\n")}, nil
+		case reflect.DeepEqual(args, []string{"skills@" + SkillsCLIVersion, "--version"}):
+			return ProcessResult{Stdout: []byte(SkillsCLIVersion + "\n")}, nil
+		default:
+			return ProcessResult{Stderr: []byte(root + padding)}, fmt.Errorf("%s%s", root, padding)
+		}
+	}}
+	const diagnosticLimit = 64
+	m := NewMaterializer(MaterializerConfig{
+		Runner: runner,
+		TempRootFactory: func() (string, error) {
+			return os.MkdirTemp(parent, "sjskills-materialize-")
+		},
+		BaseEnvironment: []string{"PATH=/bin"},
+		Limits:          MaterializerLimits{MaxDiagnosticBytes: diagnosticLimit},
+	})
+	_, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("demo", "example/catalog")})
+	if err == nil {
+		t.Fatal("oversized path diagnostic unexpectedly succeeded")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "demo") || !strings.Contains(message, "Skills CLI command failed") {
+		t.Fatalf("diagnostic lost useful stage context: %v", err)
+	}
+	for _, leaked := range []string{root, filepath.Base(root), "sjskills-materialize-", filepath.Base(filepath.Dir(root))} {
+		if leaked != "" && strings.Contains(message, leaked) {
+			t.Fatalf("diagnostic leaked path component %q: %v", leaked, err)
+		}
+	}
+	for _, component := range strings.FieldsFunc(filepath.Clean(root), func(r rune) bool { return r == '/' || r == '\\' }) {
+		if len(component) >= 4 && strings.Contains(message, component) {
+			t.Fatalf("diagnostic leaked partial root component %q: %v", component, err)
+		}
+	}
+	if len([]byte(message)) > diagnosticLimit {
+		t.Fatalf("diagnostic length = %d, want <= %d", len([]byte(message)), diagnosticLimit)
+	}
+	if _, err := os.Lstat(root); !os.IsNotExist(err) {
+		t.Fatalf("failed materialization left root %q: %v", root, err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("cleanup escaped its root and removed sentinel: %v", err)
+	}
+}
+
+func TestSkillSnapshotVerifyRedactsOwnedStagingRoot(t *testing.T) {
+	parent := t.TempDir()
+	sentinel := filepath.Join(parent, "keep.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runner := defaultMaterializeRunner()
+	m := NewMaterializer(MaterializerConfig{
+		Runner: runner,
+		TempRootFactory: func() (string, error) {
+			return os.MkdirTemp(parent, "sjskills-materialize-")
+		},
+		BaseEnvironment: []string{"PATH=/bin"},
+		Limits:          MaterializerLimits{MaxDiagnosticBytes: 128},
+	})
+	plan, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("demo", "example/catalog")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := plan.Root()
+	snapshot, ok := plan.SnapshotFor("demo")
+	if !ok {
+		t.Fatal("materialized snapshot missing")
+	}
+	if err := os.RemoveAll(snapshot.Path); err != nil {
+		t.Fatal(err)
+	}
+	for name, verify := range map[string]func() error{
+		"snapshot": snapshot.Verify,
+		"plan":     plan.Verify,
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := verify()
+			if err == nil {
+				t.Fatal("verification unexpectedly succeeded")
+			}
+			message := err.Error()
+			for _, leaked := range []string{root, filepath.Base(root), "sjskills-materialize-"} {
+				if strings.Contains(message, leaked) {
+					t.Fatalf("error leaked staging path component %q: %v", leaked, err)
+				}
+			}
+			if len([]byte(message)) > 128 {
+				t.Fatalf("error length = %d, want <= 128", len([]byte(message)))
+			}
+		})
+	}
+	if err := plan.Cleanup(); err != nil {
+		t.Fatal(err)
+	}
+	if err := plan.Cleanup(); err != nil {
+		t.Fatalf("second cleanup failed: %v", err)
+	}
+	if _, err := os.Lstat(root); !os.IsNotExist(err) {
+		t.Fatalf("cleanup left root %q: %v", root, err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("cleanup escaped its root and removed sentinel: %v", err)
+	}
+}
+
+func TestOwnedStageDiagnosticRedactsSlashAndBackslashForms(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "sjskills-materialize-abcdef")
+	slash := filepath.ToSlash(root)
+	backslash := strings.ReplaceAll(slash, "/", `\`)
+	escaped := strings.ReplaceAll(backslash, `\`, `\\`)
+	message := strings.Join([]string{root, slash, backslash, escaped}, " ")
+	redacted := sanitizeOwnedStageError(errors.New(message), root, 96).Error()
+	for _, leaked := range []string{root, filepath.Base(root), "sjskills-materialize-"} {
+		if strings.Contains(redacted, leaked) {
+			t.Fatalf("redacted diagnostic leaked %q: %s", leaked, redacted)
+		}
+	}
+	if len([]byte(redacted)) > 96 {
+		t.Fatalf("redacted diagnostic length = %d, want <= 96", len([]byte(redacted)))
+	}
+}
+
+func TestHashSkillTreeDoesNotRedactStandaloneCallerRoot(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "arbitrary-root")
+	_, err := HashSkillTree(root)
+	if err == nil || !strings.Contains(err.Error(), root) {
+		t.Fatalf("standalone hash error = %v, want caller root %q", err, root)
+	}
+}
+
 func TestMaterializeBoundsBothOutputStreams(t *testing.T) {
 	for _, stream := range []string{"stdout", "stderr"} {
 		t.Run(stream, func(t *testing.T) {

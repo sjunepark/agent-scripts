@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ type cli struct {
 
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
-	Plan     planCommand     `cmd:"" help:"Resolve desired state without materializing it."`
+	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
 	Apply    applyCommand    `cmd:"" help:"Resolve state and report execution availability."`
 	Restore  restoreCommand  `cmd:"" help:"Restore a recorded quarantine entry."`
 }
@@ -46,6 +47,7 @@ type restoreCommand struct {
 
 type commandContext struct {
 	application *application
+	context     context.Context
 }
 
 func (c *initCommand) Run(ctx *commandContext) error {
@@ -59,12 +61,12 @@ func (c *profilesCommand) Run(ctx *commandContext) error {
 }
 
 func (c *planCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.plan(c.Global)
+	ctx.application.envelope = ctx.application.plan(ctx.context, c.Global)
 	return nil
 }
 
 func (c *applyCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.apply(c.Global)
+	ctx.application.envelope = ctx.application.apply(ctx.context, c.Global)
 	return nil
 }
 
@@ -74,8 +76,21 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 }
 
 type application struct {
-	directory string
-	envelope  sjskills.Envelope
+	directory   string
+	envelope    sjskills.Envelope
+	materialize materializeFunc
+}
+
+// materializeFunc is the one process and temporary-state seam owned by the
+// CLI. It deliberately mirrors Materializer.Materialize so planning does not
+// grow an inventory or managed-root abstraction before those responsibilities
+// are implemented.
+type materializeFunc func(context.Context, []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error)
+
+// productionMaterialize keeps construction lazy: profiles, init, help, and
+// version never construct or invoke the Skills CLI adapter.
+func productionMaterialize(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+	return sjskills.NewMaterializer(sjskills.MaterializerConfig{}).Materialize(ctx, skills)
 }
 
 func (a *application) registry() (sjskills.Registry, error) {
@@ -182,7 +197,7 @@ func (a *application) init(profileNames []string) sjskills.Envelope {
 	return envelope
 }
 
-func (a *application) plan(global bool) sjskills.Envelope {
+func (a *application) plan(ctx context.Context, global bool) sjskills.Envelope {
 	envelope := a.base(sjskills.CommandOperationPlan)
 	registry, err := a.registry()
 	if err != nil {
@@ -212,19 +227,82 @@ func (a *application) plan(global bool) sjskills.Envelope {
 	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "registry", Detail: "embedded version 4"})
 	envelope.Evidence = append(envelope.Evidence, plan.Evidence...)
 	envelope.Warnings = append(envelope.Warnings, plan.Warnings...)
+
+	materialize := a.materialize
+	if materialize == nil {
+		materialize = productionMaterialize
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	materialized, materializeErr := materialize(ctx, plan.Desired.Skills)
+	if materializeErr != nil {
+		if materialized != nil {
+			cleanupErr := materialized.Cleanup()
+			return unavailableWithPlan(envelope, lifecycleError("materialize", materializeErr, cleanupErr))
+		}
+		return unavailableWithPlan(envelope, materializeErr)
+	}
+	if materialized == nil {
+		return unavailableWithPlan(envelope, errors.New("materialization returned no session"))
+	}
+
+	if verifyErr := materialized.Verify(); verifyErr != nil {
+		cleanupErr := materialized.Cleanup()
+		return unavailableWithPlan(envelope, lifecycleError("verify", verifyErr, cleanupErr))
+	}
+	snapshots := materialized.Snapshots()
+	for _, snapshot := range snapshots {
+		if snapshot == nil {
+			cleanupErr := materialized.Cleanup()
+			return unavailableWithPlan(envelope, lifecycleError("verify", errors.New("materialization returned a nil snapshot"), cleanupErr))
+		}
+		envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{
+			Kind:   "expected-content",
+			Detail: fmt.Sprintf("%s %s:%s", snapshot.Skill.Name, sjskills.TreeHashAlgorithmSHA256V2, snapshot.Hash.Digest),
+		})
+	}
+	if cleanupErr := materialized.Cleanup(); cleanupErr != nil {
+		return unavailableWithPlan(envelope, lifecycleError("cleanup", nil, cleanupErr))
+	}
+	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{
+		Kind:   "materialization",
+		Detail: fmt.Sprintf("skills@%s verified %d snapshots; temporary cleanup successful", sjskills.SkillsCLIVersion, len(snapshots)),
+	})
 	return envelope
 }
 
-func (a *application) apply(global bool) sjskills.Envelope {
-	envelope := a.plan(global)
+func (a *application) apply(ctx context.Context, global bool) sjskills.Envelope {
+	envelope := a.plan(ctx, global)
 	envelope.Operation = sjskills.CommandOperationApply
 	if envelope.Result != sjskills.ResultSuccess {
 		return envelope
 	}
 	envelope.Result = sjskills.ResultUnavailable
-	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "materialization and managed-root mutation are not implemented in this slice"}
-	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "pure resolution only; no filesystem or subprocess side effects"})
+	envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "managed-root reconciliation is not implemented in this slice"}
+	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "execution", Detail: "verified expected content; managed roots unchanged"})
 	return envelope
+}
+
+func unavailableWithPlan(envelope sjskills.Envelope, err error) sjskills.Envelope {
+	envelope.Result = sjskills.ResultUnavailable
+	envelope.Error = issueFromError(err, sjskills.IssueUnavailable)
+	return envelope
+}
+
+func lifecycleError(stage string, primary, cleanup error) error {
+	if cleanup == nil {
+		if primary != nil {
+			// Materializer diagnostics are already bounded and redacted. Keep the
+			// original error so the CLI does not re-expand sensitive details.
+			return primary
+		}
+		return fmt.Errorf("materialization %s failed", stage)
+	}
+	if primary == nil {
+		return fmt.Errorf("materialization %s failed", stage)
+	}
+	return fmt.Errorf("materialization %s failed and cleanup failed", stage)
 }
 
 func (a *application) restore(id string) sjskills.Envelope {
@@ -324,7 +402,10 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 	}
 }
 
-func execute(args []string, stdout, stderr io.Writer, directory string) int {
+func execute(ctx context.Context, args []string, stdout, stderr io.Writer, directory string) int {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	jsonMode := isJSONRequested(args)
 	if isExactVersionRequest(args) {
 		if jsonMode {
@@ -350,8 +431,8 @@ func execute(args []string, stdout, stderr io.Writer, directory string) int {
 		}
 		return int(sjskills.ExitInvalidInvocation)
 	}
-	app := &application{directory: directory}
-	if err := parsed.Run(&commandContext{application: app}); err != nil {
+	app := &application{directory: directory, materialize: productionMaterialize}
+	if err := parsed.Run(&commandContext{application: app, context: ctx}); err != nil {
 		if jsonMode {
 			envelope := sjskills.Envelope{Operation: sjskills.CommandOperationParse, Result: sjskills.ResultInvalid, Error: &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "command", Message: err.Error()}, Warnings: []sjskills.Warning{}, Evidence: []sjskills.Evidence{}}
 			_ = json.NewEncoder(stdout).Encode(envelope)
@@ -376,5 +457,5 @@ func main() {
 		fmt.Fprintf(os.Stderr, "sjskills: get working directory: %v\n", err)
 		os.Exit(int(sjskills.ExitExecutionFailure))
 	}
-	os.Exit(execute(os.Args[1:], os.Stdout, os.Stderr, directory))
+	os.Exit(execute(context.Background(), os.Args[1:], os.Stdout, os.Stderr, directory))
 }
