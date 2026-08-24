@@ -48,10 +48,11 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 			// The read-only migration slice identifies prior global ownership but
 			// deliberately grants no removal authority. Global apply introduces
 			// that authority only after its own reviewed cutover.
-			state.Kind = ProjectStateUnmanaged
 			state.Action = PlanActionUnchanged
-			state.Reason = ProjectStateReasonUnmanagedEntryPreserved
-			if _, isKnown := known[state.Skill]; isKnown {
+			if state.Reason == ProjectStateReasonPreviouslyManagedNotDesired {
+				state.Reason = ProjectStateReasonUnmanagedEntryPreserved
+			}
+			if _, isKnown := known[state.Skill]; isKnown && state.Reason == ProjectStateReasonUnmanagedEntryPreserved {
 				state.Reason = ProjectStateReasonFormerGlobalSkillPreserved
 			}
 		} else if state.Reason == ProjectStateReasonUnmanagedEntryPreserved {
@@ -66,6 +67,9 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 				continue
 			}
 			if _, observed := stateKeys[key]; observed {
+				continue
+			}
+			if !rootsByTarget[record.Target].Safe {
 				continue
 			}
 			managed.States = append(managed.States, ProjectState{
@@ -325,6 +329,12 @@ func globalPreservedWarning(state ProjectState) Warning {
 		return Warning{
 			Code:    "global-migration",
 			Message: fmt.Sprintf("former global entry %s/%s preserved (%s)", state.Target, projectStableSkillName(state.Skill), projectStableReason(state.Reason)),
+		}
+	}
+	if state.SourceIdentity != "" {
+		return Warning{
+			Code:    "global-migration",
+			Message: fmt.Sprintf("former managed global entry %s/%s preserved (%s)", state.Target, projectStableSkillName(state.Skill), projectStableReason(state.Reason)),
 		}
 	}
 	return Warning{

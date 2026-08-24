@@ -1733,6 +1733,9 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		if envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueUnavailable || envelope.Error.Message != "global home is unavailable" {
 			t.Fatalf("envelope=%#v", envelope)
 		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
+		}
 		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
 			t.Fatalf("staging root still exists after home failure: %q err=%v", stagedRoot, err)
 		}
@@ -1764,6 +1767,9 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		envelope := app.plan(context.Background(), true)
 		if envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueUnavailable || envelope.Error.Message != "global translation failed" {
 			t.Fatalf("envelope=%#v", envelope)
+		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
 		}
 		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
 			t.Fatalf("staging root still exists after global translation failure: %q err=%v", stagedRoot, err)

@@ -294,6 +294,48 @@ func TestInspectGlobalRefusesSymlinkedManagedRootWithoutReadingOutside(t *testin
 	}
 }
 
+func TestGlobalClassificationDoesNotInferAbsenceFromUnsafeRoot(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("symlink creation requires privileges on some Windows hosts")
+	}
+	registry := minimalGlobalRegistry(t)
+	desired, err := ResolveGlobal(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := canonicalTempHome(t)
+	layout, _ := LayoutForGlobal(home)
+	outside := canonicalTempHome(t)
+	if err := os.MkdirAll(filepath.Dir(layout.AgentsSkillsPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, layout.AgentsSkillsPath); err != nil {
+		t.Fatal(err)
+	}
+	expectedDir := filepath.Join(t.TempDir(), "expected")
+	expected := writeGlobalSkill(t, expectedDir, "base", "base\n")
+	recordedAt := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
+	writeLegacyGlobalState(t, layout.ProvenanceStatePath, []legacyGlobalRecordFixture{{
+		Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: expected.Algorithm, Hash: expected.Digest, RecordedAt: recordedAt,
+	}})
+	inventory, err := InspectGlobal(layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	classification, err := ClassifyGlobal(registry, desired, map[string]TreeHash{"base": expected}, inventory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := TranslateGlobalClassification(Plan{Desired: desired, Operations: []PlanOperation{}, Warnings: []Warning{}, Evidence: []Evidence{}}, classification)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertGlobalAction(t, plan, PlanActionBlocked, "base", TargetAgents)
+	if hasPlanWarning(plan.Warnings, "global-migration", "is absent") {
+		t.Fatalf("unsafe root was treated as absence: %#v", plan.Warnings)
+	}
+}
+
 func TestGlobalClassificationMigratesOwnershipWithoutTrustingBytesOrVendorLocks(t *testing.T) {
 	registry := minimalGlobalRegistry(t)
 	desired, err := ResolveGlobal(registry)
@@ -377,7 +419,9 @@ func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *
 		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: oldAgents.Algorithm, Hash: oldAgents.Digest, RecordedAt: recordedAt},
 		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: oldClaude.Algorithm, Hash: oldClaude.Digest, RecordedAt: recordedAt},
 		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: oldAgents.Algorithm, Hash: oldAgents.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "former", Source: "example/skills", HashAlgorithm: oldClaude.Algorithm, Hash: oldClaude.Digest, RecordedAt: recordedAt},
 	})
+	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "former", "modified former\n")
 	if err := os.WriteFile(filepath.Join(layout.AgentsSkillsPath, "base", "SKILL.md"), []byte("modified\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -402,6 +446,12 @@ func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *
 	}
 	if !hasPlanWarning(plan.Warnings, "global-migration", "former") {
 		t.Fatalf("stale former placement was not reported: %#v", plan.Warnings)
+	}
+	if !hasPlanWarning(plan.Warnings, "global-migration", "is absent") {
+		t.Fatalf("absent former placement was not reported: %#v", plan.Warnings)
+	}
+	if !hasPlanWarning(plan.Warnings, "global-migration", "previously-managed-modified") {
+		t.Fatalf("modified former placement lost modification evidence: %#v", plan.Warnings)
 	}
 }
 

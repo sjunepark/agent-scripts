@@ -114,10 +114,13 @@ test("live version 3 global profiles match the staged version 4 baseline unions"
 
   function stagedEntry(name) {
     const skill = stagedByName.get(name);
+    assert.ok(skill, `staged registry has no skill named ${name}`);
+    const source = staged.sources[skill.source];
+    assert.ok(source, `staged registry has no source ${skill.source} for ${name}`);
     const targets = staged.targetExceptions?.[name] ?? staged.defaults.targets;
     return {
       name,
-      source: staged.sources[skill.source].location,
+      source: source.location,
       manager: skill.manager,
       mode: skill.mode,
       targets,
@@ -136,12 +139,14 @@ test("live version 3 global profiles match the staged version 4 baseline unions"
     };
   }
 
+  const byName = (left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
+
   for (const profile of ["dev", "kicpa"]) {
     const names = [...staged.global.baseline, ...staged.profiles[profile].skills]
       .sort();
     assert.deepEqual(
-      globalSkillEntries(live, profile).map(comparableLiveEntry),
-      names.map(stagedEntry),
+      globalSkillEntries(live, profile).map(comparableLiveEntry).sort(byName),
+      names.map(stagedEntry).sort(byName),
       `${profile} profile drifted across the version 3/version 4 boundary`
     );
   }
