@@ -1,6 +1,6 @@
 # Goal: Deliver sjskills v1
 
-Status: active
+Status: complete
 Planning scope: ROADMAP.md
 
 ## Original contract
@@ -38,15 +38,17 @@ Goal contract
 - Isolated Skills CLI materialization.
 - Recoverable project exact-state reconciliation.
 - Fixed global baseline and legacy-engine cutover.
+- Complete operator workflow, documentation, validation, review, and PR
+  delivery.
 
 ### Current in-scope result
 
-PR delivery and review-feedback closure.
+Delivery complete.
 
 ### Next in-scope action
 
-Commit and push the validated implementation, deliver the final PR, address
-review feedback, and merge while keeping real-home validation read-only.
+None. Any real-home apply, restore, migration, cleanup, or rollout requires
+the separate reviewed plan and explicit authorization.
 
 ### Evidence and blockers
 
@@ -329,3 +331,7 @@ review feedback, and merge while keeping real-home validation read-only.
   audit was completed manually across the README, repository instructions,
   registry contract, sync guidance, Skills CLI skill, goal, and implementation
   and rollout plans.
+- PR #13 merged the final implementation and review fixes into `main` at
+  `2453488801068feea2fbb624da07aa74f0c7723c`. All 10 actionable CodeRabbit
+  threads were resolved before merge, GitGuardian passed, and the final
+  validation matrix above remained green.
