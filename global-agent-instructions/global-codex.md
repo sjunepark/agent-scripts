@@ -11,6 +11,10 @@ files are loaded after this file and take precedence when they conflict.
   actions. Omit routine steps, repetition, and unrelated context.
 - Expand when asked or when correctness or safety requires it.
 
+## KICPA Files
+
+- When you need KICPA-related files, look in `/Volumes/Audit` and `/Volumes/Learning`.
+
 ## Subagents
 
 - For substantive, well-bounded code or file implementation, invoke
