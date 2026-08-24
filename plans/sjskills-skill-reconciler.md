@@ -80,15 +80,16 @@ unknown, modified, or ambiguous content. An internal overwrite-refusing
 restore transaction now re-proves a whole committed run, moves old trees back
 without replacement, restores provenance, and records durable restored or
 recovery-required state. Public restore now exposes that transaction through
-one confirmed, path-free human/JSON command contract. Interruption recovery
-remains deliberately unavailable.
+one confirmed, path-free human/JSON command contract. Apply and restore now
+use a crash-releasing platform lock plus a strict private transaction journal;
+the next invocation rolls an exact interrupted transaction back or preserves
+ambiguous bytes with durable recovery evidence.
 
 ## Next action
 
-Revalidate approved project state immediately before every remaining move or
-replacement and recover coherently from interruption or partial failure. Keep
-all mutation in temporary projects, and reserve bounded real-source validation
-for the final validation phase.
+Replace the legacy machine-profile engine with the fixed global baseline while
+keeping all validation read-only against real home state. Reserve bounded
+real-source materialization for the final validation phase.
 
 ## Accepted product contract
 
@@ -320,9 +321,9 @@ the real project and home remain byte-for-byte unchanged.
       quarantine with whole-run preflight, exact provenance checks, durable
       manifest transitions, and ownership-preserving rollback.
 - [x] Wire project restore through the public command and process contracts.
-- [ ] Revalidate approval state before every move or replacement and recover
+- [x] Revalidate approval state before every move or replacement and recover
       coherently from interruption or partial failure.
-- [ ] Cover symlink ancestors, path escapes, executable bits, source changes,
+- [x] Cover symlink ancestors, path escapes, executable bits, source changes,
       stale provenance, plan/apply races, partial updates, collision failures,
       and restore races using temporary projects only.
 

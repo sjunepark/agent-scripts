@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, preimage *applyStatePreimage, operations []PlanOperation) error {
+func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimage *applyStatePreimage, operations []PlanOperation) error {
 	if tx.quarantine != nil || preimage == nil || len(operations) == 0 || len(operations) > maxProjectQuarantineEntries {
 		return applyConflict("quarantine request is invalid")
 	}
@@ -70,6 +70,21 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 		}
 		entries = append(entries, entry)
 	}
+	runPath := filepath.Join(tx.layout.QuarantinePath, id)
+	if !pathWithin(tx.layout.QuarantinePath, runPath) {
+		return applyConflict("quarantine path escapes derived state")
+	}
+	tx.quarantine = &projectQuarantineTransaction{
+		runPath: runPath, ancestors: make(map[string]os.FileInfo), manifestPath: filepath.Join(runPath, applyManifestName),
+		manifest: ProjectQuarantineManifest{Version: ProjectQuarantineManifestVersion, ID: id, CreatedAt: createdAt, Status: ProjectQuarantinePrepared, Entries: entries},
+	}
+	return nil
+}
+
+func (tx *applyTransaction) publishPreparedQuarantine(operations []PlanOperation) error {
+	if tx.quarantine == nil || tx.quarantine.runDurable {
+		return applyConflict("prepared quarantine is unavailable")
+	}
 	created, err := ensureApplyDirectory(tx.root, tx.layout.QuarantinePath)
 	tx.createdDirs = append(tx.createdDirs, created...)
 	if err != nil {
@@ -85,10 +100,7 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 	if err != nil || !quarantineRootInfo.IsDir() || quarantineRootInfo.Mode()&os.ModeSymlink != 0 {
 		return applyConflict("quarantine root changed before run creation")
 	}
-	runPath := filepath.Join(tx.layout.QuarantinePath, id)
-	if !pathWithin(tx.layout.QuarantinePath, runPath) {
-		return applyConflict("quarantine path escapes derived state")
-	}
+	runPath := tx.quarantine.runPath
 	if err := os.Mkdir(runPath, 0o700); err != nil {
 		if errors.Is(err, os.ErrExist) {
 			return applyConflict("quarantine identity already exists")
@@ -99,19 +111,19 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 	if err != nil || !runInfo.IsDir() || runInfo.Mode()&os.ModeSymlink != 0 {
 		return applyUnavailable("quarantine run could not be verified")
 	}
-	quarantine := &projectQuarantineTransaction{
-		runPath: runPath, rootInfo: quarantineRootInfo, runInfo: runInfo,
-		ancestors: make(map[string]os.FileInfo), manifestPath: filepath.Join(runPath, applyManifestName),
-		manifest: ProjectQuarantineManifest{Version: ProjectQuarantineManifestVersion, ID: id, CreatedAt: createdAt, Status: ProjectQuarantinePrepared, Entries: entries},
-	}
-	// Attach ownership as soon as the unique run has been proven. Any later
-	// preparation failure can then durably record rollback/recovery evidence
-	// instead of stranding an untracked run directory.
-	tx.quarantine = quarantine
+	quarantine := tx.quarantine
+	quarantine.rootInfo = quarantineRootInfo
+	quarantine.runInfo = runInfo
 	if err := tx.deps.SyncDir(tx.layout.QuarantinePath); err != nil {
 		return applyUnavailable("quarantine root could not be synced")
 	}
 	quarantine.runDurable = true
+	if tx.deps.afterQuarantineRunSync != nil {
+		tx.deps.afterQuarantineRunSync()
+	}
+	if err := tx.writeQuarantineManifest(quarantine, quarantine.manifest); err != nil {
+		return err
+	}
 	for _, operation := range operations {
 		parent := filepath.Join(runPath, "entries", string(operation.Target))
 		if err := ensureOwnedQuarantineDirectory(runPath, parent, tx.deps.SyncDir); err != nil {
@@ -120,9 +132,6 @@ func (tx *applyTransaction) prepareQuarantine(session *ProjectApplySession, prei
 		if err := captureQuarantineEntryAncestors(runPath, parent, quarantine.ancestors); err != nil {
 			return err
 		}
-	}
-	if err := tx.writeQuarantineManifest(quarantine, quarantine.manifest); err != nil {
-		return err
 	}
 	return nil
 }
@@ -387,6 +396,9 @@ func (tx *applyTransaction) commitQuarantine() error {
 }
 
 func (tx *applyTransaction) writeQuarantineManifest(quarantine *projectQuarantineTransaction, manifest ProjectQuarantineManifest) error {
+	if err := tx.checkLock(); err != nil {
+		return err
+	}
 	if err := tx.checkQuarantineBoundaryFor(quarantine); err != nil {
 		return err
 	}
@@ -394,7 +406,21 @@ func (tx *applyTransaction) writeQuarantineManifest(quarantine *projectQuarantin
 	if err != nil {
 		return err
 	}
-	temporary, err := os.CreateTemp(quarantine.runPath, ".manifest-")
+	temporaryParent := quarantine.runPath
+	temporaryPattern := ".manifest-"
+	if quarantine.manifestInfo == nil {
+		// Keep initial-publication staging outside the durable run. A process
+		// death can then leave only an exactly empty run, which the journal can
+		// recover without deleting an unknown entry.
+		temporaryParent = tx.layout.DerivedDirectoryPath
+		temporaryPattern = ".quarantine-manifest-" + manifest.ID + "-"
+	}
+	var temporary *os.File
+	if quarantine.manifestInfo == nil {
+		temporary, err = os.OpenFile(filepath.Join(temporaryParent, temporaryPattern+"staged"), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+	} else {
+		temporary, err = os.CreateTemp(temporaryParent, temporaryPattern)
+	}
 	if err != nil {
 		return applyUnavailable("quarantine manifest temporary file could not be created")
 	}
@@ -415,11 +441,23 @@ func (tx *applyTransaction) writeQuarantineManifest(quarantine *projectQuarantin
 	if err := temporary.Close(); err != nil {
 		return applyUnavailable("quarantine manifest could not be closed")
 	}
+	if quarantine.manifestInfo == nil && tx.deps.afterInitialManifestSync != nil {
+		tx.deps.afterInitialManifestSync()
+	}
+	if err := tx.checkLock(); err != nil {
+		return err
+	}
+	if err := tx.checkQuarantineBoundaryFor(quarantine); err != nil {
+		return err
+	}
 	if quarantine.manifestInfo == nil {
 		if _, err := os.Lstat(quarantine.manifestPath); err == nil || !errors.Is(err, os.ErrNotExist) {
 			return applyConflict("quarantine manifest destination appeared")
 		}
 		if err := tx.deps.PublishNoReplace(temporaryPath, quarantine.manifestPath); err != nil {
+			if tx.observeApplyQuarantineManifest(quarantine, manifest, data) {
+				return applyUnavailable("quarantine manifest publication was not confirmed")
+			}
 			if errors.Is(err, os.ErrExist) {
 				return applyConflict("quarantine manifest destination appeared")
 			}
@@ -433,6 +471,9 @@ func (tx *applyTransaction) writeQuarantineManifest(quarantine *projectQuarantin
 			return applyConflict("quarantine manifest changed during transaction")
 		}
 		if err := tx.deps.ReplaceFileAtomic(temporaryPath, quarantine.manifestPath); err != nil {
+			if tx.observeApplyQuarantineManifest(quarantine, manifest, data) {
+				return applyUnavailable("quarantine manifest replacement was not confirmed")
+			}
 			return applyUnavailable("quarantine manifest could not be atomically replaced")
 		}
 	}
@@ -455,6 +496,20 @@ func (tx *applyTransaction) writeQuarantineManifest(quarantine *projectQuarantin
 		quarantine.runDurable = true
 	}
 	return nil
+}
+
+func (tx *applyTransaction) observeApplyQuarantineManifest(quarantine *projectQuarantineTransaction, manifest ProjectQuarantineManifest, expected []byte) bool {
+	stored, readErr := readBoundedInspectionFile(quarantine.manifestPath, maxProjectQuarantineManifestSize)
+	info, statErr := os.Lstat(quarantine.manifestPath)
+	decoded, valid := DecodeProjectQuarantineManifest(stored)
+	if readErr != nil || statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() ||
+		!valid || decoded.ID != manifest.ID || !bytes.Equal(stored, expected) {
+		return false
+	}
+	quarantine.manifestInfo = info
+	quarantine.manifestData = append([]byte(nil), expected...)
+	quarantine.manifest = manifest
+	return true
 }
 
 func (tx *applyTransaction) checkQuarantineBoundary() error {

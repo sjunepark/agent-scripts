@@ -146,6 +146,19 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 	if err := tx.checkRestoreLockAndRoot(); err != nil {
 		return tx.finish(result, err, true)
 	}
+	if recovered, recoveryErr := tx.recoverInterruptedTransaction(); recoveryErr != nil {
+		if tx.quarantine != nil {
+			result.ID = tx.quarantine.manifest.ID
+			result.Status = tx.quarantine.manifest.Status
+		}
+		return tx.finish(result, restoreApplyError(recoveryErr, "interrupted project transaction is ambiguous", "interrupted project transaction could not be recovered"), true)
+	} else if recovered {
+		if tx.quarantine != nil {
+			result.ID = tx.quarantine.manifest.ID
+			result.Status = tx.quarantine.manifest.Status
+		}
+		return tx.finish(result, restoreUnavailable("interrupted project transaction was recovered; rerun restore"), true)
+	}
 	if err := tx.loadManifest(id); err != nil {
 		if tx.quarantine != nil {
 			result.ID = tx.quarantine.manifest.ID
@@ -164,6 +177,9 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 		}
 		return result, nil
 	}
+	if err := tx.prepareRestoreJournal(); err != nil {
+		return tx.finish(result, err, false)
+	}
 
 	var primary error
 	if err := tx.beginRestore(); err != nil {
@@ -174,6 +190,9 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 	}
 	if primary == nil {
 		primary = tx.commitRestoredProvenance()
+	}
+	if primary == nil && tx.deps.afterStateCommit != nil {
+		tx.deps.afterStateCommit()
 	}
 	if primary == nil {
 		primary = tx.finalizeRestoreManifest()
@@ -186,11 +205,21 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 	if primary == nil {
 		primary = tx.verifyMovedPlacements()
 	}
-	if primary != nil {
+	if primary == nil {
+		if journalErr := tx.clearTransactionJournal(); journalErr != nil {
+			primary = restoreApplyError(journalErr, "restore recovery evidence changed", "restore recovery evidence could not be finalized")
+		}
+	}
+	if primary != nil && !tx.journalCleared {
 		if rollbackErr := tx.rollbackRestore(); rollbackErr != nil {
 			result.Status = ProjectQuarantineRecoveryRequired
 			_ = tx.closeRestoreLock()
 			return result, restoreUnavailable("restore rollback could not be verified")
+		}
+		if journalErr := tx.clearTransactionJournal(); journalErr != nil {
+			result.Status = ProjectQuarantineRecoveryRequired
+			_ = tx.closeRestoreLock()
+			return result, restoreUnavailable("restore recovery evidence could not be finalized")
 		}
 		result.Status = ProjectQuarantineCommitted
 		if cleanupErr := tx.cleanupManagedDirectories(); cleanupErr != nil {
@@ -209,6 +238,9 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 	}
 	if err := tx.closeRestoreLock(); err != nil {
 		return result, err
+	}
+	if primary != nil {
+		return result, primary
 	}
 	return result, nil
 }
@@ -252,17 +284,25 @@ func (tx *restoreTransaction) closeRestoreLock() error {
 	if tx.lock == nil {
 		return nil
 	}
-	closeErr := tx.lock.hand.Close()
 	info, statErr := os.Lstat(tx.lock.path)
-	if statErr != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+	if statErr != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) {
+		_ = unlockApplyFile(tx.lock.hand)
+		_ = tx.lock.hand.Close()
 		return restoreConflict("project lock changed during restore")
 	}
 	if removeErr := os.Remove(tx.lock.path); removeErr != nil {
-		if closeErr != nil {
-			return restoreUnavailable("project lock could not be closed")
-		}
+		_ = unlockApplyFile(tx.lock.hand)
+		_ = tx.lock.hand.Close()
 		return restoreUnavailable("project lock could not be removed")
 	}
+	if tx.lock.held {
+		if unlockErr := unlockApplyFile(tx.lock.hand); unlockErr != nil {
+			_ = tx.lock.hand.Close()
+			return restoreUnavailable("project lock could not be released")
+		}
+		tx.lock.held = false
+	}
+	closeErr := tx.lock.hand.Close()
 	if closeErr != nil {
 		return restoreUnavailable("project lock could not be closed")
 	}
@@ -873,18 +913,10 @@ func (tx *restoreTransaction) commitRestoredProvenance() error {
 	if err != nil || !sameApplyState(tx.statePreimage, current) {
 		return restoreConflict("provenance state changed before commit")
 	}
-	now := tx.deps.Now().UTC()
-	if now.IsZero() {
-		return restoreUnavailable("provenance timestamp is unavailable")
+	if tx.journal == nil || tx.journal.Kind != projectTransactionKindRestore {
+		return restoreConflict("restore recovery evidence is unavailable")
 	}
-	candidate, err := buildRestoreProvenanceState(tx.statePreimage.state, tx.entries, now)
-	if err != nil {
-		return err
-	}
-	data, err := marshalApplyState(candidate)
-	if err != nil {
-		return restoreUnavailable("provenance state could not be encoded")
-	}
+	data := append([]byte(nil), tx.journal.CandidateState...)
 	tx.stateCandidateData = append([]byte(nil), data...)
 	mode := os.FileMode(0o600)
 	if tx.statePreimage.exists && tx.statePreimage.mode.Perm() != 0 {
@@ -902,7 +934,7 @@ func (tx *restoreTransaction) commitRestoredProvenance() error {
 	if err != nil || !sameApplyState(tx.statePreimage, current) {
 		return restoreConflict("provenance state changed before commit")
 	}
-	commit, publishErr := tx.publishStateBytes(temporaryPath, data)
+	commit, publishErr := tx.publishStateBytes(temporaryPath, data, tx.statePreimage)
 	if commit != nil {
 		tx.stateCommit = commit
 	}
@@ -1146,7 +1178,7 @@ func (tx *restoreTransaction) restoreCommittedProvenance() error {
 		if err := tx.checkRestoreBoundary(); err != nil {
 			return err
 		}
-		commit, writeErr := tx.writeStateBytes(tx.statePreimage.data, tx.statePreimage.mode.Perm())
+		commit, writeErr := tx.writeStateBytes(current, tx.statePreimage.data, tx.statePreimage.mode.Perm())
 		if commit != nil && writeErr == nil {
 			stored, readErr := captureApplyStatePreimage(tx.layout)
 			if readErr != nil || !stored.exists || !bytes.Equal(stored.data, tx.statePreimage.data) {

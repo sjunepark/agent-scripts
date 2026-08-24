@@ -9,13 +9,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
 
 const (
 	applyLockName       = "apply.lock"
+	applyLockMarker     = "sjskills-project-lock-v1\n"
 	applyInstallPattern = ".sjskills-install-"
 	applyManifestName   = "manifest.json"
 )
@@ -93,34 +93,41 @@ type ProjectQuarantineResult struct {
 // ApplyDeps contains the small set of platform and fault-injection seams.
 // Ordinary bounded filesystem reads and copies remain in this package.
 type ApplyDeps struct {
-	Now                   func() time.Time
-	MakeTempDir           func(parent, pattern string) (string, error)
-	PublishNoReplace      func(source, destination string) error
-	ReplaceFileAtomic     func(source, destination string) error
-	SyncFile              func(*os.File) error
-	SyncDir               func(path string) error
-	BeforePublish         func(AppliedPlacement) error
-	beforeQuarantine      func(AppliedPlacement) error
-	newQuarantineID       func() (string, error)
-	beforeRollback        func(AppliedPlacement) error
-	beforeLock            func() error
-	beforeCommit          func() error
-	beforeUnlock          func() error
-	beforeRestoreMove     func(AppliedPlacement) error
-	beforeRestoreRollback func(AppliedPlacement) error
-	beforeRestoreManifest func(ProjectQuarantineStatus) error
-	beforeRestoreCommit   func() error
+	Now                      func() time.Time
+	MakeTempDir              func(parent, pattern string) (string, error)
+	PublishNoReplace         func(source, destination string) error
+	ReplaceFileAtomic        func(source, destination string) error
+	SyncFile                 func(*os.File) error
+	SyncDir                  func(path string) error
+	BeforePublish            func(AppliedPlacement) error
+	beforeQuarantine         func(AppliedPlacement) error
+	newQuarantineID          func() (string, error)
+	beforeRollback           func(AppliedPlacement) error
+	beforeLock               func() error
+	beforeCommit             func() error
+	beforeUnlock             func() error
+	beforeRestoreMove        func(AppliedPlacement) error
+	beforeRestoreRollback    func(AppliedPlacement) error
+	beforeRestoreManifest    func(ProjectQuarantineStatus) error
+	beforeRestoreCommit      func() error
+	publishStateNoReplace    func(source, destination string) error
+	afterStateCommit         func()
+	beforeStateRecoveryMove  func()
+	afterQuarantineRunSync   func()
+	beforeRecoveryTreeMove   func()
+	afterInitialManifestSync func()
 }
 
 func defaultApplyDeps() ApplyDeps {
 	return ApplyDeps{
-		Now:               time.Now,
-		MakeTempDir:       os.MkdirTemp,
-		PublishNoReplace:  publishNoReplace,
-		ReplaceFileAtomic: replaceFileAtomic,
-		SyncFile:          func(file *os.File) error { return file.Sync() },
-		SyncDir:           syncApplyDirectory,
-		newQuarantineID:   newProjectQuarantineID,
+		Now:                   time.Now,
+		MakeTempDir:           os.MkdirTemp,
+		PublishNoReplace:      publishNoReplace,
+		ReplaceFileAtomic:     replaceFileAtomic,
+		SyncFile:              func(file *os.File) error { return file.Sync() },
+		SyncDir:               syncApplyDirectory,
+		newQuarantineID:       newProjectQuarantineID,
+		publishStateNoReplace: publishNoReplace,
 	}
 }
 
@@ -168,6 +175,11 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	if err := tx.checkLock(); err != nil {
 		return finishApplySetup(&tx, clonePlanForApply(session.Plan), err)
 	}
+	if recovered, recoveryErr := tx.recoverInterruptedTransaction(); recoveryErr != nil {
+		return finishApplySetup(&tx, clonePlanForApply(session.Plan), recoveryErr)
+	} else if recovered {
+		return finishApplySetup(&tx, clonePlanForApply(session.Plan), applyUnavailable("interrupted project transaction was recovered; rerun apply"))
+	}
 	freshPlan, err := refreshApplyPlan(session)
 	if err != nil {
 		return finishApplySetup(&tx, clonePlanForApply(session.Plan), err)
@@ -210,7 +222,13 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	var primary error
 	quarantineOperations := operationsWithActions(mutationOperations, PlanActionUpdate, PlanActionQuarantine)
 	if len(quarantineOperations) > 0 {
-		primary = tx.prepareQuarantine(session, preimage, quarantineOperations)
+		primary = tx.planQuarantine(session, preimage, quarantineOperations)
+	}
+	if primary == nil {
+		primary = tx.prepareTransactionJournal(preimage, session)
+	}
+	if primary == nil && tx.quarantine != nil {
+		primary = tx.publishPreparedQuarantine(quarantineOperations)
 	}
 	if primary == nil {
 		primary = tx.applyOperations(ctx, session, preimage, mutationOperations)
@@ -219,28 +237,42 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	if primary == nil {
 		commit, primary = tx.commitState(preimage, session)
 	}
+	if primary == nil && tx.deps.afterStateCommit != nil {
+		tx.deps.afterStateCommit()
+	}
 	if primary == nil {
 		primary = tx.commitQuarantine()
 	}
+	if primary == nil {
+		primary = tx.clearTransactionJournal()
+	}
 	recoveryRequired := false
-	if primary != nil && commit != nil && commit.replaced {
+	if primary != nil && !tx.journalCleared && commit != nil && commit.replaced {
 		if restoreErr := tx.restoreState(preimage, commit); restoreErr != nil {
 			primary = applyUnavailable("provenance restoration could not be verified")
 			recoveryRequired = true
 		}
 	}
-	if primary != nil {
+	if primary != nil && !tx.journalCleared {
 		if rollbackErr := tx.rollback(); rollbackErr != nil {
-			primary = applyUnavailable("rollback could not be verified")
+			var applyErr *ApplyError
+			if !errors.As(primary, &applyErr) || !applyErr.Conflict() || !strings.Contains(applyErr.Reason, "lock changed") {
+				primary = applyUnavailable("rollback could not be verified")
+			}
 			recoveryRequired = true
 		}
 	}
-	if recoveryRequired && tx.quarantine != nil {
+	if primary != nil && !tx.journalCleared && !recoveryRequired {
+		if journalErr := tx.clearTransactionJournal(); journalErr != nil {
+			recoveryRequired = true
+		}
+	}
+	if recoveryRequired && tx.quarantine != nil && tx.quarantine.runInfo != nil {
 		if statusErr := tx.setQuarantineStatus(ProjectQuarantineRecoveryRequired); statusErr != nil {
 			tx.quarantine.manifest.Status = ProjectQuarantineRecoveryRequired
 		}
 	}
-	if tx.quarantine != nil {
+	if tx.quarantine != nil && tx.quarantine.runInfo != nil {
 		result.Quarantine = &ProjectQuarantineResult{ID: tx.quarantine.manifest.ID, Status: tx.quarantine.manifest.Status}
 	}
 	if primary == nil {
@@ -297,6 +329,9 @@ func normalizeApplyDeps(deps ApplyDeps) ApplyDeps {
 	}
 	if deps.newQuarantineID == nil {
 		deps.newQuarantineID = defaults.newQuarantineID
+	}
+	if deps.publishStateNoReplace == nil {
+		deps.publishStateNoReplace = defaults.publishStateNoReplace
 	}
 	return deps
 }
@@ -596,6 +631,7 @@ type applyLock struct {
 	file os.FileInfo
 	hand *os.File
 	path string
+	held bool
 }
 
 type publishedPlacement struct {
@@ -645,16 +681,19 @@ type stateCommit struct {
 }
 
 type applyTransaction struct {
-	root        string
-	rootInfo    os.FileInfo
-	ancestors   map[Target][]*applyAncestor
-	createdDirs []*applyAncestor
-	published   []publishedPlacement
-	quarantined []quarantinedPlacement
-	quarantine  *projectQuarantineTransaction
-	lock        *applyLock
-	layout      DerivedLayout
-	deps        ApplyDeps
+	root           string
+	rootInfo       os.FileInfo
+	ancestors      map[Target][]*applyAncestor
+	createdDirs    []*applyAncestor
+	published      []publishedPlacement
+	quarantined    []quarantinedPlacement
+	quarantine     *projectQuarantineTransaction
+	journal        *projectTransactionJournal
+	journalData    []byte
+	journalCleared bool
+	lock           *applyLock
+	layout         DerivedLayout
+	deps           ApplyDeps
 }
 
 func applyRootInfo(root string) (os.FileInfo, error) {
@@ -738,19 +777,66 @@ func acquireApplyLock(layout DerivedLayout, rootInfo os.FileInfo, deps ApplyDeps
 		return nil, created, applyConflict("project root changed before lock acquisition")
 	}
 	path := filepath.Join(layout.DerivedDirectoryPath, applyLockName)
-	handle, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	handle, createdLock, err := openApplyLockFile(path)
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
+		return nil, created, err
+	}
+	cleanup := func() {
+		_ = handle.Close()
+		if createdLock {
+			_ = os.Remove(path)
+		}
+	}
+	if lockErr := lockApplyFile(handle); lockErr != nil {
+		cleanup()
+		if errors.Is(lockErr, errApplyLockHeld) {
 			return nil, created, applyConflict("another project apply is active")
 		}
 		return nil, created, applyUnavailable("apply lock could not be acquired")
 	}
 	info, statErr := handle.Stat()
-	if statErr != nil {
-		_ = handle.Close()
+	current, pathErr := os.Lstat(path)
+	if statErr != nil || pathErr != nil || !os.SameFile(info, current) || current.Mode()&os.ModeSymlink != 0 || !current.Mode().IsRegular() || !validApplyPrivateFileMode(current.Mode()) {
+		_ = unlockApplyFile(handle)
+		cleanup()
 		return nil, created, applyUnavailable("apply lock could not be verified")
 	}
-	return &applyLock{file: info, hand: handle, path: path}, created, nil
+	return &applyLock{file: info, hand: handle, path: path, held: true}, created, nil
+}
+
+func openApplyLockFile(path string) (*os.File, bool, error) {
+	handle, err := createApplyLockFile(path)
+	if err == nil {
+		if chmodErr := handle.Chmod(0o600); chmodErr != nil {
+			_ = handle.Close()
+			_ = os.Remove(path)
+			return nil, false, applyUnavailable("apply lock could not be initialized")
+		}
+		if _, writeErr := handle.WriteString(applyLockMarker); writeErr != nil {
+			_ = handle.Close()
+			_ = os.Remove(path)
+			return nil, false, applyUnavailable("apply lock could not be initialized")
+		}
+		if syncErr := handle.Sync(); syncErr != nil {
+			_ = handle.Close()
+			_ = os.Remove(path)
+			return nil, false, applyUnavailable("apply lock could not be initialized")
+		}
+		return handle, true, nil
+	}
+	if !errors.Is(err, os.ErrExist) {
+		return nil, false, applyUnavailable("apply lock could not be acquired")
+	}
+	handle, err = openExistingApplyLockFile(path)
+	if err != nil {
+		return nil, false, applyConflict("another project apply is active")
+	}
+	data, readErr := io.ReadAll(io.LimitReader(handle, int64(len(applyLockMarker)+1)))
+	if readErr != nil || string(data) != applyLockMarker {
+		_ = handle.Close()
+		return nil, false, applyConflict("apply lock path is not reconciler-owned")
+	}
+	return handle, false, nil
 }
 
 func finishApplySetup(tx *applyTransaction, plan Plan, primary error) (ApplyResult, error) {
@@ -760,7 +846,11 @@ func finishApplySetup(tx *applyTransaction, plan Plan, primary error) (ApplyResu
 	if cleanupErr := tx.cleanupCreatedDirs(false); cleanupErr != nil && primary == nil {
 		primary = cleanupErr
 	}
-	return ApplyResult{Plan: plan, Installed: []AppliedPlacement{}}, primary
+	result := ApplyResult{Plan: plan, Installed: []AppliedPlacement{}}
+	if tx.quarantine != nil && tx.quarantine.runInfo != nil {
+		result.Quarantine = &ProjectQuarantineResult{ID: tx.quarantine.manifest.ID, Status: tx.quarantine.manifest.Status}
+	}
+	return result, primary
 }
 
 func cleanupApplyDirs(directories []*applyAncestor) error {
@@ -922,6 +1012,11 @@ func (tx *applyTransaction) applyOperations(ctx context.Context, session *Projec
 			_ = os.RemoveAll(temp)
 			return err
 		}
+		finalStagedHash, finalStagedErr := HashSkillTree(temp)
+		if finalStagedErr != nil || finalStagedHash != snapshot.Hash {
+			_ = os.RemoveAll(temp)
+			return applyConflict("temporary placement changed before publication")
+		}
 		if publishErr := tx.deps.PublishNoReplace(temp, destination); publishErr != nil {
 			_ = os.RemoveAll(temp)
 			if errors.Is(publishErr, os.ErrExist) {
@@ -1041,8 +1136,12 @@ func (tx *applyTransaction) checkLock() error {
 	if tx.lock == nil {
 		return applyConflict("apply lock is unavailable")
 	}
+	rootInfo, rootErr := os.Lstat(tx.root)
+	if rootErr != nil || tx.rootInfo == nil || !os.SameFile(tx.rootInfo, rootInfo) || rootInfo.Mode()&os.ModeSymlink != 0 || !rootInfo.IsDir() {
+		return applyConflict("project root changed during transaction")
+	}
 	info, err := os.Lstat(tx.lock.path)
-	if err != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+	if err != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) {
 		return applyConflict("apply lock changed during transaction")
 	}
 	return nil
@@ -1050,13 +1149,13 @@ func (tx *applyTransaction) checkLock() error {
 
 func (tx *applyTransaction) rollback() error {
 	if len(tx.published) == 0 && len(tx.quarantined) == 0 {
-		if tx.quarantine != nil {
+		if tx.quarantine != nil && tx.quarantine.runInfo != nil {
 			return tx.setQuarantineStatus(ProjectQuarantineRolledBack)
 		}
 		return nil
 	}
 	var failed bool
-	if tx.quarantine != nil {
+	if tx.quarantine != nil && tx.quarantine.runInfo != nil {
 		if err := tx.checkQuarantineBoundary(); err != nil {
 			return applyUnavailable("rollback preserved recoverable project state")
 		}
@@ -1066,10 +1165,16 @@ func (tx *applyTransaction) rollback() error {
 	}
 	var recoveryDir string
 	if len(tx.published) > 0 {
-		var err error
-		recoveryDir, err = tx.deps.MakeTempDir(filepath.Dir(tx.layout.ReconcilerStatePath), ".sjskills-recovery-")
+		if tx.journal == nil {
+			return applyUnavailable("rollback recovery could not be created")
+		}
+		recoveryDir = projectRecoveryRunPath(tx.layout, tx.journal.ID)
+		created, err := ensureApplyDirectory(tx.root, recoveryDir)
 		if err != nil {
 			return applyUnavailable("rollback recovery could not be created")
+		}
+		if err := tx.syncCreatedDirectoryParents(created); err != nil {
+			return err
 		}
 		recoveryInfo, err := os.Lstat(recoveryDir)
 		if err != nil || !recoveryInfo.IsDir() || recoveryInfo.Mode()&os.ModeSymlink != 0 {
@@ -1094,7 +1199,25 @@ func (tx *applyTransaction) rollback() error {
 				continue
 			}
 		}
-		recoveryPath := filepath.Join(recoveryDir, strconv.Itoa(index))
+		recoveryPath := filepath.Join(recoveryDir, string(placement.target), placement.skill)
+		if err := ensureRecoveryParent(tx, filepath.Dir(recoveryPath)); err != nil {
+			failed = true
+			continue
+		}
+		if err := tx.checkRootAndAncestors(placement.target); err != nil || tx.checkLock() != nil {
+			failed = true
+			continue
+		}
+		info, err = os.Lstat(placement.dest)
+		if err != nil || !os.SameFile(placement.info, info) || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			failed = true
+			continue
+		}
+		hash, hashErr = HashSkillTree(placement.dest)
+		if hashErr != nil || hash != placement.expected {
+			failed = true
+			continue
+		}
 		if _, statErr := os.Lstat(recoveryPath); statErr == nil {
 			failed = true
 			continue
@@ -1108,9 +1231,6 @@ func (tx *applyTransaction) rollback() error {
 		if statErr != nil || movedInfo.Mode()&os.ModeSymlink != 0 || !movedInfo.IsDir() || !os.SameFile(placement.info, movedInfo) || hashErr != nil || movedHash != placement.expected {
 			failed = true
 			continue
-		}
-		if removeErr := os.RemoveAll(recoveryPath); removeErr != nil {
-			failed = true
 		}
 	}
 	for index := len(tx.quarantined) - 1; index >= 0; index-- {
@@ -1163,11 +1283,6 @@ func (tx *applyTransaction) rollback() error {
 			continue
 		}
 		if err := tx.setQuarantineEntryStatus(placement.target, placement.skill, ProjectQuarantineEntryRestored); err != nil {
-			failed = true
-		}
-	}
-	if !failed && recoveryDir != "" {
-		if removeErr := os.RemoveAll(recoveryDir); removeErr != nil {
 			failed = true
 		}
 	}
@@ -1225,18 +1340,14 @@ func (tx *applyTransaction) commitState(preimage *applyStatePreimage, session *P
 	if err != nil || !sameApplyState(preimage, current) {
 		return nil, applyConflict("provenance state changed before commit")
 	}
-	now := tx.deps.Now()
-	if now.IsZero() {
-		return nil, applyUnavailable("provenance timestamp is unavailable")
+	if tx.journal == nil {
+		return nil, applyUnavailable("transaction recovery evidence is unavailable")
 	}
-	state, err := buildApplyState(preimage.state, session, now.UTC())
-	if err != nil {
-		return nil, err
+	state, valid := decodeProvenanceState(tx.journal.CandidateState)
+	if !valid {
+		return nil, applyConflict("transaction recovery evidence is invalid")
 	}
-	data, err := marshalApplyState(state)
-	if err != nil {
-		return nil, applyUnavailable("provenance state could not be encoded")
-	}
+	data := append([]byte(nil), tx.journal.CandidateState...)
 	temporaryPath, err := tx.prepareStateBytes(data, 0o600)
 	if err != nil {
 		return nil, err
@@ -1260,7 +1371,7 @@ func (tx *applyTransaction) commitState(preimage *applyStatePreimage, session *P
 	if err := tx.checkLock(); err != nil {
 		return nil, err
 	}
-	return tx.publishStateBytes(temporaryPath, data)
+	return tx.publishStateBytes(temporaryPath, data, preimage)
 }
 
 func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, candidate ProvenanceState) error {
@@ -1401,13 +1512,13 @@ func marshalApplyState(state ProvenanceState) ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
-func (tx *applyTransaction) writeStateBytes(data []byte, mode os.FileMode) (*stateCommit, error) {
+func (tx *applyTransaction) writeStateBytes(expected *applyStatePreimage, data []byte, mode os.FileMode) (*stateCommit, error) {
 	temporaryPath, err := tx.prepareStateBytes(data, mode)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(temporaryPath)
-	return tx.publishStateBytes(temporaryPath, data)
+	return tx.publishStateBytes(temporaryPath, data, expected)
 }
 
 func (tx *applyTransaction) prepareStateBytes(data []byte, mode os.FileMode) (string, error) {
@@ -1442,19 +1553,47 @@ func (tx *applyTransaction) prepareStateBytes(data []byte, mode os.FileMode) (st
 	return temporaryPath, nil
 }
 
-func (tx *applyTransaction) publishStateBytes(temporaryPath string, data []byte) (*stateCommit, error) {
+func (tx *applyTransaction) publishStateBytes(temporaryPath string, data []byte, expected *applyStatePreimage) (*stateCommit, error) {
 	parent := filepath.Dir(tx.layout.ReconcilerStatePath)
-	if err := tx.deps.ReplaceFileAtomic(temporaryPath, tx.layout.ReconcilerStatePath); err != nil {
+	if err := tx.checkLock(); err != nil {
+		return nil, err
+	}
+	current, err := captureApplyStatePreimage(tx.layout)
+	if err != nil || !sameApplyState(expected, current) {
+		return nil, applyConflict("provenance state changed immediately before replacement")
+	}
+	var publishErr error
+	if expected.exists {
+		publishErr = tx.deps.ReplaceFileAtomic(temporaryPath, tx.layout.ReconcilerStatePath)
+	} else {
+		publishErr = tx.deps.publishStateNoReplace(temporaryPath, tx.layout.ReconcilerStatePath)
+	}
+	if publishErr != nil {
+		if commit, landed := tx.observeStateCommit(data); landed {
+			return commit, applyUnavailable("provenance state replacement was not confirmed")
+		}
+		if !expected.exists && errors.Is(publishErr, os.ErrExist) {
+			return nil, applyConflict("provenance state appeared during publication")
+		}
 		return nil, applyUnavailable("provenance state could not be atomically replaced")
 	}
-	info, err := os.Lstat(tx.layout.ReconcilerStatePath)
-	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+	commit, landed := tx.observeStateCommit(data)
+	if !landed {
 		return &stateCommit{replaced: true, data: append([]byte(nil), data...)}, applyUnavailable("provenance state could not be verified")
 	}
 	if err := tx.deps.SyncDir(parent); err != nil {
-		return &stateCommit{replaced: true, data: append([]byte(nil), data...), info: info}, applyUnavailable("provenance directory could not be synced")
+		return commit, applyUnavailable("provenance directory could not be synced")
 	}
-	return &stateCommit{replaced: true, data: append([]byte(nil), data...), info: info}, nil
+	return commit, nil
+}
+
+func (tx *applyTransaction) observeStateCommit(data []byte) (*stateCommit, bool) {
+	info, statErr := os.Lstat(tx.layout.ReconcilerStatePath)
+	stored, readErr := readBoundedInspectionFile(tx.layout.ReconcilerStatePath, maxProvenanceStateBytes)
+	if statErr != nil || readErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !bytes.Equal(stored, data) {
+		return nil, false
+	}
+	return &stateCommit{replaced: true, data: append([]byte(nil), data...), info: info}, true
 }
 
 func (tx *applyTransaction) restoreState(preimage *applyStatePreimage, commit *stateCommit) error {
@@ -1466,36 +1605,39 @@ func (tx *applyTransaction) restoreState(preimage *applyStatePreimage, commit *s
 		return applyUnavailable("provenance restoration could not prove state ownership")
 	}
 	if preimage.exists {
-		_, err := tx.writeStateBytes(preimage.data, preimage.mode)
+		_, err := tx.writeStateBytes(current, preimage.data, preimage.mode)
 		return err
 	}
-	if removeErr := os.Remove(tx.layout.ReconcilerStatePath); removeErr != nil {
-		return applyUnavailable("new provenance state could not be removed")
-	}
-	if err := tx.deps.SyncDir(filepath.Dir(tx.layout.ReconcilerStatePath)); err != nil {
-		return applyUnavailable("provenance directory could not be synced")
-	}
-	return nil
+	return tx.moveOwnedStateToRecovery(current, "new provenance state")
 }
 
 func (tx *applyTransaction) closeLock() error {
 	if tx.lock == nil {
 		return nil
 	}
-	closeErr := tx.lock.hand.Close()
 	info, statErr := os.Lstat(tx.lock.path)
-	if statErr != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+	if statErr != nil || !os.SameFile(tx.lock.file, info) || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || !validApplyPrivateFileMode(info.Mode()) {
+		_ = unlockApplyFile(tx.lock.hand)
+		_ = tx.lock.hand.Close()
 		return applyConflict("apply lock changed during transaction")
 	}
 	if removeErr := os.Remove(tx.lock.path); removeErr != nil {
-		if closeErr != nil {
-			return applyUnavailable("apply lock could not be closed")
-		}
+		_ = unlockApplyFile(tx.lock.hand)
+		_ = tx.lock.hand.Close()
 		return applyUnavailable("apply lock could not be removed")
 	}
+	if tx.lock.held {
+		if unlockErr := unlockApplyFile(tx.lock.hand); unlockErr != nil {
+			_ = tx.lock.hand.Close()
+			return applyUnavailable("apply lock could not be released")
+		}
+		tx.lock.held = false
+	}
+	closeErr := tx.lock.hand.Close()
 	if closeErr != nil {
 		return applyUnavailable("apply lock could not be closed")
 	}
+	tx.lock = nil
 	return nil
 }
 

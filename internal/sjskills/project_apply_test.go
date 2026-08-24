@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -230,6 +231,184 @@ func TestApplyProjectChangesPreservesNoReplaceCollision(t *testing.T) {
 	}
 }
 
+func TestApplyProjectChangesReclaimsRecognizableStaleLock(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	if err := os.MkdirAll(session.Layout.DerivedDirectoryPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(session.Layout.DerivedDirectoryPath, applyLockName)
+	if err := os.WriteFile(lockPath, []byte(applyLockMarker), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{})
+	if err != nil || len(result.Installed) != 1 || result.Installed[0].Skill != skill.Name {
+		t.Fatalf("stale-lock apply result=%#v err=%v", result, err)
+	}
+	if _, err := os.Lstat(lockPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("stale lock survived successful apply: %v", err)
+	}
+}
+
+func TestApplyProjectChangesRejectsRecognizableHeldLock(t *testing.T) {
+	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
+	if err := os.MkdirAll(session.Layout.DerivedDirectoryPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(session.Layout.DerivedDirectoryPath, applyLockName)
+	handle, _, err := openApplyLockFile(lockPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Close()
+	if err := lockApplyFile(handle); err != nil {
+		t.Fatal(err)
+	}
+	defer unlockApplyFile(handle)
+	_, err = ApplyProjectChanges(context.Background(), session, ApplyDeps{})
+	var applyErr *ApplyError
+	if !errors.As(err, &applyErr) || !applyErr.Conflict() || err.Error() != "project apply conflict: another project apply is active" {
+		t.Fatalf("held-lock error = %v", err)
+	}
+}
+
+func TestApplyProjectChangesRecoversInterruptedInstallBeforeRerun(t *testing.T) {
+	session, _, skill, hash := newApplyFixture(t, []Target{TargetAgents})
+	if err := os.MkdirAll(session.Layout.DerivedDirectoryPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	preimage := &applyStatePreimage{state: emptyTrustedProvenanceState()}
+	recordedAt := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
+	candidate, err := buildApplyState(preimage.state, session, recordedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidateData, err := marshalApplyState(candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal, err := newApplyJournal(preimage, session, candidateData, testQuarantineID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	journalData, err := marshalProjectTransactionJournal(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(projectTransactionJournalPath(session.Layout), journalData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyApplyTree(session.Materialized.snapshots[skill.Name].Path, destination, func(file *os.File) error { return file.Sync() }); err != nil {
+		t.Fatal(err)
+	}
+	if got := hashSkillAt(t, destination); got != hash {
+		t.Fatalf("simulated landed install hash=%#v, want %#v", got, hash)
+	}
+	if err := os.WriteFile(session.Layout.ReconcilerStatePath, candidateData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil || err.Error() != "project apply unavailable: interrupted project transaction was recovered; rerun apply" {
+		t.Fatalf("interrupted recovery error = %v", err)
+	}
+	if _, err := os.Lstat(destination); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("interrupted placement survived recovery: %v", err)
+	}
+	if _, err := os.Lstat(session.Layout.ReconcilerStatePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("interrupted provenance survived recovery: %v", err)
+	}
+	if _, err := os.Lstat(projectTransactionJournalPath(session.Layout)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("transaction journal survived recovery: %v", err)
+	}
+	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{})
+	if err != nil || len(result.Installed) != 1 || result.Installed[0].Skill != skill.Name {
+		t.Fatalf("post-recovery rerun result=%#v err=%v", result, err)
+	}
+}
+
+func TestApplyProjectChangesRollsBackLandedStateReplacementError(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	landed := false
+	deps := ApplyDeps{publishStateNoReplace: func(source, destination string) error {
+		if err := publishNoReplace(source, destination); err != nil {
+			return err
+		}
+		landed = true
+		return errors.New("injected error after atomic replacement")
+	}}
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil || !landed {
+		t.Fatalf("landed replacement result err=%v landed=%v", err, landed)
+	}
+	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("placement survived landed state rollback: %v", err)
+	}
+	if _, err := os.Lstat(session.Layout.ReconcilerStatePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("landed state survived rollback: %v", err)
+	}
+	if _, err := os.Lstat(projectTransactionJournalPath(session.Layout)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("journal survived landed state rollback: %v", err)
+	}
+}
+
+func TestApplyProjectChangesRehashesTemporaryPlacementImmediatelyBeforePublish(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	var staged string
+	deps := ApplyDeps{
+		MakeTempDir: func(parent, pattern string) (string, error) {
+			path, err := os.MkdirTemp(parent, pattern)
+			staged = path
+			return path, err
+		},
+		BeforePublish: func(AppliedPlacement) error {
+			return os.WriteFile(filepath.Join(staged, "raced"), []byte("external\n"), 0o644)
+		},
+	}
+	if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil || err.Error() != "project apply conflict: temporary placement changed before publication" {
+		t.Fatalf("staged publication race error=%v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("raced temporary placement was published: %v", err)
+	}
+}
+
+func TestApplyProjectChangesRecoversAfterAbruptProcessExit(t *testing.T) {
+	const childEnv = "SJSKILLS_ABRUPT_APPLY_CHILD"
+	const rootEnv = "SJSKILLS_ABRUPT_APPLY_ROOT"
+	const stageEnv = "SJSKILLS_ABRUPT_APPLY_STAGE"
+	if os.Getenv(childEnv) == "1" {
+		session, _, _, _ := newApplyFixtureAt(t, os.Getenv(rootEnv), os.Getenv(stageEnv), []Target{TargetAgents})
+		_, _ = ApplyProjectChanges(context.Background(), session, ApplyDeps{afterStateCommit: func() { os.Exit(91) }})
+		os.Exit(92)
+	}
+	project := t.TempDir()
+	stage := t.TempDir()
+	child := exec.Command(os.Args[0], "-test.run=^TestApplyProjectChangesRecoversAfterAbruptProcessExit$")
+	child.Env = append(os.Environ(), childEnv+"=1", rootEnv+"="+project, stageEnv+"="+stage)
+	output, err := child.CombinedOutput()
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 91 {
+		t.Fatalf("abrupt child err=%v output=%q", err, output)
+	}
+	session, _, skill, _ := newApplyFixtureAt(t, project, stage, []Target{TargetAgents})
+	if _, err := os.Lstat(projectTransactionJournalPath(session.Layout)); err != nil {
+		t.Fatalf("abrupt child did not leave journal: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(session.Layout.DerivedDirectoryPath, applyLockName)); err != nil || string(data) != applyLockMarker {
+		t.Fatalf("abrupt child lock data=%q err=%v", data, err)
+	}
+	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil || err.Error() != "project apply unavailable: interrupted project transaction was recovered; rerun apply" {
+		t.Fatalf("abrupt recovery error=%v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("abrupt placement survived recovery: %v", err)
+	}
+	if _, err := os.Lstat(session.Layout.ReconcilerStatePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("abrupt provenance survived recovery: %v", err)
+	}
+}
+
 func TestApplyProjectChangesDoesNotOwnSwappedInstallPublication(t *testing.T) {
 	session, _, skill, expected := newApplyFixture(t, []Target{TargetAgents})
 	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
@@ -375,19 +554,13 @@ func TestApplyProjectChangesRollbackPreservesRacedReplacement(t *testing.T) {
 	if !replaced {
 		t.Fatal("rollback race hook did not run")
 	}
-	recovered, err := filepath.Glob(filepath.Join(session.Layout.DerivedDirectoryPath, ".sjskills-recovery-*", "*", "external"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(recovered) != 1 {
-		t.Fatalf("recovered raced files = %v, want one", recovered)
-	}
-	data, err := os.ReadFile(recovered[0])
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	data, err := os.ReadFile(filepath.Join(destination, "external"))
 	if err != nil || string(data) != "preserve\n" {
-		t.Fatalf("recovered raced content = %q, err=%v", data, err)
+		t.Fatalf("raced destination content = %q, err=%v", data, err)
 	}
-	if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !os.IsNotExist(err) {
-		t.Fatalf("raced source path survived atomic preservation move: err=%v", err)
+	if _, err := os.Lstat(projectTransactionJournalPath(session.Layout)); err != nil {
+		t.Fatalf("recovery journal disappeared after ambiguous rollback: %v", err)
 	}
 }
 
@@ -583,6 +756,11 @@ func newApplyFixture(t *testing.T, targets []Target) (*ProjectApplySession, stri
 	t.Helper()
 	project := t.TempDir()
 	stage := t.TempDir()
+	return newApplyFixtureAt(t, project, stage, targets)
+}
+
+func newApplyFixtureAt(t *testing.T, project, stage string, targets []Target) (*ProjectApplySession, string, DesiredSkill, TreeHash) {
+	t.Helper()
 	canonicalProject, err := filepath.EvalSymlinks(project)
 	if err != nil {
 		t.Fatal(err)

@@ -36,16 +36,16 @@ Goal contract
 
 - Version 4 desired-state contracts and pure resolution.
 - Isolated Skills CLI materialization.
+- Recoverable project exact-state reconciliation.
 
 ### Current in-scope result
 
-Recoverable project exact-state reconciliation.
+Fixed global baseline and legacy-engine cutover.
 
 ### Next in-scope action
 
-Revalidate approved project state immediately before every remaining move or
-replacement and recover coherently from interruption or partial failure using
-temporary projects only.
+Port the applicable project safety invariants into one fixed global baseline
+and keep all real-home validation read-only.
 
 ### Evidence and blockers
 
@@ -236,3 +236,29 @@ temporary projects only.
   tests, skill validation, formatting, and diff checks passed without real-home
   mutation. Interruption recovery remains the next independently reviewable
   project-reconciliation slice.
+- Project apply and restore now acquire crash-releasing advisory locks on
+  Darwin/Linux/BSD/Solaris, AIX, and Windows while retaining one recognizable
+  private lock marker. A killed process no longer strands the project lock;
+  malformed or actively held competitors still fail closed.
+- A strict bounded private transaction journal commits before the first
+  managed mutation and records exact preimage/candidate provenance plus
+  path-relative placement/source/hash evidence. Restart rolls interrupted
+  install, update, removal, and restore transactions back to their exact
+  pre-state; semantic transition validation prevents unrelated journal state
+  from claiming an unknown tree.
+- Every staged tree, live placement, provenance file, quarantine boundary, and
+  manifest is revalidated immediately before publication, movement, or
+  replacement. Atomic operations reconcile landed-error outcomes, and raced
+  external bytes are returned when possible or retained privately without
+  overwrite or deletion.
+- Abrupt subprocess fixtures cover install/update and restore death after
+  provenance commit, plus death after durable quarantine-run and initial
+  manifest staging. Ambiguous recovery preserves the journal and reports a
+  path-free quarantine handle when one exists; a missing committed restore run
+  blocks before any placement move.
+- The independent recovery review closed Windows delete-sharing, AIX locking,
+  journal-transition, journal-unlink, recovery-handle, pre-manifest crash, and
+  provenance/tree move race gaps. Fresh Go unit/race/vet, Windows compile,
+  AIX/Solaris build, 55 legacy Node safety tests, 35 skill validations, local
+  catalog validation, formatting, and diff checks passed using temporary
+  projects and homes only.
