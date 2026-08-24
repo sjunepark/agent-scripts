@@ -49,10 +49,9 @@
   skills. See `docs/skill-registry.md` for its contract.
 - Published means available to install from the GitHub `skills/` subpath; it
   does not imply global installation.
-- Keep global installs to the small baseline that is useful in most repos for a
-  given agent.
-- Install project-scoped skills only when their registry `when` condition
-  matches the target repository.
+- Keep the fixed global baseline small and machine-independent.
+- Select project profiles or direct skills in the project's committed
+  `sjskills.toml`; registry profile membership does not make a skill global.
 - When checking whether Codex loads skills, verify the intended installed
   subset, not every skill present under this repo's `skills/`.
 
@@ -85,14 +84,14 @@
 - `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
 - Use `bunx skills list -g` to inspect user-level global installs.
 - Use `skill-registry.json` as the desired skill registry.
-- Use `scripts/audit-global-skills --profile <dev|kicpa>` to compare
-  exact managed-root state with one selected profile. The default is read-only;
-  `--apply` installs or updates remote Skills CLI entries, while
-  the exact `--prune <sha256:digest> --yes` command printed by that audit
-  separately quarantines only the reviewed verified legacy duplicates.
+- Use `bin/sjskills plan --global` for read-only global inspection.
+- Use `bin/sjskills plan`, `apply`, and `restore <quarantine-id>` for a
+  project that commits `sjskills.toml`.
+- Treat `scripts/audit-global-skills` only as a read-only transition wrapper
+  for `bin/sjskills plan --global`; its profile and mutation interfaces are
+  retired.
 - Run the dependency-free registry and reconciler tests with `node --test
-  scripts/lib/skill-registry.test.js scripts/lib/global-skill-state.test.js
-  scripts/audit-global-skills.test.js`.
+  scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js`.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
 - Validate published skill metadata and local links with `scripts/validate-skills`.
@@ -114,30 +113,34 @@
 - For skills, use the GitHub `skills/` subpath so installs do not publish
   repo-local `.agents/` and `.claude/` skills.
 - If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
-- Reconcile a machine only after intended public skill changes are committed,
-  pushed, and present at the registry's remote source; fetch that ref and verify
-  each intended skill tree matches the published tree, including after squash
-  or rebase. Run the read-only profile audit, then `--apply`, review the
-  remaining prune plan, and copy its exact digest-bound command only when
-  those verified duplicates should be quarantined.
-- A first-run stale Skills CLI copy without trusted local-hash provenance is
-  not an ordinary update. Review the proposed replacement and use
-  the printed `--replace-unverified <sha256:digest> --yes` command only when
-  its manifest-backed backup and remote reinstall are intended.
+- Reconcile only after intended public skill changes are committed, pushed,
+  and present at the registry's remote source; fetch that ref and verify each
+  intended skill tree matches the published tree, including after squash or
+  rebase.
+- A first-run copy without trusted reconciler provenance is not an ordinary
+  update even when its bytes match. Resolve unmanaged desired paths explicitly;
+  `sjskills` has no force-adopt or force-replace interface.
 - Do not use `--all` for scoped installs; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which can override the intended agent restriction and recreate shared `~/.agents/skills` installs.
 - The registry declares selected installation targets as `.agents` and
   `.claude`. The reconciler places them in `~/.agents/skills` and
   `~/.claude/skills`, respectively; it does not create Pi-specific copies.
-- `--apply` records verified local tree hashes in
-  `~/.agents/.global-skill-state.json`. Exact preexisting copies are adopted;
-  later updates proceed only while installed content still matches the record.
+- Global apply records verified local tree hashes in
+  `~/.agents/.global-skill-state.json`. Byte equality alone does not grant
+  ownership; later updates proceed only while installed content still matches
+  trusted reconciler state.
+- Global locks, transaction journals, recovery data, and quarantine live under
+  `~/.agents/.sjskills-global/`. Restore uses
+  `sjskills restore --global <quarantine-id>` and refuses to overwrite.
 - Do not install this repo's skills from the current working tree, `.` or `./skills`, when the goal is to install them for ongoing use on a machine.
 - Use local-path skill or plugin installs only for local validation,
   unpublished work, or explicitly requested temporary development testing.
 - Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
-- Restore quarantined entries only with the manifest-specific command printed
-  by the prune operation; restoration refuses to overwrite an active path.
+- Do not run `sjskills apply --global` or global restore against a real home
+  as repository validation. Real-machine rollout requires a separate reviewed,
+  evidence-bound plan and explicit authorization.
+- Restore project or global quarantines only with the identifier reported by
+  `sjskills`; restoration refuses to overwrite an active path.
 
 ## Editing expectations
 - Prefer editing an existing skill in place over adding new top-level conventions.
@@ -151,6 +154,7 @@
 
 ## Current repo facts
 - There is no package manifest, CI workflow, or formatter config at the repo root today.
-- Dependency-free Node tests cover the registry and global skill reconciler.
+- Dependency-free Node tests cover the registry and read-only audit transition
+  wrapper; Go tests cover project and global reconciliation.
 - There is a repository-local skill validation script at `scripts/validate-skills`.
 - Do not add build or lint instructions to this file unless those workflows are added to the repository.

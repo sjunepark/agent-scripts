@@ -136,7 +136,7 @@ exit 4
 func TestExternalHelpAndVersion(t *testing.T) {
 	directory := t.TempDir()
 	code, stdout, stderr := runCLI(t, directory, "--help")
-	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to quarantine") || !strings.Contains(stdout, "Restore a committed project quarantine") || !strings.Contains(stdout, "without overwriting managed") || strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
+	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to") || !strings.Contains(stdout, "quarantine") || !strings.Contains(stdout, "Restore a committed project or global quarantine") || !strings.Contains(stdout, "without overwriting managed") || strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
 		t.Fatalf("help code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--version")
@@ -199,8 +199,11 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	}
 
 	code, stdout, stderr = runCLI(t, directory, "--json", "apply", "--global", "--yes")
-	if code != 2 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"unavailable"`) || !strings.Contains(stdout, "global reconciliation is not implemented") {
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
 		t.Fatalf("apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if strings.Contains(stdout, directory) {
+		t.Fatalf("global apply leaked project path: %q", stdout)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--json", "restore", "quarantine-1")
 	if code != 65 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) || strings.Contains(stdout, directory) {
@@ -415,16 +418,169 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 		t.Fatalf("idempotent apply changed project: before=%#v after=%#v", firstApply, after)
 	}
 	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes")
-	if code != 2 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"unavailable"`) || !strings.Contains(stdout, `"detail":"global managed roots unchanged"`) {
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
 		t.Fatalf("global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, firstApply) {
 		t.Fatalf("global apply changed project: before=%#v after=%#v", firstApply, after)
 	}
 	for name, root := range globalRoots {
+		if name == "HOME" {
+			if data, readErr := os.ReadFile(filepath.Join(root, "sentinel")); readErr != nil || string(data) != "HOME\n" {
+				t.Fatalf("global HOME sentinel changed: data=%q err=%v", data, readErr)
+			}
+			continue
+		}
 		if after := captureFixtureTree(t, root); !reflect.DeepEqual(after, globalBefore[name]) {
 			t.Fatalf("global sentinel %s changed: before=%#v after=%#v", name, globalBefore[name], after)
 		}
+	}
+	globalLayout, err := sjskills.LayoutForGlobal(globalRoots["HOME"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	globalInventory, err := sjskills.InspectGlobal(globalLayout)
+	if err != nil || !globalInventory.StateTrusted || len(globalInventory.State.Records) != 18 {
+		t.Fatalf("global inventory=%#v err=%v", globalInventory, err)
+	}
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 0 global placements"`) || !strings.Contains(stdout, `"detail":"updated 0 global placements"`) {
+		t.Fatalf("idempotent global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+
+	registry, err := sjskills.EmbeddedRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	desired, err := sjskills.ResolveGlobal(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sources := make(map[string]string, len(desired.Skills))
+	for _, skill := range desired.Skills {
+		sources[skill.Name] = skill.Source
+	}
+	type legacyRecord struct {
+		Root          string    `json:"root"`
+		Skill         string    `json:"skill"`
+		Source        string    `json:"source"`
+		HashAlgorithm string    `json:"hashAlgorithm"`
+		Hash          string    `json:"hash"`
+		RecordedAt    time.Time `json:"recordedAt"`
+	}
+	legacy := struct {
+		Version int            `json:"version"`
+		Records []legacyRecord `json:"records"`
+	}{Version: 1, Records: make([]legacyRecord, 0, len(globalInventory.State.Records))}
+	for _, record := range globalInventory.State.Records {
+		root := "shared"
+		if record.Target == sjskills.TargetClaude {
+			root = "claude"
+		}
+		legacy.Records = append(legacy.Records, legacyRecord{
+			Root: root, Skill: record.Skill, Source: sources[record.Skill],
+			HashAlgorithm: record.TreeHashAlgorithm, Hash: record.TreeHash, RecordedAt: record.RecordedAt,
+		})
+	}
+	legacyData, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyData = append(legacyData, '\n')
+	if err := os.WriteFile(globalLayout.ProvenanceStatePath, legacyData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "\n", "apply", "--global")
+	if code != 2 || !strings.Contains(stdout, "apply: unavailable") || strings.Count(stderr, "Apply 1 global change (provenance migration)?") != 1 || !strings.Contains(stderr, "global apply was not confirmed") {
+		t.Fatalf("declined global migration code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if current, readErr := os.ReadFile(globalLayout.ProvenanceStatePath); readErr != nil || !bytes.Equal(current, legacyData) {
+		t.Fatalf("declined migration changed provenance: data=%q err=%v", current, readErr)
+	}
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "yes\n", "apply", "--global")
+	if code != 0 || strings.Count(stderr, "Apply 1 global change (provenance migration)?") != 1 || !strings.Contains(stdout, "migration: trusted global provenance migrated to version 2") {
+		t.Fatalf("confirmed global migration code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	globalInventory, err = sjskills.InspectGlobal(globalLayout)
+	if err != nil || globalInventory.ProvenanceFormat != sjskills.GlobalProvenanceCurrent || globalInventory.MigrationRequired {
+		t.Fatalf("migrated global inventory=%#v err=%v", globalInventory, err)
+	}
+}
+
+func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
+	directory := t.TempDir()
+	overrides := isolatedExternalHomes(t)
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
+		t.Fatalf("global v1 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+
+	overrides["SJSKILLS_FAKE_CONTENT"] = " v2"
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"updated 18 global placements"`) {
+		t.Fatalf("global v2 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	updated := decodeEnvelope(t, stdout)
+	quarantineID := ""
+	recoveryCommand := ""
+	for _, evidence := range updated.Evidence {
+		switch evidence.Kind {
+		case "quarantine":
+			fields := strings.Fields(evidence.Detail)
+			if len(fields) == 2 && fields[1] == "status=committed" {
+				quarantineID = strings.TrimPrefix(fields[0], "id=")
+			}
+		case "recovery-command":
+			recoveryCommand = evidence.Detail
+		}
+	}
+	if !validQuarantineID(quarantineID) ||
+		recoveryCommand != "sjskills restore --global "+quarantineID {
+		t.Fatalf("global recovery evidence=%#v", updated.Evidence)
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", "--global", quarantineID, "--yes")
+	if code != 2 || stderr != "" || !strings.Contains(stdout, `"result":"conflict"`) {
+		t.Fatalf("occupied global restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+
+	registry, err := sjskills.EmbeddedRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	desired, err := sjskills.ResolveGlobal(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout, err := sjskills.LayoutForGlobal(overrides["HOME"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(overrides["HOME"], "active-v2")
+	for _, skill := range desired.Skills {
+		for _, target := range skill.Targets {
+			root, rootErr := layout.ManagedSkillsPath(target)
+			if rootErr != nil {
+				t.Fatal(rootErr)
+			}
+			destination := filepath.Join(archive, string(target), "skills", skill.Name)
+			if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Rename(filepath.Join(root, skill.Name), destination); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", "--global", quarantineID, "--yes")
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"restored 18 global placements"`) {
+		t.Fatalf("global restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	inventory, err := sjskills.InspectGlobal(layout)
+	if err != nil || !inventory.StateTrusted || len(inventory.State.Records) != 18 {
+		t.Fatalf("restored global inventory=%#v err=%v", inventory, err)
 	}
 }
 
@@ -1546,6 +1702,46 @@ func TestRenderHumanReportsDeterministicOperationCounts(t *testing.T) {
 	}
 }
 
+func TestRenderHumanShowsReviewableOperationsAndRecoveryCommand(t *testing.T) {
+	const id = "0123456789abcdef0123456789abcdef"
+	envelope := sjskills.Envelope{
+		Operation: sjskills.CommandOperationApply,
+		Result:    sjskills.ResultSuccess,
+		Plan: &sjskills.Plan{
+			Desired: sjskills.DesiredState{
+				Scope:  sjskills.ScopeGlobal,
+				Skills: []sjskills.DesiredSkill{{Name: "alpha"}},
+			},
+			Operations: []sjskills.PlanOperation{{
+				Action: sjskills.PlanActionUpdate, Skill: "alpha",
+				Target: sjskills.TargetAgents, Reason: "verified-update",
+			}},
+		},
+		Warnings: []sjskills.Warning{},
+		Evidence: []sjskills.Evidence{
+			{Kind: "quarantine", Detail: "id=" + id + " status=committed"},
+			restoreCommandEvidence(id, true),
+		},
+	}
+	var stdout, stderr strings.Builder
+
+	renderHuman(&stdout, &stderr, envelope)
+
+	for _, expected := range []string{
+		"operations: update=1\n",
+		"update: .agents/skills/alpha (verified-update)\n",
+		"quarantine: id=" + id + " status=committed\n",
+		"restore with: sjskills restore --global " + id + "\n",
+	} {
+		if !strings.Contains(stdout.String(), expected) {
+			t.Fatalf("stdout %q does not contain %q", stdout.String(), expected)
+		}
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+}
+
 func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 	registry, err := sjskills.EmbeddedRegistry()
 	if err != nil {
@@ -1806,7 +2002,7 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		}
 
 		applyEnvelope := app.apply(context.Background(), true, true)
-		if calls != 2 || applyEnvelope.Result != sjskills.ResultUnavailable || applyEnvelope.Error == nil || !strings.Contains(applyEnvelope.Error.Message, "global reconciliation") {
+		if calls != 2 || applyEnvelope.Result != sjskills.ResultSuccess || applyEnvelope.Error != nil {
 			t.Fatalf("calls=%d apply=%#v", calls, applyEnvelope)
 		}
 	})
@@ -2166,6 +2362,24 @@ func TestConfirmProjectApplyPromptShapes(t *testing.T) {
 	}
 }
 
+func TestConfirmGlobalApplyIncludesProvenanceMigration(t *testing.T) {
+	for _, test := range []struct {
+		installs int
+		updates  int
+		removals int
+		want     string
+	}{
+		{0, 0, 0, "Apply 1 global change (provenance migration)? [y/N] "},
+		{1, 2, 0, "Apply 4 global changes (1 install, 2 updates, provenance migration)? [y/N] "},
+	} {
+		var output bytes.Buffer
+		confirmed, err := confirmApply(strings.NewReader("n\n"), &output, true, test.installs, test.updates, test.removals, true)
+		if err != nil || confirmed || output.String() != test.want {
+			t.Errorf("installs=%d updates=%d confirmed=%v err=%v output=%q want=%q", test.installs, test.updates, confirmed, err, output.String(), test.want)
+		}
+	}
+}
+
 func TestApplyExecutionEvidenceSeparatesRemovedPlacements(t *testing.T) {
 	result := sjskills.ApplyResult{
 		Installed:   []sjskills.AppliedPlacement{{Skill: "installed", Target: sjskills.TargetAgents}},
@@ -2193,6 +2407,12 @@ func TestApplyExecutionEvidenceSeparatesRemovedPlacements(t *testing.T) {
 	}
 	if got := applyExecutionEvidence(sjskills.ApplyResult{}, errors.New("apply failed")); len(got) != 1 || got[0].Detail != "no committed project placements were reported before apply failure" {
 		t.Fatalf("empty failure evidence=%#v", got)
+	}
+	if got := applyExecutionEvidenceForScope(sjskills.ApplyResult{Migrated: true}, nil, true); !hasEvidence(got, "migration", "trusted global provenance migrated to version 2") {
+		t.Fatalf("migration success evidence=%#v", got)
+	}
+	if got := applyExecutionEvidenceForScope(sjskills.ApplyResult{Migrated: true}, errors.New("apply failed"), true); !hasEvidence(got, "migration", "trusted global provenance migration committed before apply failure") {
+		t.Fatalf("migration failure evidence=%#v", got)
 	}
 }
 

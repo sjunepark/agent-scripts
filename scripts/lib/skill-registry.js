@@ -1,27 +1,18 @@
 "use strict";
 
-const fs = require("fs");
+const fs = require("node:fs");
 
 const allowedTargets = new Set([".agents", ".claude"]);
-const allowedAudiences = new Set(["common", "dev", "kicpa"]);
-const allowedInstallationManagers = new Set(["manual", "none", "skills-cli", "workflow"]);
-const allowedInstallationModes = new Set(["copy", "symlink"]);
-const allowedRecommendationScopes = new Set(["catalog", "global", "project"]);
-const allowedSourceKinds = new Set(["external", "repository"]);
-const topLevelFields = new Set(["description", "global", "skills", "sources", "version"]);
-const globalFields = new Set(["allowUnlistedSkills", "profiles"]);
-const profileFields = new Set(["audiences"]);
-const sourceFields = new Set(["catalogPath", "kind", "location"]);
-const skillFields = new Set(["installation", "name", "recommendation", "source"]);
-const recommendationFields = new Set(["audience", "scope", "targets", "when"]);
-const installationFields = new Set(["fullDepth", "manager", "mode", "workflow"]);
-const supportedProfiles = new Map([
-  ["dev", ["common", "dev"]],
-  ["kicpa", ["common", "kicpa"]]
-]);
+const allowedManagers = new Set(["manual", "none", "skills-cli", "workflow"]);
+const requiredProfiles = ["dev", "go", "kicpa", "rust"];
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function arraysEqual(left, right) {
+  return left.length === right.length &&
+    left.every((value, index) => value === right[index]);
 }
 
 function rejectUnknownFields(value, allowed, label, errors) {
@@ -31,15 +22,13 @@ function rejectUnknownFields(value, allowed, label, errors) {
   }
 }
 
-function arraysEqual(left, right) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+function portableName(value) {
+  return typeof value === "string" &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 }
 
-// The Skills CLI clones git shorthand (`owner/repo[/path]`) or credential-free
-// https remotes. It cannot install from an npm specifier, another URL scheme, or
-// a local path, so a source location outside that set makes `manager: skills-cli`
-// unusable regardless of scope. Classifying here keeps registry validation and
-// the reconciler's runtime guard on one definition; returns null when installable.
+// The Skills CLI clones git shorthand (owner/repo[/path]) or credential-free
+// HTTPS remotes. Return null only for a source the adapter can use.
 function skillsCliSourceProblem(location) {
   if (typeof location !== "string" || location.length === 0) return "empty";
   if (location.startsWith(".") || location.startsWith("/") || location.startsWith("~")) {
@@ -57,155 +46,119 @@ function skillsCliSourceProblem(location) {
   } catch {
     return "unsupported";
   }
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.username ||
-    parsed.password ||
-    parsed.search ||
-    parsed.hash
-  ) {
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
+      parsed.search || parsed.hash) {
     return "unsupported";
   }
   return null;
 }
 
-function validateProfiles(profiles, errors) {
-  if (!isObject(profiles)) {
-    errors.push("global.profiles must be an object keyed by profile name");
+function validateSortedSelection(label, values, known, errors) {
+  if (!Array.isArray(values) || values.length === 0) {
+    errors.push(`${label} must be a non-empty array`);
     return;
   }
-
-  const profileNames = Object.keys(profiles);
-  const expectedProfileNames = [...supportedProfiles.keys()];
-  if (!arraysEqual([...profileNames].sort(), expectedProfileNames)) {
-    errors.push(`global.profiles must define exactly: ${expectedProfileNames.join(", ")}`);
+  if (!arraysEqual(values, [...values].sort())) errors.push(`${label} must be sorted`);
+  const seen = new Set();
+  for (const name of values) {
+    if (!portableName(name)) errors.push(`${label} contains invalid skill ${name}`);
+    if (seen.has(name)) errors.push(`${label} repeats a skill`);
+    seen.add(name);
+    if (!known.has(name)) errors.push(`${label} references unknown skill ${name}`);
   }
-  if (!arraysEqual(profileNames, [...profileNames].sort())) {
-    errors.push("global.profiles must be sorted by name");
-  }
+}
 
-  for (const [profileName, profile] of Object.entries(profiles)) {
-    const label = `global profile ${profileName}`;
-    if (!isObject(profile)) {
-      errors.push(`${label} must be an object`);
-      continue;
-    }
-    rejectUnknownFields(profile, profileFields, label, errors);
-
-    const audiences = profile.audiences;
-    if (!Array.isArray(audiences) || audiences.length === 0) {
-      errors.push(`${label} audiences must be a non-empty array`);
-      continue;
-    }
-
-    const seenAudiences = new Set();
-    for (const audience of audiences) {
-      if (typeof audience !== "string" || !allowedAudiences.has(audience)) {
-        errors.push(`${label} has unsupported audience ${audience}`);
-      }
-      if (seenAudiences.has(audience)) errors.push(`${label} repeats audience ${audience}`);
-      seenAudiences.add(audience);
-    }
-    if (!arraysEqual(audiences, [...audiences].sort())) {
-      errors.push(`${label} audiences must be sorted`);
-    }
-
-    const expectedAudiences = supportedProfiles.get(profileName);
-    if (expectedAudiences && !arraysEqual(audiences, expectedAudiences)) {
-      errors.push(`${label} audiences must be: ${expectedAudiences.join(", ")}`);
-    }
+function validateTargets(label, targets, errors) {
+  if (!Array.isArray(targets) || targets.length === 0 ||
+      targets.some((target) => !allowedTargets.has(target)) ||
+      new Set(targets).size !== targets.length ||
+      !arraysEqual(targets, [...targets].sort())) {
+    errors.push(`${label} must contain sorted unique supported targets`);
   }
 }
 
 function validateSkillRegistry(registry, options = {}) {
   const errors = [];
-  const repositorySkillNames = options.repositorySkillNames
-    ? new Set(options.repositorySkillNames)
-    : null;
-
   if (!isObject(registry)) return ["registry must be an object"];
-  rejectUnknownFields(registry, topLevelFields, "registry", errors);
-
-  if (registry.version !== 3) errors.push("version must be 3");
-  if (typeof registry.description !== "string" || registry.description.length === 0) {
+  rejectUnknownFields(
+    registry,
+    new Set(["defaults", "description", "global", "profiles", "skills", "sources",
+      "targetExceptions", "version"]),
+    "registry",
+    errors
+  );
+  if (registry.version !== 4) errors.push("version must be 4");
+  if (typeof registry.description !== "string" || registry.description.trim() === "") {
     errors.push("description must be a non-empty string");
   }
 
+  if (!isObject(registry.defaults)) {
+    errors.push("defaults must be an object");
+  } else {
+    rejectUnknownFields(registry.defaults, new Set(["targets"]), "defaults", errors);
+    if (!arraysEqual(registry.defaults.targets || [], [".agents", ".claude"])) {
+      errors.push("defaults.targets must be exactly: .agents, .claude");
+    }
+  }
   if (!isObject(registry.global)) {
     errors.push("global must be an object");
   } else {
-    rejectUnknownFields(registry.global, globalFields, "global", errors);
-    if (typeof registry.global.allowUnlistedSkills !== "boolean") {
-      errors.push("global.allowUnlistedSkills must be a boolean");
-    } else if (registry.global.allowUnlistedSkills) {
-      errors.push("global.allowUnlistedSkills must be false for strict desired state");
-    }
-    validateProfiles(registry.global.profiles, errors);
+    rejectUnknownFields(registry.global, new Set(["baseline"]), "global", errors);
   }
-
-  if (!isObject(registry.sources)) {
-    errors.push("sources must be an object keyed by source id");
-    return errors;
-  }
-  if (!Array.isArray(registry.skills)) {
-    errors.push("skills must be an array");
-    return errors;
-  }
+  if (!isObject(registry.profiles)) errors.push("profiles must be an object");
+  if (!isObject(registry.sources)) errors.push("sources must be an object");
+  if (!isObject(registry.targetExceptions)) errors.push("targetExceptions must be an object");
+  if (!Array.isArray(registry.skills)) errors.push("skills must be an array");
+  if (errors.length > 0) return errors;
 
   const sourceIds = Object.keys(registry.sources);
-  const sortedSourceIds = [...sourceIds].sort();
-  if (sourceIds.some((sourceId, index) => sourceId !== sortedSourceIds[index])) {
-    errors.push("sources must be sorted by id");
-  }
-
-  const sourceUsage = new Map(sourceIds.map((sourceId) => [sourceId, 0]));
-  for (const [sourceId, source] of Object.entries(registry.sources)) {
-    const label = `source ${sourceId}`;
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sourceId)) {
-      errors.push(`${label} id must contain lowercase letters, numbers, and single hyphens only`);
-    }
+  if (!arraysEqual(sourceIds, [...sourceIds].sort())) errors.push("sources must be sorted by id");
+  const sourceUsage = new Map(sourceIds.map((id) => [id, 0]));
+  for (const [id, source] of Object.entries(registry.sources)) {
+    const label = `source ${id}`;
     if (!isObject(source)) {
       errors.push(`${label} must be an object`);
       continue;
     }
-    rejectUnknownFields(source, sourceFields, label, errors);
-    if (!allowedSourceKinds.has(source.kind)) {
+    rejectUnknownFields(source, new Set(["catalogPath", "kind", "location"]), label, errors);
+    if (!portableName(id)) errors.push(`${label} has an invalid id`);
+    if (!new Set(["external", "repository"]).has(source.kind)) {
       errors.push(`${label} has unsupported kind ${source.kind}`);
     }
     if (source.location !== undefined &&
         (typeof source.location !== "string" || source.location.length === 0)) {
       errors.push(`${label} location must be a non-empty string when present`);
     }
-    if (source.kind === "repository") {
-      if (source.catalogPath !== "skills") {
-        errors.push(`${label} must use catalogPath skills`);
-      }
-      if (!source.location) errors.push(`${label} must record its published location`);
-    } else if (source.catalogPath !== undefined) {
+    if (source.kind === "repository" &&
+        (!source.location || source.catalogPath !== "skills" ||
+         skillsCliSourceProblem(source.location))) {
+      errors.push(`${label} repository source requires a public remote location and catalogPath skills`);
+    }
+    if (source.kind === "external" && source.catalogPath !== undefined) {
       errors.push(`${label} external source must not define catalogPath`);
     }
   }
 
-  const registeredNames = new Set();
+  const known = new Map();
   const repositoryNames = new Set();
-  const registryOrder = [];
-
+  const skillOrder = [];
   for (const [index, skill] of registry.skills.entries()) {
-    const fallbackLabel = `skills[${index}]`;
+    const fallback = `skills[${index}]`;
     if (!isObject(skill)) {
-      errors.push(`${fallbackLabel} must be an object`);
+      errors.push(`${fallback} must be an object`);
       continue;
     }
-    const label = typeof skill.name === "string" ? skill.name : fallbackLabel;
-    rejectUnknownFields(skill, skillFields, label, errors);
-
-    if (typeof skill.name !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skill.name)) {
-      errors.push(`${fallbackLabel}.name must be a portable skill name`);
-      continue;
-    }
-    registryOrder.push(skill.name);
-    if (registeredNames.has(skill.name)) errors.push(`duplicate registry skill: ${skill.name}`);
-    registeredNames.add(skill.name);
+    const label = typeof skill.name === "string" ? skill.name : fallback;
+    rejectUnknownFields(
+      skill,
+      new Set(["fullDepth", "manager", "mode", "name", "source", "workflow"]),
+      label,
+      errors
+    );
+    if (!portableName(skill.name)) errors.push(`${label} has an invalid name`);
+    if (known.has(skill.name)) errors.push(`duplicate registry skill: ${skill.name}`);
+    known.set(skill.name, skill);
+    skillOrder.push(skill.name);
 
     const source = registry.sources[skill.source];
     if (!source) {
@@ -214,135 +167,87 @@ function validateSkillRegistry(registry, options = {}) {
       sourceUsage.set(skill.source, sourceUsage.get(skill.source) + 1);
       if (source.kind === "repository") repositoryNames.add(skill.name);
     }
-
-    const recommendation = skill.recommendation;
-    if (!isObject(recommendation)) {
-      errors.push(`${label} must define recommendation`);
-    } else {
-      rejectUnknownFields(recommendation, recommendationFields, `${label} recommendation`, errors);
-      if (!allowedRecommendationScopes.has(recommendation.scope)) {
-        errors.push(`${label} has unsupported recommendation scope ${recommendation.scope}`);
-      }
-      if (recommendation.scope === "global" || recommendation.scope === "project") {
-        if (!Array.isArray(recommendation.targets) || recommendation.targets.length === 0) {
-          errors.push(`${label} ${recommendation.scope} recommendation must name targets`);
-        }
-      }
-      if (recommendation.scope === "global") {
-        if (typeof recommendation.audience !== "string") {
-          errors.push(`${label} global recommendation must name one audience`);
-        } else if (!allowedAudiences.has(recommendation.audience)) {
-          errors.push(`${label} has unsupported audience ${recommendation.audience}`);
-        }
-      } else if (recommendation.audience !== undefined) {
-        errors.push(`${label} ${recommendation.scope} recommendation must not define audience`);
-      }
-      if (recommendation.targets !== undefined) {
-        if (!Array.isArray(recommendation.targets)) {
-          errors.push(`${label} recommendation targets must be an array when present`);
-        } else {
-          const seenTargets = new Set();
-          for (const target of recommendation.targets) {
-            if (!allowedTargets.has(target)) errors.push(`${label} has unsupported target ${target}`);
-            if (seenTargets.has(target)) errors.push(`${label} repeats target ${target}`);
-            seenTargets.add(target);
-          }
-          if (!arraysEqual(recommendation.targets, [...recommendation.targets].sort())) {
-            errors.push(`${label} recommendation targets must be sorted`);
-          }
-        }
-      }
-      if (recommendation.scope === "catalog" && recommendation.targets !== undefined) {
-        errors.push(`${label} catalog recommendation must not define targets`);
-      }
-      if (recommendation.scope === "project") {
-        if (typeof recommendation.when !== "string" || recommendation.when.length === 0) {
-          errors.push(`${label} project recommendation must explain when it applies`);
-        }
-      } else if (recommendation.when !== undefined) {
-        errors.push(`${label} ${recommendation.scope} recommendation must not define when`);
-      }
+    if (!allowedManagers.has(skill.manager)) {
+      errors.push(`${label} has unsupported installation manager ${skill.manager}`);
     }
-
-    const installation = skill.installation;
-    if (!isObject(installation)) {
-      errors.push(`${label} must define installation`);
-      continue;
-    }
-    rejectUnknownFields(installation, installationFields, `${label} installation`, errors);
-    if (!allowedInstallationManagers.has(installation.manager)) {
-      errors.push(`${label} has unsupported installation manager ${installation.manager}`);
-    }
-    if (installation.mode !== undefined && !allowedInstallationModes.has(installation.mode)) {
-      errors.push(`${label} has unsupported installation mode ${installation.mode}`);
-    }
-    if (installation.fullDepth !== undefined && typeof installation.fullDepth !== "boolean") {
-      errors.push(`${label} installation fullDepth must be a boolean when present`);
-    }
-    if (installation.manager === "skills-cli") {
-      if (!source?.location) {
-        errors.push(`${label} uses skills-cli but its source has no location`);
-      } else {
-        const problem = skillsCliSourceProblem(source.location);
-        if (problem === "local") {
-          errors.push(
-            `${label} skills-cli installation requires a remote source, not the local path ${source.location}`
-          );
-        } else if (problem) {
-          errors.push(
-            `${label} skills-cli installation requires a git shorthand or credential-free https source location, not ${source.location}`
-          );
-        }
+    if (skill.manager === "skills-cli") {
+      if (skill.mode !== "copy") errors.push(`${label} skills-cli installation must use copy mode`);
+      if (!source?.location || skillsCliSourceProblem(source.location)) {
+        errors.push(`${label} skills-cli installation requires an installable remote source`);
       }
-      if (!installation.mode) errors.push(`${label} skills-cli installation must define mode`);
-      if (recommendation?.scope === "global" && installation.mode !== "copy") {
-        errors.push(`${label} global skills-cli installation must use copy mode`);
+      if (skill.fullDepth !== undefined && typeof skill.fullDepth !== "boolean") {
+        errors.push(`${label} fullDepth must be a boolean when present`);
       }
-    } else {
-      if (installation.mode !== undefined) {
-        errors.push(`${label} ${installation.manager} installation must not define mode`);
+      if (skill.workflow !== undefined) {
+        errors.push(`${label} skills-cli installation must not define workflow`);
       }
-      if (installation.fullDepth !== undefined) {
-        errors.push(`${label} ${installation.manager} installation must not define fullDepth`);
-      }
-    }
-    if (installation.manager === "workflow") {
-      if (typeof installation.workflow !== "string" || installation.workflow.length === 0) {
+    } else if (skill.manager === "workflow") {
+      if (typeof skill.workflow !== "string" || skill.workflow.length === 0) {
         errors.push(`${label} workflow installation must name its workflow`);
       }
-      if (recommendation?.scope !== "project") {
-        errors.push(`${label} workflow installation must be project-scoped`);
+      if (skill.mode !== undefined || skill.fullDepth !== undefined) {
+        errors.push(`${label} workflow installation must not define copy fields`);
       }
-    } else if (installation.workflow !== undefined) {
-      errors.push(`${label} ${installation.manager} installation must not define workflow`);
+    } else if (skill.mode !== undefined || skill.fullDepth !== undefined ||
+               skill.workflow !== undefined) {
+      errors.push(`${label} ${skill.manager} installation must not define copy or workflow fields`);
     }
-    if (recommendation?.scope === "catalog" && installation.manager !== "none") {
-      errors.push(`${label} catalog-only recommendation must use installation manager none`);
-    }
-    if (installation.manager === "none" && recommendation?.scope !== "catalog") {
-      errors.push(`${label} installation manager none requires catalog scope`);
-    }
+  }
+  if (!arraysEqual(skillOrder, [...skillOrder].sort())) errors.push("skills must be sorted by name");
+  for (const [id, usage] of sourceUsage) {
+    if (usage === 0) errors.push(`unused source: ${id}`);
   }
 
-  for (const [sourceId, usage] of sourceUsage) {
-    if (usage === 0) errors.push(`unused source: ${sourceId}`);
+  const profileNames = Object.keys(registry.profiles);
+  if (!arraysEqual(profileNames, requiredProfiles)) {
+    errors.push(`profiles must define exactly in sorted order: ${requiredProfiles.join(", ")}`);
   }
-  if (repositorySkillNames) {
-    for (const name of repositorySkillNames) {
+  validateSortedSelection("global.baseline", registry.global.baseline, known, errors);
+  const membership = new Map();
+  const addMembership = (name, origin) => {
+    const origins = membership.get(name) || [];
+    origins.push(origin);
+    membership.set(name, origins);
+  };
+  for (const name of registry.global.baseline || []) addMembership(name, "global baseline");
+  for (const profileName of requiredProfiles) {
+    const profile = registry.profiles[profileName];
+    const label = `profile ${profileName}`;
+    if (!isObject(profile)) {
+      errors.push(`${label} must be an object`);
+      continue;
+    }
+    rejectUnknownFields(profile, new Set(["skills"]), label, errors);
+    validateSortedSelection(`${label} skills`, profile.skills, known, errors);
+    for (const name of profile.skills || []) addMembership(name, label);
+  }
+  for (const [name, origins] of membership) {
+    if (origins.length > 1) {
+      errors.push(`${name} appears in multiple desired sets: ${origins.join(", ")}`);
+    }
+    if (known.get(name)?.manager === "none") errors.push(`${name} manager none cannot be selected`);
+  }
+
+  const exceptionNames = Object.keys(registry.targetExceptions);
+  if (!arraysEqual(exceptionNames, [...exceptionNames].sort())) {
+    errors.push("targetExceptions must be sorted by skill name");
+  }
+  for (const [name, targets] of Object.entries(registry.targetExceptions)) {
+    if (!known.has(name)) errors.push(`target exception references unknown skill ${name}`);
+    validateTargets(`target exception ${name}`, targets, errors);
+  }
+
+  if (options.repositorySkillNames) {
+    const actual = new Set(options.repositorySkillNames);
+    for (const name of actual) {
       if (!repositoryNames.has(name)) errors.push(`repository skill is not classified: ${name}`);
     }
     for (const name of repositoryNames) {
-      if (!repositorySkillNames.has(name)) {
+      if (!actual.has(name)) {
         errors.push(`repository source references missing skills/${name}/SKILL.md`);
       }
     }
   }
-
-  const sortedOrder = [...registryOrder].sort();
-  if (registryOrder.some((name, index) => name !== sortedOrder[index])) {
-    errors.push("skills must be sorted by name");
-  }
-
   return errors;
 }
 
@@ -353,7 +258,6 @@ function readSkillRegistry(file, options = {}) {
   } catch (error) {
     throw new Error(`Could not read skill registry ${file}: ${error.message}`);
   }
-
   const errors = validateSkillRegistry(registry, options);
   if (errors.length > 0) {
     throw new Error(`Invalid skill registry ${file}:\n- ${errors.join("\n- ")}`);
@@ -362,36 +266,24 @@ function readSkillRegistry(file, options = {}) {
 }
 
 function globalSkillEntries(registry, profile) {
-  const supportedProfileNames = [...supportedProfiles.keys()];
-  if (profile === undefined) {
-    throw new Error(`profile is required; expected one of: ${supportedProfileNames.join(", ")}`);
+  if (profile !== undefined) {
+    throw new Error("version 4 has one fixed global baseline; profile selection is not supported");
   }
-  if (!supportedProfiles.has(profile) || !registry.global?.profiles?.[profile]) {
-    throw new Error(
-      `unknown profile ${profile}; expected one of: ${supportedProfileNames.join(", ")}`
-    );
-  }
-
-  const audiences = new Set(registry.global.profiles[profile].audiences);
-  return registry.skills
-    .filter((skill) =>
-      skill.recommendation.scope === "global" &&
-      audiences.has(skill.recommendation.audience)
-    )
-    .map((skill) => {
-      const source = registry.sources[skill.source];
-      return {
-        name: skill.name,
-        sourceId: skill.source,
-        source: source.location,
-        audience: skill.recommendation.audience,
-        manager: skill.installation.manager,
-        scope: skill.recommendation.scope,
-        mode: skill.installation.mode,
-        targets: skill.recommendation.targets,
-        fullDepth: skill.installation.fullDepth === true
-      };
-    });
+  const byName = new Map(registry.skills.map((skill) => [skill.name, skill]));
+  return registry.global.baseline.map((name) => {
+    const skill = byName.get(name);
+    const source = registry.sources[skill.source];
+    return {
+      name,
+      sourceId: skill.source,
+      source: source.location,
+      manager: skill.manager,
+      scope: "global",
+      mode: skill.mode,
+      targets: registry.targetExceptions[name] || registry.defaults.targets,
+      fullDepth: skill.fullDepth === true
+    };
+  });
 }
 
 module.exports = {

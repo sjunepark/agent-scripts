@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -20,8 +21,8 @@ const (
 	applyManifestName   = "manifest.json"
 )
 
-// ApplyFailureKind is the stable result class for a project
-// transaction.  The implementation deliberately does not expose filesystem
+// ApplyFailureKind is the stable result class for a reconciliation
+// transaction. The implementation deliberately does not expose filesystem
 // or operating-system diagnostics: callers can report this error safely.
 type ApplyFailureKind string
 
@@ -35,16 +36,21 @@ const (
 type ApplyError struct {
 	Kind   ApplyFailureKind
 	Reason string
+	Scope  Scope
 }
 
 func (e *ApplyError) Error() string {
 	if e == nil {
 		return "project apply failed"
 	}
-	if e.Kind == ApplyFailureConflict {
-		return "project apply conflict: " + e.Reason
+	scope := "project"
+	if e.Scope == ScopeGlobal {
+		scope = "global"
 	}
-	return "project apply unavailable: " + e.Reason
+	if e.Kind == ApplyFailureConflict {
+		return scope + " apply conflict: " + e.Reason
+	}
+	return scope + " apply unavailable: " + e.Reason
 }
 
 func (e *ApplyError) Conflict() bool { return e != nil && e.Kind == ApplyFailureConflict }
@@ -66,6 +72,24 @@ type ProjectApplySession struct {
 	Plan         Plan
 	Expected     map[string]TreeHash
 	Materialized *MaterializationPlan
+	global       *globalApplyBoundary
+}
+
+// GlobalApplySession is the reviewed fixed-baseline plan plus its verified
+// materialization session. It uses the same transaction engine as projects,
+// but carries the registry and fixed-home boundary needed for locked replans.
+type GlobalApplySession struct {
+	Layout       GlobalLayout
+	Registry     Registry
+	Desired      DesiredState
+	Plan         Plan
+	Expected     map[string]TreeHash
+	Materialized *MaterializationPlan
+}
+
+type globalApplyBoundary struct {
+	layout   GlobalLayout
+	registry Registry
 }
 
 // AppliedPlacement is deliberately path-free so callers cannot accidentally
@@ -81,6 +105,7 @@ type ApplyResult struct {
 	Updated     []AppliedPlacement
 	Quarantined []AppliedPlacement
 	Quarantine  *ProjectQuarantineResult
+	Migrated    bool
 }
 
 // ProjectQuarantineResult is the path-free recovery handle returned when an
@@ -139,9 +164,60 @@ func defaultApplyDeps() ApplyDeps {
 // then copies verified snapshots into empty destinations, quarantines an
 // unchanged managed preimage before verified replacement, or moves an
 // unchanged managed placement whose desired identity was removed into durable
-// quarantine. It commits one deterministic provenance state. Public CLI
-// removal remains blocked before this internal seam is called.
+// quarantine. It commits one deterministic provenance state.
 func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps ApplyDeps) (ApplyResult, error) {
+	if session != nil && session.global != nil {
+		return ApplyResult{}, applyUnavailable("project apply requires project scope")
+	}
+	return applyChanges(ctx, session, deps)
+}
+
+// ApplyGlobalChanges applies only the fixed desired baseline. Former profile
+// placements remain report-only migration evidence and are never converted to
+// removal operations by this boundary.
+func ApplyGlobalChanges(ctx context.Context, session *GlobalApplySession, deps ApplyDeps) (ApplyResult, error) {
+	if session == nil {
+		return ApplyResult{}, scopeApplyFailure(applyUnavailable("materialization session is unavailable"), ScopeGlobal)
+	}
+	internal := &ProjectApplySession{
+		Layout:       session.Layout.mutationLayout(),
+		Desired:      session.Desired,
+		Plan:         session.Plan,
+		Expected:     session.Expected,
+		Materialized: session.Materialized,
+		global:       &globalApplyBoundary{layout: session.Layout, registry: session.Registry},
+	}
+	result, err := applyChanges(ctx, internal, deps)
+	return result, scopeApplyFailure(err, ScopeGlobal)
+}
+
+func scopeApplyFailure(err error, scope Scope) error {
+	if err == nil {
+		return nil
+	}
+	var failure *ApplyError
+	if !errors.As(err, &failure) {
+		return err
+	}
+	return &ApplyError{Kind: failure.Kind, Reason: failureReasonForScope(failure.Reason, scope), Scope: scope}
+}
+
+func failureReasonForScope(reason string, scope Scope) string {
+	if scope != ScopeGlobal {
+		return reason
+	}
+	return strings.NewReplacer(
+		"project state", "global state",
+		"project root", "global home",
+		"project boundary", "global boundary",
+		"project transaction", "global transaction",
+		"project lock", "global lock",
+		"project placement", "global placement",
+		"the project", "the global home",
+	).Replace(reason)
+}
+
+func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyDeps) (ApplyResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -174,6 +250,8 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 		lock:        lock,
 		layout:      session.Layout,
 		deps:        deps,
+		scope:       session.Desired.Scope,
+		global:      session.global,
 	}
 	if err := tx.checkLock(); err != nil {
 		return finishApplySetup(&tx, clonePlanForApply(session.Plan), err)
@@ -190,8 +268,13 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	if !sameReviewedPlan(session.Plan, freshPlan) {
 		return finishApplySetup(&tx, freshPlan, applyConflict("project state changed after planning"))
 	}
+	reviewedMigration := session.global != nil && planHasEvidence(session.Plan, "provenance-migration")
 	mutationOperations := reviewedMutationOperations(&ProjectApplySession{Plan: freshPlan})
-	if len(mutationOperations) == 0 {
+	stateOnlyMigration := session.global != nil && planHasEvidence(freshPlan, "provenance-migration")
+	if reviewedMigration != stateOnlyMigration {
+		return finishApplySetup(&tx, freshPlan, applyConflict("global provenance migration changed after planning"))
+	}
+	if len(mutationOperations) == 0 && !stateOnlyMigration {
 		if tx.deps.beforeCommit != nil {
 			if hookErr := tx.deps.beforeCommit(); hookErr != nil {
 				return finishApplySetup(&tx, freshPlan, applyUnavailable("apply verification preflight failed"))
@@ -217,7 +300,7 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 		return finishApplySetup(&tx, freshPlan, err)
 	}
 	tx.ancestors = ancestors
-	preimage, err := captureApplyStatePreimage(session.Layout)
+	preimage, err := captureTransactionStatePreimage(session.Layout, session.Desired.Scope)
 	if err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
@@ -248,6 +331,9 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	}
 	if primary == nil {
 		primary = tx.clearTransactionJournal()
+	}
+	if primary == nil && stateOnlyMigration {
+		result.Migrated = true
 	}
 	recoveryRequired := false
 	if primary != nil && !tx.journalCleared && commit != nil && commit.replaced {
@@ -310,6 +396,15 @@ func ApplyProjectChanges(ctx context.Context, session *ProjectApplySession, deps
 	return result, nil
 }
 
+func planHasEvidence(plan Plan, kind string) bool {
+	for _, evidence := range plan.Evidence {
+		if evidence.Kind == kind {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeApplyDeps(deps ApplyDeps) ApplyDeps {
 	defaults := defaultApplyDeps()
 	if deps.Now == nil {
@@ -343,8 +438,25 @@ func validateApplySession(session *ProjectApplySession) error {
 	if session == nil {
 		return applyUnavailable("materialization session is unavailable")
 	}
-	if session.Plan.Desired.Scope != ScopeProject || session.Desired.Scope != ScopeProject {
-		return applyUnavailable("project apply requires project scope")
+	scope := session.Desired.Scope
+	if scope != ScopeProject && scope != ScopeGlobal {
+		return applyUnavailable("apply requires a supported scope")
+	}
+	if scope == ScopeProject && session.global != nil {
+		return applyConflict("project apply boundary is inconsistent")
+	}
+	if scope == ScopeGlobal {
+		if session.global == nil {
+			return applyUnavailable("global apply requires the fixed global boundary")
+		}
+		resolved, err := ResolveGlobal(session.global.registry)
+		if err != nil || !sameDesiredState(resolved, session.Desired) {
+			return applyConflict("global desired identity changed")
+		}
+		expectedLayout, err := LayoutForGlobal(session.global.layout.Home)
+		if err != nil || !reflect.DeepEqual(expectedLayout, session.global.layout) || !reflect.DeepEqual(session.Layout, expectedLayout.mutationLayout()) {
+			return applyConflict("global boundary changed")
+		}
 	}
 	if session.Plan.Desired.Scope != session.Desired.Scope || !sameDesiredState(session.Plan.Desired, session.Desired) {
 		return applyConflict("reviewed desired identity changed")
@@ -556,6 +668,25 @@ func findPlanOperation(operations []PlanOperation, key string) (PlanOperation, b
 }
 
 func refreshApplyPlan(session *ProjectApplySession) (Plan, error) {
+	if session.global != nil {
+		inventory, err := InspectGlobal(session.global.layout)
+		if err != nil {
+			return Plan{}, applyConflict("global boundary changed after planning")
+		}
+		classification, err := ClassifyGlobal(session.global.registry, session.Plan.Desired, session.Expected, inventory)
+		if err != nil {
+			return Plan{}, applyConflict("global classification changed after planning")
+		}
+		base := clonePlanForApply(session.Plan)
+		base.Operations = nil
+		base.Warnings = staticGlobalWarnings(base.Warnings)
+		base.Evidence = staticGlobalEvidence(base.Evidence)
+		plan, err := TranslateGlobalClassification(base, classification)
+		if err != nil {
+			return Plan{}, applyConflict("global translation changed after planning")
+		}
+		return plan, nil
+	}
 	inventory, err := InspectProject(session.Layout)
 	if err != nil {
 		return Plan{}, applyConflict("project boundary changed after planning")
@@ -572,6 +703,32 @@ func refreshApplyPlan(session *ProjectApplySession) (Plan, error) {
 		return Plan{}, applyConflict("project translation changed after planning")
 	}
 	return plan, nil
+}
+
+func staticGlobalEvidence(evidence []Evidence) []Evidence {
+	result := make([]Evidence, 0, len(evidence))
+	for _, item := range evidence {
+		switch item.Kind {
+		case "global-inventory", "provenance-migration":
+			continue
+		default:
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func staticGlobalWarnings(warnings []Warning) []Warning {
+	result := make([]Warning, 0, len(warnings))
+	for _, warning := range warnings {
+		switch warning.Code {
+		case "global-state", "global-migration", "global-protected", "legacy-preserved", "legacy-protected", "unmanaged-preserved":
+			continue
+		default:
+			result = append(result, warning)
+		}
+	}
+	return result
 }
 
 func staticProjectWarnings(warnings []Warning) []Warning {
@@ -698,6 +855,8 @@ type applyTransaction struct {
 	lock           *applyLock
 	layout         DerivedLayout
 	deps           ApplyDeps
+	scope          Scope
+	global         *globalApplyBoundary
 }
 
 func applyRootInfo(root string) (os.FileInfo, error) {
@@ -1309,12 +1468,16 @@ func (tx *applyTransaction) rollback() error {
 }
 
 func captureApplyStatePreimage(layout DerivedLayout) (*applyStatePreimage, error) {
+	return captureTransactionStatePreimage(layout, ScopeProject)
+}
+
+func captureTransactionStatePreimage(layout DerivedLayout, scope Scope) (*applyStatePreimage, error) {
 	probe := proveInspectionPath(layout.Root, layout.ReconcilerStatePath)
 	if probe.unsafe {
 		return nil, applyConflict("provenance state changed after planning")
 	}
 	if !probe.exists {
-		return &applyStatePreimage{state: emptyTrustedProvenanceState()}, nil
+		return &applyStatePreimage{state: emptyTransactionProvenanceState(scope)}, nil
 	}
 	if probe.info.Mode()&os.ModeSymlink != 0 || !probe.info.Mode().IsRegular() {
 		return nil, applyConflict("provenance state is not a regular file")
@@ -1323,7 +1486,7 @@ func captureApplyStatePreimage(layout DerivedLayout) (*applyStatePreimage, error
 	if err != nil {
 		return nil, applyConflict("provenance state could not be read")
 	}
-	state, valid := decodeProvenanceState(data)
+	state, valid := decodeTransactionProvenanceState(data, scope, true)
 	if !valid {
 		return nil, applyConflict("provenance state is malformed")
 	}
@@ -1334,6 +1497,35 @@ func captureApplyStatePreimage(layout DerivedLayout) (*applyStatePreimage, error
 		info:   probe.info,
 		mode:   probe.info.Mode().Perm(),
 	}, nil
+}
+
+func emptyTransactionProvenanceState(scope Scope) ProvenanceState {
+	if scope == ScopeGlobal {
+		return ProvenanceState{Version: GlobalProvenanceStateVersion, Records: []ProvenanceRecord{}}
+	}
+	return emptyTrustedProvenanceState()
+}
+
+func decodeTransactionProvenanceState(data []byte, scope Scope, allowLegacyGlobal bool) (ProvenanceState, bool) {
+	if scope == ScopeProject {
+		return decodeProvenanceState(data)
+	}
+	if scope != ScopeGlobal {
+		return ProvenanceState{}, false
+	}
+	state, format, valid := decodeGlobalProvenanceState(data)
+	if !valid || (!allowLegacyGlobal && format != GlobalProvenanceCurrent) {
+		return ProvenanceState{}, false
+	}
+	return ProvenanceState{Version: state.Version, Records: cloneProvenanceRecords(state.Records)}, true
+}
+
+func (tx *applyTransaction) captureStatePreimage() (*applyStatePreimage, error) {
+	scope := tx.scope
+	if scope == "" {
+		scope = ScopeProject
+	}
+	return captureTransactionStatePreimage(tx.layout, scope)
 }
 
 func sameApplyState(left, right *applyStatePreimage) bool {
@@ -1347,14 +1539,14 @@ func sameApplyState(left, right *applyStatePreimage) bool {
 }
 
 func (tx *applyTransaction) commitState(preimage *applyStatePreimage, session *ProjectApplySession) (*stateCommit, error) {
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(preimage, current) {
 		return nil, applyConflict("provenance state changed before commit")
 	}
 	if tx.journal == nil {
 		return nil, applyUnavailable("transaction recovery evidence is unavailable")
 	}
-	state, valid := decodeProvenanceState(tx.journal.CandidateState)
+	state, valid := decodeTransactionProvenanceState(tx.journal.CandidateState, tx.scope, false)
 	if !valid {
 		return nil, applyConflict("transaction recovery evidence is invalid")
 	}
@@ -1375,7 +1567,7 @@ func (tx *applyTransaction) commitState(preimage *applyStatePreimage, session *P
 	if err := tx.revalidateCandidate(session, state); err != nil {
 		return nil, err
 	}
-	current, err = captureApplyStatePreimage(tx.layout)
+	current, err = tx.captureStatePreimage()
 	if err != nil || !sameApplyState(preimage, current) {
 		return nil, applyConflict("provenance state changed before commit")
 	}
@@ -1386,6 +1578,20 @@ func (tx *applyTransaction) commitState(preimage *applyStatePreimage, session *P
 }
 
 func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, candidate ProvenanceState) error {
+	if tx.global != nil {
+		inventory, err := InspectGlobal(tx.global.layout)
+		if err != nil || !inventory.StateTrusted {
+			return applyConflict("global state changed before commit")
+		}
+		inventory.State = GlobalProvenanceState{Version: candidate.Version, Records: cloneProvenanceRecords(candidate.Records)}
+		inventory.ProvenanceFormat = GlobalProvenanceCurrent
+		inventory.MigrationRequired = false
+		classification, err := ClassifyGlobal(tx.global.registry, session.Desired, session.Expected, inventory)
+		if err != nil {
+			return applyConflict("global classification changed before commit")
+		}
+		return tx.revalidateManagedCandidate(session, classification.Managed, candidate)
+	}
 	inventory, err := InspectProject(tx.layout)
 	if err != nil || !inventory.StateTrusted {
 		return applyConflict("project state changed before commit")
@@ -1395,6 +1601,19 @@ func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, ca
 	if err != nil {
 		return applyConflict("project classification changed before commit")
 	}
+	for _, operation := range reviewedMutationOperations(session) {
+		if operation.Action != PlanActionQuarantine {
+			continue
+		}
+		root, ok := inventory.RootFor(operation.Target)
+		if !ok || !root.Safe {
+			return applyConflict("removed placement root changed before commit")
+		}
+	}
+	return tx.revalidateManagedCandidate(session, classification, candidate)
+}
+
+func (tx *applyTransaction) revalidateManagedCandidate(session *ProjectApplySession, classification ProjectClassification, candidate ProvenanceState) error {
 	desiredByKey := desiredByPlacement(session.Desired)
 	seen := make(map[string]struct{}, len(desiredByKey))
 	for _, state := range classification.States {
@@ -1423,22 +1642,9 @@ func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, ca
 		if _, stillManaged := candidateRecordByKey(candidate, key); stillManaged {
 			return applyConflict("removed placement remained managed before commit")
 		}
-		root, ok := inventory.RootFor(operation.Target)
-		if !ok || !root.Safe {
-			return applyConflict("removed placement root changed before commit")
-		}
-		// A destination that reappeared is acceptable only as an unowned
-		// observation.  It must not be claimed by the candidate state; the
-		// ownership-preserving rollback will retain it if a later step fails.
-		for _, entry := range root.Entries {
-			if entry.Name != operation.Skill {
-				continue
-			}
-			for _, state := range classification.States {
-				if state.Target == operation.Target && state.Skill == operation.Skill &&
-					state.Action == PlanActionQuarantine {
-					return applyConflict("removed placement remained managed before commit")
-				}
+		for _, state := range classification.States {
+			if state.Target == operation.Target && state.Skill == operation.Skill && state.Action == PlanActionQuarantine {
+				return applyConflict("removed placement remained managed before commit")
 			}
 		}
 	}
@@ -1457,6 +1663,10 @@ func (tx *applyTransaction) revalidateCandidate(session *ProjectApplySession, ca
 
 func buildApplyState(previous ProvenanceState, session *ProjectApplySession, recordedAt time.Time) (ProvenanceState, error) {
 	state := previous
+	state.Version = ProvenanceStateVersion
+	if session.Desired.Scope == ScopeGlobal {
+		state.Version = GlobalProvenanceStateVersion
+	}
 	if state.Records == nil {
 		state.Records = []ProvenanceRecord{}
 	}
@@ -1471,7 +1681,7 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 			record, managed := records[key]
 			oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
 			expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
-			if !managed || record.Scope != ScopeProject || record.Skill != operation.Skill ||
+			if !managed || record.Scope != session.Desired.Scope || record.Skill != operation.Skill ||
 				record.Target != operation.Target || record.SourceIdentity != operation.Source ||
 				!isCanonicalProjectSourceIdentity(operation.Source) || !oldHashOK || !expectedHashOK || expectedHash != oldHash ||
 				record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
@@ -1493,7 +1703,7 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 			return ProvenanceState{}, applyConflict("desired source identity is not canonical")
 		}
 		records[projectPlacementKey(operation.Target, operation.Skill)] = ProvenanceRecord{
-			Scope:             ScopeProject,
+			Scope:             session.Desired.Scope,
 			Skill:             skill.Name,
 			Target:            operation.Target,
 			SourceIdentity:    sourceIdentity,
@@ -1569,7 +1779,7 @@ func (tx *applyTransaction) publishStateBytes(temporaryPath string, data []byte,
 	if err := tx.checkLock(); err != nil {
 		return nil, err
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(expected, current) {
 		return nil, applyConflict("provenance state changed immediately before replacement")
 	}
@@ -1611,7 +1821,7 @@ func (tx *applyTransaction) restoreState(preimage *applyStatePreimage, commit *s
 	if preimage == nil || commit == nil || !commit.replaced {
 		return nil
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !current.exists || !bytes.Equal(current.data, commit.data) || (commit.info != nil && !os.SameFile(current.info, commit.info)) {
 		return applyUnavailable("provenance restoration could not prove state ownership")
 	}

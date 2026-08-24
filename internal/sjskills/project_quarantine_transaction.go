@@ -32,7 +32,7 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 		oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
 		expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
 		if !managed || !oldHashOK ||
-			record.Scope != ScopeProject || record.Skill != operation.Skill || record.Target != operation.Target ||
+			record.Scope != session.Desired.Scope || record.Skill != operation.Skill || record.Target != operation.Target ||
 			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
 			return applyConflict("reviewed quarantine provenance identity changed")
 		}
@@ -202,7 +202,7 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 	if index < 0 || tx.quarantine.manifest.Entries[index].Action != action || tx.quarantine.manifest.Entries[index].Status != ProjectQuarantineEntryPending {
 		return applyConflict("quarantine entry identity changed")
 	}
-	currentState, err := captureApplyStatePreimage(tx.layout)
+	currentState, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(preimage, currentState) {
 		return applyConflict("provenance state changed before quarantine")
 	}
@@ -219,7 +219,7 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 	expectedHash, expectedOK := treeHashFromPlanEvidence(operation.Expected)
 	record, recordOK := quarantineRecord(preimage.state, operation.Target, operation.Skill)
 	entry := tx.quarantine.manifest.Entries[index]
-	if !recordOK || record.Scope != ScopeProject || record.Skill != operation.Skill || record.Target != operation.Target ||
+	if !recordOK || record.Scope != session.Desired.Scope || record.Skill != operation.Skill || record.Target != operation.Target ||
 		record.SourceIdentity != entry.OldSourceIdentity || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest ||
 		(action == ProjectQuarantineEntryActionRemove &&
 			(operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != record.SourceIdentity || !expectedOK || expectedHash != oldHash)) {

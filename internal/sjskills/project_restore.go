@@ -26,16 +26,21 @@ const (
 type RestoreError struct {
 	Kind   RestoreFailureKind
 	Reason string
+	Scope  Scope
 }
 
 func (e *RestoreError) Error() string {
 	if e == nil {
 		return "project restore failed"
 	}
-	if e.Kind == RestoreFailureConflict {
-		return "project restore conflict: " + e.Reason
+	scope := "project"
+	if e.Scope == ScopeGlobal {
+		scope = "global"
 	}
-	return "project restore unavailable: " + e.Reason
+	if e.Kind == RestoreFailureConflict {
+		return scope + " restore conflict: " + e.Reason
+	}
+	return scope + " restore unavailable: " + e.Reason
 }
 
 func (e *RestoreError) Conflict() bool { return e != nil && e.Kind == RestoreFailureConflict }
@@ -105,6 +110,28 @@ type restoreTransaction struct {
 // The run is addressed only by its exact lower-hex identifier; callers cannot
 // supply an arbitrary manifest path.
 func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id string, deps ApplyDeps) (RestoreResult, error) {
+	return restoreQuarantine(ctx, layout, nil, id, deps)
+}
+
+// RestoreGlobalQuarantine restores a committed fixed-home quarantine run
+// without overwriting a global placement.
+func RestoreGlobalQuarantine(ctx context.Context, layout GlobalLayout, id string, deps ApplyDeps) (RestoreResult, error) {
+	result, err := restoreQuarantine(ctx, layout.mutationLayout(), &globalApplyBoundary{layout: layout}, id, deps)
+	return result, scopeRestoreFailure(err, ScopeGlobal)
+}
+
+func scopeRestoreFailure(err error, scope Scope) error {
+	if err == nil {
+		return nil
+	}
+	var failure *RestoreError
+	if !errors.As(err, &failure) {
+		return err
+	}
+	return &RestoreError{Kind: failure.Kind, Reason: failureReasonForScope(failure.Reason, scope), Scope: scope}
+}
+
+func restoreQuarantine(ctx context.Context, layout DerivedLayout, global *globalApplyBoundary, id string, deps ApplyDeps) (RestoreResult, error) {
 	result := RestoreResult{Restored: []AppliedPlacement{}}
 	if !projectQuarantineIDPattern.MatchString(id) {
 		return result, restoreConflict("quarantine identifier is invalid")
@@ -115,7 +142,13 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 	if err := contextErr(ctx); err != nil {
 		return result, restoreUnavailable("context cancelled")
 	}
-	if _, err := establishInspectionBoundary(layout); err != nil {
+	var boundaryErr error
+	if global != nil {
+		_, boundaryErr = establishGlobalInspectionBoundary(global.layout)
+	} else {
+		_, boundaryErr = establishInspectionBoundary(layout)
+	}
+	if boundaryErr != nil {
 		return result, restoreConflict("project boundary is invalid")
 	}
 	deps = normalizeApplyDeps(deps)
@@ -139,9 +172,14 @@ func RestoreProjectQuarantine(ctx context.Context, layout DerivedLayout, id stri
 			lock:        lock,
 			layout:      layout,
 			deps:        deps,
+			scope:       ScopeProject,
+			global:      global,
 		},
 		ambiguous:  make(map[int]bool),
 		rolledBack: make(map[int]bool),
+	}
+	if global != nil {
+		tx.scope = ScopeGlobal
 	}
 	if err := tx.checkRestoreLockAndRoot(); err != nil {
 		return tx.finish(result, err, true)
@@ -444,12 +482,12 @@ func (tx *restoreTransaction) checkRestoreBoundary() error {
 }
 
 func (tx *restoreTransaction) preflight(ctx context.Context) error {
-	state, err := captureApplyStatePreimage(tx.layout)
+	state, err := tx.captureStatePreimage()
 	if err != nil {
 		return restoreConflict("provenance state is unavailable")
 	}
 	if !state.exists {
-		state.state = emptyTrustedProvenanceState()
+		state.state = emptyTransactionProvenanceState(tx.scope)
 	}
 	for _, record := range state.state.Records {
 		if !isCanonicalProjectSourceIdentity(record.SourceIdentity) {
@@ -517,7 +555,7 @@ func (tx *restoreTransaction) preflight(ctx context.Context) error {
 				return restoreConflict("restored destination content changed")
 			}
 		}
-		if err := validateRestoreProvenance(state.state, manifestEntry, tx.quarantine.manifest.Status); err != nil {
+		if err := validateRestoreProvenance(state.state, manifestEntry, tx.quarantine.manifest.Status, tx.scope); err != nil {
 			return err
 		}
 		tx.entries = append(tx.entries, entry)
@@ -525,7 +563,7 @@ func (tx *restoreTransaction) preflight(ctx context.Context) error {
 	if err := tx.checkRestoreBoundary(); err != nil {
 		return err
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(tx.statePreimage, current) {
 		return restoreConflict("provenance state changed during restore preflight")
 	}
@@ -547,7 +585,7 @@ func sameRestoreAncestorChains(left, right []*applyAncestor) bool {
 	return true
 }
 
-func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineManifestEntry, status ProjectQuarantineStatus) error {
+func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineManifestEntry, status ProjectQuarantineStatus, scope Scope) error {
 	record, exists := candidateRecordByKey(state, projectPlacementKey(entry.Target, entry.Skill))
 	if status == ProjectQuarantineCommitted {
 		if entry.Action == ProjectQuarantineEntryActionRemove {
@@ -556,7 +594,7 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 			}
 			return nil
 		}
-		if !exists || record.Scope != ScopeProject || record.Target != entry.Target || record.Skill != entry.Skill ||
+		if !exists || record.Scope != scope || record.Target != entry.Target || record.Skill != entry.Skill ||
 			record.SourceIdentity != entry.NewSourceIdentity || record.TreeHashAlgorithm != entry.TreeHashAlgorithm || record.TreeHash != entry.NewTreeHash ||
 			!isCanonicalProjectSourceIdentity(record.SourceIdentity) {
 			return restoreConflict("update provenance does not match the manifest")
@@ -564,7 +602,7 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 		return nil
 	}
 	oldSource := entry.OldSourceIdentity
-	if !exists || record.Scope != ScopeProject || record.Target != entry.Target || record.Skill != entry.Skill ||
+	if !exists || record.Scope != scope || record.Target != entry.Target || record.Skill != entry.Skill ||
 		record.SourceIdentity != oldSource || record.TreeHashAlgorithm != entry.TreeHashAlgorithm || record.TreeHash != entry.OldTreeHash ||
 		!isCanonicalProjectSourceIdentity(record.SourceIdentity) {
 		return restoreConflict("restored provenance does not match the manifest")
@@ -662,7 +700,7 @@ func (tx *restoreTransaction) reproveRestoreEntry(index int) error {
 	if err := tx.checkManagedAncestors(entry.entry.Target); err != nil {
 		return err
 	}
-	currentState, err := captureApplyStatePreimage(tx.layout)
+	currentState, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(tx.statePreimage, currentState) {
 		return restoreConflict("provenance state changed during restore")
 	}
@@ -909,7 +947,7 @@ func (tx *restoreTransaction) commitRestoredProvenance() error {
 			return err
 		}
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil || !sameApplyState(tx.statePreimage, current) {
 		return restoreConflict("provenance state changed before commit")
 	}
@@ -930,7 +968,7 @@ func (tx *restoreTransaction) commitRestoredProvenance() error {
 	if err := tx.checkRestoreBoundary(); err != nil {
 		return err
 	}
-	current, err = captureApplyStatePreimage(tx.layout)
+	current, err = tx.captureStatePreimage()
 	if err != nil || !sameApplyState(tx.statePreimage, current) {
 		return restoreConflict("provenance state changed before commit")
 	}
@@ -941,15 +979,19 @@ func (tx *restoreTransaction) commitRestoredProvenance() error {
 	if publishErr != nil {
 		return restoreApplyError(publishErr, "provenance state changed during commit", "provenance state could not be committed")
 	}
-	stored, err := captureApplyStatePreimage(tx.layout)
+	stored, err := tx.captureStatePreimage()
 	if err != nil || !stored.exists || !bytes.Equal(stored.data, data) || commit == nil || commit.info == nil || !os.SameFile(commit.info, stored.info) {
 		return restoreUnavailable("provenance state could not be verified")
 	}
 	return nil
 }
 
-func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntry, recordedAt time.Time) (ProvenanceState, error) {
+func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntry, recordedAt time.Time, scope Scope) (ProvenanceState, error) {
 	state := previous
+	state.Version = ProvenanceStateVersion
+	if scope == ScopeGlobal {
+		state.Version = GlobalProvenanceStateVersion
+	}
 	if state.Records == nil {
 		state.Records = []ProvenanceRecord{}
 	}
@@ -962,7 +1004,7 @@ func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntr
 			return ProvenanceState{}, restoreConflict("quarantine source identity is incompatible")
 		}
 		records[projectPlacementKey(entry.entry.Target, entry.entry.Skill)] = ProvenanceRecord{
-			Scope: ScopeProject, Skill: entry.entry.Skill, Target: entry.entry.Target,
+			Scope: scope, Skill: entry.entry.Skill, Target: entry.entry.Target,
 			SourceIdentity: entry.entry.OldSourceIdentity, TreeHashAlgorithm: entry.oldHash.Algorithm,
 			TreeHash: entry.oldHash.Digest, RecordedAt: recordedAt,
 		}
@@ -1065,7 +1107,7 @@ func (tx *restoreTransaction) verifyCommittedPreimage() error {
 			failed = true
 		}
 	}
-	currentState, stateErr := captureApplyStatePreimage(tx.layout)
+	currentState, stateErr := tx.captureStatePreimage()
 	if stateErr != nil || !sameRestoreStateContent(tx.statePreimage, currentState) {
 		failed = true
 	}
@@ -1164,7 +1206,7 @@ func (tx *restoreTransaction) restoreCommittedProvenance() error {
 	if err := tx.checkRestoreBoundary(); err != nil {
 		return err
 	}
-	current, err := captureApplyStatePreimage(tx.layout)
+	current, err := tx.captureStatePreimage()
 	if err != nil {
 		return restoreUnavailable("provenance rollback could not be inspected")
 	}
@@ -1180,7 +1222,7 @@ func (tx *restoreTransaction) restoreCommittedProvenance() error {
 		}
 		commit, writeErr := tx.writeStateBytes(current, tx.statePreimage.data, tx.statePreimage.mode.Perm())
 		if commit != nil && writeErr == nil {
-			stored, readErr := captureApplyStatePreimage(tx.layout)
+			stored, readErr := tx.captureStatePreimage()
 			if readErr != nil || !stored.exists || !bytes.Equal(stored.data, tx.statePreimage.data) {
 				return restoreUnavailable("provenance rollback could not be verified")
 			}
@@ -1202,7 +1244,7 @@ func (tx *restoreTransaction) restoreCommittedProvenance() error {
 	if err := tx.checkRestoreBoundary(); err != nil {
 		return err
 	}
-	final, statErr := captureApplyStatePreimage(tx.layout)
+	final, statErr := tx.captureStatePreimage()
 	if statErr != nil || final.exists {
 		return restoreUnavailable("provenance rollback could not be verified")
 	}

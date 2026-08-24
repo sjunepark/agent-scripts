@@ -64,20 +64,17 @@ file, and complete classification of the published catalog in
 from runtime-pointer checks. Runtime Markdown pointers use inline links; wrap
 destinations containing whitespace or parentheses in angle brackets.
 
-Audit this machine's global skills against the desired registry:
+Inspect the fixed global baseline without changing managed roots:
 
 ```bash
-PROFILE="dev"
-scripts/audit-global-skills --profile "$PROFILE"
+bin/sjskills plan --global
 ```
 
-The audit materializes remote expected content in a temporary home and reads
-only the managed and explicitly known legacy roots in the inspected home. It
-exits nonzero for strict drift and prints exact apply commands plus quarantine
-source candidates and a proposed run destination.
-Apply also records verified Skills CLI tree hashes in
-`~/.agents/.global-skill-state.json`; later runs update only copies that still
-match that recorded state. Local edits remain blocked as modified.
+The plan materializes remote expected content in isolated temporary storage,
+then reads only the two managed skill roots and explicitly modeled migration
+locations. Planning is read-only. Do not run `apply --global` against a real
+home as repository validation; real-machine rollout requires a separately
+reviewed plan and explicit authorization.
 
 Enable the optional pre-commit hook:
 
@@ -86,6 +83,21 @@ git config core.hooksPath hooks
 ```
 
 ## Skill Installs
+
+### Install the command
+
+`bin/sjskills` is the stable source wrapper. It builds the Go command from the
+checked-out repository into a temporary directory for each invocation, so Go
+1.23 or newer must be available. Add this repository's `bin/` directory to
+`PATH`, or create a one-time symlink from an absolute checkout path:
+
+```bash
+mkdir -p ~/.local/bin
+ln -s /absolute/path/to/agent-scripts/bin/sjskills ~/.local/bin/sjskills
+```
+
+Update the command by fast-forwarding the checkout. No generated executable is
+committed and no separate auto-updater is required.
 
 Inspect the local source while developing:
 
@@ -98,40 +110,52 @@ Install published skills from GitHub after committing and pushing. Treat
 globally.
 
 Use `skill-registry.json` as the source of truth for whether a skill is global,
-project-specific, workflow-managed, or catalog-only, along with its provenance
-and installation targets. See [docs/skill-registry.md](docs/skill-registry.md) for the
-schema contract. Use `scripts/audit-global-skills --profile <dev|kicpa>` to
-report exact-root drift in the selected global profile.
+project-profile, workflow-managed, manual, or catalog-only, along with its
+provenance and installation targets. See
+[docs/skill-registry.md](docs/skill-registry.md) for the version 4 contract.
 
-After intended public skill changes are committed, pushed, merged into the
-registry's remote ref, and pulled onto the machine, reconcile the selected
-profile:
+For a project, commit only the intent file and treat reconciled placements and
+state as generated machine-local data:
 
 ```bash
-PROFILE="dev"
-scripts/audit-global-skills --profile "$PROFILE"
-scripts/audit-global-skills --profile "$PROFILE" --apply
-scripts/audit-global-skills --profile "$PROFILE"
+sjskills init dev go
+sjskills plan
+sjskills apply
 ```
 
-`--apply` uses only credential-free remote registry sources and explicit Codex
-or Claude Code targets. It materializes each desired remote skill once in a
-temporary home, verifies that snapshot, and reuses the same bytes for every
-modeled placement in the run. Before replacing an already-verified copy, apply
-moves the old tree into a manifest-backed quarantine; the printed manifest can
-restore it after the active update is moved aside. A stale copy without prior
-verified state is never silently overwritten. After reviewing its exact
-candidates, copy the printed `--replace-unverified <sha256:digest> --yes`
-command to preserve them in the manifest-backed quarantine before verified
-staged install. Likewise, copy the printed `--prune <sha256:digest> --yes`
-command only after reviewing its exact duplicate set. A changed candidate set
-invalidates either digest; a replacement digest also binds the verified remote
-content. Prune never deletes: it moves only verified legacy duplicates into a
-timestamped quarantine and prints a manifest-specific restore command. Do not
-run apply or prune against a real home during repository validation.
+`sjskills.toml` may combine named profiles with direct third-party
+declarations. In a project that adopts this ownership model, ignore
+`.sjskills/`, `.agents/skills/`, and `.claude/skills/`; do not add those
+patterns until any preexisting committed content has been reviewed and
+migrated. Review every plan before apply. Unknown entries are preserved,
+unmanaged desired paths and locally modified managed copies block, and removing
+intent moves only unchanged trusted content into recoverable quarantine.
 
-For project-scoped recommendations, install only when the registry's `when`
-condition matches the target repository.
+When apply prints a quarantine identifier, retain it until the replacement or
+removal has completed a normal work cycle. Restore refuses to overwrite an
+active destination:
+
+```bash
+sjskills restore <quarantine-id>
+```
+
+Global reconciliation uses the same transaction engine and one
+machine-independent baseline:
+
+```bash
+sjskills plan --global
+# Run only under a separately reviewed and explicitly authorized rollout:
+sjskills apply --global
+sjskills restore --global <quarantine-id>
+```
+
+The global state file is `~/.agents/.global-skill-state.json`; private locks,
+journals, recovery data, and quarantine live under
+`~/.agents/.sjskills-global/`. Former machine-profile placements and legacy
+Pi copies are reported and preserved rather than automatically adopted or
+removed. `scripts/audit-global-skills` is now only a read-only transition
+wrapper for `sjskills plan --global`; its profile and mutation arguments are
+retired.
 
 ## Codex Plugins
 

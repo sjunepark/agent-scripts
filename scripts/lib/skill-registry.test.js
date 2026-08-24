@@ -6,73 +6,22 @@ const path = require("node:path");
 const test = require("node:test");
 const {
   globalSkillEntries,
+  skillsCliSourceProblem,
   validateSkillRegistry
 } = require("./skill-registry");
 
-function validRegistry() {
-  return {
-    version: 3,
-    description: "Test registry.",
-    global: {
-      allowUnlistedSkills: false,
-      profiles: {
-        dev: { audiences: ["common", "dev"] },
-        kicpa: { audiences: ["common", "kicpa"] }
-      }
-    },
-    sources: {
-      test: {
-        kind: "external",
-        location: "example/test-skills"
-      }
-    },
-    skills: [
-      {
-        name: "common-alpha",
-        source: "test",
-        recommendation: {
-          scope: "global",
-          audience: "common",
-          targets: [".agents"]
-        },
-        installation: { manager: "skills-cli", mode: "copy" }
-      },
-      {
-        name: "dev-alpha",
-        source: "test",
-        recommendation: {
-          scope: "global",
-          audience: "dev",
-          targets: [".agents"]
-        },
-        installation: { manager: "skills-cli", mode: "copy" }
-      },
-      {
-        name: "kicpa-alpha",
-        source: "test",
-        recommendation: {
-          scope: "global",
-          audience: "kicpa",
-          targets: [".agents"]
-        },
-        installation: { manager: "skills-cli", mode: "copy" }
-      },
-      {
-        name: "project-alpha",
-        source: "test",
-        recommendation: {
-          scope: "project",
-          targets: [".agents"],
-          when: "The target project opts in."
-        },
-        installation: { manager: "skills-cli", mode: "symlink" }
-      }
-    ]
-  };
+const repositoryRoot = path.resolve(__dirname, "../..");
+
+function readJSON(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8"));
+}
+
+function liveRegistry() {
+  return readJSON("skill-registry.json");
 }
 
 function validationErrors(mutate) {
-  const registry = validRegistry();
+  const registry = structuredClone(liveRegistry());
   mutate(registry);
   return validateSkillRegistry(registry);
 }
@@ -84,260 +33,94 @@ function assertErrorIncludes(errors, expected) {
   );
 }
 
-test("version 3 registry resolves the dev and kicpa profile unions", () => {
-  const registry = validRegistry();
-  const devEntries = globalSkillEntries(registry, "dev");
+test("live registry is the validated version 4 contract embedded by sjskills", () => {
+  const live = liveRegistry();
+  const embedded = readJSON("internal/sjskills/data/registry-v4.json");
+  const repositorySkillNames = fs
+    .readdirSync(path.join(repositoryRoot, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 
-  assert.deepEqual(validateSkillRegistry(registry), []);
+  assert.deepEqual(live, embedded);
+  assert.deepEqual(validateSkillRegistry(live, { repositorySkillNames }), []);
+});
+
+test("version 4 resolves one fixed global baseline with target exceptions", () => {
+  const entries = globalSkillEntries(liveRegistry());
+
   assert.deepEqual(
-    devEntries.map((entry) => entry.name),
-    ["common-alpha", "dev-alpha"]
-  );
-  assert.deepEqual(
-    devEntries.map(({ name, targets }) => ({ name, targets })),
+    entries.map((entry) => entry.name),
     [
-      { name: "common-alpha", targets: [".agents"] },
-      { name: "dev-alpha", targets: [".agents"] }
+      "brainstorming",
+      "clarify",
+      "codex-cleanup",
+      "distill-response",
+      "end-state-review",
+      "interview",
+      "next-goal",
+      "pdf-to-markdown",
+      "progress",
+      "skills-cli"
     ]
   );
-  assert.deepEqual(
-    globalSkillEntries(registry, "kicpa").map((entry) => entry.name),
-    ["common-alpha", "kicpa-alpha"]
-  );
+  assert.deepEqual(entries.find((entry) => entry.name === "codex-cleanup").targets, [".agents"]);
+  assert.deepEqual(entries.find((entry) => entry.name === "clarify").targets, [".agents", ".claude"]);
+  assert.ok(entries.every((entry) => entry.manager === "skills-cli" && entry.mode === "copy"));
 });
 
-test("live version 3 global profiles match the staged version 4 baseline unions", () => {
-  const root = path.resolve(__dirname, "../..");
-  const live = JSON.parse(fs.readFileSync(path.join(root, "skill-registry.json"), "utf8"));
-  const staged = JSON.parse(fs.readFileSync(path.join(root, "internal/sjskills/data/registry-v4.json"), "utf8"));
-  const stagedByName = new Map(staged.skills.map((skill) => [skill.name, skill]));
-
-  function stagedEntry(name) {
-    const skill = stagedByName.get(name);
-    assert.ok(skill, `staged registry has no skill named ${name}`);
-    const source = staged.sources[skill.source];
-    assert.ok(source, `staged registry has no source ${skill.source} for ${name}`);
-    const targets = staged.targetExceptions?.[name] ?? staged.defaults.targets;
-    return {
-      name,
-      source: source.location,
-      manager: skill.manager,
-      mode: skill.mode,
-      targets,
-      fullDepth: skill.fullDepth === true
-    };
-  }
-
-  function comparableLiveEntry(entry) {
-    return {
-      name: entry.name,
-      source: entry.source,
-      manager: entry.manager,
-      mode: entry.mode,
-      targets: entry.targets,
-      fullDepth: entry.fullDepth
-    };
-  }
-
-  const byName = (left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
-
-  for (const profile of ["dev", "kicpa"]) {
-    const names = [...staged.global.baseline, ...staged.profiles[profile].skills]
-      .sort();
-    assert.deepEqual(
-      globalSkillEntries(live, profile).map(comparableLiveEntry).sort(byName),
-      names.map(stagedEntry).sort(byName),
-      `${profile} profile drifted across the version 3/version 4 boundary`
-    );
-  }
-});
-
-test("profile resolution requires an explicit supported profile", () => {
-  const registry = validRegistry();
-
+test("version 4 rejects profile selection", () => {
   assert.throws(
-    () => globalSkillEntries(registry),
-    /profile is required; expected one of: dev, kicpa/
-  );
-  assert.throws(
-    () => globalSkillEntries(registry, "other"),
-    /unknown profile other; expected one of: dev, kicpa/
+    () => globalSkillEntries(liveRegistry(), "dev"),
+    /one fixed global baseline; profile selection is not supported/
   );
 });
 
-test("older registry versions are rejected", () => {
-  const errors = validationErrors((registry) => {
-    registry.version = 2;
-  });
-
-  assertErrorIncludes(errors, "version must be 3");
-});
-
-test("strict desired state cannot allow unlisted global skills", () => {
-  const errors = validationErrors((registry) => {
-    registry.global.allowUnlistedSkills = true;
-  });
-
-  assertErrorIncludes(errors, "global.allowUnlistedSkills must be false for strict desired state");
-});
-
-test("both supported profiles are required and unknown profiles are rejected", () => {
-  const missing = validationErrors((registry) => {
-    delete registry.global.profiles.kicpa;
-  });
-  const unknown = validationErrors((registry) => {
-    registry.global.profiles.other = { audiences: ["common"] };
-  });
-
-  assertErrorIncludes(missing, "global.profiles must define exactly: dev, kicpa");
-  assertErrorIncludes(unknown, "global.profiles must define exactly: dev, kicpa");
-});
-
-test("profile audiences must be nonempty, sorted, and deduplicated", () => {
-  const empty = validationErrors((registry) => {
-    registry.global.profiles.dev.audiences = [];
-  });
-  const unsorted = validationErrors((registry) => {
-    registry.global.profiles.dev.audiences = ["dev", "common"];
-  });
-  const duplicate = validationErrors((registry) => {
-    registry.global.profiles.dev.audiences = ["common", "dev", "dev"];
-  });
-
-  assertErrorIncludes(empty, "global profile dev audiences must be a non-empty array");
-  assertErrorIncludes(unsorted, "global profile dev audiences must be sorted");
-  assertErrorIncludes(duplicate, "global profile dev repeats audience dev");
-});
-
-test("profile compositions are fixed to common plus their machine audience", () => {
-  const wrongDev = validationErrors((registry) => {
-    registry.global.profiles.dev.audiences = ["dev"];
-  });
-  const unsupported = validationErrors((registry) => {
-    registry.global.profiles.kicpa.audiences = ["common", "finance"];
-  });
-
-  assertErrorIncludes(wrongDev, "global profile dev audiences must be: common, dev");
-  assertErrorIncludes(unsupported, "global profile kicpa has unsupported audience finance");
-});
-
-test("every global recommendation has exactly one supported audience", () => {
-  const missing = validationErrors((registry) => {
-    delete registry.skills[0].recommendation.audience;
-  });
-  const unsupported = validationErrors((registry) => {
-    registry.skills[0].recommendation.audience = "finance";
-  });
-  const multiple = validationErrors((registry) => {
-    registry.skills[0].recommendation.audience = ["common", "dev"];
-  });
-
-  assertErrorIncludes(missing, "common-alpha global recommendation must name one audience");
-  assertErrorIncludes(unsupported, "common-alpha has unsupported audience finance");
-  assertErrorIncludes(multiple, "common-alpha global recommendation must name one audience");
-});
-
-test("global and project recommendations use sorted installation targets", () => {
-  const legacy = validationErrors((registry) => {
-    delete registry.skills[0].recommendation.targets;
-    registry.skills[0].recommendation.agents = ["codex"];
-  });
-  const unsupported = validationErrors((registry) => {
-    registry.skills[0].recommendation.targets = ["codex"];
-  });
-  const duplicate = validationErrors((registry) => {
-    registry.skills[0].recommendation.targets = [".agents", ".agents"];
-  });
-  const unsorted = validationErrors((registry) => {
-    registry.skills[0].recommendation.targets = [".claude", ".agents"];
-  });
-  const missingProjectTargets = validationErrors((registry) => {
-    delete registry.skills[3].recommendation.targets;
-  });
-
-  assertErrorIncludes(legacy, "common-alpha recommendation has unsupported field agents");
-  assertErrorIncludes(legacy, "common-alpha global recommendation must name targets");
-  assertErrorIncludes(unsupported, "common-alpha has unsupported target codex");
-  assertErrorIncludes(duplicate, "common-alpha repeats target .agents");
-  assertErrorIncludes(unsorted, "common-alpha recommendation targets must be sorted");
+test("version 4 validates desired-set integrity", () => {
   assertErrorIncludes(
-    missingProjectTargets,
-    "project-alpha project recommendation must name targets"
-  );
-});
-
-test("skills-cli installation requires a source the Skills CLI can clone", () => {
-  const npmSpecifier = validationErrors((registry) => {
-    registry.sources.test.location = "npm:test-skills@latest";
-  });
-  const localPath = validationErrors((registry) => {
-    registry.sources.test.location = "./skills";
-  });
-  const credentialed = validationErrors((registry) => {
-    registry.sources.test.location = "https://token@example.com/test-skills";
-  });
-
-  assertErrorIncludes(
-    npmSpecifier,
-    "common-alpha skills-cli installation requires a git shorthand or credential-free https source location, not npm:test-skills@latest"
-  );
-  // The check is total: project-scoped records never reach the reconciler's
-  // runtime guard, so validation is their only protection.
-  assertErrorIncludes(npmSpecifier, "project-alpha skills-cli installation requires");
-  assertErrorIncludes(
-    localPath,
-    "common-alpha skills-cli installation requires a remote source, not the local path ./skills"
+    validationErrors((registry) => registry.global.baseline.push("missing-skill")),
+    "global.baseline references unknown skill missing-skill"
   );
   assertErrorIncludes(
-    credentialed,
-    "common-alpha skills-cli installation requires a git shorthand or credential-free https source location"
+    validationErrors((registry) => registry.profiles.dev.skills.push("brainstorming")),
+    "brainstorming appears in multiple desired sets"
+  );
+  assertErrorIncludes(
+    validationErrors((registry) => registry.global.baseline.push("brainstorming")),
+    "global.baseline repeats a skill"
   );
 });
 
-test("non-skills-cli managers may provision from a source the Skills CLI cannot clone", () => {
-  const registry = validRegistry();
-  registry.sources = {
-    installer: { kind: "external", location: "npm:installer@latest" },
-    test: registry.sources.test
-  };
-  registry.skills.push({
-    name: "workflow-alpha",
-    source: "installer",
-    recommendation: {
-      scope: "project",
-      targets: [".claude"],
-      when: "The delegating workflow operates in a matching repository."
-    },
-    installation: { manager: "workflow", workflow: "delegate-ui-to-claude" }
-  });
-
-  assert.deepEqual(validateSkillRegistry(registry), []);
+test("version 4 validates targets and installable remote sources", () => {
+  assertErrorIncludes(
+    validationErrors((registry) => {
+      registry.targetExceptions.clarify = [".claude", ".agents"];
+    }),
+    "target exception clarify must contain sorted unique supported targets"
+  );
+  assertErrorIncludes(
+    validationErrors((registry) => {
+      registry.sources["agent-scripts"].location = "./skills";
+    }),
+    "skills-cli installation requires an installable remote source"
+  );
 });
 
-test("project and catalog recommendations cannot declare audiences", () => {
-  const project = validationErrors((registry) => {
-    registry.skills[3].recommendation.audience = "dev";
-  });
-  const catalog = validationErrors((registry) => {
-    registry.skills[3].recommendation = {
-      scope: "catalog",
-      audience: "dev"
-    };
-    registry.skills[3].installation = { manager: "none" };
+test("version 4 rejects unclassified repository skills", () => {
+  const registry = liveRegistry();
+  const errors = validateSkillRegistry(registry, {
+    repositorySkillNames: ["brainstorming", "not-classified"]
   });
 
-  assertErrorIncludes(project, "project-alpha project recommendation must not define audience");
-  assertErrorIncludes(catalog, "project-alpha catalog recommendation must not define audience");
+  assertErrorIncludes(errors, "repository skill is not classified: not-classified");
+  assertErrorIncludes(errors, "repository source references missing skills/clarify/SKILL.md");
 });
 
-test("catalog recommendations cannot declare installation targets", () => {
-  const errors = validationErrors((registry) => {
-    registry.skills[3].recommendation = {
-      scope: "catalog",
-      targets: [".agents"]
-    };
-    registry.skills[3].installation = { manager: "none" };
-  });
-
-  assertErrorIncludes(errors, "project-alpha catalog recommendation must not define targets");
+test("skills-cli sources must be public git shorthands or credential-free HTTPS", () => {
+  assert.equal(skillsCliSourceProblem("owner/repo"), null);
+  assert.equal(skillsCliSourceProblem("owner/repo/skills/example"), null);
+  assert.equal(skillsCliSourceProblem("https://github.com/owner/repo/tree/main/skills"), null);
+  assert.equal(skillsCliSourceProblem("./skills"), "local");
+  assert.equal(skillsCliSourceProblem("npm:package@latest"), "unsupported");
+  assert.equal(skillsCliSourceProblem("https://token@example.com/repo"), "unsupported");
+  assert.equal(skillsCliSourceProblem("https://example.com/repo?token=secret"), "unsupported");
 });
