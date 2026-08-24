@@ -38,9 +38,10 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Implement a confined, read-only inventory and provenance-aware classifier for
-the modeled project `.agents` and `.claude` roots. Keep project mutation,
-quarantine, and restore behind later independently reviewed slices.
+Define and fixture canonical project copy/symlink placement semantics, then
+integrate the reviewed inventory and classifier into the read-only project
+plan. Keep project mutation, quarantine, and restore behind later independently
+reviewed slices.
 
 ### Evidence and blockers
 
@@ -80,3 +81,17 @@ quarantine, and restore behind later independently reviewed slices.
   Windows compile, legacy Node, skill, catalog, formatting, and diff validation
   matrix passed. Bounded real-source validation remains assigned to the final
   validation phase.
+- The project inventory reads only the two derived skill roots and strict
+  bounded provenance under a proven canonical project boundary. It reports
+  unsafe or malformed state with stable reasons, never follows child symlinks,
+  and leaves temporary-project sentinels unchanged.
+- The pure project classifier uses only verified expected hashes and trusted
+  reconciler provenance. It deterministically distinguishes all eight planned
+  state classes, preserves unknown content, refuses byte-equality ownership,
+  proposes update/quarantine only for unchanged managed bytes, and keeps
+  unresolved symlink placement protected.
+- The bounded read-only slice review applied the source-identity compatibility
+  fix for credential-free HTTPS remotes with explicit ports. Unit, race, vet,
+  Windows compile-only, formatting, and diff validation passed; one external
+  CLI test pass saw a non-reproducing preflight mismatch, followed by five
+  clean standalone CLI-package runs and a clean race run.

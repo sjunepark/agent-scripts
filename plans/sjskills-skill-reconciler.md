@@ -55,10 +55,19 @@ one verified session, emits stable expected-content evidence, sanitizes private
 staging paths before diagnostic truncation, and leaves managed-root sentinels
 byte-for-byte unchanged.
 
+The project read-only state boundary is also complete: `sjskills` inventories
+only the canonical project `.agents/skills` and `.claude/skills` roots, hashes
+real directory entries without following symlinks, and loads strict bounded
+reconciler provenance. A pure classifier now distinguishes missing, exact,
+outdated, modified, unmanaged, malformed, misplaced, and protected state
+without granting ownership from byte equality alone. Symlink placement policy,
+planning integration, and every mutation remain deliberately unimplemented.
+
 ## Next action
 
-Implement the confined, read-only project inventory and provenance-aware state
-classifier for the modeled `.agents` and `.claude` roots. Keep mutation,
+Define and fixture the canonical project placement policy, including the
+portable meaning of registry copy and symlink modes, then integrate the
+reviewed inventory/classifier into the read-only project plan. Keep mutation,
 quarantine, and restore behind later independently reviewed slices; reserve
 bounded real-source validation for the final validation phase.
 
@@ -256,12 +265,12 @@ the real project and home remain byte-for-byte unchanged.
 
 ### 4. Implement project exact-state reconciliation
 
-- [ ] Inventory only the modeled project roots and prove their canonical paths
+- [x] Inventory only the modeled project roots and prove their canonical paths
       remain inside the selected project before reading ownership files or
       planning mutations.
-- [ ] Define reconciler-owned provenance records for source identity, target,
+- [x] Define reconciler-owned provenance records for source identity, target,
       verified tree hash, install time, and the minimum recovery evidence.
-- [ ] Classify missing, exact, outdated, modified, unmanaged, malformed,
+- [x] Classify missing, exact, outdated, modified, unmanaged, malformed,
       misplaced, and protected state without treating Skills CLI metadata as a
       verified local-content hash.
 - [ ] Plan canonical `.agents` and `.claude` placements with portable behavior
