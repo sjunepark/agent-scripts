@@ -37,8 +37,9 @@ Isolated Skills CLI materialization.
 
 ### Next in-scope action
 
-Implement the exactly pinned, isolated, bounded Skills CLI materialization
-adapter and verified staged-tree contract without touching real managed roots.
+Integrate the verified materialization session into the read-only planning
+path so `sjskills plan` can establish expected content without touching real
+managed roots.
 
 ### Evidence and blockers
 
@@ -59,3 +60,13 @@ adapter and verified staged-tree contract without touching real managed roots.
 - Parent validation passed: Go formatting, unit tests, race tests, vet, all 55
   legacy registry/global-state tests, `scripts/validate-skills` (35 skills),
   local published-catalog validation, and `git diff --check`.
+- The pinned Skills CLI 1.5.23 adapter now materializes each installable skill
+  once into an isolated, bounded temporary root; computes the legacy-compatible
+  `tree-sha256-v2` digest; rejects unsafe sources, paths, trees, and diagnostics;
+  detects staged tampering; and owns idempotent cleanup. Manual/workflow entries
+  remain explicitly skipped.
+- Parent validation of the adapter passed fresh Go unit and race runs, a
+  repeated real subprocess-bound test, vet, Windows compile-only validation,
+  all 55 legacy safety tests, `scripts/validate-skills`, formatting, and diff
+  checks. The phase remains active until the CLI planning path consumes the
+  verified session.

@@ -45,11 +45,22 @@ minimal provenance shapes, stable plan/process contracts, and a typed Kong CLI
 shell all validate without touching a managed root or network. The live
 registry remains version 3 until the later atomic cutover.
 
+The isolated materialization adapter is also implemented and independently
+validated: it invokes exactly Skills CLI 1.5.23 through `bunx`, confines all
+home/config/cache/temp writes to an owned temporary root, bounds subprocess and
+tree resources, computes legacy-compatible verified hashes, reuses one staged
+tree per desired skill, rejects unsafe symlinks and diagnostics, detects
+tampering, and cleans up recoverably. Phase 3 remains active until the
+read-only CLI planning path consumes that session and reports expected-content
+evidence.
+
 ## Next action
 
-Implement the exactly pinned, isolated, bounded Skills CLI materialization
-adapter and verified staged-tree contract. Keep all subprocess homes and
-outputs in temporary fixtures and leave real managed roots unchanged.
+Integrate the verified materialization session into the read-only planning
+path so `sjskills plan` establishes expected-content evidence while reusing
+each staged tree and cleaning it before exit. Keep tests injected and
+network-free; reserve bounded real-source validation for the final validation
+phase.
 
 ## Accepted product contract
 
@@ -225,18 +236,18 @@ without materializing or installing a skill.
 
 ### 3. Add isolated Skills CLI materialization
 
-- [ ] Pin one Skills CLI version and verify it through `bunx` during preflight.
-- [ ] Translate resolved installable skills into bounded, noninteractive
+- [x] Pin one Skills CLI version and verify it through `bunx` during preflight.
+- [x] Translate resolved installable skills into bounded, noninteractive
       materialization commands with explicit skill selection and full-depth
       behavior where required; never use `--all`.
-- [ ] Isolate `HOME`, `USERPROFILE`, `CODEX_HOME`, and Claude configuration so
+- [x] Isolate `HOME`, `USERPROFILE`, `CODEX_HOME`, and Claude configuration so
       subprocesses can write only inside a temporary staging root.
-- [ ] Materialize each desired remote tree once per plan, compute the
+- [x] Materialize each desired remote tree once per plan, compute the
       reconciler-owned tree hash, and reuse those verified bytes for all
       placements in that plan.
-- [ ] Bound command duration, stdout/stderr bytes, staged tree size, file count,
+- [x] Bound command duration, stdout/stderr bytes, staged tree size, file count,
       path depth, and diagnostic output. Redact credentials and unsafe URLs.
-- [ ] Test source failure, timeout, oversized output/tree, tampering after
+- [x] Test source failure, timeout, oversized output/tree, tampering after
       staging, unsupported source forms, private Git-helper operation, and
       cleanup of temporary state.
 
