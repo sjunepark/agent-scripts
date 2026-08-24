@@ -44,8 +44,9 @@ Fixed global baseline and legacy-engine cutover.
 
 ### Next in-scope action
 
-Port the applicable project safety invariants into one fixed global baseline
-and keep all real-home validation read-only.
+Implement the locked, recoverable global apply transaction, then perform the
+atomic v4 registry and legacy-engine cutover while keeping real-home validation
+read-only.
 
 ### Evidence and blockers
 
@@ -268,3 +269,22 @@ and keep all real-home validation read-only.
   provenance still exposes durable quarantine evidence, and provenance modes
   participate in recovery matching. Focused race and crash regressions cover
   each boundary.
+- The read-only global planner now inventories only the two fixed managed
+  roots under an injected or OS-selected home, observes the Pi legacy root,
+  and protects vendor, backup, cache, and runtime locations without
+  enumerating them. It strictly translates legacy v1 provenance in memory and
+  supports the staged v2 shape without writing either format.
+- Global ownership remains narrower than the legacy engine: exact bytes and
+  Skills CLI locks are advisory rather than ownership evidence, malformed
+  state is wholly untrusted, and unsafe trees block. Former profile placements
+  and stale absent records are path-free report-only migration warnings with
+  no quarantine operation in this slice.
+- External-process coverage proves an empty temporary home yields the 18
+  expected baseline placements without mutation or home-path leakage. A
+  cross-schema fixture proves the live v3 `dev` and `kicpa` profiles equal the
+  staged v4 baseline unions, so v3 remains operational until atomic cutover.
+- The bounded review applied the report-only former-placement correction and
+  removed an unnecessary exported inventory mutator. Full Go unit/race/vet,
+  Windows test compilation, AIX/Solaris builds, all 56 legacy/parity Node
+  tests, 35 skill validations, temporary-home catalog validation, formatting,
+  and diff checks passed without real-home mutation.

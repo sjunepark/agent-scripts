@@ -47,6 +47,8 @@ const (
 	ProjectStateReasonProvenanceUntrusted         ProjectStateReason = "provenance-untrusted"
 	ProjectStateReasonManualManager               ProjectStateReason = "manual-manager"
 	ProjectStateReasonWorkflowManager             ProjectStateReason = "workflow-manager"
+	ProjectStateReasonFormerGlobalSkillPreserved  ProjectStateReason = "former-global-skill-preserved"
+	ProjectStateReasonTrustedPlacementAbsent      ProjectStateReason = "trusted-placement-absent"
 )
 
 // ProjectState is one desired placement or one observed entry.  Current and
@@ -82,16 +84,22 @@ func ClassifyProject(desired DesiredState, expected map[string]TreeHash, invento
 	if err := newValidationErrors(issues); err != nil {
 		return ProjectClassification{}, err
 	}
+	return classifyManagedState(inventory.Root, inventory.StatePath, inventory.StateTrusted, desiredByName, expectedByName, recordsByKey, rootsByTarget), nil
+}
 
+// classifyManagedState is the pure exact-state engine shared by project and
+// global reconciliation after each scope has validated its own layout and
+// provenance boundary.
+func classifyManagedState(boundary, statePath string, stateTrusted bool, desiredByName map[string]DesiredSkill, expectedByName map[string]TreeHash, recordsByKey map[string]ProvenanceRecord, rootsByTarget map[Target]ProjectSkillsRootInventory) ProjectClassification {
 	result := ProjectClassification{
-		Root:   inventory.Root,
+		Root:   boundary,
 		States: make([]ProjectState, 0),
 	}
-	if !inventory.StateTrusted {
+	if !stateTrusted {
 		result.States = append(result.States, ProjectState{
 			Kind:   ProjectStateProtected,
 			Action: PlanActionBlocked,
-			Path:   inventory.StatePath,
+			Path:   statePath,
 			Reason: ProjectStateReasonProvenanceUntrusted,
 		})
 	}
@@ -162,7 +170,7 @@ func ClassifyProject(desired DesiredState, expected map[string]TreeHash, invento
 		}
 		return compareUTF16(left.Path, right.Path) < 0
 	})
-	return detachProjectClassification(result), nil
+	return detachProjectClassification(result)
 }
 
 type projectDesiredPlacement struct {

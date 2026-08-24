@@ -28,7 +28,12 @@ func TranslateProjectClassification(plan Plan, classification ProjectClassificat
 			Code: IssueMalformedInput, Path: "plan.desired.scope", Message: "project translation requires project scope",
 		}}}
 	}
+	return translateManagedClassification(plan, classification, projectStateWarning, projectPreservedWarning), nil
+}
 
+type classificationWarningFunc func(ProjectState) Warning
+
+func translateManagedClassification(plan Plan, classification ProjectClassification, stateWarning, preservedWarning classificationWarningFunc) Plan {
 	result := plan
 	result.Desired = cloneDesiredState(plan.Desired)
 	result.Operations = make([]PlanOperation, 0, len(classification.States))
@@ -56,7 +61,7 @@ func TranslateProjectClassification(plan Plan, classification ProjectClassificat
 	for _, state := range states {
 		desired, desiredPlacement := desiredByPlacement[projectPlacementKey(state.Target, state.Skill)]
 		if state.Skill == "" {
-			result.Warnings = append(result.Warnings, projectStateWarning(state))
+			result.Warnings = append(result.Warnings, stateWarning(state))
 			continue
 		}
 
@@ -66,11 +71,11 @@ func TranslateProjectClassification(plan Plan, classification ProjectClassificat
 		// desired skill at another target.  Provenance-backed removed entries
 		// retain their quarantine/blocked operation below.
 		if !desiredPlacement && state.Action == PlanActionUnchanged {
-			result.Warnings = append(result.Warnings, projectPreservedWarning(state))
+			result.Warnings = append(result.Warnings, preservedWarning(state))
 			continue
 		}
 		if !desiredPlacement && state.Manager != ManagerSkillsCLI && state.Action == PlanActionBlocked {
-			result.Warnings = append(result.Warnings, projectPreservedWarning(state))
+			result.Warnings = append(result.Warnings, preservedWarning(state))
 			continue
 		}
 
@@ -97,7 +102,7 @@ func TranslateProjectClassification(plan Plan, classification ProjectClassificat
 		result.Operations = append(result.Operations, operation)
 	}
 
-	return result, nil
+	return result
 }
 
 func cloneDesiredState(state DesiredState) DesiredState {
@@ -186,7 +191,9 @@ func projectStableReason(reason ProjectStateReason) string {
 		ProjectStateReasonUnmanagedEntryPreserved,
 		ProjectStateReasonProvenanceUntrusted,
 		ProjectStateReasonManualManager,
-		ProjectStateReasonWorkflowManager:
+		ProjectStateReasonWorkflowManager,
+		ProjectStateReasonFormerGlobalSkillPreserved,
+		ProjectStateReasonTrustedPlacementAbsent:
 		return string(reason)
 	default:
 		return "unspecified"

@@ -1479,12 +1479,22 @@ func TestExternalPlanMaterializesExpectedContentReadOnly(t *testing.T) {
 	}
 	globalEnvelope := decodeEnvelope(t, stdout)
 	assertExpectedContentEvidence(t, globalEnvelope)
-	if globalEnvelope.Plan == nil || len(globalEnvelope.Plan.Operations) != 0 {
-		t.Fatalf("global plan operations = %#v, want empty", globalEnvelope.Plan)
+	if globalEnvelope.Plan == nil || len(globalEnvelope.Plan.Operations) != 18 {
+		t.Fatalf("global plan operations = %#v, want 18 missing placements", globalEnvelope.Plan)
+	}
+	for _, operation := range globalEnvelope.Plan.Operations {
+		if operation.Action != "install" || operation.Reason != "expected-entry-absent" {
+			t.Fatalf("global plan operation = %#v, want missing install", operation)
+		}
 	}
 	for _, output := range []string{stdout, stderr} {
 		if strings.Contains(output, "sjskills-materialize-") {
 			t.Fatalf("global materialization path leaked in output: %q", output)
+		}
+		for _, path := range []string{globalHome, globalUserProfile, globalAgents, globalClaude} {
+			if strings.Contains(output, path) {
+				t.Fatalf("global home or ignored override leaked in output: %q", output)
+			}
 		}
 	}
 	for path, before := range map[string]fixtureTree{
@@ -1505,6 +1515,34 @@ func TestExternalPlanMaterializesExpectedContentReadOnly(t *testing.T) {
 		if got := captureFixtureTree(t, root); !reflect.DeepEqual(got, before) {
 			t.Fatalf("global sentinel %s changed: before=%#v after=%#v", path, before, got)
 		}
+	}
+}
+
+func TestRenderHumanReportsDeterministicOperationCounts(t *testing.T) {
+	envelope := sjskills.Envelope{
+		Operation: sjskills.CommandOperationPlan,
+		Result:    sjskills.ResultConflict,
+		Plan: &sjskills.Plan{
+			Desired: sjskills.DesiredState{Scope: sjskills.ScopeGlobal},
+			Operations: []sjskills.PlanOperation{
+				{Action: sjskills.PlanActionBlocked},
+				{Action: sjskills.PlanActionInstall},
+				{Action: sjskills.PlanActionUnchanged},
+				{Action: sjskills.PlanActionInstall},
+			},
+		},
+		Warnings: []sjskills.Warning{},
+		Evidence: []sjskills.Evidence{},
+	}
+	var stdout, stderr strings.Builder
+
+	renderHuman(&stdout, &stderr, envelope)
+
+	if got, want := stdout.String(), "plan: conflict (0 skills)\noperations: install=2, unchanged=1, blocked=1\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
 	}
 }
 
@@ -1672,6 +1710,72 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 		}
 		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
 			t.Fatalf("temporary parent after translation failure: entries=%d err=%v", len(entries), err)
+		}
+	})
+
+	t.Run("global home failure cleans up before return", func(t *testing.T) {
+		materializer, parent := testInjectedMaterializer(t)
+		var stagedRoot string
+		app := &application{
+			directory: t.TempDir(),
+			homeDirectory: func() (string, error) {
+				return "", errors.New("home lookup failed")
+			},
+			materialize: func(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+				materialized, err := materializer.Materialize(ctx, skills)
+				if err == nil {
+					stagedRoot = materialized.Root()
+				}
+				return materialized, err
+			},
+		}
+		envelope := app.plan(context.Background(), true)
+		if envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueUnavailable || envelope.Error.Message != "global home is unavailable" {
+			t.Fatalf("envelope=%#v", envelope)
+		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
+		}
+		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
+			t.Fatalf("staging root still exists after home failure: %q err=%v", stagedRoot, err)
+		}
+		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
+			t.Fatalf("temporary parent after home failure: entries=%d err=%v", len(entries), err)
+		}
+	})
+
+	t.Run("global translation failure cleans up before return", func(t *testing.T) {
+		materializer, parent := testInjectedMaterializer(t)
+		home := t.TempDir()
+		var stagedRoot string
+		app := &application{
+			directory: t.TempDir(),
+			homeDirectory: func() (string, error) {
+				return home, nil
+			},
+			materialize: func(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
+				materialized, err := materializer.Materialize(ctx, skills)
+				if err == nil {
+					stagedRoot = materialized.Root()
+				}
+				return materialized, err
+			},
+			translateGlobal: func(sjskills.Plan, sjskills.GlobalClassification) (sjskills.Plan, error) {
+				return sjskills.Plan{}, errors.New("global translation failed")
+			},
+		}
+		envelope := app.plan(context.Background(), true)
+		if envelope.Result != sjskills.ResultUnavailable || envelope.Error == nil || envelope.Error.Code != sjskills.IssueUnavailable || envelope.Error.Message != "global translation failed" {
+			t.Fatalf("envelope=%#v", envelope)
+		}
+		if stagedRoot == "" {
+			t.Fatal("materializer did not return a staging root")
+		}
+		if _, err := os.Stat(stagedRoot); !os.IsNotExist(err) {
+			t.Fatalf("staging root still exists after global translation failure: %q err=%v", stagedRoot, err)
+		}
+		if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
+			t.Fatalf("temporary parent after global translation failure: entries=%d err=%v", len(entries), err)
 		}
 	})
 

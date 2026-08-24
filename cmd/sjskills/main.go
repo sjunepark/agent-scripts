@@ -79,6 +79,7 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 
 type application struct {
 	directory           string
+	homeDirectory       func() (string, error)
 	envelope            sjskills.Envelope
 	jsonMode            bool
 	input               io.Reader
@@ -87,6 +88,7 @@ type application struct {
 	verifyMaterialized  materializationVerifyFunc
 	cleanupMaterialized materializationCleanupFunc
 	translateProject    projectTranslationFunc
+	translateGlobal     globalTranslationFunc
 	applyProject        projectApplyFunc
 	restoreProject      projectRestoreFunc
 }
@@ -103,6 +105,8 @@ type materializationCleanupFunc func(*sjskills.MaterializationPlan) error
 // projectTranslationFunc keeps the pure project-to-plan boundary injectable
 // for lifecycle tests without introducing a second plan model.
 type projectTranslationFunc func(sjskills.Plan, sjskills.ProjectClassification) (sjskills.Plan, error)
+
+type globalTranslationFunc func(sjskills.Plan, sjskills.GlobalClassification) (sjskills.Plan, error)
 
 type projectApplyFunc func(context.Context, *sjskills.ProjectApplySession, sjskills.ApplyDeps) (sjskills.ApplyResult, error)
 
@@ -308,7 +312,39 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 	prepared.verified = true
 	prepared.syncPlan(plan)
 
-	if !global {
+	if global {
+		home, homeErr := a.selectedGlobalHome()
+		if homeErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, errors.New("global home is unavailable"))
+			return nil, prepared.finish(envelope, "home")
+		}
+		layout, layoutErr := sjskills.LayoutForGlobal(home)
+		if layoutErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, layoutErr)
+			return nil, prepared.finish(envelope, "layout")
+		}
+		inventory, inspectErr := sjskills.InspectGlobal(layout)
+		if inspectErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, inspectErr)
+			return nil, prepared.finish(envelope, "inspect")
+		}
+		classification, classifyErr := sjskills.ClassifyGlobal(registry, plan.Desired, prepared.expected, inventory)
+		if classifyErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, classifyErr)
+			return nil, prepared.finish(envelope, "classify")
+		}
+		translateGlobal := a.translateGlobal
+		if translateGlobal == nil {
+			translateGlobal = sjskills.TranslateGlobalClassification
+		}
+		translated, translateErr := translateGlobal(plan, classification)
+		if translateErr != nil {
+			envelope = unavailableWithPlan(prepared.envelope, translateErr)
+			return nil, prepared.finish(envelope, "translate")
+		}
+		plan = translated
+		prepared.syncPlan(plan)
+	} else {
 		layout, layoutErr := sjskills.LayoutForProject(project.Root)
 		if layoutErr != nil {
 			envelope = unavailableWithPlan(prepared.envelope, layoutErr)
@@ -344,6 +380,19 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 		}
 	}
 	return prepared, prepared.envelope
+}
+
+func (a *application) selectedGlobalHome() (string, error) {
+	if a.homeDirectory != nil {
+		return a.homeDirectory()
+	}
+	// Direct application construction is test-only. Defaulting that seam to
+	// the supplied working directory keeps those tests inside their fixture;
+	// production always injects os.UserHomeDir below.
+	if a.directory == "" {
+		return "", errors.New("global home is unavailable")
+	}
+	return filepath.Abs(a.directory)
 }
 
 func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Envelope {
@@ -824,6 +873,7 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 	case sjskills.CommandOperationPlan, sjskills.CommandOperationApply:
 		if envelope.Plan != nil {
 			fmt.Fprintf(stdout, "%s: %s (%d skills)\n", envelope.Operation, envelope.Result, len(envelope.Plan.Desired.Skills))
+			renderOperationCounts(stdout, envelope.Plan.Operations)
 		} else {
 			fmt.Fprintf(stdout, "%s: %s\n", envelope.Operation, envelope.Result)
 		}
@@ -846,6 +896,30 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		if evidence.Kind == "quarantine" {
 			fmt.Fprintf(stdout, "quarantine: %s\n", evidence.Detail)
 		}
+	}
+}
+
+func renderOperationCounts(output io.Writer, operations []sjskills.PlanOperation) {
+	counts := make(map[sjskills.PlanAction]int)
+	for _, operation := range operations {
+		counts[operation.Action]++
+	}
+	parts := make([]string, 0, len(counts))
+	for _, action := range []sjskills.PlanAction{
+		sjskills.PlanActionInstall,
+		sjskills.PlanActionUpdate,
+		sjskills.PlanActionQuarantine,
+		sjskills.PlanActionUnchanged,
+		sjskills.PlanActionManual,
+		sjskills.PlanActionWorkflow,
+		sjskills.PlanActionBlocked,
+	} {
+		if count := counts[action]; count > 0 {
+			parts = append(parts, fmt.Sprintf("%s=%d", action, count))
+		}
+	}
+	if len(parts) > 0 {
+		fmt.Fprintf(output, "operations: %s\n", strings.Join(parts, ", "))
 	}
 }
 
@@ -879,11 +953,12 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 		return int(sjskills.ExitInvalidInvocation)
 	}
 	app := &application{
-		directory:    directory,
-		jsonMode:     commands.JSON,
-		input:        stdin,
-		promptOutput: stderr,
-		materialize:  productionMaterialize,
+		directory:     directory,
+		homeDirectory: os.UserHomeDir,
+		jsonMode:      commands.JSON,
+		input:         stdin,
+		promptOutput:  stderr,
+		materialize:   productionMaterialize,
 	}
 	if err := parsed.Run(&commandContext{application: app, context: ctx}); err != nil {
 		if jsonMode {
