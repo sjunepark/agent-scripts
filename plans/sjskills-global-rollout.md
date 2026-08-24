@@ -35,7 +35,8 @@ equivalent commands:
 git fetch origin main
 git rev-parse origin/main
 go build -o $env:TEMP\sjskills.exe ./cmd/sjskills
-& $env:TEMP\sjskills.exe --json plan --global > $env:TEMP\sjskills-global-plan.json
+& $env:TEMP\sjskills.exe --json plan --global |
+  Out-File -FilePath $env:TEMP\sjskills-global-plan.json -Encoding utf8
 (Get-FileHash -Algorithm SHA256 $env:TEMP\sjskills-global-plan.json).Hash
 ```
 
@@ -65,7 +66,8 @@ cmp /tmp/sjskills-global-plan.json /tmp/sjskills-global-plan.recheck.json
 On Windows PowerShell:
 
 ```powershell
-& $env:TEMP\sjskills.exe --json plan --global > $env:TEMP\sjskills-global-plan.recheck.json
+& $env:TEMP\sjskills.exe --json plan --global |
+  Out-File -FilePath $env:TEMP\sjskills-global-plan.recheck.json -Encoding utf8
 if (Compare-Object `
     (Get-Content -AsByteStream $env:TEMP\sjskills-global-plan.json) `
     (Get-Content -AsByteStream $env:TEMP\sjskills-global-plan.recheck.json)) {
@@ -89,7 +91,8 @@ On Windows PowerShell, use the already reviewed executable:
 
 ```powershell
 & $env:TEMP\sjskills.exe apply --global
-& $env:TEMP\sjskills.exe --json plan --global > $env:TEMP\sjskills-global-plan.after.json
+& $env:TEMP\sjskills.exe --json plan --global |
+  Out-File -FilePath $env:TEMP\sjskills-global-plan.after.json -Encoding utf8
 ```
 
 Use the interactive confirmation so the operator sees the recomputed mutation

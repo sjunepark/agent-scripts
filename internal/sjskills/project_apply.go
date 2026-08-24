@@ -207,6 +207,7 @@ func failureReasonForScope(reason string, scope Scope) string {
 		return reason
 	}
 	return strings.NewReplacer(
+		"another project apply", "another global apply",
 		"project state", "global state",
 		"project root", "global home",
 		"project boundary", "global boundary",

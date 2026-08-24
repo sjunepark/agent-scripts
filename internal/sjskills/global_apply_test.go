@@ -23,6 +23,36 @@ func TestGlobalMutationErrorsNameTheGlobalBoundary(t *testing.T) {
 		err.Error() != "global restore conflict: quarantine identifier is invalid" {
 		t.Fatalf("restore error = %v", err)
 	}
+	if err := scopeApplyFailure(applyConflict("another project apply is active"), ScopeGlobal); err == nil ||
+		err.Error() != "global apply conflict: another global apply is active" {
+		t.Fatalf("lock error = %v", err)
+	}
+}
+
+func TestApplySessionScopeBoundaries(t *testing.T) {
+	global := newGlobalApplyFixture(t)
+	project := &ProjectApplySession{
+		Layout: global.Layout.mutationLayout(), Desired: global.Desired, Plan: global.Plan,
+		Expected: global.Expected, Materialized: global.Materialized, global: &globalApplyBoundary{layout: global.Layout, registry: global.Registry},
+	}
+	if _, err := ApplyProjectChanges(context.Background(), project, ApplyDeps{}); err == nil ||
+		err.Error() != "project apply unavailable: project apply requires project scope" {
+		t.Fatalf("project boundary error = %v", err)
+	}
+
+	global = newGlobalApplyFixture(t)
+	global.Layout.Home = canonicalTempHome(t)
+	if _, err := ApplyGlobalChanges(context.Background(), global, ApplyDeps{}); err == nil ||
+		err.Error() != "global apply conflict: global boundary changed" {
+		t.Fatalf("global layout error = %v", err)
+	}
+
+	global = newGlobalApplyFixture(t)
+	global.Desired.Skills[0].Source = "different/source"
+	if _, err := ApplyGlobalChanges(context.Background(), global, ApplyDeps{}); err == nil ||
+		err.Error() != "global apply conflict: global desired identity changed" {
+		t.Fatalf("global desired error = %v", err)
+	}
 }
 
 func TestApplyGlobalChangesRollsBackPartialInstall(t *testing.T) {
@@ -158,12 +188,24 @@ func TestRestoreGlobalQuarantineRestoresOldGlobalPlacements(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(snapshot.Path, "SKILL.md"), []byte("base-v2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	newHash, _ := HashSkillTree(snapshot.Path)
+	newHash, err := HashSkillTree(snapshot.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	snapshot.Hash = newHash
 	session.Expected["base"] = newHash
-	inventory, _ := InspectGlobal(session.Layout)
-	classification, _ := ClassifyGlobal(session.Registry, session.Desired, session.Expected, inventory)
-	session.Plan, _ = TranslateGlobalClassification(Plan{Desired: session.Desired, Operations: []PlanOperation{}, Warnings: []Warning{}, Evidence: []Evidence{}}, classification)
+	inventory, err := InspectGlobal(session.Layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	classification, err := ClassifyGlobal(session.Registry, session.Desired, session.Expected, inventory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session.Plan, err = TranslateGlobalClassification(Plan{Desired: session.Desired, Operations: []PlanOperation{}, Warnings: []Warning{}, Evidence: []Evidence{}}, classification)
+	if err != nil {
+		t.Fatal(err)
+	}
 	updated, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt.Add(time.Hour) }})
 	if err != nil || updated.Quarantine == nil {
 		t.Fatalf("update result=%#v err=%v", updated, err)

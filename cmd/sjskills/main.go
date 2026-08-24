@@ -615,10 +615,6 @@ func copyExpected(expected map[string]sjskills.TreeHash) map[string]sjskills.Tre
 	return result
 }
 
-func unsupportedApplyAction(plan sjskills.Plan) string {
-	return unsupportedApplyActionForScope(plan, false)
-}
-
 func unsupportedApplyActionForScope(plan sjskills.Plan, global bool) string {
 	scope := scopeName(global)
 	for _, operation := range plan.Operations {
@@ -729,10 +725,6 @@ func mutationCount(count int, singular string) string {
 		return fmt.Sprintf("%d %s", count, singular)
 	}
 	return fmt.Sprintf("%d %ss", count, singular)
-}
-
-func setApplyFailure(envelope *sjskills.Envelope, err error) {
-	setApplyFailureForScope(envelope, err, false)
 }
 
 func setApplyFailureForScope(envelope *sjskills.Envelope, err error, global bool) {
@@ -912,10 +904,6 @@ func confirmRestore(input io.Reader, output io.Writer, id string, global bool) (
 	return answer == "y" || answer == "yes", nil
 }
 
-func restoreExecutionEvidence(result sjskills.RestoreResult, err error) []sjskills.Evidence {
-	return restoreExecutionEvidenceForScope(result, err, false)
-}
-
 func restoreExecutionEvidenceForScope(result sjskills.RestoreResult, err error, global bool) []sjskills.Evidence {
 	scope := "project"
 	if global {
@@ -928,10 +916,6 @@ func restoreExecutionEvidenceForScope(result sjskills.RestoreResult, err error, 
 		return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("reported %d committed restored %s placements before restore failure", len(result.Restored), scope)}}
 	}
 	return []sjskills.Evidence{{Kind: "execution", Detail: fmt.Sprintf("no committed %s placements were reported before restore failure", scope)}}
-}
-
-func setRestoreFailure(envelope *sjskills.Envelope, err error) {
-	setRestoreFailureForScope(envelope, err, false)
 }
 
 func setRestoreFailureForScope(envelope *sjskills.Envelope, err error, global bool) {

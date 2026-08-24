@@ -96,7 +96,8 @@ function validateSkillRegistry(registry, options = {}) {
     errors.push("defaults must be an object");
   } else {
     rejectUnknownFields(registry.defaults, new Set(["targets"]), "defaults", errors);
-    if (!arraysEqual(registry.defaults.targets || [], [".agents", ".claude"])) {
+    if (!Array.isArray(registry.defaults.targets) ||
+        !arraysEqual(registry.defaults.targets, [".agents", ".claude"])) {
       errors.push("defaults.targets must be exactly: .agents, .claude");
     }
   }
@@ -276,7 +277,7 @@ function globalSkillEntries(registry, profile) {
     return {
       name,
       sourceId: skill.source,
-      source: source.location,
+      source: source.location || "",
       manager: skill.manager,
       scope: "global",
       mode: skill.mode,

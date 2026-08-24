@@ -68,6 +68,20 @@ test("version 4 resolves one fixed global baseline with target exceptions", () =
   assert.ok(entries.every((entry) => entry.manager === "skills-cli" && entry.mode === "copy"));
 });
 
+test("version 4 serializes a defined source for location-free baseline managers", () => {
+  const registry = structuredClone(liveRegistry());
+  const name = registry.global.baseline[0];
+  registry.sources["location-free"] = { kind: "external" };
+  const skill = registry.skills.find((entry) => entry.name === name);
+  skill.source = "location-free";
+  skill.manager = "manual";
+  delete skill.mode;
+
+  const entry = globalSkillEntries(registry).find((candidate) => candidate.name === name);
+  assert.equal(entry.source, "");
+  assert.equal(JSON.parse(JSON.stringify(entry)).source, "");
+});
+
 test("version 4 rejects profile selection", () => {
   assert.throws(
     () => globalSkillEntries(liveRegistry(), "dev"),
@@ -91,6 +105,12 @@ test("version 4 validates desired-set integrity", () => {
 });
 
 test("version 4 validates targets and installable remote sources", () => {
+  assertErrorIncludes(
+    validationErrors((registry) => {
+      registry.defaults.targets = "xx";
+    }),
+    "defaults.targets must be exactly: .agents, .claude"
+  );
   assertErrorIncludes(
     validationErrors((registry) => {
       registry.targetExceptions.clarify = [".claude", ".agents"];

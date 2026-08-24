@@ -296,11 +296,12 @@ review feedback, and merge while keeping real-home validation read-only.
   data moved to `~/.agents/.sjskills-global/`. Former profile placements,
   legacy Pi copies, vendor metadata, runtime roots, and the legacy quarantine
   are report-only or protected.
-- The live v4 registry and JavaScript validator now agree, and
+- At the superseded registry-cutover checkpoint, the live v4 registry and
+  JavaScript validator agreed, and
   `scripts/audit-global-skills` delegates only to the read-only global plan.
   Current Go unit tests and vet, all 33 dependency-free Node tests, and
-  `scripts/validate-skills` pass. The full final matrix and bounded review
-  remain pending.
+  `scripts/validate-skills` passed; the full final matrix and bounded review
+  were still pending at that checkpoint.
 - `plans/sjskills-global-rollout.md` records the separate evidence-bound
   real-machine rollout. It is proposed, not authorized, and no real-home
   mutation has occurred.
@@ -312,9 +313,13 @@ review feedback, and merge while keeping real-home validation read-only.
 - Final validation passed full Go unit/race/vet, 20 repeated internal global
   lifecycle runs, 10 repeated packaged migration/update/restore runs, Windows
   test compilation and CLI builds for Windows, macOS amd64/arm64, AIX, and
-  Solaris, all 11 current dependency-free Node tests, 35 skill validations,
+  Solaris, all 12 current dependency-free Node tests, 35 skill validations,
   direct `skills-cli` validation, shell/Node syntax checks, disposable-home
   catalog validation, formatting, and diff checks.
+- The Node counts reflect deliberate retirement stages: 56 covered the legacy
+  engine plus parity fixtures, 33 covered the transitional cutover surface,
+  and the final 12 cover the version 4 validator and read-only wrapper after
+  the obsolete mutation engine and its tests were removed.
 - Bounded real-source parity used disposable homes only: `sjskills plan
   --global` and the transition wrapper produced identical path-free output
   (`sha256:598d6da659984fb5d7f19c3c677248e28167c4317ec7d16e758c7ce731abe762`),

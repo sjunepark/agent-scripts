@@ -186,10 +186,10 @@ placements remain report-only in v1. Restore uses the reported identifier and
 refuses to overwrite:
 
 ```bash
-sjskills restore --global <quarantine-id>
+bin/sjskills restore --global <quarantine-id>
 ```
 
-Do not put `sjskills apply --global` or global restore into chezmoi bootstrap.
+Do not put `bin/sjskills apply --global` or global restore into chezmoi bootstrap.
 Those real-home mutations require a separate reviewed, evidence-bound rollout
 plan and explicit authorization. Chezmoi may run the read-only global plan
 after this repo is cloned, but it must not own or copy the generated skill
@@ -223,10 +223,9 @@ maintained outside chezmoi.
 4. Provision `op-agent` using [the 1Password host setup](1password.md).
 5. Run `scripts/validate-skills`.
 6. Register the repo Codex marketplace and install local repo plugins.
-7. Select `dev` or `kicpa`, run the exact-state audit, and use its `--apply`
-   mode only after the registry's public remote ref contains the intended
-   changes; compare each intended skill tree with that remote ref. Keep pruning
-   as a separately reviewed step.
+7. Run `bin/sjskills plan --global` to inspect managed-root state without
+   changing it. Use [the separate rollout plan](../plans/sjskills-global-rollout.md)
+   for any explicitly authorized global mutation.
 8. Apply or verify Codex stable config keys.
 9. Re-authenticate other tools locally; do not copy auth files from another
    machine.
