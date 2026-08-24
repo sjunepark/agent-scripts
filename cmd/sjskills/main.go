@@ -23,7 +23,7 @@ type cli struct {
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
-	Apply    applyCommand    `cmd:"" help:"Install verified missing project skill copies."`
+	Apply    applyCommand    `cmd:"" help:"Apply verified project skill installs and updates."`
 	Restore  restoreCommand  `cmd:"" help:"Restore a recorded quarantine entry."`
 }
 
@@ -363,8 +363,9 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 		return prepared.finish(envelope, "apply")
 	}
 	installCount := planActionCount(prepared.plan, sjskills.PlanActionInstall)
-	if installCount > 0 && !yes {
-		confirmed, confirmErr := confirmProjectApply(a.input, a.promptOutput, installCount)
+	updateCount := planActionCount(prepared.plan, sjskills.PlanActionUpdate)
+	if installCount+updateCount > 0 && !yes {
+		confirmed, confirmErr := confirmProjectApply(a.input, a.promptOutput, installCount, updateCount)
 		if confirmErr != nil {
 			envelope.Result = sjskills.ResultUnavailable
 			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "confirmation could not be read"}
@@ -386,24 +387,54 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 		prepared.syncPlan(result.Plan)
 	}
 	envelope = prepared.envelope
-	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{
-		Kind:   "execution",
-		Detail: applyExecutionDetail(result, applyErr),
-	})
+	envelope.Evidence = append(envelope.Evidence, applyExecutionEvidence(result, applyErr)...)
+	if result.Quarantine != nil {
+		envelope.Evidence = append(envelope.Evidence, projectQuarantineEvidence(result.Quarantine))
+	}
 	if applyErr != nil {
 		setApplyFailure(&envelope, applyErr)
 	}
 	return prepared.finish(envelope, "apply")
 }
 
-func applyExecutionDetail(result sjskills.ApplyResult, err error) string {
+func applyExecutionEvidence(result sjskills.ApplyResult, err error) []sjskills.Evidence {
 	if err == nil {
-		return fmt.Sprintf("installed %d project placements", len(result.Installed))
+		return []sjskills.Evidence{
+			{Kind: "execution", Detail: fmt.Sprintf("installed %d project placements", len(result.Installed))},
+			{Kind: "execution", Detail: fmt.Sprintf("updated %d project placements", len(result.Updated))},
+		}
 	}
-	if len(result.Installed) > 0 {
-		return fmt.Sprintf("reported %d committed project placements before apply failure", len(result.Installed))
+	if len(result.Installed)+len(result.Updated) > 0 {
+		return []sjskills.Evidence{
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed project placements before apply failure", len(result.Installed))},
+			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated project placements before apply failure", len(result.Updated))},
+		}
 	}
-	return "no committed project placements were reported before apply failure"
+	return []sjskills.Evidence{{Kind: "execution", Detail: "no committed project placements were reported before apply failure"}}
+}
+
+func projectQuarantineEvidence(result *sjskills.ProjectQuarantineResult) sjskills.Evidence {
+	id := "invalid"
+	if len(result.ID) == 32 {
+		valid := true
+		for _, char := range result.ID {
+			if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+				valid = false
+				break
+			}
+		}
+		if valid {
+			id = result.ID
+		}
+	}
+	status := "invalid"
+	switch result.Status {
+	case sjskills.ProjectQuarantinePrepared, sjskills.ProjectQuarantineActive,
+		sjskills.ProjectQuarantineCommitted, sjskills.ProjectQuarantineRolledBack,
+		sjskills.ProjectQuarantineRecoveryRequired:
+		status = string(result.Status)
+	}
+	return sjskills.Evidence{Kind: "quarantine", Detail: fmt.Sprintf("id=%s status=%s", id, status)}
 }
 
 func (a *application) materializationVerify() materializationVerifyFunc {
@@ -466,11 +497,11 @@ func copyExpected(expected map[string]sjskills.TreeHash) map[string]sjskills.Tre
 func unsupportedApplyAction(plan sjskills.Plan) string {
 	for _, operation := range plan.Operations {
 		switch operation.Action {
-		case sjskills.PlanActionInstall, sjskills.PlanActionUnchanged, sjskills.PlanActionManual, sjskills.PlanActionWorkflow:
+		case sjskills.PlanActionInstall, sjskills.PlanActionUpdate, sjskills.PlanActionUnchanged, sjskills.PlanActionManual, sjskills.PlanActionWorkflow:
 			continue
 		case sjskills.PlanActionBlocked:
 			return "reviewed plan contains a blocked project placement"
-		case sjskills.PlanActionUpdate, sjskills.PlanActionQuarantine:
+		case sjskills.PlanActionQuarantine:
 			return "reviewed plan requires project mutation not implemented in this slice"
 		default:
 			return "reviewed plan contains an unsupported project action"
@@ -489,14 +520,23 @@ func planActionCount(plan sjskills.Plan, action sjskills.PlanAction) int {
 	return count
 }
 
-func confirmProjectApply(input io.Reader, output io.Writer, count int) (bool, error) {
+func confirmProjectApply(input io.Reader, output io.Writer, installs, updates int) (bool, error) {
 	if input == nil {
 		input = strings.NewReader("")
 	}
 	if output == nil {
 		output = io.Discard
 	}
-	if _, err := fmt.Fprintf(output, "Apply %d project skill placements? [y/N] ", count); err != nil {
+	var prompt string
+	switch {
+	case updates == 0:
+		prompt = fmt.Sprintf("Apply %d project skill installs? [y/N] ", installs)
+	case installs == 0:
+		prompt = fmt.Sprintf("Apply %d project skill updates? [y/N] ", updates)
+	default:
+		prompt = fmt.Sprintf("Apply %d project skill changes (%s, %s)? [y/N] ", installs+updates, mutationCount(installs, "install"), mutationCount(updates, "update"))
+	}
+	if _, err := io.WriteString(output, prompt); err != nil {
 		return false, err
 	}
 	scanner := bufio.NewScanner(input)
@@ -509,6 +549,13 @@ func confirmProjectApply(input io.Reader, output io.Writer, count int) (bool, er
 	}
 	answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
 	return answer == "y" || answer == "yes", nil
+}
+
+func mutationCount(count int, singular string) string {
+	if count == 1 {
+		return fmt.Sprintf("%d %s", count, singular)
+	}
+	return fmt.Sprintf("%d %ss", count, singular)
 }
 
 func setApplyFailure(envelope *sjskills.Envelope, err error) {
@@ -641,6 +688,11 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 	}
 	for _, warning := range envelope.Warnings {
 		fmt.Fprintf(stderr, "sjskills warning: %s\n", warning.Message)
+	}
+	for _, evidence := range envelope.Evidence {
+		if evidence.Kind == "quarantine" {
+			fmt.Fprintf(stdout, "quarantine: %s\n", evidence.Detail)
+		}
 	}
 }
 

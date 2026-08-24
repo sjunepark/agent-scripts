@@ -38,9 +38,9 @@ Recoverable project exact-state reconciliation.
 
 ### Next in-scope action
 
-Wire the reviewed verified-update transaction through the public project
-`apply` workflow with one confirmation and truthful path-free recovery
-evidence. Keep removal, restore, and interruption recovery behind later
+Extend the internal project transaction to quarantine previously managed skills
+removed from project intent while preserving unknown and modified content. Keep
+the public removal workflow, restore, and interruption recovery behind later
 independently reviewed slices.
 
 ### Evidence and blockers
@@ -156,3 +156,15 @@ independently reviewed slices.
   Windows test compilation and CLI build, all 55 legacy Node tests,
   `scripts/validate-skills` (35 skills), temporary-home catalog validation,
   formatting, and diff checks passed without real-home mutation.
+- Public project `apply` now accepts verified updates as well as installs,
+  presents one mutation-count confirmation, emits separate truthful installed
+  and updated evidence, and renders only a validated path-free quarantine
+  handle when durable recovery state exists. Removed-skill quarantine remains
+  blocked before prompting or writing.
+- Packaged-process coverage proves default-declined updates are byte-preserving,
+  confirmed updates retain exact old bytes and provenance in a strict committed
+  manifest, reruns are idempotent, and a raced external replacement produces a
+  `recovery-required` handle while preserving both external and quarantined
+  content. The clean bounded review passed ten repeated high-risk update runs,
+  full Go unit/race/vet, all 55 legacy Node tests, 35 skill validations,
+  temporary-home catalog validation, formatting, and diff checks.

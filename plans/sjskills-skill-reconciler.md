@@ -69,17 +69,19 @@ publication, candidate-provenance proof, durable parent syncing, and
 ownership-preserving rollback in temporary projects. It installs missing copies
 and can replace an unchanged managed copy only after preserving the old tree in
 a durable, manifest-backed quarantine. Project `apply` retains one verified
-materialization session through confirmation and transaction, but the public
-CLI still blocks update operations. Removed-skill quarantine, restore, and
-interruption recovery remain deliberately unimplemented.
+materialization session through one confirmation and now applies both verified
+installs and updates. Human and JSON output report separate committed counts
+and a validated path-free quarantine handle when recovery state exists.
+Removed-skill quarantine, restore, and interruption recovery remain
+deliberately unimplemented.
 
 ## Next action
 
-Wire the reviewed verified-update transaction through the public project
-`apply` workflow with one confirmation and truthful path-free recovery
-evidence. Keep removed-skill quarantine, restore, and interruption recovery
-behind later independently reviewed slices; reserve bounded real-source
-validation for the final validation phase.
+Extend the internal project transaction to quarantine previously managed skills
+removed from project intent while preserving unknown and modified content. Keep
+the public removal workflow, restore, and interruption recovery behind later
+independently reviewed slices; reserve bounded real-source validation for the
+final validation phase.
 
 ## Accepted product contract
 
@@ -298,7 +300,7 @@ the real project and home remain byte-for-byte unchanged.
 - [x] Implement internal verified update without clobbering changed targets,
       preserving prior content in durable manifest-backed quarantine before
       replacement and returning path-free recovery evidence.
-- [ ] Apply verified updates without clobbering changed targets. Preserve prior
+- [x] Apply verified updates without clobbering changed targets. Preserve prior
       content in manifest-backed quarantine before replacement through the
       public project `apply` workflow.
 - [ ] Quarantine previously managed skills removed from project intent while
