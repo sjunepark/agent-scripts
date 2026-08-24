@@ -85,11 +85,25 @@ use a crash-releasing platform lock plus a strict private transaction journal;
 the next invocation rolls an exact interrupted transaction back or preserves
 ambiguous bytes with durable recovery evidence.
 
+The read-only global state boundary is now implemented behind the staged v4
+registry. It derives exactly two managed roots from the selected OS home,
+observes the Pi legacy root, and protects vendor metadata, backups, Codex
+runtime state, and plugin caches without enumerating them. Strict legacy v1
+global provenance is translated in memory to the new typed state; malformed
+state is wholly untrusted. Unlike the legacy engine, byte equality and Skills
+CLI lock metadata never grant ownership, and special or unsafe trees fail
+closed. Former profile placements and absent stale records are reported as
+path-free migration warnings with no quarantine operation in this slice.
+Cross-schema tests prove that the live v3 `dev` and `kicpa` selections still
+equal the staged v4 baseline plus their respective project profiles, so the
+legacy command remains functional until atomic cutover.
+
 ## Next action
 
-Replace the legacy machine-profile engine with the fixed global baseline while
-keeping all validation read-only against real home state. Reserve bounded
-real-source materialization for the final validation phase.
+Add the locked, recoverable global apply transaction, then atomically migrate
+the live registry and retire the independent machine-profile policy engine.
+Keep real-home validation read-only and reserve bounded real-source
+materialization for the final validation phase.
 
 ## Accepted product contract
 
@@ -334,12 +348,12 @@ every removal or replacement remains recoverable.
 
 - [ ] Port or reuse every applicable safety invariant and fixture from
       `global-skill-state.js`; document any deliberate semantic difference.
-- [ ] Teach the Go planner to inventory user-level `.agents` and `.claude`
+- [x] Teach the Go planner to inventory user-level `.agents` and `.claude`
       roots under an explicitly selected test home, protecting vendor, cache,
       backup, legacy, and runtime-owned locations.
-- [ ] Define migration of trusted existing reconciler provenance so previously
+- [x] Define migration of trusted existing reconciler provenance so previously
       managed entries remain distinguishable from unknown content.
-- [ ] Produce a read-only migration plan showing which former `dev` or `kicpa`
+- [x] Produce a read-only migration plan showing which former `dev` or `kicpa`
       global skills fall outside the new baseline. Do not quarantine them as
       part of validation or registry migration.
 - [ ] Migrate the live registry to version 4 only after the Go command resolves

@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 const {
   globalSkillEntries,
@@ -102,6 +104,47 @@ test("version 3 registry resolves the dev and kicpa profile unions", () => {
     globalSkillEntries(registry, "kicpa").map((entry) => entry.name),
     ["common-alpha", "kicpa-alpha"]
   );
+});
+
+test("live version 3 global profiles match the staged version 4 baseline unions", () => {
+  const root = path.resolve(__dirname, "../..");
+  const live = JSON.parse(fs.readFileSync(path.join(root, "skill-registry.json"), "utf8"));
+  const staged = JSON.parse(fs.readFileSync(path.join(root, "internal/sjskills/data/registry-v4.json"), "utf8"));
+  const stagedByName = new Map(staged.skills.map((skill) => [skill.name, skill]));
+
+  function stagedEntry(name) {
+    const skill = stagedByName.get(name);
+    const targets = staged.targetExceptions?.[name] ?? staged.defaults.targets;
+    return {
+      name,
+      source: staged.sources[skill.source].location,
+      manager: skill.manager,
+      mode: skill.mode,
+      targets,
+      fullDepth: skill.fullDepth === true
+    };
+  }
+
+  function comparableLiveEntry(entry) {
+    return {
+      name: entry.name,
+      source: entry.source,
+      manager: entry.manager,
+      mode: entry.mode,
+      targets: entry.targets,
+      fullDepth: entry.fullDepth
+    };
+  }
+
+  for (const profile of ["dev", "kicpa"]) {
+    const names = [...staged.global.baseline, ...staged.profiles[profile].skills]
+      .sort();
+    assert.deepEqual(
+      globalSkillEntries(live, profile).map(comparableLiveEntry),
+      names.map(stagedEntry),
+      `${profile} profile drifted across the version 3/version 4 boundary`
+    );
+  }
 });
 
 test("profile resolution requires an explicit supported profile", () => {
