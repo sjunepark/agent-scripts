@@ -48,8 +48,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 43 {
-		t.Fatalf("skills = %d, want 43", len(registry.Skills))
+	if len(registry.Skills) != 44 {
+		t.Fatalf("skills = %d, want 44", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {

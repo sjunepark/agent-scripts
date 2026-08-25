@@ -341,6 +341,11 @@
       "mode": "copy"
     },
     {
+      "name": "sjskills",
+      "source": "agent-scripts",
+      "manager": "none"
+    },
+    {
       "name": "skill-cleaner",
       "source": "skill-cleaner-manual",
       "manager": "manual"
