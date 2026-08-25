@@ -38,8 +38,10 @@ type planCommand struct {
 }
 
 type applyCommand struct {
-	Global bool `name:"global" help:"Apply the fixed global baseline."`
-	Yes    bool `name:"yes" help:"Apply without prompting for confirmation."`
+	Global             bool   `name:"global" help:"Apply the fixed global baseline."`
+	Yes                bool   `name:"yes" help:"Apply without prompting for confirmation."`
+	ApprovedPlan       string `name:"approved-plan" type:"path" help:"Reviewed JSON plan artifact required for global apply."`
+	ApprovedPlanSHA256 string `name:"approved-plan-sha256" help:"Approved SHA-256 of the reviewed global plan artifact."`
 }
 
 type restoreCommand struct {
@@ -69,7 +71,7 @@ func (c *planCommand) Run(ctx *commandContext) error {
 }
 
 func (c *applyCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.apply(ctx.context, c.Global, c.Yes)
+	ctx.application.envelope = ctx.application.applyApproved(ctx.context, c.Global, c.Yes, c.ApprovedPlan, c.ApprovedPlanSHA256)
 	return nil
 }
 
@@ -413,8 +415,37 @@ func (a *application) selectedGlobalHome() (string, error) {
 }
 
 func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Envelope {
+	return a.applyApproved(ctx, global, yes, "", "")
+}
+
+func (a *application) applyApproved(ctx context.Context, global, yes bool, approvedPlanPath, approvedPlanSHA256 string) sjskills.Envelope {
 	if a.jsonMode && !yes {
 		return a.invalid(sjskills.CommandOperationApply, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "apply.yes", Message: "JSON apply requires --yes"})
+	}
+	if !global && (approvedPlanPath != "" || approvedPlanSHA256 != "") {
+		return a.invalid(sjskills.CommandOperationApply, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved plan evidence is available only for global apply"})
+	}
+	var reviewed sjskills.ReviewedPlan
+	if global {
+		if approvedPlanPath == "" || approvedPlanSHA256 == "" {
+			return a.invalid(sjskills.CommandOperationApply, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "apply.approvedPlan", Message: "global apply requires --approved-plan and --approved-plan-sha256"})
+		}
+		var approvalErr error
+		reviewed, approvalErr = sjskills.LoadReviewedPlan(approvedPlanPath, approvedPlanSHA256)
+		if approvalErr != nil {
+			var issue *sjskills.Issue
+			if errors.As(approvalErr, &issue) {
+				envelope := a.base(sjskills.CommandOperationApply)
+				envelope.Error = issue
+				if issue.Code == sjskills.IssueReconciliationConflict {
+					envelope.Result = sjskills.ResultConflict
+				} else {
+					envelope.Result = sjskills.ResultInvalid
+				}
+				return envelope
+			}
+			return a.unavailable(sjskills.CommandOperationApply, errors.New("approved plan artifact could not be read"))
+		}
 	}
 	prepared, envelope := a.prepare(ctx, global, sjskills.CommandOperationApply)
 	if prepared == nil {
@@ -425,6 +456,16 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	// path-free execution evidence.
 	envelope.Path = ""
 	prepared.envelope.Path = ""
+	if global {
+		if bindErr := prepared.global.BindReviewedPlan(reviewed, prepared.envelope); bindErr != nil {
+			envelope.Result = sjskills.ResultConflict
+			envelope.Error = issueFromError(bindErr, sjskills.IssueReconciliationConflict)
+			envelope.Evidence = append(envelope.Evidence, unchangedExecutionEvidence(true))
+			return prepared.finish(envelope, "approval")
+		}
+		appendApprovedPlanEvidence(&prepared.envelope, reviewed.SHA256())
+		envelope = prepared.envelope
+	}
 	if reason := unsupportedApplyActionForScope(prepared.plan, global); reason != "" {
 		envelope.Result = sjskills.ResultConflict
 		envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "apply", Message: reason}
@@ -471,6 +512,9 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 	if result.Plan.Desired.Scope != "" {
 		prepared.syncPlan(result.Plan)
 	}
+	if global {
+		appendApprovedPlanEvidence(&prepared.envelope, reviewed.SHA256())
+	}
 	envelope = prepared.envelope
 	envelope.Evidence = append(envelope.Evidence, applyExecutionEvidenceForScope(result, applyErr, global)...)
 	if evidence, ok := projectQuarantineEvidence(result.Quarantine); ok {
@@ -483,6 +527,20 @@ func (a *application) apply(ctx context.Context, global, yes bool) sjskills.Enve
 		setApplyFailureForScope(&envelope, applyErr, global)
 	}
 	return prepared.finish(envelope, "apply")
+}
+
+func approvedPlanEvidence(digest string) sjskills.Evidence {
+	return sjskills.Evidence{Kind: "approval", Detail: "reviewed global plan sha256:" + digest}
+}
+
+func appendApprovedPlanEvidence(envelope *sjskills.Envelope, digest string) {
+	evidence := approvedPlanEvidence(digest)
+	for _, existing := range envelope.Evidence {
+		if existing == evidence {
+			return
+		}
+	}
+	envelope.Evidence = append(envelope.Evidence, evidence)
 }
 
 func applyExecutionEvidence(result sjskills.ApplyResult, err error) []sjskills.Evidence {

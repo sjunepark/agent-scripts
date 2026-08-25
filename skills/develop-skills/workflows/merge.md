@@ -86,7 +86,12 @@ During migration:
 - translate source-specific examples into portable task examples;
 - combine duplicate tests while preserving unique regression coverage;
 - add positive selection cases and near-miss cases for the new boundary;
-- update registries, lock files, metadata, and documentation consistently.
+- update registries, lock files, metadata, and documentation only when those
+  transitions are authorized; otherwise record the exact follow-up changes.
+
+Keep predecessor registrations and installations intact through evaluation.
+Adding candidate metadata during an authorized migration does not authorize
+removing the sources it may replace.
 
 Respect provenance and licensing. Do not copy prose, code, templates, or test
 fixtures unless their terms permit it. Preserve required license and notice
@@ -96,26 +101,27 @@ ideas or reimplement the behavior from the documented requirement.
 
 ## 6. Prove the replacement before removal
 
-Keep the sources intact until the candidate passes all applicable gates:
+Keep the sources intact while running the evaluation workflow routed from the
+entry point. In addition to its general static, behavior, and trigger gates,
+require the merged candidate to prove that:
 
-1. Static validation confirms structure, metadata, links, and bundled files.
-2. Each source baseline and the candidate run on the same representative tasks
-   in fresh, isolated contexts.
-3. Assertions cover required outputs, prohibited behavior, and important edge
-   cases; subjective outcomes receive independent or blind review.
-4. Selection tests cover clear positives, ambiguous positives, unrelated tasks,
-   and near misses.
-5. Every unique source capability is either demonstrated in the candidate or
+1. Every source serves as a baseline on the representative tasks it covered.
+2. Assertions cover required outputs, prohibited behavior, and important edge
+   cases unique to the source skills.
+3. Selection tests cover the replacement boundary, including ambiguous
+   positives and near misses inherited from each source.
+4. Every unique source capability is either demonstrated in the candidate or
    explicitly rejected with a recorded reason.
-6. The candidate works from its intended distribution and installation form,
+5. The candidate works from its intended distribution and installation form,
    not only from the authoring directory.
 
 Compare outcomes, not prose similarity. Investigate regressions rather than
 averaging them away, and repeat variable cases enough to distinguish a stable
 improvement from a lucky run.
 
-Only after the replacement passes should the old skills, references, registry
-entries, locks, and installed copies be removed. Re-run static and behavioral
-checks after removal to catch hidden dependencies, then retain a concise
-migration record containing provenance, decisions, validation, and any deferred
-follow-up.
+After the replacement passes, remove old skills, references, registry entries,
+locks, and installed copies only within the separately authorized transition
+scope. If removal is not authorized, stop with the validated candidate and an
+exact handoff. When removal occurs, re-run static and behavioral checks to catch
+hidden dependencies, then retain a concise migration record containing
+provenance, decisions, validation, and any deferred follow-up.

@@ -51,6 +51,11 @@ Run one representative case against the baseline and candidate. Treat this pair 
 
 After the first observation, write assertions before running the remaining cases. This permits evidence-informed criteria without grading later outputs post hoc.
 
+Derive the criteria from the skill contract and observed failure modes. Where
+applicable, cover outcome completeness and correctness, authority and safety
+boundaries, error recovery, appropriate resource selection, and unnecessary
+work or unsupported assumptions.
+
 Separate the criteria into:
 
 - **Critical assertions:** facts or invariants that must hold in every acceptable output.

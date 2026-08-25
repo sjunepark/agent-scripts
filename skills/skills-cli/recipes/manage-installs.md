@@ -17,12 +17,11 @@ bunx skills list -g -a claude-code
 bunx skills remove find-skills -g -a claude-code -a pi -y
 ```
 
-## Check and update installed skills
+## Update installed skills
 
 Use this for generic CLI-managed updates. Reinstall this repository's published skills from the remote source after their changes are committed and pushed.
 
 ```bash
-bunx skills check
 bunx skills update
 ```
 

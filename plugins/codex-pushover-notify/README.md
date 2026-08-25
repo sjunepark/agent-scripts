@@ -7,6 +7,19 @@ sends the duration plus a preview of the latest assistant message.
 It also exposes a Pushover MCP server so Codex can proactively notify you or
 request a decision while it is working.
 
+## Install
+
+This plugin is published through the repository's `personal` marketplace. From
+a machine where that remote-backed marketplace is registered, install it with:
+
+```sh
+codex plugin add codex-pushover-notify@personal
+```
+
+Repository maintainers should follow the plugin publication and reinstall
+workflow in [Settings Sync](../../docs/settings-sync.md#codex-plugins) after
+changing the plugin.
+
 ## Configuration
 
 Set these environment variables where Codex can read them:
@@ -26,11 +39,22 @@ export CODEX_PUSHOVER_MESSAGE="Ready for your next prompt"
 export CODEX_PUSHOVER_MIN_MS="0"
 export CODEX_PUSHOVER_DEBOUNCE_MS="3000"
 export CODEX_PUSHOVER_TIMEOUT_MS="8000"
-export CODEX_PUSHOVER_INCLUDE_CWD="1"
+export CODEX_PUSHOVER_INCLUDE_CWD="0"
 ```
 
-Runtime state is written to `PLUGIN_DATA/state.json` when installed as a
-plugin. It can be overridden with `CODEX_PUSHOVER_STATE_FILE`.
+The working-directory name is included in completion titles by default; set
+`CODEX_PUSHOVER_INCLUDE_CWD=0` to omit it. The other values above show their
+defaults except for the optional device and sound overrides.
+
+Runtime state is written to `$PLUGIN_DATA/state.json` when Codex provides the
+plugin data directory. Outside an installed plugin, it defaults to
+`~/.codex/codex-pushover-notify/state.json`. Set `CODEX_PUSHOVER_DATA_DIR` to
+change the fallback directory or `CODEX_PUSHOVER_STATE_FILE` to set the exact
+path.
+
+If the Pushover credentials are absent, completion hooks continue without
+sending a notification. Set `CODEX_PUSHOVER_VERBOSE=1` to surface hook errors
+as Codex system messages.
 
 ## MCP Tools
 
@@ -48,7 +72,8 @@ notification is acknowledged.
 
 ## Manual Commands
 
-Run the script directly for local checks:
+From the repository root, run the script directly for local checks or to toggle
+completion-hook notifications:
 
 ```sh
 node plugins/codex-pushover-notify/scripts/pushover-notify.mjs status

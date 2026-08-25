@@ -1,150 +1,170 @@
 ---
 name: sync
-description: "Orient and operate this repository's skill publication and machine-reconciliation workflow. Use when the user asks how repo skills move from local edits to published remote sources, asks to audit, bootstrap, sync, or reinstall a dev or kicpa machine profile, or asks to handle findings from that profile audit. Do not use for plugin deployment or local catalog validation alone."
+description: "Orient and operate this repository's skill publication and sjskills reconciliation workflow. Use for explaining catalog-to-published flow, publishing skill changes, project manifest reconciliation, or inspection and explicitly authorized rollout of the fixed global baseline. Do not use for plugin deployment or local catalog validation alone."
 ---
 
 # Sync
 
-Move intended skill state through three distinct layers without treating them as interchangeable:
+Keep these layers distinct:
 
 1. `skills/` is the editable, distributable catalog in this checkout.
-2. The registry's remote source ref is the published catalog.
-3. One explicitly selected `dev` or `kicpa` profile is the desired exact state on a machine.
+2. The `agent-scripts` source in `skill-registry.json` identifies the published
+   catalog consumed by reconciliation.
+3. A project's committed `sjskills.toml` selects project profiles and direct
+   third-party skills.
+4. `global.baseline` in `skill-registry.json` is the one machine-independent
+   global selection.
 
-Local validation proves that a checkout is usable as a source; it does not publish or install it. A pushed feature branch is not published when the registry points to `main`. A published catalog contains more skills than either global profile.
+Local validation does not publish or install ongoing state. A pushed feature
+branch is not published while the registry source points to `main`. Project
+profiles such as `dev`, `go`, `rust`, and `kicpa` do not make skills global.
 
-## Choose the operation
+## Classify the request
 
-Classify the request before changing anything:
+- **Explain or inspect:** Read the relevant registry, manifest, and plans. Run
+  `bin/sjskills plan` in a project or `bin/sjskills plan --global` for the fixed
+  baseline. Do not mutate managed roots.
+- **Validate local work:** Validate `./skills` or one local skill without
+  installing it for ongoing use. This is not publication or reconciliation.
+- **Reconcile a project:** Require an existing or explicitly requested
+  `sjskills.toml`, review `bin/sjskills plan`, then apply only when the user
+  asked to install, bootstrap, reconcile, or sync that project.
+- **Publish and reconcile:** Validate intended catalog or registry changes,
+  send them through the repository's normal commit, review, and merge flow,
+  verify the published trees, then reconcile the requested project.
+- **Inspect or roll out the global baseline:** Planning is read-only. Real-home
+  apply or restore requires the separate evidence-bound procedure in
+  `plans/sjskills-global-rollout.md` and explicit authorization for the exact
+  reviewed plan.
+- **Recover:** Restore only the quarantine identifier named by the user, after
+  confirming that all destinations are absent.
 
-- **Explain or inspect:** Explain the three layers, inspect relevant files, and run only the read-only profile audit when a profile is known. Do not commit, push, apply, replace, prune, or restore.
-- **Validate local work:** Validate `./skills` or one `./skills/<name>` without installing it for ongoing use. This is not a sync.
-- **Reconcile published state:** When the requested profile is already published, run the read-only audit, apply ordinary safe changes, and audit again. Do not create a commit merely to reconcile a machine.
-- **Publish and reconcile:** Validate intended local changes, send them through the repository's normal review and merge flow, verify the published trees, then reconcile the selected profile.
-- **Recover:** Restore only the manifest the user identifies, after checking that every destination is absent.
-
-Choose `dev` for the public `common + dev` baseline and `kicpa` for the public `common + kicpa` baseline. Any explicit `dev` or `kicpa` mention in the request selects that profile; do not ask the user to repeat it. Never infer a profile from whatever happens to be installed. Ask the user to choose only when a mutating request names neither profile.
+Do not infer a project profile from installed copies. For a new manifest, use
+only profiles the user selected or ask when that choice materially changes the
+result. The global baseline has no profile selection or hostname inference.
 
 ## Authority boundaries
 
-- An explanation, status check, or audit request is read-only.
-- Commit and push only when the user asked to publish or sync relevant local changes. Stage only in-scope files and preserve unrelated working-tree state.
-- Run `--apply` only when the user asked to bootstrap, install, reconcile, or sync the selected machine profile.
-- Ordinary apply never authorizes first-run replacement or legacy pruning. Show the exact candidates and printed restore procedure, then wait for explicit approval before copying either digest-bound command.
-- Restore only on explicit request. It refuses to overwrite an active path; move an active replacement aside only with the user's authority.
-- Never use a local checkout as the ongoing machine install source.
+- Explanation, status, audit, and plan requests are read-only.
+- Commit and push only when the user asked to publish or sync relevant local
+  changes. Stage only in-scope files and preserve unrelated worktree state.
+- Run project `apply` only for an explicitly requested reconciliation.
+- Do not run global `apply` or restore from ordinary repository-validation or
+  sync authority. Follow the reviewed rollout plan and require its stated
+  authorization evidence.
+- Restore only on explicit request. It refuses to overwrite active content.
+- Never use a local checkout as the ongoing install source.
 
 ## Workflow
 
-### 1. Establish source, profile, and current state
+### 1. Establish source, scope, and current state
 
-Run:
+Run the smallest relevant read-only checks:
 
 ```bash
 git remote get-url origin
 git status --short
-scripts/audit-global-skills --profile "$PROFILE"
+bin/sjskills plan
+bin/sjskills plan --global
 ```
 
-Confirm that `origin` corresponds to the source recorded in `skill-registry.json`. A completed report ending in `Strict result: fail` means drift. An error without that strict report is an operational failure even though both cases exit nonzero; report materialization, network, or validation errors instead of relabeling them as drift. The first audit is always read-only.
+Use the project command only where `sjskills.toml` exists. Confirm that
+`origin` corresponds to the repository source in `skill-registry.json`.
+Planning may materialize remote content in temporary storage, but it does not
+change managed roots. Report blocked placements, unsafe boundaries, malformed
+provenance, and operational failures as such rather than calling every
+non-success result drift.
 
-If there are no relevant local changes and the requested state is already published, skip the validation and publication steps but still verify the registry's remote catalog before reconciliation.
+`scripts/audit-global-skills` is only a compatibility wrapper for the read-only
+global plan. Its former profile and mutation flags are retired.
 
-### 2. Validate changes that must be published
+### 2. Validate work that must be published
 
-Inspect relevant diffs and validate the smallest affected surface:
+Inspect the relevant diff and validate the smallest affected surface:
 
 ```bash
-bunx skills add ./skills --list
+bunx skills add "./skills/$SKILL_NAME" --list
 scripts/validate-skills
 ```
 
-Use `bunx skills add ./skills/<skill-name> --list` for a focused skill check. If the registry or reconciler changed, also run:
+Use `bunx skills add ./skills --list` when catalog-wide validation is warranted.
+If the registry or reconciler changed, also run:
 
 ```bash
-node --test scripts/lib/skill-registry.test.js scripts/lib/global-skill-state.test.js scripts/audit-global-skills.test.js
+node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js
+go test ./...
 ```
 
-Do not use `.`, `./skills`, or the working tree for an ongoing machine install.
+These local checks prove that the checkout is usable as a source; they do not
+publish it or authorize managed-root changes.
 
-### 3. Publish before machine reconciliation
+### 3. Publish before remote-backed reconciliation
 
-Stage only intended files, create a reviewable commit, and push it:
-
-```bash
-git add <intended-paths>
-git commit
-git push
-```
-
-If the registry source is pinned to `main`, complete the normal review and merge flow before continuing. After the last review-driven change is pushed, record the final PR head as `INTENDED_COMMIT`; refresh it after every later change. Once merged, fetch the pinned ref and verify each changed published skill by tree equality:
+Stage only intended files, commit with the repository's normal review flow,
+and push. If the registry source is pinned to `main`, complete the merge before
+continuing. Fetch that ref and verify each intended published skill tree:
 
 ```bash
-INTENDED_COMMIT=$(git rev-parse HEAD)
 git fetch origin main
-git diff --quiet "$INTENDED_COMMIT:skills/$SKILL_NAME" "origin/main:skills/$SKILL_NAME"
+git diff --quiet "$INTENDED_COMMIT:skills/$SKILL_NAME" \
+  "origin/main:skills/$SKILL_NAME"
 ```
 
-This check remains valid after merge, squash, or rebase. Stop if any intended skill tree differs. A feature-branch push alone does not authorize installing from a `main` source.
+Set `SKILL_NAME` to each changed skill and `INTENDED_COMMIT` to the last
+reviewed commit, refreshing both after later changes. Tree equality remains valid
+after merge, squash, or rebase. Stop when a published tree differs; a feature
+branch push alone does not make a `main`-backed source current.
 
-### 4. Verify the remote catalog
-
-Resolve this repository's published catalog source from the registry and inspect that exact URL before apply:
+Resolve and inspect the exact published catalog recorded in the registry:
 
 ```bash
-SKILLS_URL=$(node -e 'const r=require("./skill-registry.json"); const url=r.sources?.["agent-scripts"]?.location; if (!url) process.exit(1); process.stdout.write(url)')
+SKILLS_URL=$(node -e 'const r=require("./skill-registry.json"); const u=r.sources?.["agent-scripts"]?.location; if (!u) process.exit(1); process.stdout.write(u)')
 bunx skills add "$SKILLS_URL" --list
 ```
 
-Confirm that the remote exposes the published catalog. Do not interpret the full catalog as the selected machine profile.
+Do not treat the full published catalog as either a project's selected set or
+the fixed global baseline.
 
-### 5. Reconcile the selected profile
+### 4. Reconcile the requested scope
 
-Run ordinary apply, then audit the resulting exact state:
-
-```bash
-scripts/audit-global-skills --profile "$PROFILE" --apply
-scripts/audit-global-skills --profile "$PROFILE"
-```
-
-Apply uses only registry-approved remote sources. It installs the registry's `.agents` targets through the Codex command target and `.claude` targets through the Claude Code command target, and creates no Pi-specific copy. It adopts already-exact copies, updates only verified unchanged copies, quarantines the prior verified tree before an update, and blocks locally modified or unverified stale copies.
-
-Do not hand-build global commands or use `--all` when this registry-backed reconciler applies. Project, workflow, catalog, and manual records remain with their declared policy or manager.
-
-### 6. Handle gated follow-up separately
-
-If the audit reports an unverified stale copy, present the candidates, digest, quarantine behavior, and restore command. Only after explicit approval, copy the exact command printed by that audit:
+For a project, review the plan and then apply:
 
 ```bash
-scripts/audit-global-skills --profile "$PROFILE" --replace-unverified 'sha256:PRINTED_DIGEST' --yes
+bin/sjskills plan
+bin/sjskills apply
+bin/sjskills plan
 ```
 
-Audit again. A changed candidate set or verified replacement snapshot invalidates the digest.
+For the fixed global baseline, ordinary work stops after
+`bin/sjskills plan --global`. Proceed to `apply --global` only through
+`plans/sjskills-global-rollout.md`, using its exact commit, plan digest,
+recheck, authorization, and recovery requirements.
 
-If the audit reports verified legacy duplicates, present the candidates, digest, quarantine behavior, and restore command. Only after separate explicit approval, copy the exact printed command:
+`sjskills` uses only registry-approved remote sources for central declarations,
+places supported targets in `.agents/skills` and `.claude/skills`, and creates
+no Pi-specific copy. Do not substitute direct Skills CLI installs, `--all`,
+manual root copying, or the retired audit-wrapper mutation flags.
+
+Retain every quarantine identifier through a normal work cycle. Restore only
+the requested identifier, and only while every modeled destination is absent:
 
 ```bash
-scripts/audit-global-skills --profile "$PROFILE" --prune 'sha256:PRINTED_DIGEST' --yes
+bin/sjskills restore <quarantine-id>
+bin/sjskills restore --global <quarantine-id>
 ```
 
-Audit again and retain the generated manifest through a normal work cycle. Prune moves reviewed duplicates into quarantine; it does not delete them. A changed candidate set invalidates the digest.
-
-For an explicitly requested rollback, use only the manifest-specific command produced by the reconciler:
-
-```bash
-scripts/audit-global-skills --restore '/absolute/path/to/manifest.json' --home '/absolute/home' --yes
-```
-
-Inspect every modeled destination first. Restoration must stop rather than overwrite an existing destination.
+The second command remains subject to the global rollout authorization
+boundary.
 
 ## Completion
 
-Finish with:
+Report:
 
-- the selected profile and whether the operation was read-only or mutating;
-- the validation results and published ref verified, when publication occurred;
-- the final audit result, including any remaining drift;
-- every quarantine manifest or restore command created; and
-- any replacement or prune plan left pending approval.
+- project or fixed-global scope, and whether the operation was read-only or
+  mutating;
+- validation and published-ref evidence when publication occurred;
+- the final plan result and any preserved unknown, legacy, or blocked state;
+- every quarantine identifier retained or restored; and
+- any global rollout or recovery action still awaiting authorization.
 
-Do not claim exact state while the final audit still reports drift. Do not call a blocked local modification repaired merely because ordinary apply completed.
+Do not claim exact state while the final plan still contains changes or blocks.

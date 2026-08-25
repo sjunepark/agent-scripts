@@ -95,6 +95,15 @@ does not change managed roots. `scripts/audit-global-skills` remains only as a
 read-only compatibility wrapper for the global plan; its version 3 profile and
 mutation arguments are retired.
 
+Global apply requires `--approved-plan <plan.json>` together with
+`--approved-plan-sha256 <digest>`. The command reads the artifact once, verifies
+its approved digest and strict successful-global-plan shape, then rematerializes
+and recomputes the complete plan. All stable warnings, operations, current and
+expected evidence must match before confirmation or mutation. Apply uses that
+same still-live verified materialization session, so a remote ref change cannot
+replace reviewed expected content after the recheck. Missing evidence, artifact
+substitution, content movement, or inventory drift fails closed.
+
 Real-home global apply, restore, migration, and quarantine are operational
 changes, not repository validation. They require a separate reviewed,
 evidence-bound rollout plan and explicit authorization.

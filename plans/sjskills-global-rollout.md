@@ -1,130 +1,210 @@
 # Roll out the fixed global baseline
 
-Status: proposed; not authorized
+Status: proposed; approval binding delivered; rollout not authorized
 
 ## Boundary
 
-This is the separate real-machine rollout required by the `sjskills` v1
-delivery contract. Creating or reviewing this plan does not authorize
-`apply --global`, restore, migration cleanup, moving active placements, or
-any mutation under a real home.
+This plan governs real-machine rollout of the `sjskills` v1 global baseline.
+Reviewing it does not authorize `apply --global`, restore, migration cleanup,
+moving active placements, or any other mutation under a real home.
 
-The rollout targets only the fixed registry v4 baseline in
-`~/.agents/skills` and `~/.claude/skills`, plus reconciler-owned state at
-`~/.agents/.global-skill-state.json` and
+The rollout owns only baseline placements in `~/.agents/skills` and
+`~/.claude/skills`, global provenance at
+`~/.agents/.global-skill-state.json`, and reconciler-private state under
 `~/.agents/.sjskills-global/`. Former profile skills, Pi copies, unknown
 entries, plugin caches, vendor metadata, and the legacy
 `~/.skill-quarantine` tree remain preserved.
 
-## Required authorization evidence
+## Approval binding
 
-For each machine, collect a path-free read-only artifact from the exact
-published commit proposed for rollout:
+`apply --global` requires both the reviewed JSON plan artifact and its approved
+SHA-256. It reads the artifact once, verifies the exact bytes against that
+digest, accepts only a strict successful global plan, and then recomputes the
+complete global plan. Stable warnings, operations, current-state evidence, and
+expected-content evidence must all match before confirmation or mutation.
+
+The recheck retains its verified materialization session and apply uses that
+same content. A remote source ref cannot move between the binding check and the
+copy boundary. Missing flags, a changed artifact, moved expected content, or
+inventory drift fails closed and requires review of a new artifact.
+
+This technical binding does not authorize a machine. The separate approval
+below remains mandatory and must name the exact artifact digest.
+
+## Produce review evidence
+
+Use a dedicated clean checkout of the exact published commit proposed for the
+machine. `bin/sjskills` builds the current checkout on every invocation, so it
+is not suitable for binding approval by itself. Build one executable, hash it,
+and reuse that exact file for plan, recheck, apply, and post-apply inspection.
+
+On macOS or Linux:
 
 ```bash
 git fetch origin main
-git rev-parse origin/main
-bin/sjskills --json plan --global > /tmp/sjskills-global-plan.json
-shasum -a 256 /tmp/sjskills-global-plan.json
+rollout_commit=$(git rev-parse origin/main)
+test "$(git rev-parse HEAD)" = "$rollout_commit"
+test -z "$(git status --porcelain --untracked-files=all)"
+rollout_dir=$(mktemp -d)
+go build -trimpath -o "$rollout_dir/sjskills" ./cmd/sjskills
+shasum -a 256 "$rollout_dir/sjskills"
+"$rollout_dir/sjskills" --json plan --global > "$rollout_dir/plan.json"
+plan_sha256=$(shasum -a 256 "$rollout_dir/plan.json" | awk '{print $1}')
+printf '%s\n' "$plan_sha256"
 ```
 
-On Windows PowerShell, use an operator-owned temporary directory and the
-equivalent commands:
+On Windows PowerShell, use a dedicated clean checkout and one temporary
+executable:
 
 ```powershell
 git fetch origin main
-git rev-parse origin/main
-go build -o $env:TEMP\sjskills.exe ./cmd/sjskills
-& $env:TEMP\sjskills.exe --json plan --global |
-  Out-File -FilePath $env:TEMP\sjskills-global-plan.json -Encoding utf8
-(Get-FileHash -Algorithm SHA256 $env:TEMP\sjskills-global-plan.json).Hash
+$rolloutCommit = git rev-parse origin/main
+if ((git rev-parse HEAD) -ne $rolloutCommit) { throw "checkout is not the proposed published commit" }
+if (git status --porcelain --untracked-files=all) { throw "checkout is not clean" }
+$rolloutDir = Join-Path $env:TEMP ("sjskills-rollout-" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $rolloutDir | Out-Null
+$rolloutExe = Join-Path $rolloutDir "sjskills.exe"
+go build -trimpath -o $rolloutExe ./cmd/sjskills
+(Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+function Write-SjskillsGlobalPlan([string] $Path) {
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $rolloutExe
+  $startInfo.Arguments = "--json plan --global"
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.StandardOutputEncoding = $utf8NoBom
+  $startInfo.StandardErrorEncoding = $utf8NoBom
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+  try {
+    if (-not $process.Start()) { throw "global plan could not start" }
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "global plan failed: $stderr" }
+    [System.IO.File]::WriteAllText($Path, $stdout, $utf8NoBom)
+  } finally {
+    $process.Dispose()
+  }
+}
+$planPath = Join-Path $rolloutDir "plan.json"
+Write-SjskillsGlobalPlan $planPath
+$planSHA256 = (Get-FileHash -Algorithm SHA256 $planPath).Hash.ToLowerInvariant()
+$planSHA256
 ```
 
 Review the complete JSON, including every operation, warning, expected-content
 hash, and materialization result. Stop if it contains a blocked placement,
 untrusted provenance, an unmanaged desired path, a modified managed tree, an
-unsafe filesystem boundary, or any operation beyond the expected fixed
-baseline.
+unsafe filesystem boundary, or an operation beyond the expected baseline.
 
 Authorization must identify:
 
 - machine;
-- exact repository commit;
+- exact published repository commit;
+- SHA-256 of the reviewed executable;
 - SHA-256 of the reviewed plan artifact;
-- allowed install, update, and quarantine counts;
-- whether trusted legacy state migration is expected;
-- the operator and approval time.
+- allowed install, update, quarantine, and provenance-migration counts;
+- operator and approval time.
 
-Immediately before mutation, rerun the plan into a second artifact and require
-byte-for-byte equality with the approved artifact:
+## Recheck the approved state
+
+Immediately before mutation, re-prove the checkout and executable. An explicit
+byte-identical recheck is useful operator evidence; global apply performs its
+own mandatory recheck again and retains that recheck's expected content:
 
 ```bash
-bin/sjskills --json plan --global > /tmp/sjskills-global-plan.recheck.json
-cmp /tmp/sjskills-global-plan.json /tmp/sjskills-global-plan.recheck.json
+test "$(git rev-parse HEAD)" = "$rollout_commit"
+test -z "$(git status --porcelain --untracked-files=all)"
+shasum -a 256 "$rollout_dir/sjskills"
+"$rollout_dir/sjskills" --json plan --global > "$rollout_dir/plan.recheck.json"
+cmp "$rollout_dir/plan.json" "$rollout_dir/plan.recheck.json"
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& $env:TEMP\sjskills.exe --json plan --global |
-  Out-File -FilePath $env:TEMP\sjskills-global-plan.recheck.json -Encoding utf8
-if (Compare-Object `
-    (Get-Content -AsByteStream $env:TEMP\sjskills-global-plan.json) `
-    (Get-Content -AsByteStream $env:TEMP\sjskills-global-plan.recheck.json)) {
+if ((git rev-parse HEAD) -ne $rolloutCommit) { throw "checkout changed after approval" }
+if (git status --porcelain --untracked-files=all) { throw "checkout changed after approval" }
+(Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
+$recheckPath = Join-Path $rolloutDir "plan.recheck.json"
+Write-SjskillsGlobalPlan $recheckPath
+if ((Get-FileHash -Algorithm SHA256 $planPath).Hash -ne `
+    (Get-FileHash -Algorithm SHA256 $recheckPath).Hash) {
   throw "global plan changed after approval"
 }
 ```
 
-Any difference voids authorization. Review and authorize the new artifact
-instead of widening the old approval.
+The displayed commit and executable hash must equal the authorized values. Any
+mismatch or plan difference voids authorization; review a new artifact instead
+of widening the old approval. Do not substitute `plan.recheck.json` for the
+approved `plan.json`; apply verifies the approved artifact's exact digest.
 
 ## Authorized execution
 
-Only after the evidence above receives explicit approval:
+Only after the evidence above receives explicit approval, run the already
+reviewed executable with the approved artifact and digest:
 
 ```bash
-bin/sjskills apply --global
-bin/sjskills --json plan --global > /tmp/sjskills-global-plan.after.json
+"$rollout_dir/sjskills" apply --global \
+  --approved-plan "$rollout_dir/plan.json" \
+  --approved-plan-sha256 "$plan_sha256"
+"$rollout_dir/sjskills" --json plan --global > "$rollout_dir/plan.after.json"
 ```
 
-On Windows PowerShell, use the already reviewed executable:
+On Windows PowerShell:
 
 ```powershell
-& $env:TEMP\sjskills.exe apply --global
-& $env:TEMP\sjskills.exe --json plan --global |
-  Out-File -FilePath $env:TEMP\sjskills-global-plan.after.json -Encoding utf8
+& $rolloutExe apply --global `
+  --approved-plan $planPath `
+  --approved-plan-sha256 $planSHA256
+$afterPath = Join-Path $rolloutDir "plan.after.json"
+Write-SjskillsGlobalPlan $afterPath
 ```
 
-Use the interactive confirmation so the operator sees the recomputed mutation
-counts. `sjskills` retains that one verified materialization session through
-the locked transaction and revalidates filesystem and provenance evidence
-before each move or publication. Do not substitute the legacy audit wrapper,
-Skills CLI direct installs, `--all`, or manual root copying.
+Use interactive confirmation so the operator sees the recomputed mutation
+counts. The CLI rejects the apply before prompting if the approval binding
+fails. Do not substitute the legacy audit wrapper, a freshly rebuilt
+executable, direct Skills CLI installs, `--all`, or manual root copying.
 
-Success requires the post-apply plan to contain no install, update, quarantine,
-or blocked operations. Retain every reported quarantine identifier and the
-before/after artifacts until the machine completes a normal work cycle.
+Success requires the post-apply plan to contain no install, update,
+quarantine, or blocked operation. Retain every reported quarantine identifier,
+the executable hash, and the before/after artifacts until the machine
+completes a normal work cycle.
 
 ## Failure and recovery
 
 Stop on conflict, recovery-required status, changed counts, or partial-failure
-evidence. Do not rerun blindly and do not delete or overwrite either active or
+evidence. Do not rerun blindly and do not delete or overwrite active or
 quarantined content.
 
-A committed quarantine can be restored only when every destination is absent:
+A committed quarantine can be restored only when every destination is absent,
+and restore needs its own explicit approval against the exact identifier and
+current state:
 
 ```bash
-bin/sjskills restore --global <quarantine-id>
+"$rollout_dir/sjskills" restore --global <quarantine-id>
 ```
 
-On Windows PowerShell, run
-`& $env:TEMP\sjskills.exe restore --global <quarantine-id>`.
-
 Moving an active replacement aside is a separate real-home mutation and needs
-its own reviewed target list and explicit approval. Restore refuses overwrite,
-re-proves the whole quarantine, restores provenance atomically, and leaves
-ambiguous content in recovery-required state.
+its own reviewed target list and authorization. Former-profile placements and
+legacy Pi copies remain report-only; any later cleanup requires a new
+exact-source plan and authorization.
 
-Former profile placements and legacy Pi copies are intentionally report-only.
-Any later cleanup needs a new exact-source plan and authorization; it is not
-part of baseline rollout.
+## Current state
+
+Global apply now has the exact-artifact digest check, complete plan recheck,
+retained-materialization boundary, and mutation-bound session fingerprint
+required by this plan. Full Go, race, registry, skill, catalog, vet, and diff
+validation passes against isolated temporary homes or read-only paths. The
+bounded code review findings are resolved, and PR #15 merged into `dev` as
+`6664543`. No machine approval or real-home rollout has occurred.
+
+## Next action
+
+Obtain separate evidence-bound authorization for a named machine before any
+real-home execution. That rollout is outside the completed approval-binding
+goal.

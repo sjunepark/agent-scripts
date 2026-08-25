@@ -12,29 +12,28 @@ either this repo or public skill installs.
 | Layer | Owner | Examples | Sync method |
 | --- | --- | --- | --- |
 | Reusable agent assets | `agent-scripts` | `skills/`, `bin/`, docs, validation scripts, optional hooks | Git commit and push |
-| Repo-local Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Local Codex marketplace install |
+| Repo-managed Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Remote-backed repo marketplace install and reinstall |
 | Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
 | Machine pointers | chezmoi or harness-specific setup | symlinks or scripts that point tools at this repo | Chezmoi source repo or explicit local setup |
 | Stable personal defaults | chezmoi, with care | selected model, reasoning effort, sandbox default | Template or idempotent update script |
 | Runtime state | local machine only | auth, sessions, logs, caches, memories, SQLite files | Do not sync |
 
-## Current Chezmoi Status
+## Machine Inspection
 
-Read-only inspection on 2026-07-30 found:
+Do not treat a dated machine snapshot as configuration authority. Inspect the
+current host before applying chezmoi or changing a pointer:
 
-- Chezmoi source: `/Users/sejunpark/.local/share/chezmoi`.
-- Source repo: clean on `main`, tracking `origin/main` with `0` ahead and
-  `0` behind.
-- `chezmoi status`: clean.
-- `~/.codex/AGENTS.md` is a symlink to
-  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-codex.md`, maintained
-  outside chezmoi.
-- `~/.codex/config.toml` and `~/.agents` are not currently managed by chezmoi.
-- `~/.claude/CLAUDE.md` is managed as a symlink to
-  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-claude.md`.
-- `~/.pi/agent/AGENTS.md` is a symlink to
-  `/Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-pi.md`, maintained
-  outside chezmoi; `~/.pi/agent/extensions` is managed by chezmoi.
+```bash
+chezmoi source-path
+chezmoi status
+readlink ~/.codex/AGENTS.md
+readlink ~/.claude/CLAUDE.md
+readlink ~/.pi/agent/AGENTS.md
+```
+
+The intended instruction targets are the three files under this repository's
+`global-agent-instructions/` directory. Chezmoi may own a pointer, but it must
+not own the live harness runtime directory that contains it.
 
 ## Codex Settings
 
@@ -73,8 +72,15 @@ Keep local Codex plugin source in this repo under `plugins/<plugin-name>/`.
 Keep the repo marketplace at `.agents/plugins/marketplace.json`; it is
 repository metadata, not machine runtime state.
 
-The `chezmoi-sync` plugin is the local workflow for checking and reviewing
-chezmoi drift from Codex:
+The marketplace currently publishes two independent plugins:
+
+- `chezmoi-sync` checks and reviews chezmoi drift from Codex.
+- `codex-pushover-notify` sends turn-completion notifications and exposes
+  Pushover MCP tools. Its credentials remain machine-local; setup and checks
+  are documented in
+  [`plugins/codex-pushover-notify/README.md`](../plugins/codex-pushover-notify/README.md).
+
+For `chezmoi-sync`:
 
 - `plugins/chezmoi-sync/hooks/hooks.json` registers a `SessionStart` hook.
 - `plugins/chezmoi-sync/scripts/chezmoi-check.sh` is read-only and exits zero;
@@ -82,15 +88,24 @@ chezmoi drift from Codex:
 - `plugins/chezmoi-sync/scripts/chezmoi-review.sh` is the explicit review
   helper for status and optional diff/fetch.
 
+The installed startup hook currently resolves its script only at
+`$HOME/IT/agent-scripts/plugins/chezmoi-sync/scripts/chezmoi-check.sh`. That
+checkout and executable script must exist, `bash` must be available, and
+`chezmoi` must be on the hook's `PATH`. Otherwise the hook exits without a
+report. A machine using another checkout location must run the review helper
+directly until the hook implementation supports a configurable path.
+
 The plugin intentionally does not bundle Codex skills. Keep mutating actions
 explicit: review `chezmoi-review.sh --diff`, choose `chezmoi add`,
 `chezmoi apply`, or `chezmoi update`, then re-run the review.
 
-Install or verify the repo marketplace on this machine from the remote:
+Install or verify the repo marketplace on this machine from the remote, then
+install the plugins that machine should use:
 
 ```bash
 codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main
 codex plugin add chezmoi-sync@personal
+codex plugin add codex-pushover-notify@personal
 codex plugin list --marketplace personal --json
 ```
 
@@ -98,8 +113,10 @@ Do not leave this repo's marketplace pointed at `/Users/sejunpark/IT/agent-scrip
 or another local working tree for normal machine use. Local marketplace paths
 are only for temporary development testing.
 
-After editing plugin metadata or hooks for ongoing use, commit and push first,
-then refresh the remote-backed marketplace snapshot and start a new thread:
+After editing plugin metadata, hooks, scripts, or MCP configuration for ongoing
+use, update that plugin's cachebuster, validate it, commit and push first, then
+refresh the remote-backed marketplace snapshot and reinstall the affected
+plugin. For example, for `chezmoi-sync`:
 
 ```bash
 python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
@@ -112,8 +129,8 @@ codex plugin add chezmoi-sync@personal
 ```
 
 Run the plugin validation before committing any plugin change. Script-only
-edits still need the commit, push, marketplace upgrade, and reinstall flow
-before they affect remote-backed installs.
+edits still need the commit, push, marketplace upgrade, and affected-plugin
+reinstall flow before they affect remote-backed installs.
 
 Do not manage `~/.codex/plugins/cache`, plugin trust records, or installed
 plugin state through chezmoi. Recreate those with `codex plugin marketplace
@@ -138,9 +155,10 @@ it with a symlink to this repo.
 Treat this repo's `skills/` directory as the published catalog. A skill being
 published here means it can be installed from the GitHub `skills/` subpath; it
 does not mean it belongs in every global agent install. Use
-`skill-registry.json` for the authoritative scope, provenance, installation targets,
-and installation manager; install project recommendations only when their
-`when` condition matches.
+`skill-registry.json` for the authoritative scope, provenance, installation
+targets, and installation manager. Select project profiles or direct
+declarations in the project's committed `sjskills.toml`; catalog publication
+or registry membership alone does not install a skill.
 
 Run `bin/sjskills plan --global` from this repo to inspect exact managed-root
 state against the one fixed baseline. `sjskills`, not chezmoi, owns
@@ -212,8 +230,8 @@ harness at its file:
 These files should contain durable personal defaults only. Keep multi-step
 procedures in skills and route to them with a concise harness-specific rule.
 Do not mix personal defaults with this repo's maintenance-specific rules.
-Chezmoi currently owns only the Claude pointer; Codex and Pi pointers are
-maintained outside chezmoi.
+Pointer ownership may vary by machine; use the inspection commands above to
+identify whether chezmoi or explicit local setup owns each one before editing.
 
 ## Bootstrap Order For A New Machine
 
@@ -222,7 +240,9 @@ maintained outside chezmoi.
 3. Clone or update this repo.
 4. Provision `op-agent` using [the 1Password host setup](1password.md).
 5. Run `scripts/validate-skills`.
-6. Register the repo Codex marketplace and install local repo plugins.
+6. Register the remote-backed repo Codex marketplace and install the desired
+   repo plugins. Configure Pushover credentials locally if installing
+   `codex-pushover-notify`.
 7. Run `bin/sjskills plan --global` to inspect managed-root state without
    changing it. Use [the separate rollout plan](../plans/sjskills-global-rollout.md)
    for any explicitly authorized global mutation.

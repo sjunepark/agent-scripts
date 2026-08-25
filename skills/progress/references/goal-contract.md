@@ -27,6 +27,12 @@ Use the prompt-named path. Otherwise store ordinary goal state at
 plans, and tasks. Keep one active goal per planning scope unless the user
 explicitly coordinates more and names the intended goal path.
 
+Identify the planning scope by its selected index path, such as `ROADMAP.md`, a
+legacy `PLAN.md` that routes project work, or `ROADMAP_<SCOPE>.md` for an
+isolated worktree scope. Use that exact path in the goal file's `Planning scope`
+field so recovery can match the goal to one planning namespace without
+inference.
+
 Keep the file tracked with the goal's work unless applicable repository
 instructions establish another durable tracked planning location. Retain a
 completed file as concise history. Do not delete, ignore, or silently replace
@@ -51,7 +57,7 @@ incremental units on the selected working branch.
 # Goal: <outcome-oriented title>
 
 Status: active
-Planning scope: <roadmap or scoped namespace>
+Planning scope: <selected index path>
 
 ## Original contract
 

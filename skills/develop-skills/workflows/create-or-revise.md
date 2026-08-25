@@ -141,61 +141,15 @@ For a revision, make the smallest change supported by the failure evidence.
 Avoid preserving obsolete behavior through compatibility branches unless an
 active consumer requires them.
 
-## 7. Run Static Validation
+## 7. Hand Off to Evaluation
 
-Before behavior testing, use the repository's validator and inspect the
-package directly. Confirm that:
+Return to the entry point and run its evaluation workflow. That workflow owns
+static validation, baseline comparison, repeated behavior trials, trigger
+testing, and the pass decision; do not substitute an informal spot check or a
+single candidate/baseline pair.
 
-- frontmatter parses and the directory name matches the skill name;
-- every runtime resource is named or directly linked from `SKILL.md` with a
-  condition for use;
-- all referenced paths exist, remain inside the skill, and contain no circular
-  routing;
-- scripts, templates, and examples are syntactically valid where applicable;
-  and
-- the package contains no unused, duplicated, or unexpectedly large material.
-
-Fix structural failures before interpreting behavior results.
-
-## 8. Evaluate Behavior in Fresh Contexts
-
-Select a small task set covering a straightforward case, a boundary case, and
-the most failure-prone case from the evidence. Run each task twice in separate,
-fresh contexts under the same conditions: once without the candidate skill and
-once with it.
-
-Before running, define the essential acceptance criteria from the skill
-contract. After seeing the first pair, add only discriminating assertions that
-capture observable quality without changing the intended outcome to favor one
-run. Compare:
-
-- completion of the requested outcome;
-- correctness and completeness of the artifact or response;
-- unnecessary steps, rework, or unsupported assumptions;
-- adherence to authority and safety boundaries; and
-- errors, recovery quality, and useful resource selection.
-
-Keep outputs labeled but ask an independent reviewer to judge quality without
-knowing which path produced each one when practical. Treat timing or length as
-secondary evidence, not a substitute for correctness.
-
-Trace each failure to the smallest plausible cause: missing instruction,
-ambiguous branch, excess prescription, poor resource routing, unsuitable
-scope, or inadequate capability. Change one cause at a time and rerun the
-affected pairs in fresh contexts. Remove instructions that do not improve the
-result.
-
-## 9. Evaluate Triggering Separately
-
-Test the description against the saved positive and near-miss examples without
-loading the full skill. Repeat borderline examples across fresh contexts.
-Revise the description or scope until positives activate reliably and near
-misses remain outside the boundary. Do not compensate for an unclear scope with
-a long list of keywords.
-
-## 10. Finish
-
-Consider the skill ready only when static validation passes, the candidate
-improves or preserves behavior on the representative tasks, no regression is
-unexplained, and trigger tests support the intended boundary. Record remaining
-limitations as concrete follow-up evidence rather than speculative features.
+Revise the candidate only from observed failures, then start a new evaluation
+round under the evaluator's versioning and frozen-criteria rules. Authoring is
+complete when the candidate passes every applicable evaluation gate and any
+remaining limitation is recorded as concrete evidence rather than a
+speculative feature.
