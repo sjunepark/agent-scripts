@@ -27,18 +27,37 @@ _None._
 
 ### Completed included results
 
-_None._
+- Reviewed-plan binding contract: global apply now requires one exact reviewed
+  JSON artifact and its approved SHA-256, recomputes the full global plan from
+  a retained materialization session, and binds that session fingerprint at
+  the mutation boundary.
+- Fail-closed apply/recheck behavior and regression coverage: missing or forged
+  approval, artifact substitution, moved expected content, post-binding session
+  mutation, and locked warning/evidence drift all abort without placement.
 
 ### Current in-scope result
 
-Reviewed-plan binding contract.
+Operator guidance, validation, and delivery.
 
 ### Next in-scope action
 
-Inspect the existing global plan and apply boundaries, then define the smallest exact-content evidence contract that apply can verify fail-closed.
+Deliver the one implementation PR through feedback and merge, then record
+terminal planning metadata.
 
 ### Evidence and blockers
 
 - Candidate: implement the reviewed-plan binding contract and its regression coverage in one reviewable slice. Classification: included. Contract basis: the first two included results and repository-required validation. Action: proceed.
 - `dev` is the repository-directed non-production integration branch. It was fast-forwarded locally to `1ad4e86`, and a dry-run confirmed direct creation/push permission before goal initialization. The implementation will use a separate work branch and target `dev`.
 - No real-home mutation is authorized; validation must use isolated temporary homes or read-only commands.
+- The independent code-review pass found three approval-boundary issues: an
+  internally stale binding, warning/evidence-only locked drift, and Windows
+  PowerShell BOM output. The implementation now fingerprints the complete live
+  session at apply, compares global warnings/evidence during locked replans,
+  and writes no-BOM UTF-8 artifacts on Windows.
+- Focused `go test -count=1 ./internal/sjskills ./cmd/sjskills` and
+  `git diff --check` pass after those review fixes. All apply tests use isolated
+  temporary homes; no real-home global apply or restore has run.
+- Full validation passes: `go test -count=1 ./...`, race-enabled command and
+  internal tests, `go vet ./...`, registry/reconciler Node tests,
+  `scripts/validate-skills`, `bunx skills add ./skills --list`,
+  `bunx skills list`, and `git diff --check`.

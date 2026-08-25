@@ -3,6 +3,8 @@ package sjskills
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -85,6 +87,102 @@ type GlobalApplySession struct {
 	Plan         Plan
 	Expected     map[string]TreeHash
 	Materialized *MaterializationPlan
+	reviewedPlan *globalReviewedPlanBinding
+}
+
+type globalReviewedPlanBinding struct {
+	artifactSHA256     string
+	sessionFingerprint string
+}
+
+// BindReviewedPlan proves that this exact live materialization session
+// reproduces the reviewed global plan before the session can cross the global
+// mutation boundary.
+func (s *GlobalApplySession) BindReviewedPlan(reviewed ReviewedPlan, current Envelope) error {
+	if s == nil {
+		return &Issue{Code: IssueUnavailable, Path: "apply.approvedPlan", Message: "global apply session is unavailable"}
+	}
+	if !reviewed.verified {
+		return &Issue{Code: IssueUnavailable, Path: "apply.approvedPlan", Message: "reviewed plan binding is unavailable"}
+	}
+	if err := VerifyReviewedPlanRecheck(reviewed, current); err != nil {
+		return err
+	}
+	binding, err := newGlobalReviewedPlanBinding(s, reviewed.sha256)
+	if err != nil {
+		return err
+	}
+	s.reviewedPlan = binding
+	return nil
+}
+
+func newGlobalReviewedPlanBinding(s *GlobalApplySession, artifactSHA256 string) (*globalReviewedPlanBinding, error) {
+	digest, err := normalizeApprovedSHA256(artifactSHA256)
+	if err != nil {
+		return nil, &Issue{Code: IssueUnavailable, Path: "apply.approvedPlan", Message: "reviewed plan binding is unavailable"}
+	}
+	fingerprint, err := globalApplySessionFingerprint(s)
+	if err != nil {
+		return nil, &Issue{Code: IssueUnavailable, Path: "apply.approvedPlan", Message: "global apply session could not be bound"}
+	}
+	return &globalReviewedPlanBinding{artifactSHA256: digest, sessionFingerprint: fingerprint}, nil
+}
+
+func globalApplySessionFingerprint(s *GlobalApplySession) (string, error) {
+	if s == nil || s.Materialized == nil {
+		return "", errors.New("global apply session is unavailable")
+	}
+	type namedHash struct {
+		Name string   `json:"name"`
+		Hash TreeHash `json:"hash"`
+	}
+	type boundSnapshot struct {
+		Name  string       `json:"name"`
+		Skill DesiredSkill `json:"skill"`
+		Hash  TreeHash     `json:"hash"`
+	}
+	type boundSession struct {
+		Layout    GlobalLayout        `json:"layout"`
+		Registry  Registry            `json:"registry"`
+		Desired   DesiredState        `json:"desired"`
+		Plan      reviewedPlanContent `json:"plan"`
+		Expected  []namedHash         `json:"expected"`
+		Snapshots []boundSnapshot     `json:"snapshots"`
+		Skipped   []DesiredSkill      `json:"skipped"`
+	}
+	expectedNames := make([]string, 0, len(s.Expected))
+	for name := range s.Expected {
+		expectedNames = append(expectedNames, name)
+	}
+	sort.Strings(expectedNames)
+	expected := make([]namedHash, 0, len(expectedNames))
+	for _, name := range expectedNames {
+		expected = append(expected, namedHash{Name: name, Hash: s.Expected[name]})
+	}
+	snapshotNames := make([]string, 0, len(s.Materialized.snapshots))
+	for name := range s.Materialized.snapshots {
+		snapshotNames = append(snapshotNames, name)
+	}
+	sort.Strings(snapshotNames)
+	snapshots := make([]boundSnapshot, 0, len(snapshotNames))
+	for _, name := range snapshotNames {
+		snapshot := s.Materialized.snapshots[name]
+		if snapshot == nil {
+			return "", errors.New("global materialization snapshot is unavailable")
+		}
+		snapshots = append(snapshots, boundSnapshot{Name: name, Skill: snapshot.Skill, Hash: snapshot.Hash})
+	}
+	payload := boundSession{
+		Layout: s.Layout, Registry: s.Registry, Desired: cloneDesiredState(s.Desired),
+		Plan: reviewedPlanContentFor(s.Plan), Expected: expected, Snapshots: snapshots,
+		Skipped: s.Materialized.Skipped(),
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(data)
+	return hex.EncodeToString(digest[:]), nil
 }
 
 type globalApplyBoundary struct {
@@ -179,6 +277,19 @@ func ApplyGlobalChanges(ctx context.Context, session *GlobalApplySession, deps A
 	if session == nil {
 		return ApplyResult{}, scopeApplyFailure(applyUnavailable("materialization session is unavailable"), ScopeGlobal)
 	}
+	if session.reviewedPlan == nil {
+		return ApplyResult{}, scopeApplyFailure(applyUnavailable("reviewed plan binding is unavailable"), ScopeGlobal)
+	}
+	if _, err := normalizeApprovedSHA256(session.reviewedPlan.artifactSHA256); err != nil {
+		return ApplyResult{}, scopeApplyFailure(applyUnavailable("reviewed plan binding is unavailable"), ScopeGlobal)
+	}
+	fingerprint, err := globalApplySessionFingerprint(session)
+	if err != nil {
+		return ApplyResult{}, scopeApplyFailure(applyUnavailable("reviewed plan binding could not be verified"), ScopeGlobal)
+	}
+	if fingerprint != session.reviewedPlan.sessionFingerprint {
+		return ApplyResult{}, scopeApplyFailure(applyConflict("reviewed plan binding changed"), ScopeGlobal)
+	}
 	internal := &ProjectApplySession{
 		Layout:       session.Layout.mutationLayout(),
 		Desired:      session.Desired,
@@ -266,7 +377,7 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 	if err != nil {
 		return finishApplySetup(&tx, clonePlanForApply(session.Plan), err)
 	}
-	if !sameReviewedPlan(session.Plan, freshPlan) {
+	if !sameReviewedPlan(session.Plan, freshPlan, session.global != nil) {
 		return finishApplySetup(&tx, freshPlan, applyConflict("project state changed after planning"))
 	}
 	reviewedMigration := session.global != nil && planHasEvidence(session.Plan, "provenance-migration")
@@ -288,7 +399,7 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 		if err != nil {
 			return finishApplySetup(&tx, freshPlan, err)
 		}
-		if !sameReviewedPlan(freshPlan, verifiedPlan) {
+		if !sameReviewedPlan(freshPlan, verifiedPlan, session.global != nil) {
 			return finishApplySetup(&tx, verifiedPlan, applyConflict("project state changed during apply verification"))
 		}
 		return finishApplySetup(&tx, verifiedPlan, nil)
@@ -743,18 +854,31 @@ func staticProjectWarnings(warnings []Warning) []Warning {
 	return result
 }
 
-func sameReviewedPlan(left, right Plan) bool {
-	leftDesired := cloneDesiredState(left.Desired)
-	rightDesired := cloneDesiredState(right.Desired)
-	leftData, leftErr := json.Marshal(struct {
-		Desired    DesiredState    `json:"desired"`
-		Operations []PlanOperation `json:"operations"`
-	}{leftDesired, append([]PlanOperation{}, left.Operations...)})
-	rightData, rightErr := json.Marshal(struct {
-		Desired    DesiredState    `json:"desired"`
-		Operations []PlanOperation `json:"operations"`
-	}{rightDesired, append([]PlanOperation{}, right.Operations...)})
+func sameReviewedPlan(left, right Plan, includeDiagnostics bool) bool {
+	leftContent := reviewedPlanContentFor(left)
+	rightContent := reviewedPlanContentFor(right)
+	if !includeDiagnostics {
+		leftContent.Warnings, leftContent.Evidence = nil, nil
+		rightContent.Warnings, rightContent.Evidence = nil, nil
+	}
+	leftData, leftErr := json.Marshal(leftContent)
+	rightData, rightErr := json.Marshal(rightContent)
 	return leftErr == nil && rightErr == nil && bytes.Equal(leftData, rightData)
+}
+
+type reviewedPlanContent struct {
+	Desired    DesiredState    `json:"desired"`
+	Operations []PlanOperation `json:"operations"`
+	Warnings   []Warning       `json:"warnings"`
+	Evidence   []Evidence      `json:"evidence"`
+}
+
+func reviewedPlanContentFor(plan Plan) reviewedPlanContent {
+	clone := clonePlanForApply(plan)
+	return reviewedPlanContent{
+		Desired: clone.Desired, Operations: clone.Operations,
+		Warnings: clone.Warnings, Evidence: clone.Evidence,
+	}
 }
 
 func sameDesiredState(left, right DesiredState) bool {

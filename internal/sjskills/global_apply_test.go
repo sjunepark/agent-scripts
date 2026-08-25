@@ -15,6 +15,12 @@ func TestGlobalMutationErrorsNameTheGlobalBoundary(t *testing.T) {
 		err.Error() != "global apply unavailable: materialization session is unavailable" {
 		t.Fatalf("apply error = %v", err)
 	}
+	unbound := newGlobalApplyFixture(t)
+	unbound.reviewedPlan = nil
+	if _, err := ApplyGlobalChanges(context.Background(), unbound, ApplyDeps{}); err == nil ||
+		err.Error() != "global apply unavailable: reviewed plan binding is unavailable" {
+		t.Fatalf("unbound apply error = %v", err)
+	}
 	layout, layoutErr := LayoutForGlobal(canonicalTempHome(t))
 	if layoutErr != nil {
 		t.Fatal(layoutErr)
@@ -42,6 +48,7 @@ func TestApplySessionScopeBoundaries(t *testing.T) {
 
 	global = newGlobalApplyFixture(t)
 	global.Layout.Home = canonicalTempHome(t)
+	bindGlobalApplyFixture(t, global)
 	if _, err := ApplyGlobalChanges(context.Background(), global, ApplyDeps{}); err == nil ||
 		err.Error() != "global apply conflict: global boundary changed" {
 		t.Fatalf("global layout error = %v", err)
@@ -49,9 +56,49 @@ func TestApplySessionScopeBoundaries(t *testing.T) {
 
 	global = newGlobalApplyFixture(t)
 	global.Desired.Skills[0].Source = "different/source"
+	bindGlobalApplyFixture(t, global)
 	if _, err := ApplyGlobalChanges(context.Background(), global, ApplyDeps{}); err == nil ||
 		err.Error() != "global apply conflict: global desired identity changed" {
 		t.Fatalf("global desired error = %v", err)
+	}
+}
+
+func TestGlobalApplyRequiresLoadedApprovalAndStableBoundSession(t *testing.T) {
+	session := newGlobalApplyFixture(t)
+	if err := session.BindReviewedPlan(ReviewedPlan{}, Envelope{}); reviewedIssueCode(err) != IssueUnavailable {
+		t.Fatalf("forged reviewed plan error = %v", err)
+	}
+
+	session = newGlobalApplyFixture(t)
+	session.Plan.Warnings = append(session.Plan.Warnings, Warning{Code: "changed", Message: "changed after binding"})
+	if _, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{}); err == nil ||
+		err.Error() != "global apply conflict: reviewed plan binding changed" {
+		t.Fatalf("post-binding mutation error = %v", err)
+	}
+	for _, target := range []Target{TargetAgents, TargetClaude} {
+		root, _ := session.Layout.ManagedSkillsPath(target)
+		if _, err := os.Lstat(filepath.Join(root, "base")); !os.IsNotExist(err) {
+			t.Fatalf("%s placement changed after rejected session mutation: %v", target, err)
+		}
+	}
+}
+
+func TestGlobalApplyRejectsWarningOnlyDriftAfterConfirmation(t *testing.T) {
+	session := newGlobalApplyFixture(t)
+	result, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{
+		beforeLock: func() error {
+			writeGlobalSkill(t, session.Layout.LegacyPiSkillsPath, "legacy", "legacy\n")
+			return nil
+		},
+	})
+	if err == nil || err.Error() != "global apply conflict: global state changed after planning" {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+	for _, target := range []Target{TargetAgents, TargetClaude} {
+		root, _ := session.Layout.ManagedSkillsPath(target)
+		if _, statErr := os.Lstat(filepath.Join(root, "base")); !os.IsNotExist(statErr) {
+			t.Fatalf("%s placement changed after warning-only drift: %v", target, statErr)
+		}
 	}
 }
 
@@ -149,6 +196,7 @@ func TestApplyGlobalChangesUpdatesThroughDurableQuarantine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	bindGlobalApplyFixture(t, session)
 	result, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return firstTime.Add(time.Hour) }})
 	if err != nil {
 		t.Fatal(err)
@@ -206,6 +254,7 @@ func TestRestoreGlobalQuarantineRestoresOldGlobalPlacements(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	bindGlobalApplyFixture(t, session)
 	updated, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt.Add(time.Hour) }})
 	if err != nil || updated.Quarantine == nil {
 		t.Fatalf("update result=%#v err=%v", updated, err)
@@ -271,6 +320,7 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 	if err != nil {
 		t.Fatal(err)
 	}
+	bindGlobalApplyFixture(t, session)
 	result, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt.Add(time.Hour) }})
 	if err != nil {
 		t.Fatal(err)
@@ -314,13 +364,14 @@ func TestApplyGlobalChangesRejectsMigrationStatusRace(t *testing.T) {
 	if err != nil || planHasEvidence(session.Plan, "provenance-migration") {
 		t.Fatalf("current plan=%#v err=%v", session.Plan, err)
 	}
+	bindGlobalApplyFixture(t, session)
 	hash := session.Expected["base"]
 	writeLegacyGlobalState(t, session.Layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
 		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
 		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
 	})
 	result, err := ApplyGlobalChanges(context.Background(), session, ApplyDeps{Now: func() time.Time { return recordedAt.Add(time.Hour) }})
-	if err == nil || err.Error() != "global apply conflict: global provenance migration changed after planning" || result.Migrated {
+	if err == nil || err.Error() != "global apply conflict: global state changed after planning" || result.Migrated {
 		t.Fatalf("result=%#v err=%v", result, err)
 	}
 	inventory, inspectErr := InspectGlobal(session.Layout)
@@ -369,8 +420,19 @@ func newGlobalApplyFixture(t *testing.T) *GlobalApplySession {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &GlobalApplySession{
+	session := &GlobalApplySession{
 		Layout: layout, Registry: registry, Desired: desired, Plan: plan,
 		Expected: map[string]TreeHash{"base": hash}, Materialized: materialized,
 	}
+	bindGlobalApplyFixture(t, session)
+	return session
+}
+
+func bindGlobalApplyFixture(t *testing.T, session *GlobalApplySession) {
+	t.Helper()
+	binding, err := newGlobalReviewedPlanBinding(session, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	session.reviewedPlan = binding
 }

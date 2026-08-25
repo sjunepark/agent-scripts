@@ -72,7 +72,8 @@ sjskills plan
 sjskills apply
 sjskills restore <quarantine-id>
 sjskills plan --global
-sjskills apply --global
+sjskills apply --global --approved-plan <plan.json> \
+  --approved-plan-sha256 <approved-digest>
 sjskills restore --global <quarantine-id>
 ```
 

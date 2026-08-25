@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,6 +62,34 @@ func runCLIWithInputEnvironment(t *testing.T, directory string, overrides map[st
 	}
 	t.Fatalf("run %v: %v", args, err)
 	return -1, "", ""
+}
+
+func newGlobalApproval(t *testing.T, directory string, overrides map[string]string) (string, string) {
+	t.Helper()
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "plan", "--global")
+	if code != 0 || stderr != "" {
+		t.Fatalf("produce global approval plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	return writeReviewedPlan(t, []byte(stdout))
+}
+
+func writeReviewedPlanEnvelope(t *testing.T, envelope sjskills.Envelope) (string, string) {
+	t.Helper()
+	data, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return writeReviewedPlan(t, append(data, '\n'))
+}
+
+func writeReviewedPlan(t *testing.T, data []byte) (string, string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "plan.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(data)
+	return path, hex.EncodeToString(digest[:])
 }
 
 func newCLICommand(t *testing.T, directory string, overrides map[string]string, input string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
@@ -198,7 +228,8 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 		t.Fatalf("plan output = %q", stdout)
 	}
 
-	code, stdout, stderr = runCLI(t, directory, "--json", "apply", "--global", "--yes")
+	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, nil)
+	code, stdout, stderr = runCLI(t, directory, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
 		t.Fatalf("apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
@@ -212,6 +243,44 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	code, stdout, stderr = runCLI(t, directory, "--json", "restore")
 	if code != 64 || stderr != "" || !strings.Contains(stdout, `"result":"invalid"`) {
 		t.Fatalf("restore missing id code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+}
+
+func TestExternalGlobalApplyRequiresExactReviewedPlan(t *testing.T) {
+	directory := t.TempDir()
+	overrides := isolatedExternalHomes(t)
+	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, overrides)
+	before := captureFixtureTree(t, overrides["HOME"])
+
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes")
+	if code != 65 || stderr != "" || !strings.Contains(stdout, `"path":"apply.approvedPlan"`) {
+		t.Fatalf("missing approval code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, overrides["HOME"]); !reflect.DeepEqual(after, before) {
+		t.Fatalf("missing approval mutated global home: before=%#v after=%#v", before, after)
+	}
+
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", strings.Repeat("0", 64))
+	if code != 2 || stderr != "" || !strings.Contains(stdout, `"result":"conflict"`) || !strings.Contains(stdout, "approved plan digest does not match") {
+		t.Fatalf("digest mismatch code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, overrides["HOME"]); !reflect.DeepEqual(after, before) {
+		t.Fatalf("digest mismatch mutated global home: before=%#v after=%#v", before, after)
+	}
+
+	overrides["SJSKILLS_FAKE_CONTENT"] = " moved-ref"
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
+	if code != 2 || stderr != "" || !strings.Contains(stdout, `"result":"conflict"`) || !strings.Contains(stdout, "current global plan does not match") {
+		t.Fatalf("content recheck code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	if after := captureFixtureTree(t, overrides["HOME"]); !reflect.DeepEqual(after, before) {
+		t.Fatalf("content recheck mutated global home: before=%#v after=%#v", before, after)
+	}
+
+	overrides["SJSKILLS_FAKE_CONTENT"] = ""
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"kind":"approval","detail":"reviewed global plan sha256:`+approvedSHA256+`"`) {
+		t.Fatalf("approved apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 }
 
@@ -417,7 +486,8 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, firstApply) {
 		t.Fatalf("idempotent apply changed project: before=%#v after=%#v", firstApply, after)
 	}
-	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes")
+	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, globalRoots)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
 		t.Fatalf("global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
@@ -443,7 +513,8 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	if err != nil || !globalInventory.StateTrusted || len(globalInventory.State.Records) != 18 {
 		t.Fatalf("global inventory=%#v err=%v", globalInventory, err)
 	}
-	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes")
+	approvedPlan, approvedSHA256 = newGlobalApproval(t, directory, globalRoots)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 0 global placements"`) || !strings.Contains(stdout, `"detail":"updated 0 global placements"`) {
 		t.Fatalf("idempotent global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
@@ -490,14 +561,15 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	if err := os.WriteFile(globalLayout.ProvenanceStatePath, legacyData, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "\n", "apply", "--global")
+	approvedPlan, approvedSHA256 = newGlobalApproval(t, directory, globalRoots)
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "\n", "apply", "--global", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 2 || !strings.Contains(stdout, "apply: unavailable") || strings.Count(stderr, "Apply 1 global change (provenance migration)?") != 1 || !strings.Contains(stderr, "global apply was not confirmed") {
 		t.Fatalf("declined global migration code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	if current, readErr := os.ReadFile(globalLayout.ProvenanceStatePath); readErr != nil || !bytes.Equal(current, legacyData) {
 		t.Fatalf("declined migration changed provenance: data=%q err=%v", current, readErr)
 	}
-	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "yes\n", "apply", "--global")
+	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, globalRoots, "yes\n", "apply", "--global", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || strings.Count(stderr, "Apply 1 global change (provenance migration)?") != 1 || !strings.Contains(stdout, "migration: trusted global provenance migrated to version 2") {
 		t.Fatalf("confirmed global migration code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
@@ -511,13 +583,15 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 	directory := t.TempDir()
 	overrides := isolatedExternalHomes(t)
 	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
-	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes")
+	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, overrides)
+	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
 		t.Fatalf("global v1 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
 	overrides["SJSKILLS_FAKE_CONTENT"] = " v2"
-	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes")
+	approvedPlan, approvedSHA256 = newGlobalApproval(t, directory, overrides)
+	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
 	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"updated 18 global placements"`) {
 		t.Fatalf("global v2 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
@@ -2001,7 +2075,8 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 			t.Fatalf("temporary parent after plan: entries=%d err=%v", len(entries), err)
 		}
 
-		applyEnvelope := app.apply(context.Background(), true, true)
+		approvedPlan, approvedSHA256 := writeReviewedPlanEnvelope(t, envelope)
+		applyEnvelope := app.applyApproved(context.Background(), true, true, approvedPlan, approvedSHA256)
 		if calls != 2 || applyEnvelope.Result != sjskills.ResultSuccess || applyEnvelope.Error != nil {
 			t.Fatalf("calls=%d apply=%#v", calls, applyEnvelope)
 		}

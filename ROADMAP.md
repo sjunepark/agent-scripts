@@ -2,13 +2,13 @@
 
 ## Current
 
-_None._
+- [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
+  is limited to making approval exact-content-bound. Per-machine approval and
+  real-home rollout remain excluded.
 
 ## Plans
 
-- [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
-  is proposed and requires separate, evidence-bound authorization for each
-  machine. Exact-content approval binding remains unresolved.
+_None._
 
 ## Completed
 

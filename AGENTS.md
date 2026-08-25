@@ -138,7 +138,10 @@
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
 - Do not run `sjskills apply --global` or global restore against a real home
   as repository validation. Real-machine rollout requires a separate reviewed,
-  evidence-bound plan and explicit authorization.
+  evidence-bound plan and explicit authorization. Global apply also requires
+  the reviewed JSON artifact through `--approved-plan` and its approved digest
+  through `--approved-plan-sha256`; those flags bind evidence but do not grant
+  authorization.
 - Restore project or global quarantines only with the identifier reported by
   `sjskills`; restoration refuses to overwrite an active path.
 

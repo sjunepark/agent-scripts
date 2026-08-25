@@ -75,8 +75,9 @@ then reads only the two managed skill roots and explicitly modeled migration
 locations. Planning is read-only. Do not run `apply --global` against a real
 home as repository validation; real-machine rollout requires a separately
 reviewed [rollout plan](plans/sjskills-global-rollout.md) and explicit
-authorization. That plan currently records an unresolved exact-content
-approval-binding gap.
+authorization. Global apply additionally requires the exact reviewed JSON plan
+artifact and its approved SHA-256; it fails before mutation when either the
+artifact digest or a fresh plan recheck differs.
 
 Enable the optional pre-commit hook:
 
@@ -145,11 +146,19 @@ Global reconciliation uses the same transaction engine and one
 machine-independent baseline:
 
 ```bash
-sjskills plan --global
+sjskills --json plan --global > plan.json
+plan_sha256=$(shasum -a 256 plan.json | awk '{print $1}')
 # Run only under a separately reviewed and explicitly authorized rollout:
-sjskills apply --global
+sjskills apply --global \
+  --approved-plan plan.json \
+  --approved-plan-sha256 "$plan_sha256"
 sjskills restore --global <quarantine-id>
 ```
+
+The two approval flags are mandatory for global apply and unavailable for
+project apply. They bind execution to the reviewed artifact bytes and to a
+fresh, complete global plan built from one retained verified materialization
+session. They do not grant machine approval by themselves.
 
 The global state file is `~/.agents/.global-skill-state.json`; private locks,
 journals, recovery data, and quarantine live under

@@ -30,6 +30,6 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
 - Use `--skill '*'` only when the user explicitly wants every skill from a source. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which can unintentionally recreate shared `~/.agents/skills` installs.
 - Never synthesize a Pi target for this repository's fixed global baseline; Pi discovers the selected shared-root copy.
 - Publish changed repository skills before reconciliation. A local edit or unmerged branch is not present at a registry source pinned to `main`.
-- Do not run `sjskills apply --global` or global restore against a real home without a separately reviewed rollout plan and explicit authorization.
+- Do not run `sjskills apply --global` or global restore against a real home without a separately reviewed rollout plan and explicit authorization. Global apply also requires the reviewed JSON plan through `--approved-plan` and its approved digest through `--approved-plan-sha256`; those flags bind evidence but do not grant authorization.
 - Treat installed skills as executable instructions; avoid untrusted sources.
 - If managing dotfiles with chezmoi, avoid `chezmoi add` on live skills directories.
