@@ -58,7 +58,8 @@ sjskills restore <quarantine-id>
 There is one machine-independent baseline and no profile argument:
 
 ```bash
-sjskills plan --global
+sjskills --json plan --global > plan.json
+plan_sha256=$(shasum -a 256 plan.json | awk '{print $1}')
 ```
 
 `scripts/audit-global-skills` is only a read-only transition wrapper for this
@@ -69,14 +70,19 @@ Real-home mutation is a separate operational rollout. Do not run these as
 repository validation or infer authorization from a request to inspect:
 
 ```bash
-sjskills apply --global
+sjskills apply --global \
+  --approved-plan plan.json \
+  --approved-plan-sha256 "$plan_sha256"
 sjskills restore --global <quarantine-id>
 ```
 
 Before a real-machine apply, require a separately reviewed evidence-bound plan
-and explicit authorization. `sjskills` never adopts a preexisting desired
-tree from byte equality alone and has no force-adopt or force-replace flag.
-Former profile placements and legacy Pi copies remain report-only.
+and explicit authorization. The approval must name the exact plan SHA-256;
+global apply rejects missing or changed approval evidence and recomputes the
+complete plan before prompting or mutation. `sjskills` never adopts a
+preexisting desired tree from byte equality alone and has no force-adopt or
+force-replace flag. Former profile placements and legacy Pi copies remain
+report-only.
 
 ## Publish before reconciliation
 

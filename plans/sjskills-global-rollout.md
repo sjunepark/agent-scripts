@@ -1,6 +1,6 @@
 # Roll out the fixed global baseline
 
-Status: proposed; not authorized; exact-content approval binding unresolved
+Status: approval binding implemented and reviewed; rollout not authorized
 
 ## Boundary
 
@@ -15,19 +15,21 @@ The rollout owns only baseline placements in `~/.agents/skills` and
 entries, plugin caches, vendor metadata, and the legacy
 `~/.skill-quarantine` tree remain preserved.
 
-## Approval limitation
+## Approval binding
 
-The current CLI does not accept a reviewed plan digest. `apply --global`
-materializes remote sources again in a new session, so a source ref could move
-after the byte-identical recheck and before apply. The executable and artifacts
-below bind what was reviewed, but they do not cryptographically force apply to
-use the reviewed expected-content hashes.
+`apply --global` requires both the reviewed JSON plan artifact and its approved
+SHA-256. It reads the artifact once, verifies the exact bytes against that
+digest, accepts only a strict successful global plan, and then recomputes the
+complete global plan. Stable warnings, operations, current-state evidence, and
+expected-content evidence must all match before confirmation or mutation.
 
-Do not describe this as exact-content authorization. Before rollout, either
-add and review a CLI contract that binds apply to the approved expected-content
-evidence, or obtain explicit authorization that names and accepts this weaker
-remote-source race boundary. The first option is preferred for real-home
-mutation.
+The recheck retains its verified materialization session and apply uses that
+same content. A remote source ref cannot move between the binding check and the
+copy boundary. Missing flags, a changed artifact, moved expected content, or
+inventory drift fails closed and requires review of a new artifact.
+
+This technical binding does not authorize a machine. The separate approval
+below remains mandatory and must name the exact artifact digest.
 
 ## Produce review evidence
 
@@ -47,7 +49,8 @@ rollout_dir=$(mktemp -d)
 go build -trimpath -o "$rollout_dir/sjskills" ./cmd/sjskills
 shasum -a 256 "$rollout_dir/sjskills"
 "$rollout_dir/sjskills" --json plan --global > "$rollout_dir/plan.json"
-shasum -a 256 "$rollout_dir/plan.json"
+plan_sha256=$(shasum -a 256 "$rollout_dir/plan.json" | awk '{print $1}')
+printf '%s\n' "$plan_sha256"
 ```
 
 On Windows PowerShell, use a dedicated clean checkout and one temporary
@@ -63,10 +66,34 @@ New-Item -ItemType Directory -Path $rolloutDir | Out-Null
 $rolloutExe = Join-Path $rolloutDir "sjskills.exe"
 go build -trimpath -o $rolloutExe ./cmd/sjskills
 (Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+function Write-SjskillsGlobalPlan([string] $Path) {
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $rolloutExe
+  $startInfo.Arguments = "--json plan --global"
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.StandardOutputEncoding = $utf8NoBom
+  $startInfo.StandardErrorEncoding = $utf8NoBom
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+  try {
+    if (-not $process.Start()) { throw "global plan could not start" }
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "global plan failed: $stderr" }
+    [System.IO.File]::WriteAllText($Path, $stdout, $utf8NoBom)
+  } finally {
+    $process.Dispose()
+  }
+}
 $planPath = Join-Path $rolloutDir "plan.json"
-& $rolloutExe --json plan --global |
-  Out-File -FilePath $planPath -Encoding utf8
-(Get-FileHash -Algorithm SHA256 $planPath).Hash
+Write-SjskillsGlobalPlan $planPath
+$planSHA256 = (Get-FileHash -Algorithm SHA256 $planPath).Hash.ToLowerInvariant()
+$planSHA256
 ```
 
 Review the complete JSON, including every operation, warning, expected-content
@@ -85,8 +112,9 @@ Authorization must identify:
 
 ## Recheck the approved state
 
-Immediately before mutation, re-prove the checkout and executable, then use
-that same executable to produce a byte-identical plan:
+Immediately before mutation, re-prove the checkout and executable. An explicit
+byte-identical recheck is useful operator evidence; global apply performs its
+own mandatory recheck again and retains that recheck's expected content:
 
 ```bash
 test "$(git rev-parse HEAD)" = "$rollout_commit"
@@ -103,40 +131,43 @@ if ((git rev-parse HEAD) -ne $rolloutCommit) { throw "checkout changed after app
 if (git status --porcelain --untracked-files=all) { throw "checkout changed after approval" }
 (Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
 $recheckPath = Join-Path $rolloutDir "plan.recheck.json"
-& $rolloutExe --json plan --global |
-  Out-File -FilePath $recheckPath -Encoding utf8
+Write-SjskillsGlobalPlan $recheckPath
 if ((Get-FileHash -Algorithm SHA256 $planPath).Hash -ne `
     (Get-FileHash -Algorithm SHA256 $recheckPath).Hash) {
   throw "global plan changed after approval"
 }
 ```
 
-The displayed commit and executable hash must equal the authorized values.
-Any mismatch or plan difference voids authorization; review a new artifact
-instead of widening the old approval.
+The displayed commit and executable hash must equal the authorized values. Any
+mismatch or plan difference voids authorization; review a new artifact instead
+of widening the old approval. Do not substitute `plan.recheck.json` for the
+approved `plan.json`; apply verifies the approved artifact's exact digest.
 
 ## Authorized execution
 
-Only after the evidence above receives explicit approval and the approval
-limitation is resolved or expressly accepted, run the already reviewed
-executable:
+Only after the evidence above receives explicit approval, run the already
+reviewed executable with the approved artifact and digest:
 
 ```bash
-"$rollout_dir/sjskills" apply --global
+"$rollout_dir/sjskills" apply --global \
+  --approved-plan "$rollout_dir/plan.json" \
+  --approved-plan-sha256 "$plan_sha256"
 "$rollout_dir/sjskills" --json plan --global > "$rollout_dir/plan.after.json"
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& $rolloutExe apply --global
+& $rolloutExe apply --global `
+  --approved-plan $planPath `
+  --approved-plan-sha256 $planSHA256
 $afterPath = Join-Path $rolloutDir "plan.after.json"
-& $rolloutExe --json plan --global |
-  Out-File -FilePath $afterPath -Encoding utf8
+Write-SjskillsGlobalPlan $afterPath
 ```
 
 Use interactive confirmation so the operator sees the recomputed mutation
-counts. Do not substitute the legacy audit wrapper, a freshly rebuilt
+counts. The CLI rejects the apply before prompting if the approval binding
+fails. Do not substitute the legacy audit wrapper, a freshly rebuilt
 executable, direct Skills CLI installs, `--all`, or manual root copying.
 
 Success requires the post-apply plan to contain no install, update,
@@ -162,3 +193,17 @@ Moving an active replacement aside is a separate real-home mutation and needs
 its own reviewed target list and authorization. Former-profile placements and
 legacy Pi copies remain report-only; any later cleanup requires a new
 exact-source plan and authorization.
+
+## Current state
+
+Global apply now has the exact-artifact digest check, complete plan recheck,
+retained-materialization boundary, and mutation-bound session fingerprint
+required by this plan. Full Go, race, registry, skill, catalog, vet, and diff
+validation passes against isolated temporary homes or read-only paths. The
+bounded code review findings are resolved; PR delivery remains in progress. No
+machine approval or real-home rollout has occurred.
+
+## Next action
+
+Deliver the approval-binding change, then leave this rollout proposed for a
+separately authorized machine-specific run.
