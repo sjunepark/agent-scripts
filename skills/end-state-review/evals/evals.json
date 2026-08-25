@@ -1,0 +1,30 @@
+{
+  "skill_name": "end-state-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $end-state-review on this proposed account migration before implementation. The team first planned a `--legacy` mode, a v1 endpoint alias, dual reads, and a translation adapter. The settled requirements now say the v1 endpoint was never released, no production records exist, and the only supported contract will be v2. Keep the repository unchanged.",
+      "expected_output": "A review-only reconstruction that states the v2-only end-state contract, verifies the supplied absence of released consumers and persisted data without inventing stronger evidence, classifies the legacy mode, alias, dual reads, and adapter as removable historical residue, and proposes a smaller replacement plan with validation for the deleted assumptions. It does not edit code or planning files."
+    },
+    {
+      "id": 2,
+      "prompt": "Use $end-state-review on this storage migration plan. Version 1 is public, existing customer records use it, three external clients still send v1 payloads, and the approved rollout promises dual reads for 90 days followed by removal after client telemetry reaches zero for 14 consecutive days. The draft calls all compatibility code obsolete and deletes it immediately. Propose the coherent final plan without changing files.",
+      "expected_output": "A review-only proposal that distinguishes the eventual v2-only end state from current rollout obligations, retains dual reads temporarily, names the 90-day and zero-traffic exit conditions, preserves persisted-data and external-client compatibility, and rejects immediate deletion. It maps the retained obligation and later removal to validation without editing files or implementation."
+    },
+    {
+      "id": 3,
+      "prompt": "Use $end-state-review on a prototype plan that accumulated `simple`, `advanced`, and `compatibility` modes plus two routing owners. The approved product behavior now requires one workflow, but it is unclear whether bookmarked URLs are a supported external contract. Identify the clean final shape and decisions required. Do not edit anything.",
+      "expected_output": "A bounded review that proposes one product path and one routing owner, classifies the three modes and duplicated routing policy with evidence, leaves bookmarked-URL compatibility unresolved rather than silently deleting it, asks only for that load-bearing decision, and identifies validation for navigation and deleted assumptions. It makes no repository changes."
+    },
+    {
+      "id": 4,
+      "prompt": "Review a completed queue implementation for retry races, incorrect error handling, missing tests, dependency fit, architecture, and unnecessary abstractions. Apply obvious safe fixes and validate the result.",
+      "expected_output": "The request is identified as a code-review task rather than an end-state-review task because it targets completed implementation, requests safe code fixes, and requires validation. End-state-review should not be selected or used as a substitute for implementation review."
+    },
+    {
+      "id": 5,
+      "prompt": "Use $end-state-review to implement the approved migration, update its tests, and edit the production code now.",
+      "expected_output": "The skill may activate because it was explicitly invoked, but it refuses the requested implementation edits because its authority ends at review and approved planning-artifact changes. It routes implementation and safe-fix review to the ordinary implementation workflow or code-review without modifying production code or tests."
+    }
+  ]
+}

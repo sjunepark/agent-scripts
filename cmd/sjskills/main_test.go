@@ -224,13 +224,13 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
 		t.Fatalf("plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"action":"install"`) || !strings.Contains(stdout, `"resolved 26 desired skills"`) || strings.Contains(stdout, `"warnings":null`) {
+	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"action":"install"`) || !strings.Contains(stdout, `"resolved 27 desired skills"`) || strings.Contains(stdout, `"warnings":null`) {
 		t.Fatalf("plan output = %q", stdout)
 	}
 
 	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, nil)
 	code, stdout, stderr = runCLI(t, directory, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
-	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 16 global placements"`) {
 		t.Fatalf("apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	if strings.Contains(stdout, directory) {
@@ -488,7 +488,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	}
 	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, globalRoots)
 	code, stdout, stderr = runCLIWithEnvironment(t, directory, globalRoots, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
-	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"result":"success"`) || !strings.Contains(stdout, `"detail":"installed 16 global placements"`) {
 		t.Fatalf("global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, firstApply) {
@@ -510,7 +510,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 	globalInventory, err := sjskills.InspectGlobal(globalLayout)
-	if err != nil || !globalInventory.StateTrusted || len(globalInventory.State.Records) != 18 {
+	if err != nil || !globalInventory.StateTrusted || len(globalInventory.State.Records) != 16 {
 		t.Fatalf("global inventory=%#v err=%v", globalInventory, err)
 	}
 	approvedPlan, approvedSHA256 = newGlobalApproval(t, directory, globalRoots)
@@ -585,14 +585,14 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 	overrides["SJSKILLS_FAKE_CONTENT"] = " v1"
 	approvedPlan, approvedSHA256 := newGlobalApproval(t, directory, overrides)
 	code, stdout, stderr := runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
-	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 18 global placements"`) {
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"installed 16 global placements"`) {
 		t.Fatalf("global v1 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
 	overrides["SJSKILLS_FAKE_CONTENT"] = " v2"
 	approvedPlan, approvedSHA256 = newGlobalApproval(t, directory, overrides)
 	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "apply", "--global", "--yes", "--approved-plan", approvedPlan, "--approved-plan-sha256", approvedSHA256)
-	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"updated 18 global placements"`) {
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"updated 16 global placements"`) {
 		t.Fatalf("global v2 apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	updated := decodeEnvelope(t, stdout)
@@ -649,11 +649,11 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 	}
 
 	code, stdout, stderr = runCLIWithEnvironment(t, directory, overrides, "--json", "restore", "--global", quarantineID, "--yes")
-	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"restored 18 global placements"`) {
+	if code != 0 || stderr != "" || !strings.Contains(stdout, `"detail":"restored 16 global placements"`) {
 		t.Fatalf("global restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	inventory, err := sjskills.InspectGlobal(layout)
-	if err != nil || !inventory.StateTrusted || len(inventory.State.Records) != 18 {
+	if err != nil || !inventory.StateTrusted || len(inventory.State.Records) != 16 {
 		t.Fatalf("restored global inventory=%#v err=%v", inventory, err)
 	}
 }
@@ -1709,8 +1709,8 @@ func TestExternalPlanMaterializesExpectedContentReadOnly(t *testing.T) {
 	}
 	globalEnvelope := decodeEnvelope(t, stdout)
 	assertExpectedContentEvidence(t, globalEnvelope)
-	if globalEnvelope.Plan == nil || len(globalEnvelope.Plan.Operations) != 18 {
-		t.Fatalf("global plan operations = %#v, want 18 missing placements", globalEnvelope.Plan)
+	if globalEnvelope.Plan == nil || len(globalEnvelope.Plan.Operations) != 16 {
+		t.Fatalf("global plan operations = %#v, want 16 missing placements", globalEnvelope.Plan)
 	}
 	for _, operation := range globalEnvelope.Plan.Operations {
 		if operation.Action != "install" || operation.Reason != "expected-entry-absent" {

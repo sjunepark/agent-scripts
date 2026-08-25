@@ -55,8 +55,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(global.Skills) != 10 {
-		t.Fatalf("global baseline = %d, want 10", len(global.Skills))
+	if len(global.Skills) != 9 {
+		t.Fatalf("global baseline = %d, want 9", len(global.Skills))
 	}
 	if got := global.Skills[0].Name; got != "brainstorming" {
 		t.Fatalf("first global skill = %q", got)
@@ -73,8 +73,8 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 26 {
-		t.Fatalf("dev+go skills = %d, want 26", len(state.Skills))
+	if len(state.Skills) != 27 {
+		t.Fatalf("dev+go skills = %d, want 27", len(state.Skills))
 	}
 	for _, skill := range state.Skills {
 		if skill.Scope != ScopeProject {
@@ -111,7 +111,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 27 {
+	if len(state.Skills) != 28 {
 		t.Fatalf("canonical desired state = %#v", state)
 	}
 	var direct *DesiredSkill
