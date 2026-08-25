@@ -13,7 +13,12 @@ files are loaded after this file and take precedence when they conflict.
 
 ## KICPA Files
 
-- When you need KICPA-related files, look in `/Volumes/Audit` and `/Volumes/Learning`.
+- When you need KICPA-related files, look in `/Volumes/Audit` and
+  `/Volumes/Learning`.
+- If either volume is absent, reconnect it with
+  `open -g 'smb://macshare@100.101.192.39/Users/user/Documents/Audit'` or
+  `open -g 'smb://macshare@100.101.192.39/Users/user/Documents/Learning'`;
+  rely on saved Keychain credentials and never embed passwords in commands.
 
 ## Subagents
 
