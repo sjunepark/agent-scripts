@@ -66,11 +66,32 @@ New-Item -ItemType Directory -Path $rolloutDir | Out-Null
 $rolloutExe = Join-Path $rolloutDir "sjskills.exe"
 go build -trimpath -o $rolloutExe ./cmd/sjskills
 (Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
-$planPath = Join-Path $rolloutDir "plan.json"
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$planJSON = & $rolloutExe --json plan --global
-[System.IO.File]::WriteAllText(
-  $planPath, $planJSON + [Environment]::NewLine, $utf8NoBom)
+function Write-SjskillsGlobalPlan([string] $Path) {
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $rolloutExe
+  $startInfo.Arguments = "--json plan --global"
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.StandardOutputEncoding = $utf8NoBom
+  $startInfo.StandardErrorEncoding = $utf8NoBom
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+  try {
+    if (-not $process.Start()) { throw "global plan could not start" }
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "global plan failed: $stderr" }
+    [System.IO.File]::WriteAllText($Path, $stdout, $utf8NoBom)
+  } finally {
+    $process.Dispose()
+  }
+}
+$planPath = Join-Path $rolloutDir "plan.json"
+Write-SjskillsGlobalPlan $planPath
 $planSHA256 = (Get-FileHash -Algorithm SHA256 $planPath).Hash.ToLowerInvariant()
 $planSHA256
 ```
@@ -110,9 +131,7 @@ if ((git rev-parse HEAD) -ne $rolloutCommit) { throw "checkout changed after app
 if (git status --porcelain --untracked-files=all) { throw "checkout changed after approval" }
 (Get-FileHash -Algorithm SHA256 $rolloutExe).Hash
 $recheckPath = Join-Path $rolloutDir "plan.recheck.json"
-$recheckJSON = & $rolloutExe --json plan --global
-[System.IO.File]::WriteAllText(
-  $recheckPath, $recheckJSON + [Environment]::NewLine, $utf8NoBom)
+Write-SjskillsGlobalPlan $recheckPath
 if ((Get-FileHash -Algorithm SHA256 $planPath).Hash -ne `
     (Get-FileHash -Algorithm SHA256 $recheckPath).Hash) {
   throw "global plan changed after approval"
@@ -143,9 +162,7 @@ On Windows PowerShell:
   --approved-plan $planPath `
   --approved-plan-sha256 $planSHA256
 $afterPath = Join-Path $rolloutDir "plan.after.json"
-$afterJSON = & $rolloutExe --json plan --global
-[System.IO.File]::WriteAllText(
-  $afterPath, $afterJSON + [Environment]::NewLine, $utf8NoBom)
+Write-SjskillsGlobalPlan $afterPath
 ```
 
 Use interactive confirmation so the operator sees the recomputed mutation

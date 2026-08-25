@@ -61,3 +61,7 @@ terminal planning metadata.
   internal tests, `go vet ./...`, registry/reconciler Node tests,
   `scripts/validate-skills`, `bunx skills add ./skills --list`,
   `bunx skills list`, and `git diff --check`.
+- PR #15 received a Codex 👍 with no findings. CodeRabbit identified one valid
+  Windows PowerShell 5.1 UTF-8 decoding gap in the operator recipe; every native
+  plan capture now uses an explicitly UTF-8 `ProcessStartInfo` stream and a
+  no-BOM artifact write. Follow-up validation and delivery are in progress.
