@@ -1,6 +1,6 @@
 # Goal: Bind global apply to reviewed expected-content evidence
 
-Status: active
+Status: complete
 Planning scope: ROADMAP.md
 
 ## Original contract
@@ -34,15 +34,17 @@ _None._
 - Fail-closed apply/recheck behavior and regression coverage: missing or forged
   approval, artifact substitution, moved expected content, post-binding session
   mutation, and locked warning/evidence drift all abort without placement.
+- Operator guidance, validation, and delivery: Unix and Windows workflows bind
+  exact artifact bytes without encoding loss, all repository gates pass, and
+  PR #15 completed review and merged into `dev`.
 
 ### Current in-scope result
 
-Operator guidance, validation, and delivery.
+_None — goal complete._
 
 ### Next in-scope action
 
-Deliver the one implementation PR through feedback and merge, then record
-terminal planning metadata.
+_None — goal complete._
 
 ### Evidence and blockers
 
@@ -64,4 +66,12 @@ terminal planning metadata.
 - PR #15 received a Codex 👍 with no findings. CodeRabbit identified one valid
   Windows PowerShell 5.1 UTF-8 decoding gap in the operator recipe; every native
   plan capture now uses an explicitly UTF-8 `ProcessStartInfo` stream and a
-  no-BOM artifact write. Follow-up validation and delivery are in progress.
+  no-BOM artifact write. The finding was fixed in `aebf34d`, replied to, and
+  resolved; the generic docstring advisory was not applied because repository
+  convention documents intent and invariants rather than private/test mechanics.
+- [PR #15](https://github.com/sjunepark/agent-scripts/pull/15) merged into
+  `dev` as `666454363310165f5c376f0182cb2083a083f9f6`, preserving implementation
+  commit `0f6d74e` and review-fix commit `aebf34d`.
+- Codex completed with no findings; CodeRabbit and GitGuardian were green on
+  the final head. No real-home global apply, restore, migration, cleanup, or
+  rollout was run.

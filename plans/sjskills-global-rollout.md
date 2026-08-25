@@ -1,6 +1,6 @@
 # Roll out the fixed global baseline
 
-Status: approval binding implemented and reviewed; rollout not authorized
+Status: proposed; approval binding delivered; rollout not authorized
 
 ## Boundary
 
@@ -200,10 +200,11 @@ Global apply now has the exact-artifact digest check, complete plan recheck,
 retained-materialization boundary, and mutation-bound session fingerprint
 required by this plan. Full Go, race, registry, skill, catalog, vet, and diff
 validation passes against isolated temporary homes or read-only paths. The
-bounded code review findings are resolved; PR delivery remains in progress. No
-machine approval or real-home rollout has occurred.
+bounded code review findings are resolved, and PR #15 merged into `dev` as
+`6664543`. No machine approval or real-home rollout has occurred.
 
 ## Next action
 
-Deliver the approval-binding change, then leave this rollout proposed for a
-separately authorized machine-specific run.
+Obtain separate evidence-bound authorization for a named machine before any
+real-home execution. That rollout is outside the completed approval-binding
+goal.
