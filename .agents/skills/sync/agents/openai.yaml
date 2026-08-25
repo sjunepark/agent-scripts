@@ -1,4 +1,0 @@
-interface:
-  display_name: "Sync"
-  short_description: "Publish and reconcile repository skills"
-  default_prompt: "Use $sync to explain or publish repository skills, reconcile a project manifest, or inspect the fixed global baseline with its authorization boundaries."

@@ -1,0 +1,45 @@
+{
+  "skill_name": "sjskills",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $sjskills to initialize this project with dev and go, then show what would change. Do not install anything yet.",
+      "expected_output": "The skill resolves the command, lists profiles, uses the explicitly selected dev and go profiles, creates a non-overwriting sjskills.toml, and runs a read-only project plan. It does not apply, infer another profile, or modify managed roots."
+    },
+    {
+      "id": 2,
+      "prompt": "$sjskills: audit this project's managed skills and explain every blocked or preserved entry. Do not modify the project.",
+      "expected_output": "The skill runs project plan only, distinguishes planned changes from conflicts and operational failures, explains unknown, legacy, unmanaged, locally modified, and otherwise blocked state, and performs no apply, restore, publication, or managed-root mutation."
+    },
+    {
+      "id": 3,
+      "prompt": "Use $sjskills to reconcile this project's committed manifest. Review the plan first and preserve anything the tool does not own.",
+      "expected_output": "The skill runs and reviews plan, stops rather than applying if the plan contains a conflict or unsafe boundary, otherwise runs project apply with interactive confirmation and follows with a final plan. It preserves unknown state, reports remaining changes honestly, and retains every quarantine identifier."
+    },
+    {
+      "id": 4,
+      "prompt": "Use $sjskills to inspect the fixed global baseline on this machine. This is an audit only.",
+      "expected_output": "The skill runs plan --global and reports the fixed machine-independent baseline without selecting a profile or mutating the real home. It does not treat audit authority as apply, restore, or cleanup authority."
+    },
+    {
+      "id": 5,
+      "prompt": "Use $sjskills to make the global baseline exact. I have not reviewed a JSON plan or approved any hashes yet.",
+      "expected_output": "The skill produces or requests the evidence-bound global plan and stops before mutation. It explains that approved-plan flags do not grant authority and requires approval naming the machine, published commit, executable hash, plan hash, mutation counts, operator, and time."
+    },
+    {
+      "id": 6,
+      "prompt": "Use $sjskills to restore project quarantine 20260825T010203Z-abcd. Do not disturb any current skill directory.",
+      "expected_output": "The skill treats restore as a separate mutation, inspects the named quarantine and destinations, proceeds only when all destinations are absent, runs restore for that exact identifier, then runs project plan. It never moves, deletes, or overwrites an active destination."
+    },
+    {
+      "id": 7,
+      "prompt": "Use $sjskills to reconcile two locally changed catalog skills onto this machine, but do not commit or push anything.",
+      "expected_output": "The skill identifies that registry-backed reconciliation cannot consume unpublished local changes and stops before apply. It does not commit or push because those actions were forbidden, and reports publication as the unresolved prerequisite."
+    },
+    {
+      "id": 8,
+      "prompt": "Install one catalog skill only for this project with bunx skills.",
+      "expected_output": "The manual-only sjskills skill does not activate. The task uses the ordinary Skills CLI workflow and does not introduce sjskills manifest or global reconciliation."
+    }
+  ]
+}
