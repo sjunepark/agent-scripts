@@ -33,7 +33,7 @@ func TestLstatIdentitySurvivesMoveAndRejectsReplacement(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := publishNoReplace(source, destination); err != nil {
+			if err := os.Rename(source, destination); err != nil {
 				t.Fatal(err)
 			}
 			// Reusing the old path must not change the captured identity.
