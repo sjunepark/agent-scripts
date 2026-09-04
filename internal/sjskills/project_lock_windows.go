@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-var errApplyLockHeld = errors.New("apply lock is held")
+var errApplyLockHeld error = windows.ERROR_LOCK_VIOLATION
 
 func lockApplyFile(file *os.File) error {
 	var overlapped windows.Overlapped

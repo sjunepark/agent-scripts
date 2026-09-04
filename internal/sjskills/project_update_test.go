@@ -54,10 +54,10 @@ func TestApplyProjectChangesUpdatesThroughCommittedQuarantine(t *testing.T) {
 		t.Fatalf("manifest = %#v", manifest)
 	}
 	runPath := filepath.Join(session.Layout.QuarantinePath, testQuarantineID)
-	if info, err := os.Stat(runPath); err != nil || info.Mode().Perm() != 0o700 {
+	if info, err := os.Stat(runPath); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o700) {
 		t.Fatalf("quarantine run mode = %v err=%v, want 0700", info, err)
 	}
-	if info, err := os.Stat(filepath.Join(runPath, applyManifestName)); err != nil || info.Mode().Perm() != 0o600 {
+	if info, err := os.Stat(filepath.Join(runPath, applyManifestName)); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o600) {
 		t.Fatalf("quarantine manifest mode = %v err=%v, want 0600", info, err)
 	}
 	entry := manifest.Entries[0]
@@ -71,7 +71,7 @@ func TestApplyProjectChangesUpdatesThroughCommittedQuarantine(t *testing.T) {
 		t.Fatalf("quarantined hash = %#v, want %#v", got, oldHash)
 	}
 	info, err := os.Stat(filepath.Join(oldPath, "run.sh"))
-	if err != nil || info.Mode().Perm()&0o111 == 0 {
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0) {
 		t.Fatalf("quarantined executable mode lost: info=%v err=%v", info, err)
 	}
 	state := readApplyState(t, session)

@@ -573,6 +573,16 @@ func TestMaterializeIsolatesHomeSignalsAndPreservesCredentialHelpers(t *testing.
 		}
 	}
 	for _, key := range []string{"HOMEDRIVE", "HOMEPATH", "HOMESHARE"} {
+		if drive, pathPart := windowsHomeParts(root); drive != "" && key != "HOMESHARE" {
+			expected := drive
+			if key == "HOMEPATH" {
+				expected = pathPart
+			}
+			if got := envValue(env, key); got != expected {
+				t.Errorf("%s = %q, want isolated home component %q", key, got, expected)
+			}
+			continue
+		}
 		if envHas(env, key) {
 			t.Errorf("%s unexpectedly preserved in Windows-like environment", key)
 		}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -690,6 +691,9 @@ func TestRestoreProjectQuarantineHonorsCancellation(t *testing.T) {
 }
 
 func TestRestoreProjectQuarantinePreservesExecutableBits(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not expose Unix executable permission bits")
+	}
 	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
 	executable := filepath.Join(session.Materialized.snapshots[skill.Name].Path, "run.sh")
 	if err := os.WriteFile(executable, []byte("#!/bin/sh\necho old\n"), 0o755); err != nil {

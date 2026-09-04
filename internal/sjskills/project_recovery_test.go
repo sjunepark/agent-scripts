@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -666,6 +667,9 @@ func TestApplyProvenanceAmbiguityReportsQuarantineHandleBeforeMutation(t *testin
 }
 
 func TestApplyRecoveryRejectsPreStatePermissionDrift(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows access control uses ACLs, not Unix permission bits")
+	}
 	session, skill, _, newHash := simulateInterruptedUpdate(t)
 	journalData, err := os.ReadFile(projectTransactionJournalPath(session.Layout))
 	if err != nil {

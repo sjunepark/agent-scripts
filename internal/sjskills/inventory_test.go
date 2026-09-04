@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -296,6 +297,9 @@ func TestInspectProjectHashesDirectoriesAndExecutableBits(t *testing.T) {
 	want, err := HashSkillTree(directory)
 	if err != nil || entry.Hash == nil || *entry.Hash != want {
 		t.Fatalf("inventory hash = %#v, direct = %#v, err = %v", entry.Hash, want, err)
+	}
+	if runtime.GOOS == "windows" {
+		return // Windows does not expose Unix executable permission bits.
 	}
 	if err := os.Chmod(file, 0o755); err != nil {
 		t.Fatal(err)

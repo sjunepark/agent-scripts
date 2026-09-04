@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -29,11 +30,24 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	testBinary = filepath.Join(directory, "sjskills")
+	if runtime.GOOS == "windows" {
+		testBinary += ".exe"
+	}
 	build := exec.Command("go", "build", "-o", testBinary, ".")
 	build.Stdout = os.Stdout
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
 		panic(fmt.Sprintf("build test binary: %v", err))
+	}
+	fakeBunx := filepath.Join(directory, "bunx")
+	if runtime.GOOS == "windows" {
+		fakeBunx += ".exe"
+	}
+	buildFake := exec.Command("go", "build", "-o", fakeBunx, "./testdata/fakebunx")
+	buildFake.Stdout = os.Stdout
+	buildFake.Stderr = os.Stderr
+	if err := buildFake.Run(); err != nil {
+		panic(fmt.Sprintf("build fake bunx: %v", err))
 	}
 	code := m.Run()
 	_ = os.RemoveAll(directory)
@@ -94,11 +108,7 @@ func writeReviewedPlan(t *testing.T, data []byte) (string, string) {
 
 func newCLICommand(t *testing.T, directory string, overrides map[string]string, input string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
-	fakeDirectory := t.TempDir()
-	fakeBunx := filepath.Join(fakeDirectory, "bunx")
-	if err := os.WriteFile(fakeBunx, []byte(fakeBunxScript), 0o755); err != nil {
-		t.Fatalf("write fake bunx: %v", err)
-	}
+	fakeDirectory := filepath.Dir(testBinary)
 	sentinelHome := t.TempDir()
 	sentinelUserProfile := t.TempDir()
 	environment := append([]string(nil), os.Environ()...)
@@ -129,39 +139,6 @@ func setEnvironmentValue(environment *[]string, key, value string) {
 	}
 	*environment = append(*environment, key+"="+value)
 }
-
-const fakeBunxScript = `#!/bin/sh
-set -eu
-
-if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
-  printf 'bunx 1\n'
-  exit 0
-fi
-if [ "$#" -eq 2 ] && [ "$1" = "skills@1.5.23" ] && [ "$2" = "--version" ]; then
-  printf '1.5.23\n'
-  exit 0
-fi
-if [ "$#" -ge 2 ] && [ "$1" = "skills@1.5.23" ] && [ "$2" = "add" ]; then
-  skill=""
-  previous=""
-  for argument in "$@"; do
-    if [ "$previous" = "--skill" ]; then
-      skill="$argument"
-      break
-    fi
-    previous="$argument"
-  done
-  if [ -z "$skill" ]; then
-    exit 3
-  fi
-  target="$CODEX_HOME/skills/$skill"
-  mkdir -p "$target"
-  suffix="${SJSKILLS_FAKE_CONTENT-}"
-  printf '# %s%s\n' "$skill" "$suffix" > "$target/SKILL.md"
-  exit 0
-fi
-exit 4
-`
 
 func TestExternalHelpAndVersion(t *testing.T) {
 	directory := t.TempDir()
@@ -470,7 +447,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stateInfo.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && stateInfo.Mode().Perm() != 0o600 {
 		t.Fatalf("provenance mode = %o, want 600", stateInfo.Mode().Perm())
 	}
 	inventory, err := sjskills.InspectProject(layout)
@@ -494,10 +471,14 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, firstApply) {
 		t.Fatalf("global apply changed project: before=%#v after=%#v", firstApply, after)
 	}
+	homeKey := "HOME"
+	if runtime.GOOS == "windows" {
+		homeKey = "USERPROFILE"
+	}
 	for name, root := range globalRoots {
-		if name == "HOME" {
-			if data, readErr := os.ReadFile(filepath.Join(root, "sentinel")); readErr != nil || string(data) != "HOME\n" {
-				t.Fatalf("global HOME sentinel changed: data=%q err=%v", data, readErr)
+		if name == homeKey {
+			if data, readErr := os.ReadFile(filepath.Join(root, "sentinel")); readErr != nil || string(data) != name+"\n" {
+				t.Fatalf("global %s sentinel changed: data=%q err=%v", name, data, readErr)
 			}
 			continue
 		}
@@ -505,7 +486,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 			t.Fatalf("global sentinel %s changed: before=%#v after=%#v", name, globalBefore[name], after)
 		}
 	}
-	globalLayout, err := sjskills.LayoutForGlobal(globalRoots["HOME"])
+	globalLayout, err := sjskills.LayoutForGlobal(globalRoots[homeKey])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -627,11 +608,15 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	layout, err := sjskills.LayoutForGlobal(overrides["HOME"])
+	home := overrides["HOME"]
+	if runtime.GOOS == "windows" {
+		home = overrides["USERPROFILE"]
+	}
+	layout, err := sjskills.LayoutForGlobal(home)
 	if err != nil {
 		t.Fatal(err)
 	}
-	archive := filepath.Join(overrides["HOME"], "active-v2")
+	archive := filepath.Join(home, "active-v2")
 	for _, skill := range desired.Skills {
 		for _, target := range skill.Targets {
 			root, rootErr := layout.ManagedSkillsPath(target)
@@ -2571,7 +2556,7 @@ func TestExternalPlanDiscoversNearestNestedProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	code, stdout, stderr := runCLI(t, nested, "--json", "plan")
-	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || !strings.Contains(stdout, `"path":"`+canonicalManifest+`"`) {
+	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 || decodeEnvelope(t, stdout).Path != canonicalManifest {
 		t.Fatalf("nested plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 }

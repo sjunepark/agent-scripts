@@ -124,7 +124,7 @@ func TestApplyProjectChangesCopiesOnePlacementAndWritesSortedProvenance(t *testi
 		t.Fatalf("placed hash = %#v, err=%v; want %#v", placedHash, err, hash)
 	}
 	placedInfo, err := os.Stat(filepath.Join(placed, "run.sh"))
-	if err != nil || placedInfo.Mode().Perm()&0o111 == 0 {
+	if err != nil || (runtime.GOOS != "windows" && placedInfo.Mode().Perm()&0o111 == 0) {
 		t.Fatalf("executable mode not preserved: info=%v err=%v", placedInfo, err)
 	}
 	stateData, err := os.ReadFile(layout.ReconcilerStatePath)
