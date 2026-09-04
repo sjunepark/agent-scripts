@@ -1,4 +1,0 @@
-interface:
-  display_name: "ARCHITECTURE.md Writer"
-  short_description: "Create and improve ARCHITECTURE.md docs"
-  default_prompt: "Use $architecture-md-writer to draft or update ARCHITECTURE.md files for this repo and its modules."

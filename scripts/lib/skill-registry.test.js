@@ -55,7 +55,6 @@ test("version 4 resolves one fixed global baseline with target exceptions", () =
       "clarify",
       "codex-cleanup",
       "distill-response",
-      "end-state-review",
       "interview",
       "next-goal",
       "pdf-to-markdown",

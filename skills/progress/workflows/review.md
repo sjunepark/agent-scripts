@@ -32,6 +32,24 @@ and change planning documents only after explicit approval.
    activate or advance an existing goal merely because the reviewed item is in
    the project queue.
 
+## Apply an End-State Lens When Requested
+
+When the user explicitly asks this review to reconstruct a coherent end state,
+separate historical residue from obligations, or test whether a plan still
+reflects settled requirements, read the `references/end-state-planning.md`
+resource named in `SKILL.md` and apply it during the same read-only discussion.
+This remains an optional audit, not a follow-up step required after ordinary
+plan creation or revision; material plan writes already apply the reference
+automatically through `SKILL.md`.
+
+The target may be a plan, roadmap item, specification, migration, diff, or
+in-progress implementation. State the final contract, classify consequential
+residue and obligations with evidence, propose the smallest coherent shape,
+map deleted assumptions and retained obligations to verification, and leave
+load-bearing unknowns unresolved. For an implementation target, stop at
+recommendations. Even after approval, this workflow may update only planning
+artifacts; production code and tests require a separate implementation request.
+
 ## Deliver the Briefing
 
 Lead with the planned future, not a critique or a request for decisions. Give
@@ -51,6 +69,11 @@ the user this compact briefing:
   user intent from plan-quality concerns such as omitted requirements,
   ambiguous behavior, feasibility risks, unsupported claims, or unnecessary
   complexity. Omit this section when there is nothing material to flag.
+
+For an explicit end-state audit, replace generic review notes with only the
+useful parts of: **End state**, **Residue and obligations**, **Proposed shape**,
+**Plan amendments**, **Verification**, **Decisions required**, and **Scope
+boundary**. A conclusion that the target is already coherent is valid.
 
 When the user supplied intent or requirements, relate review notes to that
 evidence without replacing the briefing with the agent's own verdict. Close by

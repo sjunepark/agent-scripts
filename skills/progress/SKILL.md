@@ -86,6 +86,24 @@ between documentation and repository state is known.
   scope from the project queue or reconstruct authority from conversation
   fragments.
 
+## Keep Plans Coherent at Write Time
+
+Whenever any `progress` workflow creates a plan or materially revises its
+intended outcome, behavior, architecture, compatibility, migration, rollout, or
+acceptance conditions, read
+[End-state planning](references/end-state-planning.md) and apply it before
+writing. Reconstruct the settled target, remove historical residue, preserve
+real obligations and their exit conditions, and write one coherent plan in the
+same operation. Do not require a separate review command or a second user
+invocation after the edit.
+
+This gate does not apply to a routine evidence update, next-action refresh,
+queue reorder, lifecycle transition, or typo fix that leaves the planned end
+state unchanged. When it does apply, ask only for a load-bearing product or
+external-contract decision that the user's instructions and repository evidence
+cannot resolve. Respect the selected workflow's existing mutation and goal
+authority; coherence review never expands what may be edited or implemented.
+
 ## Keep One Work Queue per Scope
 
 - Keep each index compact: a `Current` slot, an ordered `Plans` queue, and an
@@ -138,7 +156,9 @@ of ordinary runs.
 Before ending a mutating workflow, verify that every path in each touched index
 exists, each active item appears exactly once within its scope, plan numbering
 is continuous, and every touched item states an evidence-backed current state
-and concrete next action. During parallel work, also verify that the current
+and concrete next action. For every new or materially revised plan, also verify
+that the written target passed the end-state planning gate without requiring a
+follow-up review invocation. During parallel work, also verify that the current
 worktree changed only its own planning namespace. Keep transcripts and routine
 session logs out of the files. In goal mode, also verify that the original
 contract remains unchanged except for explicit recorded amendments, status

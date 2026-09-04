@@ -13,7 +13,6 @@
       "clarify",
       "codex-cleanup",
       "distill-response",
-      "end-state-review",
       "interview",
       "next-goal",
       "pdf-to-markdown",
@@ -26,26 +25,16 @@
       "skills": [
         "address-pr-feedback",
         "agents-md-writer",
-        "architecture-md-writer",
-        "baton",
-        "change-explainer",
         "code-review",
-        "codebase-design",
         "context7-cli",
         "context7-mcp",
         "create-pr",
         "delegate",
         "delegate-ui-to-claude",
         "develop-skills",
-        "doc-comment-writer",
-        "domain-modeling",
         "explore-repo",
         "harmonize-docs",
-        "improve-codebase-architecture",
-        "macos-storage-cleanup",
         "merge-branch",
-        "project-status",
-        "skill-cleaner",
         "teach",
         "update-base-branch"
       ]
@@ -73,10 +62,6 @@
       "kind": "repository",
       "location": "https://github.com/sjunepark/agent-scripts/tree/main/skills",
       "catalogPath": "skills"
-    },
-    "baton": {
-      "kind": "external",
-      "location": "sjunepark/baton"
     },
     "context7": {
       "kind": "external",
@@ -134,25 +119,7 @@
       "mode": "copy"
     },
     {
-      "name": "architecture-md-writer",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "baton",
-      "source": "baton",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "brainstorming",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "change-explainer",
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
@@ -174,13 +141,6 @@
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
-    },
-    {
-      "name": "codebase-design",
-      "source": "matt-pocock",
-      "manager": "skills-cli",
-      "mode": "copy",
-      "fullDepth": true
     },
     {
       "name": "codex-cleanup",
@@ -231,23 +191,11 @@
       "mode": "copy"
     },
     {
-      "name": "doc-comment-writer",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "domain-modeling",
       "source": "matt-pocock",
       "manager": "skills-cli",
       "mode": "copy",
       "fullDepth": true
-    },
-    {
-      "name": "end-state-review",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
     },
     {
       "name": "explore-repo",
@@ -266,13 +214,6 @@
       "source": "impeccable",
       "manager": "workflow",
       "workflow": "delegate-ui-to-claude"
-    },
-    {
-      "name": "improve-codebase-architecture",
-      "source": "matt-pocock",
-      "manager": "skills-cli",
-      "mode": "copy",
-      "fullDepth": true
     },
     {
       "name": "interview",
@@ -323,12 +264,6 @@
       "mode": "copy"
     },
     {
-      "name": "project-status",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "release-please-release",
       "source": "agent-scripts",
       "manager": "skills-cli",
@@ -339,6 +274,11 @@
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
+    },
+    {
+      "name": "sjskills",
+      "source": "agent-scripts",
+      "manager": "none"
     },
     {
       "name": "skill-cleaner",
