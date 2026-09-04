@@ -239,7 +239,7 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 	if rootErr != nil || filepath.Clean(destination) != filepath.Join(filepath.Clean(managedRoot), operation.Skill) || !pathWithin(tx.root, destination) {
 		return applyConflict("quarantine destination path changed before move")
 	}
-	originalInfo, err := os.Lstat(destination)
+	originalInfo, err := lstatIdentity(destination)
 	if err != nil || originalInfo.Mode()&os.ModeSymlink != 0 || !originalInfo.IsDir() {
 		return applyConflict("managed quarantine placement changed before move")
 	}

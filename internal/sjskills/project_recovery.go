@@ -1053,6 +1053,13 @@ func inspectRecoveryTreeIdentity(boundary, path string, afterHash func()) (TreeH
 	if !probe.exists {
 		return TreeHash{}, nil, false, nil
 	}
+	// Capture the ID before hashing: a Windows Lstat result can otherwise
+	// resolve to a replacement installed at the same path during the hash.
+	identity, identityErr := lstatIdentity(path)
+	if identityErr != nil {
+		return TreeHash{}, nil, true, applyConflict("interrupted recovery identity could not be captured")
+	}
+	probe.info = identity
 	if probe.info == nil || probe.info.Mode()&os.ModeSymlink != 0 || !probe.info.IsDir() {
 		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery entry is not a real directory")
 	}

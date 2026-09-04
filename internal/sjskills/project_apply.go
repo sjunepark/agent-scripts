@@ -1120,6 +1120,11 @@ func openApplyLockFile(path string) (*os.File, bool, error) {
 		return nil, false, applyConflict("another project apply is active")
 	}
 	data, readErr := io.ReadAll(io.LimitReader(handle, int64(len(applyLockMarker)+1)))
+	if errors.Is(readErr, errApplyLockHeld) {
+		// Windows mandatory byte locks can prevent even reading the marker.
+		_ = handle.Close()
+		return nil, false, applyConflict("another project apply is active")
+	}
 	if readErr != nil || string(data) != applyLockMarker {
 		_ = handle.Close()
 		return nil, false, applyConflict("apply lock path is not reconciler-owned")
@@ -1271,7 +1276,7 @@ func (tx *applyTransaction) applyOperations(ctx context.Context, session *Projec
 			_ = os.RemoveAll(temp)
 			return err
 		}
-		stagedInfo, err := os.Lstat(temp)
+		stagedInfo, err := lstatIdentity(temp)
 		if err != nil || stagedInfo.Mode()&os.ModeSymlink != 0 || !stagedInfo.IsDir() {
 			_ = os.RemoveAll(temp)
 			return applyUnavailable("temporary placement identity could not be verified")

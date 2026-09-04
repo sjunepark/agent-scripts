@@ -61,6 +61,13 @@ placement itself. Byte equality and Skills CLI lock metadata do not grant
 ownership. A placement is updated or removed only when trusted reconciler
 provenance still matches its source and current tree hash.
 
+On Windows, identity checks around publication, quarantine, and recovery use
+handle-based file information captured before a move or content check. Plain
+`os.Lstat` defers file-ID lookup on Windows, so comparing its result after a
+rename can incorrectly report a conflict or resolve a reused path. Identity
+checks remain separate from content hashes; identical bytes do not establish
+ownership of a replacement directory.
+
 Unknown entries are reported and preserved. An unknown entry at a desired path,
 a locally modified managed tree, malformed provenance, or an unsafe filesystem
 boundary blocks the affected operation. Former global-profile placements,
@@ -83,6 +90,12 @@ node --test scripts/lib/skill-registry.test.js \
   scripts/audit-global-skills.test.js
 go test ./...
 ```
+
+Run the Go suite on Windows as well as Unix when changing reconciliation.
+CLI integration tests build a native fake `bunx` in a temporary directory so
+they do not fall through to a real Skills CLI on Windows. Unix permission-bit
+assertions apply only on Unix; Windows uses native ACLs and synthesized mode
+bits. All global mutation tests use isolated temporary homes.
 
 `scripts/validate-skills` requires every `skills/*/SKILL.md` to have exactly
 one repository-source record and rejects missing sources, unused sources,
