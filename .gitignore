@@ -1,3 +1,12 @@
 .tmp/
 .npm-cache/
 .DS_Store
+
+# Generated project skill placements; retain repository-owned local skills.
+/.agents/skills/*
+!/.agents/skills/sjskills/
+/.claude/skills/*
+!/.claude/skills/sync
+
+# Machine-local ownership records, recovery data, and rollout artifacts.
+/.sjskills/
