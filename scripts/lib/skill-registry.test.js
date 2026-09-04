@@ -59,6 +59,7 @@ test("version 4 resolves one fixed global baseline with target exceptions", () =
       "next-goal",
       "pdf-to-markdown",
       "progress",
+      "sjskills",
       "skills-cli"
     ]
   );

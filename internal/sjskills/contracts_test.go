@@ -55,8 +55,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(global.Skills) != 9 {
-		t.Fatalf("global baseline = %d, want 9", len(global.Skills))
+	if len(global.Skills) != 10 {
+		t.Fatalf("global baseline = %d, want 10", len(global.Skills))
 	}
 	if got := global.Skills[0].Name; got != "brainstorming" {
 		t.Fatalf("first global skill = %q", got)

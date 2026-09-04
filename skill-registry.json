@@ -17,6 +17,7 @@
       "next-goal",
       "pdf-to-markdown",
       "progress",
+      "sjskills",
       "skills-cli"
     ]
   },
@@ -278,7 +279,8 @@
     {
       "name": "sjskills",
       "source": "agent-scripts",
-      "manager": "none"
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "skill-cleaner",

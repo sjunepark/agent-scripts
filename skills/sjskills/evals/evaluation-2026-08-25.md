@@ -20,9 +20,12 @@ Expected reuse: project adoption, project reconciliation, quarantine recovery,
 global inspection, and separately authorized global rollout on machines that
 use `sjskills`.
 
-The replacement is catalog-only (`manager: none`) and explicit-only. Direct
-Skills CLI installs, plugin deployment, and repository publication mechanics
-remain outside its scope.
+At evaluation time, the replacement was catalog-only (`manager: none`) and
+explicit-only. The current registry supersedes that installation classification:
+`sjskills` is now part of the fixed global baseline and is managed as a copied
+Skills CLI skill. Explicit-only activation remains unchanged. Direct Skills CLI
+installs, plugin deployment, and repository publication mechanics remain outside
+its scope.
 
 ## Migration decisions
 
