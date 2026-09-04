@@ -62,7 +62,8 @@ ownership. A placement is updated or removed only when trusted reconciler
 provenance still matches its source and current tree hash.
 
 On Windows, identity checks around publication, quarantine, and recovery use
-handle-based file information captured before a move or content check. Plain
+handle-based file information captured before a move or content check. Long
+drive and UNC paths use extended-length forms for the native handle open. Plain
 `os.Lstat` defers file-ID lookup on Windows, so comparing its result after a
 rename can incorrectly report a conflict or resolve a reused path. Identity
 checks remain separate from content hashes; identical bytes do not establish
