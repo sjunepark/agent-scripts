@@ -26,10 +26,16 @@
       "reason": "The requested outcome is critique and defect discovery rather than understanding."
     },
     {
-      "id": "change-near-miss",
+      "id": "change-direct",
       "prompt": "Explain what changed in this commit and why each file was modified.",
-      "expected_activation": false,
-      "reason": "Commit and diff teaching belongs to `change-explainer`."
+      "expected_activation": true,
+      "reason": "Commit and diff teaching is now a conditional workflow inside teach."
+    },
+    {
+      "id": "document-comparison",
+      "prompt": "Compare these two policy versions and teach me how their practical meaning changed.",
+      "expected_activation": true,
+      "reason": "A document comparison needs the same baseline-before-delta teaching workflow."
     },
     {
       "id": "status-near-miss",

@@ -238,6 +238,97 @@
         "Review notes appear only after the briefing and contain only consequential issues.",
         "The response asks whether the briefing matches the user's intent and leaves planning files and implementation unchanged."
       ]
+    },
+    {
+      "id": 22,
+      "prompt": "Use $progress to tell me the current status of this project and what I should work on next.",
+      "expected_output": "A concise read-only briefing that captures local Git state and recent history, triangulates material planning claims against implementation or validation evidence, distinguishes observation from documents and inference, includes relevant GitHub work when available, and recommends one concrete next action without beginning it.",
+      "files": []
+    },
+    {
+      "id": 23,
+      "prompt": "Use $progress. ROADMAP says the current feature is unfinished, but recent commits may have completed it. Give me the real status and next action.",
+      "expected_output": "The agent treats ROADMAP as a claim, inspects recent commits plus implementation wiring and relevant tests, classifies the claim as Verified, Drift, or Unverified, and chooses a next action from verified current state while remaining read-only.",
+      "files": [
+        "evals/fixtures/roadmap-drift/AGENTS.md",
+        "evals/fixtures/roadmap-drift/ROADMAP.md",
+        "evals/fixtures/roadmap-drift/package.json",
+        "evals/fixtures/roadmap-drift/src/cli.js",
+        "evals/fixtures/roadmap-drift/src/csv.js",
+        "evals/fixtures/roadmap-drift/test/cli.test.js"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Use $progress in this repository. There are no roadmap or plan files, and I still want a quick briefing on where things stand.",
+      "expected_output": "The absence of a planning system does not block the run. The agent triangulates working-tree state, branch divergence, history, implementation, tests, and relevant pull requests, labels inference and uncertainty, and recommends one supported action without creating planning files.",
+      "files": []
+    },
+    {
+      "id": 25,
+      "prompt": "Run $progress again now that we made more changes. Tell me what changed in project status and what comes next.",
+      "expected_output": "The agent captures the repository's present baseline, treats conversational context as a claim to verify, reports meaningful movement since the earlier state when that comparison is available, and recommends the current best-supported action without mutation.",
+      "files": []
+    },
+    {
+      "id": 26,
+      "prompt": "Use $progress. This repo has many open issues, several open PRs, and a roadmap that references only two issues. Keep the briefing focused.",
+      "expected_output": "The agent connects relevant pull requests to current work, includes only issues tied to plans, commits, pull requests, a named scope, or an active milestone, and avoids dumping the general backlog.",
+      "files": []
+    },
+    {
+      "id": 27,
+      "prompt": "Use $progress, but GitHub access is unavailable. I still need the local project state and next action.",
+      "expected_output": "The agent completes local triangulation from Git, planning claims, implementation, tests, and validation evidence, states the remote blind spot, and gives an appropriately qualified read-only recommendation.",
+      "files": []
+    },
+    {
+      "id": 28,
+      "prompt": "Use $progress. The plan calls a migration complete, but the implementation exists only behind an unused module and no test or CI result proves it is active.",
+      "expected_output": "The agent checks entry points and wiring instead of accepting file existence, classifies the plan claim from evidence, explains the delivery gap without expanding into code review, and recommends the smallest action needed to establish or complete the migration.",
+      "files": []
+    },
+    {
+      "id": 29,
+      "prompt": "Use $progress. The tree has substantial uncommitted changes unrelated to ROADMAP Current, while an open PR has failing required checks.",
+      "expected_output": "The agent reports both local and remote activity, treats neither dirty work nor ROADMAP as automatic authority, weighs ownership, intent, PR relationship, and failing gates, and recommends a blocker-clearing action or states the unresolved priority decision without changing state.",
+      "files": []
+    },
+    {
+      "id": 30,
+      "prompt": "Use $progress to update the account-migration plan with these settled requirements: v1 was never released, no production records exist, and v2 is the only supported contract. The draft still contains a legacy mode, v1 alias, dual reads, and a translation adapter. Stop before implementation.",
+      "expected_output": "During the same planning edit, the agent automatically applies end-state planning, records the v2-only contract, removes unsupported historical scaffolding, preserves non-goals and validation for deleted assumptions, and stops without requiring a separate progress review invocation or editing product code.",
+      "files": []
+    },
+    {
+      "id": 31,
+      "prompt": "Use $progress to revise the storage-migration plan. V1 is public, customer records use it, three clients still send v1, and the approved rollout requires dual reads for 90 days followed by removal after zero traffic for 14 days.",
+      "expected_output": "The same planning mutation distinguishes the eventual v2-only target from live obligations, retains dual reads temporarily with both exit conditions, maps compatibility and later removal to validation, and does not ask for a separate end-state review.",
+      "files": []
+    },
+    {
+      "id": 32,
+      "prompt": "Use $progress to refresh only the current evidence and next action in this plan after today's validation run; its intended outcome and design did not change.",
+      "expected_output": "The agent performs the routine evidence and next-action update without loading or manufacturing a broad end-state redesign, preserves the settled plan, validates queue invariants, and reports the update.",
+      "files": []
+    },
+    {
+      "id": 33,
+      "prompt": "Use $progress review to reconstruct the coherent end state of this proposed account migration. The draft contains a legacy mode, v1 alias, dual reads, and an adapter, but v1 was never released, no production records exist, and v2 is now the only supported contract. Keep the repository unchanged.",
+      "expected_output": "The optional read-only end-state lens states the v2-only contract, distinguishes supplied facts from independently verified evidence, classifies the legacy mode, alias, dual reads, and adapter as removable residue, proposes a smaller plan, and maps deleted assumptions to verification without editing code or planning files.",
+      "files": []
+    },
+    {
+      "id": 34,
+      "prompt": "Use $progress review to check the coherent end state of a prototype plan with simple, advanced, and compatibility modes plus two routing owners. The approved behavior is one workflow, but whether bookmarked URLs are a supported external contract is unknown. Do not edit anything.",
+      "expected_output": "The optional end-state lens proposes one product path and routing owner, classifies duplicated modes and policy with evidence, leaves bookmarked-URL compatibility unresolved, asks only for that load-bearing decision, identifies navigation validation, and keeps the repository unchanged.",
+      "files": []
+    },
+    {
+      "id": 35,
+      "prompt": "Use $progress review to reconstruct this migration's end state, then implement the approved migration and edit production code and tests now.",
+      "expected_output": "The agent may perform the requested read-only end-state review and, after explicit approval, update only planning artifacts. It refuses production-code and test edits because the progress review workflow does not authorize implementation, and routes that work to a separate implementation request.",
+      "files": []
     }
   ]
 }

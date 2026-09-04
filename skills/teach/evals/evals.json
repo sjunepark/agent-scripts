@@ -42,6 +42,48 @@
       "prompt": "Use $teach project.",
       "expected_output": "Select the whole-application workflow and return a capabilities-first application summary, system map, representative flow, numbered learning map, and invitation to choose the next topic.",
       "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Use $teach on my unstaged changes. I barely know this repository, so teach me what area I am looking at before you explain the diff. Give me one concrete before/after example and define the project terms you need.",
+      "expected_output": "A direct Markdown response that inspects local uncommitted changes plus the minimum overview and code needed for a cold-reader baseline, gives a realistic Before/Now/Result story, defines recurring project terms, and teaches one to four behavior-changing ideas without creating an artifact or modifying the repository.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Use $teach to walk me through the last commit like I am reviewing this project cold. First tell me what the project and changed subsystem do. Then show a real scenario that behaved differently before, what happens now, and only then teach the mechanism.",
+      "expected_output": "A self-contained explanation whose opening supplies the project and subsystem baseline, earns every specialized term, uses one concrete scenario as the learning spine, and progressively explains the few mechanisms, invariants, compatibility concerns, and proof that matter.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "I pasted a PR patch below. Teach it to someone who knows programming but not our architecture or domain. Group related hunks, keep the main story small, and stay descriptive unless something is materially risky.",
+      "expected_output": "A direct explanation grouped by behavior rather than file that reconstructs the smallest useful baseline, defines domain and architecture vocabulary, promotes only one to four changed ideas, and accounts for supporting hunks later without turning the response into a review.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Use $teach and explain what's changed.",
+      "expected_output": "The skill defaults to the current repository's staged, unstaged, and relevant untracked changes. It asks for a target only when the working tree has nothing to explain, follows the cold-reader scaffold, responds directly, and creates no artifact.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "Use $teach on this commit. I own this subsystem, so keep the project primer very short and focus on the contract and maintenance consequences.",
+      "expected_output": "An expert-oriented response with a shortened baseline that still states the old and new mental models and practical consequence before emphasizing contracts, compatibility, tests, tradeoffs, and future-edit rules.",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "Use $teach on this one-line validation fix. I am new to the project, but please do not inflate a tiny change. The handler now rejects requests without an id before saving.",
+      "expected_output": "A compact response with only the baseline needed to understand the validation rule, one concrete Before/Now/Result example, the practical consequence, and any material compatibility concern, without decorative structure or an artifact.",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "Use $teach to compare these two policy versions. Old: reports submitted after 17:00 are reviewed next business day. New: reports submitted at or after 16:00 are reviewed next business day, except travel emergencies.",
+      "expected_output": "A beginner-first explanation that states the policy context, gives a concrete old-versus-new scenario, defines relevant terms, groups changes by meaning, and omits implementation-only language and unnecessary visuals.",
+      "files": []
     }
   ]
 }

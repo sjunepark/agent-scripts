@@ -1,4 +1,0 @@
-interface:
-  display_name: "Doc Comment Writer"
-  short_description: "Add or prune durable, high-signal doc comments"
-  default_prompt: "Use $doc-comment-writer to add, revise, or remove source doc comments so only durable, maintainer-relevant information remains."

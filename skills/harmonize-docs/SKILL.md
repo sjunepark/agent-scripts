@@ -129,6 +129,12 @@ claim has an evidence-backed classification, and every conflict is visible.
 
 ### 3. Design the target documentation system
 
+- When the boundary includes creating, rewriting, splitting, merging, or
+  relocating `ARCHITECTURE.md` files, read
+  [Architecture documentation](guides/architecture-docs.md) before choosing
+  their topology or contents. Apply that guide within this harmonization; do
+  not route the work to a second skill or leave architecture claims
+  unreconciled with the rest of the documentation system.
 - Give each document a clear purpose, audience, scope, and lifecycle.
 - Give each durable fact one canonical home. Let other documents link to it or
   carry only the local context their readers need.

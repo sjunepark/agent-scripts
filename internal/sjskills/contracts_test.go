@@ -48,8 +48,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 44 {
-		t.Fatalf("skills = %d, want 44", len(registry.Skills))
+	if len(registry.Skills) != 36 {
+		t.Fatalf("skills = %d, want 36", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {
@@ -73,8 +73,8 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 27 {
-		t.Fatalf("dev+go skills = %d, want 27", len(state.Skills))
+	if len(state.Skills) != 16 {
+		t.Fatalf("dev+go skills = %d, want 16", len(state.Skills))
 	}
 	for _, skill := range state.Skills {
 		if skill.Scope != ScopeProject {
@@ -111,7 +111,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 28 {
+	if len(state.Skills) != 17 {
 		t.Fatalf("canonical desired state = %#v", state)
 	}
 	var direct *DesiredSkill
@@ -139,7 +139,7 @@ func TestBuildPlanKeepsWarningsAndEvidenceAtPureBoundary(t *testing.T) {
 	if plan.Operations == nil || len(plan.Operations) != 0 {
 		t.Fatalf("pure resolution operations = %#v, want a stable empty list", plan.Operations)
 	}
-	if len(plan.Warnings) != 2 {
+	if len(plan.Warnings) != 1 {
 		t.Fatalf("warnings = %#v", plan.Warnings)
 	}
 	if _, err := BuildPlan(ResolveRequest{Registry: registry, Global: true, Manifest: &manifest}); err != nil {
@@ -168,8 +168,8 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 			manual++
 		}
 	}
-	if manual != 2 {
-		t.Fatalf("manual skills = %d, want 2", manual)
+	if manual != 1 {
+		t.Fatalf("manual skills = %d, want 1", manual)
 	}
 	registry = fixtureRegistry(t)
 	for _, declaration := range registry.Skills {

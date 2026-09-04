@@ -1,0 +1,15 @@
+{
+  "skill_name": "harmonize-docs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $harmonize-docs on this repository. Its root ARCHITECTURE.md has become a file-by-file encyclopedia, while two large subsystems have independent runtimes and invariants.",
+      "expected_output": "The agent reads the architecture guidance during the same harmonization, verifies claims against the code, keeps the root document as a concise system map, creates nested architecture documents only for independently shaped subsystems, links them in both directions, and reconciles affected navigation and status without invoking another skill."
+    },
+    {
+      "id": 2,
+      "prompt": "Use $harmonize-docs changes after a refactor that moved the job runner and invalidated several ARCHITECTURE.md paths.",
+      "expected_output": "The scoped harmonization follows the documentation impact closure, verifies the dominant runtime flow and start-here paths, updates affected architecture claims and links, preserves unrelated documentation, and leaves no stale path or duplicated architecture account."
+    }
+  ]
+}

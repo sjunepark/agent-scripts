@@ -224,7 +224,7 @@ func TestExternalPlanApplyAndRestoreContracts(t *testing.T) {
 	if code != 0 || stderr != "" || strings.Count(stdout, "\n") != 1 {
 		t.Fatalf("plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"action":"install"`) || !strings.Contains(stdout, `"resolved 27 desired skills"`) || strings.Contains(stdout, `"warnings":null`) {
+	if !strings.Contains(stdout, `"operation":"plan"`) || !strings.Contains(stdout, `"plan":{"desired"`) || !strings.Contains(stdout, `"action":"install"`) || !strings.Contains(stdout, `"resolved 16 desired skills"`) || strings.Contains(stdout, `"warnings":null`) {
 		t.Fatalf("plan output = %q", stdout)
 	}
 
