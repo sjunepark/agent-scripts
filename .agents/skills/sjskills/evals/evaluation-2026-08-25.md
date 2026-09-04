@@ -48,19 +48,23 @@ remain outside its scope.
 | `evals/evals.json` | `8132aa8ea87726849d974e300390d8c5a966cf8e6d88eef933896c0beb25c1ee` |
 | `evals/trigger-cases.json` | `2b264b5df0923b9c21d37d31f413b7912795b0c2dfeef04d1f38c0dd2bf202c9` |
 
-## Static gate
+## Static gate — final-tree revalidation, 2026-09-04
 
-The following passed with the predecessor still present:
+The following passed on the PR #17 tree based on `3cbd575`, after removal of
+`.agents/skills/sync` and consolidation of the catalog:
 
-- Skill Creator `quick_validate.py` using temporary PyYAML dependencies.
-- `scripts/validate-skills` — 36 catalog skills and the registry valid.
-- `bunx skills add ./skills/sjskills --list`.
-- `bunx skills add ./skills --list` — 36 catalog skills discovered.
+- Skill Creator `quick_validate.py` — both `skills/sjskills` and
+  `.agents/skills/sjskills` valid using temporary PyYAML dependencies.
+- `scripts/validate-skills` — 31 catalog skills and the registry valid.
+- `bunx skills add ./skills/sjskills --list` — one skill discovered.
+- `bunx skills add ./skills --list` — 31 catalog skills discovered.
 - `node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js`
   — 12 of 12 tests passed.
-- `go test ./...` — command and internal reconciler packages passed after the
-  canonical catalog-count assertion was updated from 43 to 44.
-- `git diff --check`.
+- `go test ./...` — command and internal reconciler packages passed.
+- `git diff --check` — passed.
+
+This refresh covers static and repository gates; the behavior and trigger
+results below remain the original candidate evaluation.
 
 ## Behavior gate
 
