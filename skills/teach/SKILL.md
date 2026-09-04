@@ -15,8 +15,11 @@ This skill is explanatory. Explain syntax, line-by-line execution, or how to wri
    - When the target is a diff, commit, range, patch, or comparison between file
      or document versions, read [guides/changes.md](guides/changes.md) and use
      its cold-reader change workflow. With no named target in a Git repository,
-     default to current staged, unstaged, and relevant untracked changes; ask
-     for a target only when there is nothing to compare.
+     default to current staged, unstaged, and relevant untracked changes. List
+     changed paths before reading content and exclude secret-bearing environment
+     or credential files and private documents from that default selection.
+     Ask for a target when no eligible changes remain. For any selected target,
+     redact secrets and private personal data before quoting or summarizing it.
    - Within this skill, treat an exact teaching target of `project` as shorthand for the whole-application workflow. Also select that workflow when the learner clearly asks to start with the entire codebase or application and choose areas afterward. Read [guides/whole-application.md](guides/whole-application.md) and use its orientation workflow.
    - When the learner selects a topic from an earlier whole-application learning map, read [guides/whole-application.md](guides/whole-application.md) and use its follow-up workflow.
    - Otherwise, infer whether the learner needs a module, feature flow, subsystem, architecture area, API boundary, runtime path, data model, state flow, or directly relevant external concept. Choose the smallest coherent model that answers the request.

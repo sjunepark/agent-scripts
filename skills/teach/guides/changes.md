@@ -6,10 +6,12 @@ and Git knowledge, but no knowledge of the project's purpose, domain,
 architecture, vocabulary, or layout. Let stated reader background override that
 default.
 
-Keep the work read-only and return the complete explanation directly in the
-conversation. Do not create an explanation artifact. Stay descriptive unless a
-material correctness, regression, contract, security, data, or durable design
-concern changes what the reader should understand.
+Apply the entrypoint's target-selection and redaction rules before building the
+lesson. Explain the eligible changes directly in the conversation; mention
+excluded sensitive files only by category, without exposing their contents.
+Keep the work read-only and do not create an explanation artifact. Stay
+descriptive unless a material correctness, regression, contract, security, data,
+or durable design concern changes what the reader should understand.
 
 ## Build one learning spine
 
