@@ -4,12 +4,12 @@
     {
       "id": 1,
       "prompt": "Use $harmonize-docs on this repository. Its root ARCHITECTURE.md has become a file-by-file encyclopedia, while two large subsystems have independent runtimes and invariants.",
-      "expected_output": "The agent reads the architecture guidance during the same harmonization, verifies claims against the code, keeps the root document as a concise system map, creates nested architecture documents only for independently shaped subsystems, links them in both directions, and reconciles affected navigation and status without invoking another skill."
+      "expected_output": "The agent reads the architecture guidance during the same harmonization, verifies claims against the code, keeps the root document as a concise system map, creates nested architecture documents only for independently shaped subsystems, links them in both directions, and reconciles affected navigation and status without invoking another skill. Critical: the resulting architecture documents must contain evidence-backed representative runtime flows, concrete start-here paths, and invariants contributors must preserve at the appropriate system or subsystem scope. Fail if any of these three durable-content requirements is absent, even when topology and links are correct."
     },
     {
       "id": 2,
       "prompt": "Use $harmonize-docs changes after a refactor that moved the job runner and invalidated several ARCHITECTURE.md paths.",
-      "expected_output": "The scoped harmonization follows the documentation impact closure, verifies the dominant runtime flow and start-here paths, updates affected architecture claims and links, preserves unrelated documentation, and leaves no stale path or duplicated architecture account."
+      "expected_output": "The scoped harmonization follows the documentation impact closure, verifies the dominant runtime flow and start-here paths, updates affected architecture claims and links, preserves unrelated documentation, and leaves no stale path or duplicated architecture account. Critical: the resulting affected architecture documents must retain evidence-backed runtime flows, concrete start-here paths for the moved job runner, and invariants contributors must preserve. Fail if any of these three durable-content requirements is omitted; inspecting the facts without documenting them is insufficient."
     }
   ]
 }
