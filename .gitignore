@@ -4,7 +4,6 @@
 
 # Generated project skill placements; retain repository-owned local skills.
 /.agents/skills/*
-!/.agents/skills/sjskills/
 /.claude/skills/*
 
 # Machine-local ownership records, recovery data, and rollout artifacts.
