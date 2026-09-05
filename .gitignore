@@ -6,7 +6,6 @@
 /.agents/skills/*
 !/.agents/skills/sjskills/
 /.claude/skills/*
-!/.claude/skills/sync
 
 # Machine-local ownership records, recovery data, and rollout artifacts.
 /.sjskills/
