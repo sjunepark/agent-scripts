@@ -4,7 +4,7 @@ Use this guide after making the parent skill's AI review decision.
 
 ## Apply the selected control
 
-- For the parent skill's normal ready-PR policy, add `coderabbit-review` with
+- For the parent skill's selected initial-review policy, add `coderabbit-review` with
   `--label coderabbit-review` during creation or
   `gh pr edit --add-label coderabbit-review` during an update.
 - Disable CodeRabbit for one PR by placing `@coderabbitai ignore` in the PR

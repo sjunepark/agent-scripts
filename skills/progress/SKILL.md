@@ -14,6 +14,11 @@ before relying on it. In goal mode, keep two independent truths: the project
 queue says what the project should do next, while the goal contract says what
 the active run is authorized to execute.
 
+A request may authorize more than one phase. Finish and validate each phase,
+then redispatch the next authorized operation through this entry point; recover
+goal authority before execution. A planning-only phase never grants implementation
+or delivery authority by itself.
+
 ## Resolve the Work System
 
 1. Read applicable `AGENTS.md` files and inspect git status.

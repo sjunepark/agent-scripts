@@ -2,7 +2,8 @@
 
 This mode requires the user. Walk `triage + open` findings, blockers first, batched by area.
 
-For each finding, obtain one outcome from the user:
+For each finding, apply an outcome the user already supplied; obtain a decision
+only for unresolved findings:
 
 - **accept** — export it with its id according to the repo profile and mark it `accepted`;
 - **reject** — mark it `rejected` with a one-line reason;

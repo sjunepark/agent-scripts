@@ -12,8 +12,8 @@ and mutate only the scope the user approved.
 ## Preserve these boundaries
 
 - Treat audit and planning as read-only.
-- Treat an explicit cleanup scope in the current request as authority for that
-  scope. Otherwise obtain confirmation after showing exact targets, descendants,
+- Treat an explicit cleanup scope in the current or applicable earlier user
+  instructions as authority for that scope. Otherwise obtain confirmation after showing exact targets, descendants,
   estimated bytes, reversibility, and whether a restart is required.
 - Use the supported task lifecycle capability for permanent task deletion.
   Verify the exact installed interface through its help, schema, or primary
@@ -95,6 +95,10 @@ and updates its index without removing the rollout content.
 
 ## Apply in a safe order
 
+Run only approved action classes and their required prerequisites in the order
+below. A history-only cleanup does not require database compaction, cache
+deletion, or an otherwise unnecessary shutdown.
+
 1. Permanently delete approved tasks through a discovered and verified native
    task-delete capability, such as app-server `thread/delete`. Record the
    executable or connected capability, version, method name, and discovery
@@ -135,8 +139,9 @@ recovery instructions. Do not schedule an unmonitored destructive job.
 
 ## Finish
 
-Finish only when the approved actions have completed or a precise offline handoff
-exists. Report:
+For an audit-only request, finish with the findings and actionable proposal.
+For cleanup, finish when approved actions have completed or a precise offline
+handoff exists. Report the applicable results:
 
 - bytes reclaimed by category and remaining disk headroom;
 - tasks deleted, including descendant count, and tasks deliberately retained;

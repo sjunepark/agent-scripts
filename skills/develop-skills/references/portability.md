@@ -23,7 +23,8 @@ or private conventions.
 
 ## Invocation policy
 
-- Default to explicit invocation. State that intent in the portable description
+- Preserve existing activation intent unless a policy change is requested. For
+  new skills, default to explicit invocation. State that intent in the description
   and enforce it in client adapter metadata when the client supports an
   invocation policy.
 - Treat implicit discovery as an evidence-backed opt-in. Require broad recurrence
@@ -56,14 +57,14 @@ or private conventions.
 - Describe goals, decisions, inputs, outputs, and observable completion
   criteria. Do not prescribe how a client decides to load, suggest, or invoke
   the skill.
-- Express operations in terms of required capabilities instead of branded
-  tools, private controls, interface locations, model families, or assumed
-  context limits.
+- Express general operations as required capabilities. A skill targeting a
+  named language, tool, platform, or client may name it and require its documented
+  commands. Declare those dependencies; do not make unrelated work depend on them.
 - Do not assume a particular command runner, conversation layout, delegation
   primitive, or hidden state. If a workflow benefits from isolated attempts,
   say what isolation must achieve rather than naming one mechanism.
-- Keep exact environment commands in an adapter unless the command runs a
-  bundled artifact and is part of the skill's portable behavior.
+- Keep optional host controls in adapters. Exact commands for a declared target
+  or bundled artifact belong with the operational step that requires them.
 - State behavior and acceptance criteria strongly enough that different
   implementations can produce equivalent results.
 
@@ -98,13 +99,13 @@ or private conventions.
 
 - [ ] Directory name and frontmatter `name` match.
 - [ ] `description` says what the skill does and when it should apply.
-- [ ] Activation defaults to explicit invocation unless the implicit-discovery
-      evidence gate passes, and adapter metadata matches that decision.
+- [ ] Existing activation intent is preserved; new policies follow the invocation
+      contract, and adapter metadata matches the intended decision.
 - [ ] Frontmatter uses only portable fields; client metadata is separate.
 - [ ] Every required runtime resource has a direct relative pointer from
       `SKILL.md`.
-- [ ] No runtime instruction assumes a client, model, branded tool, private
-      control, absolute path, or external symlink.
+- [ ] No hidden model or host dependency, machine-specific absolute path, or
+      external symlink is required; intrinsic tool/platform prerequisites are named.
 - [ ] True prerequisites are explicit; optional capabilities have fallbacks.
 - [ ] Failure paths do not silently omit required work or overstate completion.
 - [ ] Retained third-party material has compatible licensing and recorded

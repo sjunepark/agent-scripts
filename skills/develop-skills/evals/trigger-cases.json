@@ -12,6 +12,10 @@
     {
       "prompt": "$develop-skills: evaluate this candidate against its baseline and trigger cases.",
       "reason": "Explicitly invokes the skill for behavior and trigger evaluation."
+    },
+    {
+      "prompt": "Use develop-skills to audit and update every skill after this model migration.",
+      "reason": "Explicit invocation for the catalog instruction-audit route."
     }
   ],
   "near_miss": [
@@ -26,6 +30,10 @@
     {
       "prompt": "Write a one-off deployment checklist for this repository.",
       "reason": "A one-off document is not skill development."
+    },
+    {
+      "prompt": "Our coding model changed; explain how its reasoning effort works.",
+      "reason": "Model usage advice does not request skill development."
     }
   ]
 }

@@ -47,8 +47,9 @@ in-progress implementation. State the final contract, classify consequential
 residue and obligations with evidence, propose the smallest coherent shape,
 map deleted assumptions and retained obligations to verification, and leave
 load-bearing unknowns unresolved. For an implementation target, stop at
-recommendations. Even after approval, this workflow may update only planning
-artifacts; production code and tests require a separate implementation request.
+recommendations within this phase. Planning approval permits planning edits;
+production code and tests belong to a separately classified implementation phase,
+which may already be authorized in the same request.
 
 ## Deliver the Briefing
 
@@ -76,10 +77,10 @@ useful parts of: **End state**, **Residue and obligations**, **Proposed shape**,
 boundary**. A conclusion that the target is already coherent is valid.
 
 When the user supplied intent or requirements, relate review notes to that
-evidence without replacing the briefing with the agent's own verdict. Close by
-asking whether the briefing matches the user's intent or whether they want the
-plan changed. Ask additional questions only when a missing decision prevents
-the user from evaluating or approving the plan; prefer concrete alternatives.
+evidence without replacing the briefing with the agent's own verdict. Ask only
+when consequential intent remains unresolved or a proposed plan change needs
+approval; prefer concrete alternatives. A complete review-only briefing is a
+finished deliverable and does not require readback confirmation.
 Keep the repository and external systems unchanged throughout this discussion
 phase.
 
@@ -110,8 +111,8 @@ summary in the completion report.
    intent without unresolved contradictions. When the proposal already aligns,
    report approval without manufacturing a documentation change.
 
-Stop after recording and validating the approved planning direction. Do not
-start implementation, move an item into `Current`, create an implementation
-branch, or perform delivery actions in this workflow. Report the approved
-direction, changed planning files, validation, and the implementation action
-that remains unstarted.
+Finish and validate the planning phase before implementation. If the user also
+authorized implementation, redispatch through `SKILL.md` to the appropriate
+execution workflow, including goal recovery and boundary checks when applicable.
+Otherwise stop and report the approved direction, changed planning files,
+validation, and the implementation action that remains unstarted.

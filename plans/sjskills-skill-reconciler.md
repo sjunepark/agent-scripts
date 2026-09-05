@@ -1,19 +1,21 @@
 # Reconcile global and project skills with `sjskills`
 
-Status: complete
+Status: complete — original release record
 
 ## Outcome
 
-`sjskills` is the repository's supported reconciliation engine for one minimal
-machine-global skill baseline and reproducible project selections. It turns
-declared intent into explainable, recoverable exact state for `.agents` and
-`.claude` while preserving content it cannot safely own.
+`sjskills` established the reconciliation engine for one minimal machine-global
+skill baseline and reproducible project selections. This records the original
+release, including its preservation policy. The strict-sync correction
+supersedes that policy: see the current
+[reconciliation contract](../docs/skill-registry.md#ownership-and-reconciliation)
+and [delivery status](../PROGRESS.md).
 
 The implementation is merged. The separate
 [global rollout plan](sjskills-global-rollout.md) remains proposed and does not
 authorize mutation on any real machine.
 
-## Product contract
+## Original product contract
 
 ### Desired state
 
@@ -111,5 +113,5 @@ homes. Real-home validation remained read-only.
 
 Current operator guidance belongs in the [README](../README.md); registry and
 ownership details belong in
-[`docs/skill-registry.md`](../docs/skill-registry.md). This plan is the durable
+[`docs/skill-registry.md`](../docs/skill-registry.md). This plan is the original
 design and delivery record, not an active progress tracker.

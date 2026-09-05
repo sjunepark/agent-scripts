@@ -36,6 +36,7 @@ continuation state.
    active goal, classify that next transition: continue only to another
    included result, or complete the goal before excluded project work.
 
-Do not stage, commit, push, or publish unless the user separately asks. In the
-response, report the implemented slice, planning updates, validation, stopping
-reason, and next intended work.
+Stage, commit, push, or publish only when authorized by the user's current or
+earlier instructions, including the effective goal contract's Delivery lifecycle.
+In the response, report the implemented slice, planning updates, validation,
+stopping reason, and next intended work.

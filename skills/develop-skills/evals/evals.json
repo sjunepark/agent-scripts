@@ -66,6 +66,24 @@
       "prompt": "Use $develop-skills to choose activation policies for two validated skills. `repository-test-triage` is used in most engineering tasks, has a stable low-false-positive trigger set, and is safe to load whenever test failures are mentioned. `account-reset` is globally installed but rarely used, can delete local state, and should run only when named. Keep the packages portable and add Codex adapter metadata.",
       "expected_output": "The response treats installation reach and activation as separate decisions. It may opt `repository-test-triage` into implicit discovery only after citing the supplied broad recurrence, reliable matching, safety, and catalog-value evidence, while keeping `account-reset` manual-only despite its global installation. Portable descriptions and trigger cases reflect each boundary. Codex adapter metadata sets `policy.allow_implicit_invocation` explicitly to `true` for the justified implicit skill and `false` for the manual skill; uninvoked account-reset prompts are negative trigger cases. It does not infer that global installation implies implicit activation.",
       "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "Use $develop-skills to audit and update this skill catalog for a model change. The model follows skill rules more strictly. Our open-pr skill always asks before committing, even after users explicitly approve the exact files and request a commit and PR. Our snapshot-read skill already has a clear read-only contract. Make only justified local revisions; keep existing activation policies and installed copies unchanged.",
+      "expected_output": "An instruction audit inventories the source entrypoints, runtime resources, shared instructions, and metadata, captures the pre-edit baseline, and distinguishes intentional authority gates from redundant approval. It repairs the open-pr gate at its owner so prior authorization is honored while unrelated files and unauthorized publication remain protected. It records a supported no-op for snapshot-read rather than appending generic model guidance. It preserves existing invocation policy and stops at validated local revisions. Static checks cover the catalog; independent paired cases exercise the changed proceed/stop decisions. No install, publish, or model-specific file format is introduced.",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "Use $develop-skills to revise one runtime decision in our already implicitly discoverable GitHub release skill. Its declared job requires gh and the GitHub API. Preserve its invocation policy. A failed trace shows it repeating a passed check without changed evidence. Fix that decision and validate only the affected behavior; do not redesign the skill or install it.",
+      "expected_output": "A narrow revision preserves implicit discovery and the legitimate declared GitHub/gh requirements. It adds a condition for repeating the affected check, runs static validation, and compares baseline and candidate on the changed decision and a relevant failure boundary in fresh contexts. It uses existing assertions when sufficient, avoids an unconditional three-repeat or full-catalog trigger campaign, records unchanged discovery rather than claiming new trigger evidence, and reports the limited validation scope honestly.",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "Use $develop-skills to investigate why our explicitly invoked UI skill still activates on unrelated tasks. The repository metadata disables implicit invocation, but the installed metadata omits the policy and the current session catalog shows an older description. Diagnose only; do not change source or installed files.",
+      "expected_output": "A read-only diagnosis compares source, installed copy, and active session catalog as separate instruction surfaces. It identifies the observed metadata and description mismatch without claiming that a source edit updates an active session. It reports the precise mismatch and required rollout/reload verification, retains activation intent, and does not invoke an install, synchronization, publication, or cleanup workflow.",
+      "files": []
     }
   ]
 }

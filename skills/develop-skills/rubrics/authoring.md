@@ -33,9 +33,9 @@ not mandatory edits.
 
 - [ ] **Pass/Fail — Blocker:** Does the frontmatter description state both what
   the skill does and the concrete situations in which it should be used?
-- [ ] **Pass/Fail — Major:** Is explicit invocation the default, with implicit
-  discovery enabled only when broad recurrence, reliable matching, safe, useful
-  activation, and catalog-context value are supported by evidence?
+- [ ] **Pass/Fail — Major:** Is existing activation intent preserved unless a
+  policy change was requested, with new skills defaulting to explicit invocation
+  and implicit opt-ins supported by recurrence, matching, and usefulness evidence?
 - [ ] **Pass/Fail — Major:** Is installation reach decided separately from
   activation policy, and does client adapter metadata enforce the selected
   policy when that capability exists?
@@ -83,6 +83,10 @@ not mandatory edits.
 
 ## 6. Workflow and completion
 
+- [ ] **Pass/Fail — Major:** Do permission gates account for prior authorization
+  and block only dependent actions, while preserving deliberate hard boundaries?
+- [ ] **Pass/Fail — Major:** Are questions limited to unresolved consequential
+  decisions, with the responsible instruction identifiable when work pauses?
 - [ ] **Pass/Fail — Major:** Does the workflow identify inputs, key decisions,
   actions, validation, and the completion condition?
 - [ ] **Pass/Fail — Blocker:** Can a reader determine when the task is genuinely
@@ -92,6 +96,8 @@ not mandatory edits.
 - [ ] **Pass/Fail — Minor:** Is the workflow represented in the lightest form that
   works? Prefer a checklist unless evaluation shows that enforced sequencing is
   needed to prevent skipped or premature steps.
+- [ ] **Pass/Fail — Major:** Are delegation, validation, and output requirements
+  proportional to the task, with a clear stopping condition for repeated work?
 
 ## 7. Robustness and gotchas
 
@@ -108,8 +114,8 @@ not mandatory edits.
 
 - [ ] **Pass/Fail — Blocker:** Do all bundled runtime files stay within the skill
   directory and avoid machine-specific absolute paths?
-- [ ] **Pass/Fail — Blocker:** Is core guidance independent of any named vendor,
-  model, invocation surface, or proprietary instruction field?
+- [ ] **Pass/Fail — Blocker:** Does general guidance avoid hidden model or host
+  dependencies, while declaring any named tool or platform intrinsic to the job?
 - [ ] **Pass/Fail — Major:** Does each script, reference, template, or asset have a
   clear runtime purpose and an exact pointer from the entry file when needed?
 - [ ] **Pass/Fail — Major:** Are scripts deterministic where practical, explicit
@@ -119,14 +125,15 @@ not mandatory edits.
 
 ## 9. Evaluation evidence
 
-- [ ] **Pass/Fail — Major:** Has the candidate been exercised on representative
-  tasks in fresh, isolated contexts?
+- [ ] **Pass/Fail — Major:** Have changed runtime decisions been exercised in
+  fresh, isolated contexts with validation scope set from the change's risk?
 - [ ] **Pass/Fail — Major:** Do assertions test observable outcomes rather than
   only stylistic resemblance to an expected response?
 - [ ] **Pass/Fail — Major:** Where revising or merging, is there baseline evidence
   showing that the candidate preserves or improves important behavior?
-- [ ] **Pass/Fail — Major:** Are trigger tests separate from behavior tests and do
-  they include positive, negative, and ambiguous cases?
+- [ ] **Pass/Fail — Major:** When discovery changes, are trigger tests separate
+  from behavior tests with positive, negative, and ambiguous cases? For unchanged
+  discovery, is the consistency check and lack of new trigger evidence explicit?
 - [ ] **Pass/Fail — Minor:** Have variable outcomes been repeated enough to reveal
   instability, and has human review covered qualities automation cannot judge?
 - [ ] **Pass/Fail — Minor:** Are numeric thresholds justified by risk, baseline

@@ -23,11 +23,13 @@ authorizes integration work.
 - Missed refactors: places where combining branches created an opportunity for one clearer owner, model, or execution path.
 - Cross-layer side effects: imports, exports, public APIs, CLI commands, routes, hooks, schemas, generated types, fixtures, env/config defaults, auth, privacy, serialization, logging, tests, docs, examples, changelogs, and roadmap/TODO files.
 
-Run relevant existing validation when practical. Prefer targeted checks for the merged area plus the broadest cheap safety check available. If validation cannot run, explain why and what should run next.
+Run required checks and existing validation relevant to the merged area and affected contracts. Broaden or repeat checks for missing evidence, failures, or unresolved concerns. If validation cannot run, explain why and what should run next.
 
 ## Output
 
-Use this shape:
+Use the relevant categories below; omit empty sections and combine related ones.
+Always include the verdict, source/destination evidence, validation, and any next
+action needed:
 
 ```markdown
 ## Merge-review verdict

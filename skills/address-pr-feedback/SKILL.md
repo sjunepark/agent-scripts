@@ -12,9 +12,9 @@ and follow-up comments can all contain actionable items.
 
 If the task covers multiple dependent or stacked PRs, read
 [`workflows/stacked-prs.md`](workflows/stacked-prs.md) before mapping,
-retargeting, or changing any PR branch in the stack. Use that orchestration
-workflow to select and prepare one PR at a time, then apply the intake, fix,
-reply, and per-PR completion checks below to the current PR. Defer the
+retargeting, or changing any PR branch in the stack. Select its feedback-only or
+authorized landing route, then apply the intake, fix, reply, and per-PR
+completion checks below to each current PR. Defer the
 user-facing completion response until the entire selected stack satisfies the
 workflow's completion gate.
 

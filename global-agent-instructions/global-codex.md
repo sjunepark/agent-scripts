@@ -11,6 +11,19 @@ files are loaded after this file and take precedence when they conflict.
   actions. Omit routine steps, repetition, and unrelated context.
 - Expand when asked or when correctness or safety requires it.
 
+## Scope and Follow-through
+
+- Complete the requested work within its authorized scope. Resolve routine,
+  reversible choices from context; ask when missing information materially
+  affects the result and cannot be inferred from available evidence.
+- Apply explicit task instructions and authorization already granted to skill
+  steps. Skill guidelines do not override the user's request or grant additional
+  access, destructive actions, external writes, or unrelated changes.
+- Before seeking a decision, complete independent authorized work and prepare
+  the concrete result to review. If a skill causes a pause, name and link the
+  exact `SKILL.md`, quote the relevant rule, and explain the unresolved decision;
+  distinguish a required boundary from your interpretation.
+
 ## KICPA Files
 
 - When you need KICPA-related files, look in `/Volumes/Audit` and
@@ -26,6 +39,8 @@ files are loaded after this file and take precedence when they conflict.
   non-implementation work that would otherwise bloat the main thread.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
+- Give each worker a bounded scope and completion condition. Continue independent
+  work, avoid duplicating delegated work, and inspect results before integration.
 
 ## Browser Interaction
 
@@ -68,7 +83,10 @@ files are loaded after this file and take precedence when they conflict.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,
   tests, or validation scripts before adding more prose to AGENTS.md.
 - After finishing a reviewable implementation or editing slice, run
-  `$code-review`.
+  one bounded `$code-review` pass.
+- Run required checks and checks covering changed behavior. After they pass,
+  broaden or repeat verification only for new changes, failures, or unresolved
+  concerns. Add tests when they verify meaningful behavior or a regression.
 - After `$code-review` completes for a reviewable change that materially affects
   documented behavior, architecture, operations, commands, or delivery status,
   run `$harmonize-docs changes`. Skip documentation-neutral changes.
@@ -147,5 +165,7 @@ You MUST call `library` first to get a valid ID unless the user provides one dir
 For version-specific docs, use `/org/project/version` from the `library` output (e.g., `/vercel/next.js/v14.3.0`).
 
 If a command fails with a quota error, inform the user and suggest `npx ctx7@latest login` or setting `CONTEXT7_API_KEY` env var for higher limits. Do not silently fall back to training data.
-Run Context7 CLI requests outside Codex's default sandbox. If a Context7 CLI command fails with DNS or network errors such as ENOTFOUND, host resolution failures, or fetch failed, rerun it outside the sandbox instead of retrying inside the sandbox.
+Use available network access and honor the current sandbox and approval policy.
+On a network failure, change execution context only when permitted; otherwise
+report the blocker instead of retrying unchanged.
 <!-- context7 -->

@@ -92,6 +92,10 @@ func newApplyJournal(preimage *applyStatePreimage, session *ProjectApplySession,
 			entry.TreeHashAlgorithm = oldHash.Algorithm
 			entry.OldTreeHash = oldHash.Digest
 			entry.OldSourceIdentity = preRecords[key].SourceIdentity
+			if operation.Action == PlanActionQuarantine {
+				record, exists := preRecords[key]
+				entry.OldSourceIdentity = removalSourceIdentity(record, exists, oldHash)
+			}
 		}
 		if operation.Action != PlanActionQuarantine {
 			newHash, ok := session.Expected[operation.Skill]
@@ -165,8 +169,15 @@ func (tx *restoreTransaction) prepareRestoreJournal() error {
 	if err != nil {
 		return restoreUnavailable("provenance state could not be encoded")
 	}
+	// A retry may have identical bytes when restoring an unowned copy. Give
+	// each attempt its own recovery location instead of colliding with a prior
+	// journal tombstone for this same quarantine.
+	id, err := tx.deps.newQuarantineID()
+	if err != nil || !projectQuarantineIDPattern.MatchString(id) {
+		return restoreUnavailable("restore transaction identity is unavailable")
+	}
 	journal := projectTransactionJournal{
-		Version: projectTransactionJournalVersion, ID: tx.quarantine.manifest.ID,
+		Version: projectTransactionJournalVersion, ID: id,
 		Kind: projectTransactionKindRestore, QuarantineID: tx.quarantine.manifest.ID,
 		CandidateState: candidateData, PreManifest: append([]byte(nil), tx.originalManifestData...),
 		Entries: make([]projectJournalEntry, 0, len(tx.entries)),
@@ -297,7 +308,7 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 			}
 		case PlanActionQuarantine:
 			requiresQuarantine = true
-			if !validTreeDigest(entry.OldTreeHash) || entry.NewTreeHash != "" || !isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) || entry.NewSourceIdentity != "" {
+			if !validTreeDigest(entry.OldTreeHash) || entry.NewTreeHash != "" || (entry.OldSourceIdentity != "" && !isCanonicalProjectSourceIdentity(entry.OldSourceIdentity)) || entry.NewSourceIdentity != "" {
 				return false
 			}
 		default:
@@ -369,7 +380,7 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 					return false
 				}
 			case PlanActionQuarantine:
-				if !oldMatches || candidateExists {
+				if candidateExists || entry.OldSourceIdentity != removalSourceIdentity(pre, preExists, TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.OldTreeHash}) {
 					return false
 				}
 			}
@@ -418,6 +429,9 @@ func recoveryRecordMatches(record ProvenanceRecord, entry projectJournalEntry, u
 }
 
 func oldRecoveryRecordMatches(record ProvenanceRecord, exists bool, entry projectJournalEntry, scope Scope) bool {
+	if entry.OldSourceIdentity == "" {
+		return !exists
+	}
 	return exists && recoveryRecordMatches(record, entry, false, scope)
 }
 

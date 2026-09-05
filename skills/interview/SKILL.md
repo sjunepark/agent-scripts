@@ -50,8 +50,15 @@ Give one compact decision readback that accounts for every original item and any
 - an implementer-owned action, or
 - an explicit deferral.
 
-Include rationale only where it preserves an important tradeoff, and label remaining assumptions. Ask for confirmation of the complete decision set in one response. A reply that unambiguously approves only some items confirms those items; a question, qualification, or correction keeps the affected items unresolved. Ask only for confirmation or correction of the unresolved remainder.
+Include rationale only where it preserves an important tradeoff, and label
+remaining assumptions. Treat unambiguous user answers as confirmation of their
+items. Ask only about unresolved consequential assumptions, conflicts, or changes
+introduced by the complete readback. A reply approving only some items settles
+those items; a question, qualification, or correction leaves only the affected
+items unresolved.
 
-Use the confirmed readback as the gate for action. Then carry the decisions into the original task. When the user requested only an interview, the confirmed readback is the deliverable.
+Carry settled decisions and implementer-owned actions into the original
+authorized task. Hold only work dependent on an unresolved user-owned decision.
+When the user requested only an interview, the settled readback is the deliverable.
 
 The interview is complete when every agenda item is accounted for and no consequential user-owned decision remains unresolved; it does not need to visit every possible branch.

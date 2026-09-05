@@ -148,10 +148,14 @@
 ## Editing expectations
 - Prefer editing an existing skill in place over adding new top-level conventions.
 - When a skill's behavior changes, update `SKILL.md` and any referenced files in the same change.
+- Keep shared collaboration defaults in `global-agent-instructions/`; skills
+  own task-specific decisions, authority boundaries, and completion checks.
+- For catalog-wide revisions, use the explicitly requested skill-development
+  workflow, account for each skill, and retain compliant skills without cosmetic
+  edits. Preserve activation policies unless their migration is requested.
 - When a plugin's behavior changes, update its manifest, hooks, scripts, and
   `docs/settings-sync.md` together when those docs are affected. Keep plugins
   skillless unless agent-facing instructions are worth the persistent context.
-- When the goal is to sync that changed skill onto a machine, tell the user to commit and push first so the GitHub `skills/` URL can be used for the install.
 - Keep skill instructions concise, executable, and tool-facing.
 - Prefer exact commands and concrete paths over generic guidance.
 

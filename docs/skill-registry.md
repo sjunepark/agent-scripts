@@ -58,8 +58,15 @@ additional configuration.
 `sjskills` invokes the exactly pinned Skills CLI only inside isolated
 temporary homes, verifies one staged tree per desired skill, and owns final
 placement itself. Byte equality and Skills CLI lock metadata do not grant
-ownership. A placement is updated or removed only when trusted reconciler
+ownership. A desired placement is updated only when trusted reconciler
 provenance still matches its source and current tree hash.
+
+Both scopes strictly reconcile their `.agents/skills` and `.claude/skills`
+roots to the selected desired set. Every verifiable undeclared directory moves
+into recoverable quarantine, including unknown, former-profile, and locally
+modified copies. Removal is bound to the observed current tree hash. Restore
+retains ownership only when prior provenance matched those bytes; restoring an
+unknown or modified copy does not grant ownership.
 
 On Windows, identity checks around publication, quarantine, and recovery use
 handle-based file information captured before a move or content check. Long
@@ -69,11 +76,12 @@ rename can incorrectly report a conflict or resolve a reused path. Identity
 checks remain separate from content hashes; identical bytes do not establish
 ownership of a replacement directory.
 
-Unknown entries are reported and preserved. An unknown entry at a desired path,
-a locally modified managed tree, malformed provenance, or an unsafe filesystem
-boundary blocks the affected operation. Former global-profile placements,
-legacy Pi copies, and stale legacy provenance are migration evidence only; v1
-does not automatically adopt or remove them.
+An unknown or locally modified copy at a desired path, malformed provenance,
+an unsafe root, or an unverifiable extra blocks apply. Extras are not silently
+preserved as exact state. Declared manual and workflow entries retain their
+external provisioning boundaries. Built-in skills, plugin caches, legacy Pi
+copies, and legacy provenance outside the managed roots remain outside strict
+sync.
 
 Global provenance is stored at
 `~/.agents/.global-skill-state.json`. Private global locks, journals,

@@ -602,6 +602,12 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 		return nil
 	}
 	oldSource := entry.OldSourceIdentity
+	if entry.Action == ProjectQuarantineEntryActionRemove && oldSource == "" {
+		if exists {
+			return restoreConflict("restored unowned copy unexpectedly has provenance")
+		}
+		return nil
+	}
 	if !exists || record.Scope != scope || record.Target != entry.Target || record.Skill != entry.Skill ||
 		record.SourceIdentity != oldSource || record.TreeHashAlgorithm != entry.TreeHashAlgorithm || record.TreeHash != entry.OldTreeHash ||
 		!isCanonicalProjectSourceIdentity(record.SourceIdentity) {
@@ -1000,6 +1006,12 @@ func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntr
 		records[projectPlacementKey(record.Target, record.Skill)] = record
 	}
 	for _, entry := range entries {
+		if entry.entry.Action == ProjectQuarantineEntryActionRemove && entry.entry.OldSourceIdentity == "" {
+			if _, exists := records[projectPlacementKey(entry.entry.Target, entry.entry.Skill)]; exists {
+				return ProvenanceState{}, restoreConflict("unowned restoration would overwrite provenance")
+			}
+			continue
+		}
 		if !isCanonicalProjectSourceIdentity(entry.entry.OldSourceIdentity) {
 			return ProvenanceState{}, restoreConflict("quarantine source identity is incompatible")
 		}

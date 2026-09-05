@@ -373,10 +373,9 @@ func TestGlobalClassificationMigratesOwnershipWithoutTrustingBytesOrVendorLocks(
 	}
 	assertGlobalAction(t, plan, PlanActionUnchanged, "base", TargetAgents)
 	assertGlobalAction(t, plan, PlanActionUnchanged, "base", TargetClaude)
-	if hasPlanAction(plan, PlanActionQuarantine) {
-		t.Fatalf("read-only migration proposed quarantine: %#v", plan.Operations)
-	}
-	if !hasPlanWarning(plan.Warnings, "legacy-preserved", "pi/base") || !hasPlanWarning(plan.Warnings, "unmanaged-preserved", "unknown") || !hasPlanWarning(plan.Warnings, "global-migration", "former") {
+	assertGlobalAction(t, plan, PlanActionQuarantine, "former", TargetAgents)
+	assertGlobalAction(t, plan, PlanActionQuarantine, "unknown", TargetAgents)
+	if !hasPlanWarning(plan.Warnings, "legacy-preserved", "pi/base") {
 		t.Fatalf("migration warnings = %#v", plan.Warnings)
 	}
 	if !hasPlanEvidence(plan.Evidence, "provenance-migration") {
@@ -402,9 +401,7 @@ func TestGlobalClassificationMigratesOwnershipWithoutTrustingBytesOrVendorLocks(
 	}
 	assertGlobalAction(t, plan, PlanActionBlocked, "base", TargetAgents)
 	assertGlobalAction(t, plan, PlanActionBlocked, "base", TargetClaude)
-	if !hasPlanWarning(plan.Warnings, "global-migration", "former-global-skill-preserved") {
-		t.Fatalf("former-profile warning = %#v", plan.Warnings)
-	}
+	assertGlobalAction(t, plan, PlanActionQuarantine, "former", TargetAgents)
 }
 
 func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *testing.T) {
@@ -441,18 +438,17 @@ func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *
 	}
 	assertGlobalAction(t, plan, PlanActionBlocked, "base", TargetAgents)
 	assertGlobalAction(t, plan, PlanActionUpdate, "base", TargetClaude)
-	if hasPlanAction(plan, PlanActionQuarantine) || hasGlobalOperation(plan, "former", TargetAgents) {
-		t.Fatalf("stale former placement became an operation: %#v", plan.Operations)
-	}
-	if !hasPlanWarning(plan.Warnings, "global-migration", "former") {
-		t.Fatalf("stale former placement was not reported: %#v", plan.Warnings)
-	}
+	assertGlobalAction(t, plan, PlanActionQuarantine, "former", TargetAgents)
+
 	if !hasPlanWarning(plan.Warnings, "global-migration", "is absent") {
 		t.Fatalf("absent former placement was not reported: %#v", plan.Warnings)
 	}
-	if !hasPlanWarning(plan.Warnings, "global-migration", "previously-managed-modified") {
-		t.Fatalf("modified former placement lost modification evidence: %#v", plan.Warnings)
+	for _, op := range plan.Operations {
+		if op.Skill == "former" && (op.Reason != "previously-managed-modified" || op.Source != "") {
+			t.Fatalf("modified removal evidence: %#v", op)
+		}
 	}
+
 }
 
 func globalRootFor(inventory GlobalInventory, target Target) (ProjectSkillsRootInventory, bool) {

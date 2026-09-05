@@ -7,6 +7,10 @@ description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and 
 
 ## Workflow
 
+Select only the steps needed for the requested operation. A list or discovery
+request finishes with its findings; it does not authorize installation,
+publication, reconciliation, or cleanup.
+
 1. Inspect current state with `bunx skills list` for project scope and `bunx skills list -g` for global scope.
    - In this repository, use `skill-registry.json` as the authoritative classification, `sjskills plan` for committed project intent, and `sjskills plan --global` for exact fixed-baseline state.
 2. Use `bunx skills find <query>` or `bunx skills add <source> --list` to discover options.

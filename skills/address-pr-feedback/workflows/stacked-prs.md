@@ -1,11 +1,24 @@
 # Stacked Pull Requests
 
 Use this branch when multiple open PRs form a linear base/head chain. Process
-the chain serially from the PR closest to the original base through the most
-downstream PR. Keep going until every PR in the selected stack is merged or one
-PR reaches a concrete blocker.
+the selected chain from upstream to downstream within the requested scope.
 
-## Invariants
+## Select the scope
+
+A request to address feedback across a stack authorizes the parent skill's
+feedback workflow for each selected PR. Map the stack using **Map the Stack**,
+preserve its base/head relationships, and apply the parent intake, fix, reply,
+and completion checks upstream to downstream. If a fix requires changing the
+stack topology or integrating a dependency beyond the authorized scope, prepare
+the evidence and ask for that decision. Finish when every selected PR meets the
+parent completion checks or report its concrete blocker.
+
+Use the staging and landing procedure below only when merging the selected PRs
+is already authorized. Addressing feedback alone does not authorize retargeting,
+history rewrites, or merging. The landing route continues until every selected
+PR is merged into staging or a PR reaches a concrete blocker.
+
+## Landing invariants
 
 - Work on one PR at a time. Merge it before preparing its downstream PR.
 - Put the stack behind a staging branch before merging the first PR when its
@@ -163,7 +176,7 @@ against a rewritten predecessor can replay already-merged commits. Verify the
 current PR reached `MERGED`, record its merge commit and the new staging tip,
 then begin preparing the next ledger entry.
 
-## Completion
+## Landing completion
 
 Finish only when every selected PR is merged into staging. Report:
 

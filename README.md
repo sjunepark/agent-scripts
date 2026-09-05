@@ -130,9 +130,11 @@ sjskills apply
 declarations. In a project that adopts this ownership model, ignore
 `.sjskills/`, `.agents/skills/`, and `.claude/skills/`; do not add those
 patterns until any preexisting committed content has been reviewed and
-migrated. Review every plan before apply. Unknown entries are preserved,
-unmanaged desired paths and locally modified managed copies block, and removing
-intent moves only unchanged trusted content into recoverable quarantine.
+migrated. Review every plan before apply. Sync removes undeclared skills from
+these roots into recoverable quarantine, including unknown and locally modified
+copies. Unmanaged or modified desired copies and unverifiable entries block
+apply. See the
+[reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation).
 
 When apply prints a quarantine identifier, retain it until the replacement or
 removal has completed a normal work cycle. Restore refuses to overwrite an
@@ -162,9 +164,10 @@ session. They do not grant machine approval by themselves.
 
 The global state file is `~/.agents/.global-skill-state.json`; private locks,
 journals, recovery data, and quarantine live under
-`~/.agents/.sjskills-global/`. Former machine-profile placements and legacy
-Pi copies are reported and preserved rather than automatically adopted or
-removed. `scripts/audit-global-skills` is now only a read-only transition
+`~/.agents/.sjskills-global/`. Both scopes strictly reconcile their
+`.agents/skills` and `.claude/skills` roots. Built-in skills, plugin caches,
+and legacy Pi copies remain outside that boundary.
+`scripts/audit-global-skills` is now only a read-only transition
 wrapper for `sjskills plan --global`; its profile and mutation arguments are
 retired.
 

@@ -8,12 +8,13 @@ This plan governs real-machine rollout of the `sjskills` v1 global baseline.
 Reviewing it does not authorize `apply --global`, restore, migration cleanup,
 moving active placements, or any other mutation under a real home.
 
-The rollout owns only baseline placements in `~/.agents/skills` and
-`~/.claude/skills`, global provenance at
+The rollout strictly reconciles `~/.agents/skills` and `~/.claude/skills`
+to the baseline, including quarantining undeclared copies regardless of
+ownership or local edits. It also owns global provenance at
 `~/.agents/.global-skill-state.json`, and reconciler-private state under
-`~/.agents/.sjskills-global/`. Former profile skills, Pi copies, unknown
-entries, plugin caches, vendor metadata, and the legacy
-`~/.skill-quarantine` tree remain preserved.
+`~/.agents/.sjskills-global/`. Built-in skills, Pi copies, plugin caches,
+vendor metadata, and the legacy `~/.skill-quarantine` tree remain outside
+the rollout boundary.
 
 ## Approval binding
 
@@ -97,9 +98,10 @@ $planSHA256
 ```
 
 Review the complete JSON, including every operation, warning, expected-content
-hash, and materialization result. Stop if it contains a blocked placement,
-untrusted provenance, an unmanaged desired path, a modified managed tree, an
-unsafe filesystem boundary, or an operation beyond the expected baseline.
+hash, and materialization result, including undeclared-skill quarantines. Stop
+on blocked placements, untrusted provenance, unmanaged or modified desired
+copies, unsafe filesystem boundaries, unverifiable extras, or placement
+operations outside the two managed skill roots.
 
 Authorization must identify:
 
@@ -190,21 +192,22 @@ current state:
 ```
 
 Moving an active replacement aside is a separate real-home mutation and needs
-its own reviewed target list and authorization. Former-profile placements and
-legacy Pi copies remain report-only; any later cleanup requires a new
-exact-source plan and authorization.
+its own reviewed target list and authorization. Legacy Pi copies remain
+outside this rollout.
 
 ## Current state
 
-Global apply now has the exact-artifact digest check, complete plan recheck,
-retained-materialization boundary, and mutation-bound session fingerprint
-required by this plan. Full Go, race, registry, skill, catalog, vet, and diff
-validation passes against isolated temporary homes or read-only paths. The
-bounded code review findings are resolved, and PR #15 merged into `dev` as
-`6664543`. No machine approval or real-home rollout has occurred.
+The delivered approval binding includes the exact-artifact digest check,
+complete plan recheck, retained-materialization boundary, and mutation-bound
+session fingerprint required by this plan. Go, race, registry, skill, catalog,
+vet, and diff validation passed against isolated temporary homes or read-only
+paths. Bounded code review findings were resolved, and PR #15 merged into `dev` as
+`6664543`. The subsequent strict-sync correction is implemented locally; its
+validation and publication status are tracked in [PROGRESS.md](../PROGRESS.md).
+No machine approval or real-home rollout has occurred.
 
 ## Next action
 
-Obtain separate evidence-bound authorization for a named machine before any
-real-home execution. That rollout is outside the completed approval-binding
-goal.
+Complete review and publication of the strict-sync correction, then obtain
+separate evidence-bound authorization for a named machine before any real-home
+execution. That rollout is outside the implementation task.

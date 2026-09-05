@@ -4,7 +4,8 @@
 
 1. Preflight the repository.
    - Confirm the current destination branch, source branch, and whether the user wants whole-branch integration or partial adoption.
-   - Refuse or ask before proceeding when unrelated uncommitted changes are present, another merge or rebase is in progress, or the source branch is ambiguous.
+   - Inspect any merge already in progress. When the user requested its resolution and `MERGE_HEAD` matches the intended source, continue that merge without starting another. Stop for an unrelated or ambiguous operation; do not turn an existing rebase into a merge.
+   - Preserve unrelated uncommitted changes. Proceed only when the requested integration can be separated without overwriting, staging, or committing them; otherwise prepare the assessment and ask how to isolate the work. Resolve an ambiguous source before mutation.
    - Check state before modifying anything:
 
      ```bash
@@ -33,8 +34,8 @@
    - Treat deletions as first-class source intent. Removed UI text, helpers, fields, tests, diagnostics, compatibility paths, and summaries must be integrated or explicitly rejected.
 
 3. Choose the integration mode.
-   - Default whole-branch integration to `git merge --no-commit --no-ff <source>`. Treat the result as a draft, verify `MERGE_HEAD`, and do not commit until conflicts, residual differences, deletion audits, and validation are complete.
-   - After starting the merge, confirm `MERGE_HEAD` exists and matches the intended source tip. If it does not, stop and resolve the merge-shape problem before editing conflicts.
+   - When no matching merge is already in progress, default whole-branch integration to `git merge --no-commit --no-ff <source>`. Treat a new or resumed merge as a draft and do not commit until conflicts, residual differences, deletion audits, and validation are complete.
+   - For a new or resumed merge, confirm `MERGE_HEAD` exists and matches the intended source tip. If it does not, stop and resolve the merge-shape problem before editing conflicts.
    - Use manual transplant only when partial adoption, intentionally linear or non-convergent history, or broad unrelated source history makes it appropriate. Explain why merge-as-draft was not used.
    - Ask before choosing between plausible product behaviors. Preserve destination architecture and naming where intentional, but preserve every source behavior or explicitly reject it with a reason.
    - Preserve destination behavior unless the source intentionally changes it. Refactor append-style conflict results into one coherent destination structure.
@@ -84,7 +85,8 @@
    - Record whether each pattern is absent, still present for an intentional reason, or a missed source deletion that must be fixed before completion.
 
 8. Validate.
-   - Run relevant checks from existing repo scripts. Prefer targeted tests first, then broader checks when practical.
+   - Before a merge commit, inspect the full index and require every staged change to belong to the authorized merge scope. Do not unstage unrelated user work to make this gate pass; ask how to isolate it when necessary.
+   - Run required repository checks and tests relevant to the integrated behavior and affected contracts. Broaden validation when those contracts, a failure, or an unresolved concern justify it; do not repeat passing checks without relevant new evidence or changes.
    - If broad checks fail because of unrelated existing issues, run targeted validation and clearly separate unrelated failures from integration failures.
 
 9. Report.

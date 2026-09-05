@@ -143,7 +143,7 @@ func setEnvironmentValue(environment *[]string, key, value string) {
 func TestExternalHelpAndVersion(t *testing.T) {
 	directory := t.TempDir()
 	code, stdout, stderr := runCLI(t, directory, "--help")
-	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "removals to") || !strings.Contains(stdout, "quarantine") || !strings.Contains(stdout, "Restore a committed project or global quarantine") || !strings.Contains(stdout, "without overwriting managed") || strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
+	if code != 0 || !strings.Contains(stdout, "sjskills <command>") || !strings.Contains(stdout, "move undeclared skills to") || !strings.Contains(stdout, "quarantine") || !strings.Contains(stdout, "Restore a committed project or global quarantine") || !strings.Contains(stdout, "without overwriting managed") || strings.Contains(stdout, "Restore is unavailable in this slice") || stderr != "" {
 		t.Fatalf("help code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--version")
@@ -334,8 +334,8 @@ source = "example/modified-skill"
 		t.Fatalf("project plan code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	envelope := decodeEnvelope(t, stdout)
-	if envelope.Plan == nil || len(envelope.Plan.Operations) != 6 {
-		t.Fatalf("plan operations = %#v, want six desired placements", envelope.Plan)
+	if envelope.Plan == nil || len(envelope.Plan.Operations) != 7 {
+		t.Fatalf("plan operations = %#v, want desired placements plus extra removal", envelope.Plan)
 	}
 	want := []struct {
 		target sjskills.Target
@@ -349,13 +349,14 @@ source = "example/modified-skill"
 		{sjskills.TargetClaude, "collision", "install", "expected-entry-absent"},
 		{sjskills.TargetClaude, "fixture-skill", "update", "verified-update"},
 		{sjskills.TargetClaude, "modified-skill", "install", "expected-entry-absent"},
+		{sjskills.TargetClaude, "unknown", "quarantine", "not-desired"},
 	}
 	for index, operation := range envelope.Plan.Operations {
 		if operation.Target != string(want[index].target) || operation.Skill != want[index].skill || operation.Action != want[index].action || operation.Reason != want[index].reason {
 			t.Errorf("operation[%d] = %#v, want %s/%s/%s/%s", index, operation, want[index].target, want[index].skill, want[index].action, want[index].reason)
 		}
 	}
-	if !hasWarning(envelope.Warnings, "unmanaged-preserved") {
+	if hasWarning(envelope.Warnings, "unmanaged-preserved") {
 		t.Fatalf("warnings = %#v, want preserved unknown entry warning", envelope.Warnings)
 	}
 	if strings.Contains(stdout, "sjskills-materialize-") || strings.Contains(stdout, filepath.Join(directory, ".agents", "skills")) || strings.Contains(stdout, filepath.Join(directory, ".claude", "skills")) {
@@ -439,8 +440,8 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 		if readErr != nil || string(data) != "# fixture-skill\n" {
 			t.Fatalf("installed fixture under %q: data=%q err=%v", root, data, readErr)
 		}
-		if data, readErr := os.ReadFile(filepath.Join(root, "unknown", "SKILL.md")); readErr != nil || string(data) != "# unknown\n" {
-			t.Fatalf("unknown entry under %q changed: data=%q err=%v", root, data, readErr)
+		if _, err := os.Lstat(filepath.Join(root, "unknown")); !os.IsNotExist(err) {
+			t.Fatalf("extra remained: %v", err)
 		}
 	}
 	stateInfo, err := os.Stat(layout.ReconcilerStatePath)
@@ -1258,7 +1259,7 @@ func TestExternalProjectRemovalConfirmationAndIdempotence(t *testing.T) {
 		}
 	}
 	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
-		writePlanFixtureSkill(t, filepath.Join(root, "unrelated"), "# unrelated\n")
+		writePlanFixtureSkill(t, filepath.Join(root, "..", "unrelated"), "# unrelated\n")
 	}
 	if err := os.WriteFile(manifestPath, []byte("version = 1\nprofiles = []\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -1351,7 +1352,7 @@ func TestExternalProjectRemovalConfirmationAndIdempotence(t *testing.T) {
 		}
 	}
 	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
-		data, readErr := os.ReadFile(filepath.Join(root, "unrelated", "SKILL.md"))
+		data, readErr := os.ReadFile(filepath.Join(root, "..", "unrelated", "SKILL.md"))
 		if readErr != nil || string(data) != "# unrelated\n" {
 			t.Fatalf("unrelated entry under %q changed: data=%q err=%v", root, data, readErr)
 		}
@@ -1386,7 +1387,7 @@ func TestExternalProjectRemovalConfirmationAndIdempotence(t *testing.T) {
 	}
 }
 
-func TestExternalProjectRemovalBlocksModifiedPlacementBeforePrompt(t *testing.T) {
+func TestExternalProjectRemovalQuarantinesModifiedPlacementAfterPrompt(t *testing.T) {
 	directory := t.TempDir()
 	manifestPath := filepath.Join(directory, "sjskills.toml")
 	initialManifest := "version = 1\nprofiles = []\n\n[[direct]]\nname = \"fixture-skill\"\nsource = \"example/fixture-skill\"\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"
@@ -1413,16 +1414,14 @@ func TestExternalProjectRemovalBlocksModifiedPlacementBeforePrompt(t *testing.T)
 	if err := os.WriteFile(manifestPath, []byte("version = 1\nprofiles = []\n\n[[direct]]\nname = \"retained-skill\"\nsource = \"example/retained-skill\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	before := captureFixtureTree(t, directory)
 	code, stdout, stderr = runCLIWithInputEnvironment(t, directory, overrides, "yes\n", "apply")
-	if code != 2 || !strings.Contains(stdout, "apply: conflict") || !strings.Contains(stderr, "blocked project placement") || strings.Contains(stderr, "Apply ") {
-		t.Fatalf("modified removal code=%d stdout=%q stderr=%q", code, stdout, stderr)
+	if code != 0 || !strings.Contains(stdout, "apply: success") || !strings.Contains(stderr, "Apply 2 project skill removals") {
+		t.Fatalf("modified removal: %d %s %s", code, stdout, stderr)
 	}
-	if after := captureFixtureTree(t, directory); !reflect.DeepEqual(after, before) {
-		t.Fatalf("modified removal mutated project: before=%#v after=%#v", before, after)
-	}
-	if _, err := os.Stat(layout.QuarantinePath); !os.IsNotExist(err) {
-		t.Fatalf("blocked modified removal created quarantine: %v", err)
+	for _, root := range []string{layout.AgentsSkillsPath, layout.ClaudeSkillsPath} {
+		if _, err := os.Lstat(filepath.Join(root, "fixture-skill")); !os.IsNotExist(err) {
+			t.Fatalf("removed copy remained: %v", err)
+		}
 	}
 }
 
@@ -2600,11 +2599,12 @@ func TestExternalInitRefusesOverwrite(t *testing.T) {
 type fixtureTree struct {
 	Exists bool
 	Files  map[string][]byte
+	Links  map[string]string
 }
 
 func captureFixtureTree(t *testing.T, root string) fixtureTree {
 	t.Helper()
-	tree := fixtureTree{Files: map[string][]byte{}}
+	tree := fixtureTree{Files: map[string][]byte{}, Links: map[string]string{}}
 	if _, err := os.Lstat(root); err != nil {
 		if os.IsNotExist(err) {
 			return tree
@@ -2617,6 +2617,18 @@ func captureFixtureTree(t *testing.T, root string) fixtureTree {
 			return err
 		}
 		if entry.IsDir() {
+			return nil
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			relative, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			tree.Links[filepath.ToSlash(relative)] = target
 			return nil
 		}
 		data, err := os.ReadFile(path)

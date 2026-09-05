@@ -36,9 +36,11 @@ Create a complete JSON plan with:
 
 Compute SHA-256 values for the executable and `plan.json`. Review every
 operation, warning, current-state fact, expected-content hash, and
-materialization result. Stop on blocked placements, untrusted provenance,
-unmanaged desired paths, modified managed trees, unsafe filesystem boundaries,
-or operations beyond the expected baseline.
+materialization result, including quarantine of undeclared skills regardless of
+ownership or local edits. Stop on blocked placements, untrusted provenance,
+unmanaged or modified desired copies, unsafe filesystem boundaries,
+unverifiable extras, or placement operations outside the two managed skill
+roots.
 
 ## Recheck and apply
 
@@ -78,6 +80,5 @@ identifier and current state. Confirm every destination is absent, then run:
 ```
 
 Moving an active replacement aside is a separate mutation requiring its own
-reviewed target list and authorization. Preserve former-profile placements,
-legacy Pi copies, and unknown entries unless a separately authorized cleanup
-governs them.
+reviewed target list and authorization. Built-in skills, plugin caches, and
+legacy Pi copies remain outside the rollout boundary.

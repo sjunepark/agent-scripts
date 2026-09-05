@@ -27,6 +27,12 @@ specific to a model, client, platform, interface, or proprietary tool. Such
 material may motivate a portable principle, but it must not enter ordinary
 runtime guidance in source-specific form.
 
+When the request also names a model migration, read that model's current official
+prompting guide. For OpenAI models, use the [model guidance](https://developers.openai.com/api/docs/guides/latest-model)
+to locate the explicitly requested model. Record which recommendations are
+model-specific and which justify portable decision rules. Do not import a new
+file format or blanket instruction rewrite without supporting guidance.
+
 ## Reconcile the guidance
 
 1. **Capture the baseline.** Read the current `SKILL.md`, every directly routed

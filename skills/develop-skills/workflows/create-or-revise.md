@@ -49,7 +49,8 @@ Define the boundary before choosing files:
 
 1. Name the starting state and intended end state.
 2. List required inputs and capabilities.
-3. Identify permitted changes and any actions that require explicit authority.
+3. Identify permitted changes, existing authorization, and actions that still
+   require a decision. Keep the affected boundary separate from independent work.
 4. State material exclusions and nearby tasks that belong elsewhere.
 5. Write observable completion criteria.
 
@@ -59,8 +60,9 @@ when they can be selected, executed, and evaluated independently.
 
 ## 4. Build the Trigger Set
 
-Choose activation policy before writing the description or cases. Default to
-explicit invocation. Treat implicit discovery as an opt-in that must satisfy all
+Preserve the activation policy of an existing skill unless changing it is part
+of the request. For new skills, default to explicit invocation. Treat a requested
+opt-in to implicit discovery as a decision that must satisfy all
 of these conditions:
 
 - the capability is expected to recur broadly within the locations where the
@@ -80,7 +82,9 @@ applicable client guidance routed from the skill entry point. Encode the chosen
 value explicitly rather than relying on omission when a client may default
 omitted policy to implicit discovery.
 
-Then collect concrete requests:
+For unchanged discovery, retain existing cases and verify that the description
+and adapter still express the selected intent. For new or changed discovery,
+collect or reuse concrete requests:
 
 - at least three positive examples that vary wording, specificity, and
   starting context;
@@ -144,9 +148,9 @@ active consumer requires them.
 ## 7. Hand Off to Evaluation
 
 Return to the entry point and run its evaluation workflow. That workflow owns
-static validation, baseline comparison, repeated behavior trials, trigger
-testing, and the pass decision; do not substitute an informal spot check or a
-single candidate/baseline pair.
+static validation, baseline comparison, risk-based repetition, trigger testing,
+and the pass decision. Define applicable gates before running them; do not
+substitute confident prose for observable evidence.
 
 Revise the candidate only from observed failures, then start a new evaluation
 round under the evaluator's versioning and frozen-criteria rules. Authoring is

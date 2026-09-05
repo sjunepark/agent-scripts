@@ -1,6 +1,6 @@
 ---
 name: develop-skills
-description: "Develop, consolidate, audit, and empirically evaluate portable Agent Skills. Explicit invocation only. Use to create or revise a SKILL.md or bundled resource, merge overlapping skills, audit an existing skill's quality or portability, compare a skill candidate with a baseline, or test a trigger description before publishing or removing predecessors."
+description: "Develop, audit, consolidate, and evaluate Agent Skills. Explicit invocation only. Use for skill authoring, instruction-stack migrations, catalog audits, or behavior and trigger testing."
 ---
 
 # Develop Skills
@@ -19,6 +19,9 @@ coherent purpose, not as a storage place for accumulated advice.
   [Evaluate a skill](workflows/evaluate.md) to prove the replacement before
   removing its predecessors.
 - For static, behavior, or trigger testing, follow [Evaluate a skill](workflows/evaluate.md).
+- For instruction-stack migrations or catalog-wide audits and revisions, follow
+  [Audit instructions](workflows/audit-instructions.md), using the authoring and
+  evaluation workflows for the changes it identifies.
 - During any authoring or review pass, apply the [Authoring rubric](rubrics/authoring.md).
 - Whenever structure, metadata, resources, or dependencies may limit reuse, apply
   the [Portability contract](references/portability.md).
@@ -34,14 +37,17 @@ considered complete.
 1. **Define the desired behavior.** Collect realistic examples of what should
    improve, what currently fails, and what should remain unchanged. Record the
    user's constraints and the completion evidence before editing.
-2. **Inspect the effective skill.** Read the current entry point, every runtime
-   resource it routes to, applicable repository instructions, validation rules,
-   and representative outputs or failures. Do not design from a filename alone.
+2. **Inspect the effective skill.** Read the entry point, resources governing the
+   affected behavior, applicable instructions, validation rules, and available
+   outputs or failures. For a whole-skill audit, account for every runtime
+   resource. Distinguish source, installed copy, and active session metadata;
+   inspect the installed form when diagnosing discovery or execution drift.
 3. **Choose the smallest coherent scope.** Confirm that reusable procedural
    guidance is the right solution. Prefer a direct answer, ordinary project
    documentation, or executable enforcement when the need is one-off,
    explanatory, or mechanically checkable.
-4. **Choose activation policy and write trigger cases.** Default to explicit
+4. **Choose activation policy and write trigger cases.** Preserve an existing
+   policy unless a policy change is requested. For new skills, default to explicit
    invocation. Opt into implicit discovery only when evidence shows broad
    recurrence within the installation scope, reliable prompt matching, safe and
    useful activation without explicit intent, and enough value to justify
@@ -51,9 +57,10 @@ considered complete.
    in `SKILL.md`. Move optional or detailed material into directly linked,
    purpose-named resources. Remove duplicated, obvious, obsolete, and no-op
    guidance.
-6. **Validate in layers.** Check structure and links first, then compare candidate
-   and baseline behavior in fresh isolated runs, then test trigger accuracy
-   separately. Judge artifacts and decisions, not confident prose.
+6. **Validate in layers.** Check structure and links, compare changed decisions
+   with baseline behavior in fresh isolated runs, and test changed trigger
+   boundaries separately. Set the required checks and stopping conditions from
+   the change's risk. Judge artifacts and decisions, not confident prose.
 7. **Iterate from evidence.** Diagnose each failure as a scope, trigger,
    instruction, resource, environment, or evaluation problem. Make the smallest
    change that addresses the observed cause and rerun the affected cases.
@@ -65,6 +72,9 @@ considered complete.
 
 - Give each instruction one owner and one purpose. Resolve conflicts instead of
   stacking alternatives or compatibility prose.
+- Preserve the user's requested scope and existing authorization. Make permission
+  gates conditional on the action and unresolved authority; complete independent
+  authorized work while a necessary decision is pending.
 - State the desired action directly. Use exact prohibitions when violating a
   safety boundary, invariant, or fragile sequence would be costly.
 - Calibrate specificity to fragility: leave judgment where several approaches
@@ -82,14 +92,16 @@ considered complete.
 
 ## Working boundaries
 
-- Follow the requested operation. An audit does not authorize edits. Creating or
+- Follow the requested operation. An audit alone does not authorize edits; an
+  explicit request to audit and update does. Creating or
   revising a candidate does not authorize registration, installation,
   publication, or removal unless the user includes it.
 - Treat source deletion, registry changes, and uninstalling an active copy as
   separate operations. Resolve the scope and evidence for each one.
-- Do not encode assumptions about a particular model, client, invocation policy,
-  or branded tool in portable runtime guidance. Express required capabilities and
-  outcomes instead.
+- Keep general runtime guidance independent of a particular model or host.
+  A skill about a named tool or platform may require it; declare that prerequisite
+  and preserve its exact operational constraints. Keep optional client policy in
+  adapter metadata.
 - Isolate optional interface metadata from runtime instructions. Do not make the
   skill depend on that metadata for correctness.
 - Preserve licenses and attribution when reusing protected material. Prefer an

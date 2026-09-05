@@ -57,8 +57,8 @@ func TestTranslateProjectClassificationStableOperationsAndEvidence(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(translated.Operations) != 3 {
-		t.Fatalf("operations = %#v, want desired placements plus managed removal", translated.Operations)
+	if len(translated.Operations) != 4 {
+		t.Fatalf("operations = %#v, want desired placements, removal, and provenance blocker", translated.Operations)
 	}
 	alpha, gamma, beta := translated.Operations[0], translated.Operations[1], translated.Operations[2]
 	if alpha.Skill != "alpha" || alpha.Target != TargetAgents || alpha.Action != PlanActionUnchanged || alpha.SourceID != "catalog" || alpha.Source != desired.Skills[0].Source {
@@ -144,7 +144,12 @@ func TestTranslateProjectClassificationEscapesInvalidObservedName(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(translated.Warnings) != 1 || strings.Contains(translated.Warnings[0].Message, "\n") || !strings.Contains(translated.Warnings[0].Message, `"bad\nname"`) {
-		t.Fatalf("warning = %#v, want one escaped line", translated.Warnings)
+	if len(translated.Operations) != 1 || translated.Operations[0].Action != PlanActionBlocked {
+		t.Fatalf("invalid entry was not blocked: %#v", translated)
 	}
+	data, err := json.Marshal(translated)
+	if err != nil || strings.Contains(string(data), "bad\nname") || !strings.Contains(string(data), `bad\nname`) {
+		t.Fatalf("invalid name was not escaped: %s %v", data, err)
+	}
+
 }

@@ -18,11 +18,14 @@ Claude, inspect the result, and route revision feedback back to Claude.
    - Separate Claude-owned frontend/UI paths from Codex-owned backend, domain,
      data, infrastructure, and cross-layer integration work. Stabilize any
      interface contracts Claude needs before delegation.
-   - Resolve consequential product or design questions with the user first.
+   - Resolve consequential product or design questions that remain unsettled
+     and undelegated with the user first.
      The delegated CLI run is non-interactive, so decisions discovered after
      Claude inspects the project must be relayed through Codex rather than
      inferred silently.
    - Classify the handoff before launching Claude:
+     - Apply existing explicit unattended authority within its stated scope;
+       it may cover the remaining choices and permit a one-shot run.
      - Use mediated approval when `PRODUCT.md` is missing, the work creates a
        new surface or visual world, the request is a redesign or rebrand, or
        consequential product or design choices remain.
@@ -120,19 +123,23 @@ Claude, inspect the result, and route revision feedback back to Claude.
      recommendation and tradeoffs, and the exact proposed contents of any
      PM-owned planning artifact that must exist before it can discover the
      next decision.
-   - Capture the JSON `session_id`, relay the packet to the user, and wait for
-     their answer. Resume the same session in `plan` mode with the confirmed
-     answer. Repeat until Claude returns `ready_to_implement`.
+   - Capture the JSON `session_id`. Resolve the packet from confirmed decisions
+     and delegated authority first. If `needs_approval` identifies a material
+     decision outside that authority, relay the exact options and wait for its
+     answer; resume the same session in `plan` mode with that answer. When
+     `ready_to_implement` has no unresolved material choice, continue without
+     another approval request.
 
      ```text
      claude -p --resume <session-id> --permission-mode plan --effort high --output-format json < /absolute/path/to/approval-response.txt
      ```
 
    - If Impeccable needs a PM-owned planning artifact such as `PRODUCT.md`
-     before it can derive the next options, present Claude's exact proposal to
-     the user. After approval, Codex writes only that established PM-owned
-     artifact, inspects its diff, and resumes Claude in `plan` mode. Do not give
-     Claude write permission until all material choices are approved.
+     before it can derive the next options, check Claude's exact proposal against
+     approved direction and delegated authority. Ask only for unresolved material
+     substance. Within that authority, Codex writes only the PM-owned artifact,
+     inspects its diff, and resumes Claude in `plan` mode. Give Claude write
+     permission only once all material choices are approved or delegated.
    - If the user authorizes unattended decisions, record that authorization in
      the handoff and let Claude use Impeccable's unattended fallback instead of
      manufacturing an approval.

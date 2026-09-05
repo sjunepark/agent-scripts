@@ -55,6 +55,9 @@ Use this phase order:
 ## Campaign Invariants
 
 - Follow the repo profile for branch/merge policy, accepted-finding export, verification, stack notes, agent instructions, and recorded architectural anchors.
+- Apply user choices already supplied for the selected mode; ask only for
+  unresolved campaign or triage decisions. Reverify recorded findings at the
+  current code before an authorized fix.
 - Verify every finding against code, history, or usage before recording it. A clean pass is valid; never manufacture findings.
 - Keep one finding in the pass where its fix belongs. Cross-reference it elsewhere in at most one line.
 - Surface blocker findings immediately. Security findings are never auto-tier.

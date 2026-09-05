@@ -26,10 +26,6 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 	}
 	managed := classifyManagedState(inventory.Home, inventory.StatePath, inventory.StateTrusted, desiredByName, expectedByName, recordsByKey, rootsByTarget)
 
-	known := make(map[string]struct{}, len(registry.Skills))
-	for _, declaration := range registry.Skills {
-		known[declaration.Name] = struct{}{}
-	}
 	desiredPlacements := make(map[string]struct{})
 	for _, skill := range desiredByName {
 		for _, target := range skill.Targets {
@@ -37,30 +33,12 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 		}
 	}
 	stateKeys := make(map[string]struct{}, len(managed.States))
-	for index := range managed.States {
-		state := &managed.States[index]
-		key := projectPlacementKey(state.Target, state.Skill)
+	for _, state := range managed.States {
 		if state.Skill != "" {
-			stateKeys[key] = struct{}{}
-		}
-		_, desiredPlacement := desiredPlacements[key]
-		if !desiredPlacement && state.SourceIdentity != "" {
-			// Legacy provenance identifies prior global ownership but deliberately
-			// grants no removal authority. Former-profile and other non-baseline
-			// placements remain report-only through the v1 global apply boundary.
-			state.Action = PlanActionUnchanged
-			if state.Reason == ProjectStateReasonPreviouslyManagedNotDesired {
-				state.Reason = ProjectStateReasonUnmanagedEntryPreserved
-			}
-			if _, isKnown := known[state.Skill]; isKnown && state.Reason == ProjectStateReasonUnmanagedEntryPreserved {
-				state.Reason = ProjectStateReasonFormerGlobalSkillPreserved
-			}
-		} else if state.Reason == ProjectStateReasonUnmanagedEntryPreserved {
-			if _, isKnown := known[state.Skill]; isKnown {
-				state.Reason = ProjectStateReasonFormerGlobalSkillPreserved
-			}
+			stateKeys[projectPlacementKey(state.Target, state.Skill)] = struct{}{}
 		}
 	}
+
 	if inventory.StateTrusted {
 		for key, record := range recordsByKey {
 			if _, desiredPlacement := desiredPlacements[key]; desiredPlacement {

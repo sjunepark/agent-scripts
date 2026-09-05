@@ -143,11 +143,11 @@ func TestClassifyProjectCoversOwnershipMatrix(t *testing.T) {
 		}
 	}
 	misplaced := findProjectState(t, classification, TargetAgents, "other-target")
-	if misplaced.Kind != ProjectStateMisplaced || misplaced.Action != PlanActionUnchanged || misplaced.Reason != ProjectStateReasonUnmanagedMisplacedPreserved {
+	if misplaced.Action != PlanActionQuarantine || misplaced.Reason != ProjectStateReasonNotDesired {
 		t.Fatalf("misplaced collision = %#v", misplaced)
 	}
 	unmanaged := findProjectState(t, classification, TargetClaude, "unknown")
-	if unmanaged.Kind != ProjectStateUnmanaged || unmanaged.Action != PlanActionUnchanged || unmanaged.Reason != ProjectStateReasonUnmanagedEntryPreserved {
+	if unmanaged.Kind != ProjectStateUnmanaged || unmanaged.Action != PlanActionQuarantine || unmanaged.Reason != ProjectStateReasonNotDesired {
 		t.Fatalf("unmanaged extra = %#v", unmanaged)
 	}
 	if len(classification.States) != len(cases)+3 {
@@ -176,7 +176,7 @@ func TestClassifyProjectRemovedManagedAndUntrustedState(t *testing.T) {
 		t.Fatalf("removed clean = %#v", cleanState)
 	}
 	dirtyState := findProjectState(t, classification, TargetAgents, "removed-dirty")
-	if dirtyState.Kind != ProjectStateModified || dirtyState.Action != PlanActionBlocked || dirtyState.Reason != ProjectStateReasonPreviouslyManagedModified {
+	if dirtyState.Kind != ProjectStateModified || dirtyState.Action != PlanActionQuarantine || dirtyState.SourceIdentity != "" || dirtyState.Reason != ProjectStateReasonPreviouslyManagedModified {
 		t.Fatalf("removed dirty = %#v", dirtyState)
 	}
 

@@ -631,7 +631,7 @@ func validateApplySession(session *ProjectApplySession) error {
 			if operation.Manager != ManagerSkillsCLI || operation.SourceID != "" {
 				return applyConflict("reviewed removal identity changed")
 			}
-			if !isCanonicalProjectSourceIdentity(operation.Source) {
+			if operation.Source != "" && !isCanonicalProjectSourceIdentity(operation.Source) {
 				return applyConflict("reviewed removal source identity is not canonical")
 			}
 			oldHash, ok := treeHashFromPlanEvidence(operation.Current)
@@ -1749,7 +1749,14 @@ func (tx *applyTransaction) revalidateManagedCandidate(session *ProjectApplySess
 	for _, state := range classification.States {
 		key := projectPlacementKey(state.Target, state.Skill)
 		skill, wanted := desiredByKey[key]
-		if !wanted || skill.Manager != ManagerSkillsCLI {
+		if !wanted {
+			// Any newly introduced or unremoved extra prevents an exact-state commit.
+			if state.Action != PlanActionUnchanged || state.Reason != ProjectStateReasonTrustedPlacementAbsent {
+				return applyConflict("unexpected placement remained before commit")
+			}
+			continue
+		}
+		if skill.Manager != ManagerSkillsCLI {
 			continue
 		}
 		seen[key] = struct{}{}
@@ -1811,12 +1818,11 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 			record, managed := records[key]
 			oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
 			expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
-			if !managed || record.Scope != session.Desired.Scope || record.Skill != operation.Skill ||
-				record.Target != operation.Target || record.SourceIdentity != operation.Source ||
-				!isCanonicalProjectSourceIdentity(operation.Source) || !oldHashOK || !expectedHashOK || expectedHash != oldHash ||
-				record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
+			if !oldHashOK || !expectedHashOK || expectedHash != oldHash ||
+				operation.Source != removalSourceIdentity(record, managed, oldHash) {
 				return ProvenanceState{}, applyConflict("removed provenance identity changed before commit")
 			}
+
 			delete(records, key)
 			continue
 		}

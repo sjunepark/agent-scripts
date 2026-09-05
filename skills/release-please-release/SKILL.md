@@ -34,7 +34,7 @@ Prefer fixing release inputs: Conventional Commit messages, squash/merge message
 
 Do not push, tag, publish, create GitHub releases, run release automation with write effects, merge Release Please PRs, or approve irreversible release steps unless the user explicitly authorizes the specific operation.
 
-Before any authorized side-effecting release step, state the exact version number or per-component version numbers that will be released and get explicit confirmation.
+Before a side-effecting release step, verify both the specific operation and the exact version number or per-component versions against the user's authorization and inspected release state. Existing explicit confirmation of both is sufficient. If either is missing or has changed, finish independent preparation, state the exact proposed operation and versions, and request confirmation before that step.
 
 ## Core Rules
 
@@ -55,8 +55,8 @@ Before any authorized side-effecting release step, state the exact version numbe
 1. Read local agent instructions, release docs, Release Please config/manifest, package metadata, changelog, and release workflows. Identify component paths, release types, tag format, changelog paths, publishing workflow, releasable commit types, and pre-1.0 policy.
 2. Find the last Release Please-managed release tag or manifest version. For manifest or monorepo setups, determine the comparison range per configured component. Inspect commits and diffs since each relevant release; if history is shallow or unavailable, say so.
 3. Classify each component's fixes, features, breaking changes, configured docs/chores, and non-release changes. Before deciding a version, read and apply [checklists/release-impact.md](checklists/release-impact.md). Compare commit-message classification with actual diffs because hidden breaking changes still matter.
-4. Prepare or review release inputs. Recommend exact Conventional Commit or squash-merge messages when input is wrong or missing. For breaking changes, provide a concise migration note suitable for a `BREAKING CHANGE:` footer. Mention `Release-As: x.y.z` only when the user explicitly needs a forced version. Do not edit generated release PR files unless reviewing a generated PR or performing an explicit manual fallback.
-5. Validate with documented typecheck/test/build commands. For release-specific checks, use read-only commands or documented dry-runs unless write effects have been authorized. Confirm CI gates, publishing permissions, tag/version consistency, and required secrets when release automation is in scope.
+4. Prepare or review release inputs. Recommend exact Conventional Commit or squash-merge messages when input is wrong or missing. For breaking changes, provide a concise migration note suitable for a `BREAKING CHANGE:` footer. Mention `Release-As: x.y.z` only when the user explicitly needs a forced version. Review generated PR files read-only; edit them only for the explicitly requested documented manual fallback.
+5. Run documented checks required by changed release inputs or the requested readiness assessment. Reuse applicable CI evidence for read-only classification; run further typecheck/test/build checks when changes, missing evidence, or release gates require them. For release-specific checks, use read-only commands or documented dry-runs unless write effects have been authorized. Confirm CI gates, publishing permissions, tag/version consistency, and required secrets when release automation is in scope.
 
 ## Report
 

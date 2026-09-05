@@ -11,11 +11,11 @@ Use clear branch terms throughout the task: the current `HEAD` branch is the des
 
 ## Choose One Mode
 
-- **Dry plan:** When the user asks to analyze or plan without changing repository state, read and follow [modes/dry-plan.md](modes/dry-plan.md). Stop after presenting the plan and asking how to continue.
+- **Dry plan:** When the user asks to analyze or plan without changing repository state, read and follow [modes/dry-plan.md](modes/dry-plan.md). A plan-only request finishes with the plan and any unresolved decisions.
 - **Audit:** When the user asks to review a completed or in-progress merge result, read and follow [modes/audit.md](modes/audit.md). Do not start or redo a merge unless separately authorized.
 - **Integrate:** When the user asks to perform a merge, transplant branch work, or resolve conflicts, read and follow [modes/integrate.md](modes/integrate.md).
 
-If the request combines modes, complete the read-only mode first and get any decision or authorization it requires before entering integration mode.
+If the request combines assessment and integration, complete the read-only mode first, then perform the already authorized integration. Ask only for consequential decisions or authority still missing from the request and inspected evidence.
 
 ## Shared Guardrail
 

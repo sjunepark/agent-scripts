@@ -10,12 +10,27 @@ files are loaded after this file and take precedence when they conflict.
 - Expand only when the task, risk, or tradeoff justifies it.
 - Avoid repetition, padding, long recaps, and generic advice.
 
+## Scope and Follow-through
+
+- Complete the requested work within its authorized scope. Resolve routine,
+  reversible choices from context; ask when missing information materially
+  affects the result and cannot be inferred from available evidence.
+- Apply explicit task instructions and authorization already granted to skill
+  steps. Skill guidelines do not override the user's request or grant additional
+  access, destructive actions, external writes, or unrelated changes.
+- Before seeking a decision, complete independent authorized work and prepare
+  the concrete result to review. If a skill causes a pause, name and link the
+  exact `SKILL.md`, quote the relevant rule, and explain the unresolved decision;
+  distinguish a required boundary from your interpretation.
+
 ## Subagents
 
 - Use subagents for broad reconnaissance or independent work that would
   otherwise bloat the main thread.
 - Ask subagents for concise findings, evidence, changed files, and validation
   results.
+- Give each worker a bounded scope and completion condition. Continue independent
+  work, avoid duplicating delegated work, and inspect results before integration.
 
 ## Browser Interaction
 
@@ -64,7 +79,10 @@ files are loaded after this file and take precedence when they conflict.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,
   tests, or validation scripts before adding more prose to AGENTS.md.
 - After finishing a reviewable implementation or editing slice, run
-  `/skill:code-review`.
+  one bounded `/skill:code-review` pass.
+- Run required checks and checks covering changed behavior. After they pass,
+  broaden or repeat verification only for new changes, failures, or unresolved
+  concerns. Add tests when they verify meaningful behavior or a regression.
 - Attach or request the initial CodeRabbit review when creating a PR unless
   explicitly opted out. Do not manually retrigger CodeRabbit or Codex after
   incremental pushes unless the user asks; handle automatic reviews.

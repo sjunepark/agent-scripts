@@ -66,11 +66,10 @@ requiring readers to reconstruct them from several files.
 
 ## Coordination
 
-Leverage subagents when they are available, choosing the decomposition
-dynamically from the repository's shape and the work discovered. The
+Use subagents for bounded, independent documentation areas when delegation
+materially improves coverage. Handle a small coherent scope directly. The
 coordinating agent owns complete coverage of the established boundary, conflict
-resolution, and the integrated result. When subagents are unavailable, perform
-the same work directly.
+resolution, and the integrated result.
 
 ## Workflow
 

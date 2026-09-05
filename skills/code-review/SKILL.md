@@ -59,14 +59,16 @@ description: "Review completed code changes, roadmap or specification implementa
    - Continue once unearned complexity candidates are either reported or
      explicitly kept as-is.
 
-6. Report in buckets.
+6. Report findings and validation concisely. Use the buckets below when they
+   contain material information; for a clean review, state that no actionable
+   findings remain and summarize validation.
    - `Delivery Coverage`: only for roadmap, specification, or initiative
      reviews; use the system lens's outcome classifications and evidence.
    - `Bucket I - Safe Fixes`: safe issues found, marked `applied` or `proposed`
      according to edit policy, with changed or affected files and validation
-     evidence, or `none`.
+     evidence.
    - `Bucket II - Needs Decision`: real issues or simplifications that need
-     user judgment, with the decision needed and the main tradeoff, or `none`.
+     user judgment, with the decision needed and the main tradeoff.
    - `Keep As-Is`: meaningful concerns inspected and intentionally rejected,
      when useful.
    - `Validation`: commands run and results, or skipped/blocked reason.

@@ -1,6 +1,6 @@
 interface:
   display_name: "Clarify"
   short_description: "Clarify the current prompt's intent and unknowns"
-  default_prompt: "Use $clarify to clarify the request in this prompt, recover its consequential unknowns, confirm a compact readback, then proceed."
+  default_prompt: "Use $clarify to clarify the request in this prompt, recover consequential unknowns, and give a compact readback. Resolve any remaining consequential assumptions, then proceed with the authorized task."
 policy:
   allow_implicit_invocation: false

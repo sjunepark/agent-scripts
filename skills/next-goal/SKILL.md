@@ -74,12 +74,19 @@ Treat goal membership as closed. Advancing a roadmap, changing `Current`, creati
 
 Before emitting a goal prompt, verify that the evidence supports a closed outcome, semantic included results and authoritative sources, a completion predicate, and enough settled direction for autonomous implementation. Reversible implementer-owned choices may remain open. Consequential user-owned decisions require explicit delegation or planning repair.
 
-When the outcome is closed but consequential decisions remain, alert the user with the specific planning gaps and ask them to choose:
+When the outcome is closed but consequential decisions remain, first check
+whether the user already delegated those decisions or selected planning repair.
+Apply that choice within its stated scope. Otherwise explain the specific
+planning gaps and ask them to choose:
 
 1. authorize the goal-running agent to resolve the remaining decisions within the closed outcome using its best judgment; or
 2. repair planning first with `$interview` followed by `$progress`, then rerun goal selection.
 
-Emit no goal prompt before the user chooses. Delegation passes the gate only for decisions inside the supported outcome; it never adds results, expands scope, or grants external authority. Record that delegation in the generated contract's `Authority` field so the goal-running agent does not ask again merely because the cited plans left those decisions open.
+Emit no goal prompt until an applicable user choice resolves the gate.
+Delegation passes the gate only for decisions inside the supported outcome; it
+never adds results, expands scope, or grants external authority. Record that
+delegation in the generated contract's `Authority` field so the goal-running
+agent does not ask again merely because the cited plans left those decisions open.
 
 If the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use `$interview` to settle consequential decisions, then `$progress` to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. Planning repair does not erase an already confirmed scope; revalidate and retain it unless the new evidence materially changes its boundary, in which case present refreshed choices and ask again. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.
 

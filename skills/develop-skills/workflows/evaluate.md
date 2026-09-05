@@ -4,20 +4,37 @@ Use this workflow to determine whether a new, revised, or merged skill is struct
 
 ## Prepare the Experiment
 
+Set the validation scope before running trials:
+
+- For a documentation-only change that leaves decisions and triggers unchanged,
+  run static checks and a focused review; explain why behavior trials do not apply.
+- For a runtime instruction change, compare baseline and candidate on the changed
+  decision and a relevant boundary in fresh contexts. Use an existing assertion
+  set when it covers the change. A narrow correction need not retest every mode.
+- For a new capability, broad redesign, consequential migration, or predecessor
+  removal, use representative scored cases, holdouts, and repeated trials below.
+- Run trigger trials when description, routing, or invocation policy changes.
+  For unchanged discovery, verify consistency statically and record the trigger
+  gate as unchanged rather than claiming new empirical selection evidence.
+
+Record which gates apply and why. Complete required checks; expand or repeat only
+for a changed candidate, a failure, unstable results, or an unresolved concern.
+
 1. Freeze the candidate version before collecting scored results.
 2. Choose a baseline:
    - the previous skill version for a revision;
    - each source skill for a merge; or
    - the same task without the skill for a new capability.
-3. Build cases from realistic requests and representative artifacts. Include:
-   - ordinary success cases;
-   - difficult or failure-prone cases;
+3. Build cases from realistic requests and representative artifacts. Include
+   ordinary success and difficult or failure-prone cases for changed behavior.
+   When discovery is new or changed, also include:
    - explicit positive trigger cases for every skill;
    - for manual-only skills, in-scope but uninvoked requests expected not to
      activate;
    - for implicitly discoverable skills, positive cases that imply the need
      without naming the skill; and
    - near-miss negatives that share vocabulary but belong outside the scope.
+   Preserve existing trigger cases when discovery is unchanged.
 4. Reserve at least one case as a holdout when the decision is consequential or
    the case set is large enough to support one. Do not tune against its result.
 5. Give baseline and candidate runs the same request, artifacts, available tools, constraints, and resource limits.
@@ -45,11 +62,15 @@ Stop here if static validation fails. Structural failures make behavior results 
 
 ### 1. Run an observation case
 
-Run one representative case against the baseline and candidate. Treat this pair as discovery, not as scored evidence. Inspect the artifacts and work logs to learn which outcomes distinguish competent behavior from plausible-looking failure.
+When assertions are not yet grounded in a known failure or existing cases, run
+one representative baseline/candidate pair for discovery. Do not score a trial
+used to invent its own acceptance criteria. Otherwise freeze the existing
+criteria and proceed directly to the affected cases.
 
 ### 2. Freeze assertions and grading
 
-After the first observation, write assertions before running the remaining cases. This permits evidence-informed criteria without grading later outputs post hoc.
+Write or confirm assertions before scored cases. Use prior failure evidence or
+the observation pair without changing the grading after seeing scored results.
 
 Derive the criteria from the skill contract and observed failure modes. Where
 applicable, cover outcome completeness and correctness, authority and safety
@@ -76,14 +97,15 @@ For every scored case:
 
 1. Run the baseline and candidate from separate fresh contexts.
 2. Randomize or alternate their order to reduce ordering effects.
-3. Repeat each condition at least three times when outputs or execution paths can vary.
+3. Repeat conditions when observed variance or the consequence of adoption
+   warrants it; choose the trial count before scoring and report its limits.
 4. Preserve all outputs, including failed and unusually slow trials.
 5. Label outputs with neutral identifiers before subjective review.
 
 Use more trials when results are unstable or the decision is consequential.
-Scale the experiment to the decision: a low-risk diagnostic may need only an
-observation pair, while adoption or removal needs representative scored cases.
-A single successful demonstration is not evidence of reliability.
+Scale the experiment to the decision. A targeted correction may use a small
+paired regression set; adoption of a new workflow or removal needs representative
+scored cases. Small samples show the observed decisions, not general reliability.
 
 ### 4. Grade the evidence
 
@@ -154,6 +176,11 @@ Change one meaningful variable at a time when diagnosing a failure. Start a new 
 
 ## Stop Criteria
 
-Ship or adopt the candidate only after all three gates pass. Stop and revise when a failure has a plausible corrective change. Stop and retain the baseline when repeated rounds show no material, reliable benefit, or when the added complexity outweighs the gain. Gather more trials rather than choosing a winner when variance is larger than the observed difference.
+Finish the authorized revision when applicable gates pass and unchanged or
+inapplicable gates have an explicit rationale. Ship or adopt only within the
+requested scope. Revise a failing candidate when evidence supports a correction;
+retain the baseline when repeated rounds show no useful benefit. Gather more
+trials when unresolved variance could change the decision, not merely to repeat
+passing checks.
 
 Preserve the cases, frozen assertions, raw results, and decision summary so later revisions can be compared against the same evidence. Keep holdout cases unexposed until the final evaluation round.

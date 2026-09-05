@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -23,7 +24,7 @@ type cli struct {
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
-	Apply    applyCommand    `cmd:"" help:"Apply verified project or global changes; move project removals to quarantine."`
+	Apply    applyCommand    `cmd:"" help:"Apply verified project or global changes; move undeclared skills to quarantine."`
 	Restore  restoreCommand  `cmd:"" help:"Restore a committed project or global quarantine without overwriting managed placements."`
 }
 
@@ -1153,6 +1154,9 @@ func renderPlanOperations(output io.Writer, operations []sjskills.PlanOperation)
 		placement := operation.Skill
 		if operation.Target != "" {
 			placement = string(operation.Target) + "/skills/" + operation.Skill
+		}
+		if quoted := strconv.QuoteToASCII(placement); quoted != "\""+placement+"\"" {
+			placement = quoted
 		}
 		fmt.Fprintf(output, "%s: %s (%s)\n", operation.Action, placement, operation.Reason)
 	}

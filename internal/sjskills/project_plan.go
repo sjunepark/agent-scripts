@@ -14,10 +14,9 @@ const (
 )
 
 // TranslateProjectClassification copies the deterministic project states into
-// the existing Plan envelope.  It deliberately does not introduce a second
-// operation model: desired placements become PlanOperation values, while
-// unowned observations and state-level markers remain warnings because an
-// operation would falsely imply ownership.
+// the existing Plan envelope. Desired placements and extra removals become
+// operations; uninspectable roots and provenance become blockers. Removal
+// operations carry ownership evidence only when it matches the observed bytes.
 //
 // Classification state order is already deterministic (target, UTF-16 skill,
 // then path), so operations and warnings retain that order.  The function is
@@ -62,19 +61,15 @@ func translateManagedClassification(plan Plan, classification ProjectClassificat
 		desired, desiredPlacement := desiredByPlacement[projectPlacementKey(state.Target, state.Skill)]
 		if state.Skill == "" {
 			result.Warnings = append(result.Warnings, stateWarning(state))
-			continue
+			if state.Action != PlanActionBlocked {
+				continue
+			}
 		}
 
-		// An observed entry that is not one of the desired placements cannot
-		// safely become a plan operation.  In particular, an unknown byte
-		// sequence must not be claimed merely because it shares a name with a
-		// desired skill at another target.  Provenance-backed removed entries
-		// retain their quarantine/blocked operation below.
+		// Absent historical provenance remains informational. Active extras are
+		// always quarantine operations or blockers, regardless of ownership.
+
 		if !desiredPlacement && state.Action == PlanActionUnchanged {
-			result.Warnings = append(result.Warnings, preservedWarning(state))
-			continue
-		}
-		if !desiredPlacement && state.Manager != ManagerSkillsCLI && state.Action == PlanActionBlocked {
 			result.Warnings = append(result.Warnings, preservedWarning(state))
 			continue
 		}
@@ -93,10 +88,8 @@ func translateManagedClassification(plan Plan, classification ProjectClassificat
 			operation.SourceID = desired.SourceID
 			operation.Source = desired.Source
 		} else {
-			// This is an existing placement with trusted provenance but no
-			// current desired identity (for example, a removed skill).  Keep
-			// ownership evidence bounded and explicit without inventing a
-			// registry source ID.
+			// An empty source records an unowned removal, never invented ownership.
+
 			operation.Source = state.SourceIdentity
 		}
 		result.Operations = append(result.Operations, operation)
@@ -175,7 +168,8 @@ func projectStableSkillName(name string) string {
 
 func projectStableReason(reason ProjectStateReason) string {
 	switch reason {
-	case ProjectStateReasonRootUnavailable,
+	case ProjectStateReasonNotDesired,
+		ProjectStateReasonRootUnavailable,
 		ProjectStateReasonExpectedEntryAbsent,
 		ProjectStateReasonCurrentEntryUnverifiable,
 		ProjectStateReasonExpectedCopyIsSymlink,

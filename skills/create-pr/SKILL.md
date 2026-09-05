@@ -11,7 +11,7 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 
 1. Inspect the PR surface before opening anything.
    - Check current branch, upstream, uncommitted changes, existing PR status, base branch evidence, relevant diff, commits, and validation output.
-   - If uncommitted changes are part of the intended PR, stop and ask whether to commit them first.
+   - If intended PR changes are uncommitted, use existing authorization for the exact commit scope. If that authority is missing, inspect and validate the intended diff and prepare the PR draft before asking whether to commit it. Preserve unrelated changes.
    - If a PR already exists for the branch, update it instead of creating a duplicate.
    - For a stacked PR, read
      [workflows/stacked-prs.md](workflows/stacked-prs.md) before creating or
@@ -37,11 +37,11 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 ## AI Review Decision
 
 Before creating a PR, inspect `.coderabbit.yaml`, `.coderabbit.yml`, and
-`greptile.json` if present. If the user does not specify and the PR is ready for
-human review, apply `coderabbit-review` and let repository configuration or
-service defaults govern the remaining reviews. If the PR is draft, noisy,
-generated, dependency-only, or materially validation-incomplete, suppress
-automatic bot reviews when a low-risk PR-level control exists.
+`greptile.json` if present. Apply the user's and repository's existing review
+policy. In the absence of a more specific policy, request the initial CodeRabbit
+review with `coderabbit-review` and let configuration or service defaults govern
+remaining reviews. Suppress a review only when the selected policy calls for it;
+draft status or incomplete validation alone does not override that policy.
 
 Do not edit review-bot config just to open a PR unless the user asked for a config change or there is no PR-level way to achieve the requested behavior; when a config edit is needed, say so before making it.
 
@@ -57,7 +57,7 @@ or manually triggering it.
 
 ### Bot-Control Prompt
 
-When the user wants a choice or review cost/noise is material, ask for a compact decision before creating the PR:
+Ask only when the user requests a choice or a material review decision remains unresolved by existing instructions. Prepare the PR draft and applicable controls first:
 
 ```text
 AI review handling for this PR?

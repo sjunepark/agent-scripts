@@ -7,6 +7,6 @@ Use this mode to analyze or plan a branch merge without changing repository stat
 - Inspect likely conflicts, overlapping edits, deleted or renamed files, dependency/config/schema interactions, tests/docs impact, and areas needing user decisions.
 - Propose one or more integration strategies with concrete tradeoffs.
 - List validation that should run during the real merge, but do not run expensive or mutating validation.
-- Stop after asking the user how to continue. Do not proceed into an actual merge until explicitly instructed.
+- For a plan-only request, finish with the plan. For an explicitly combined assessment-and-integration request, return to the entry point and continue the authorized integration once any consequential decisions are resolved.
 
-Include the destination branch, source branch, merge base, likely changed areas, likely conflicts or decisions, recommended strategy, risks, and the exact decision needed before starting the merge.
+Include the destination branch, source branch, merge base, likely changed areas, likely conflicts or decisions, recommended strategy, risks, and any exact decision still needed before starting the merge.

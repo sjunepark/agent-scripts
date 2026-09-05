@@ -10,6 +10,11 @@ committed `sjskills.toml` or by the tool's fixed global baseline. The tool owns
 verified placement, provenance, quarantine, and restore; it does not publish
 source changes or perform ad hoc catalog installs.
 
+Strict sync covers only the selected global or project `.agents/skills` and
+`.claude/skills` roots. Undeclared directories move into recoverable quarantine,
+including unknown and locally modified copies. Built-in skills, plugin caches,
+and legacy Pi copies are outside this boundary.
+
 Keep four states distinct:
 
 1. A source repository's local catalog is editable but not yet published.
@@ -55,10 +60,9 @@ catalog validation and publication are not reconciliation.
    warnings, and blocks.
    Distinguish desired-state drift or conflict from a failed command, network
    request, or materialization; an operational failure is not a valid plan.
-4. Stop before apply when the plan reports an unmanaged desired path, a locally
-   modified managed tree, malformed or untrusted provenance, an unsafe
-   filesystem boundary, failed materialization, or another conflict. Preserve
-   unknown and legacy entries.
+4. Stop before apply when the plan reports an unmanaged or locally modified
+   desired copy, malformed or untrusted provenance, an unsafe filesystem
+   boundary, an unverifiable extra, failed materialization, or another conflict.
 5. If the user authorized project reconciliation, run `sjskills apply` and
    keep interactive confirmation unless non-interactive execution was
    explicitly requested. `--yes` suppresses a prompt; it does not grant
@@ -87,7 +91,8 @@ sjskills restore <quarantine-id>
 
 Do not move, delete, or overwrite active destinations to make restore succeed.
 If content or provenance changed, preserve both sides and report the conflict.
-Run `sjskills plan` after a successful restore.
+Restore does not grant ownership to unknown or locally modified copies. Run
+`sjskills plan` afterward; a restored undeclared skill is again removal drift.
 
 ## Global boundary
 
@@ -107,8 +112,8 @@ Report:
 
 - project or fixed-global scope and whether work was read-only or mutating;
 - the selected profiles or direct manifest declarations when relevant;
-- plan and final-plan results, including preserved unknown, legacy, or blocked
-  state;
+- plan and final-plan results, including remaining extras, blocks, and
+  out-of-scope legacy state;
 - published-ref evidence when remote-backed local changes were involved;
 - every quarantine identifier retained or restored; and
 - any mutation still awaiting explicit authority.

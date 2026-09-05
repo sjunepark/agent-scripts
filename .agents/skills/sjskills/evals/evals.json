@@ -14,7 +14,7 @@
     {
       "id": 3,
       "prompt": "Use $sjskills to reconcile this project's committed manifest. Review the plan first and preserve anything the tool does not own.",
-      "expected_output": "The skill runs and reviews plan, stops rather than applying if the plan contains a conflict or unsafe boundary, otherwise runs project apply with interactive confirmation and follows with a final plan. It preserves unknown state, reports remaining changes honestly, and retains every quarantine identifier."
+      "expected_output": "The skill reviews a read-only plan. If strict sync would quarantine unknown extras, it stops and explains that the requested preservation constraint conflicts with applying that plan. It never claims apply preserves undeclared entries. Conflicts and unsafe boundaries also stop apply; otherwise authorized project apply uses interactive confirmation and a final plan, retaining every quarantine identifier."
     },
     {
       "id": 4,
@@ -40,6 +40,11 @@
       "id": 8,
       "prompt": "Install one catalog skill only for this project with bunx skills.",
       "expected_output": "The manual-only sjskills skill does not activate. The task uses the ordinary Skills CLI workflow and does not introduce sjskills manifest or global reconciliation."
+    },
+    {
+      "id": 9,
+      "prompt": "Use $sjskills to strictly reconcile this project to its committed manifest. There is an old manually installed skill and a locally edited former managed skill that are no longer selected. A still-selected skill also has local edits.",
+      "expected_output": "The skill reviews the project plan, explains that verifiable unknown and modified undeclared directories are quarantined under strict sync, and stops apply because the modified desired copy is blocked. It does not treat unknown or modified extras as ownership exemptions, and keeps built-in skills, plugin caches, and Pi copies outside the scope. After the desired conflict is resolved, an authorized apply must be followed by a plan with no remaining extras or blocks."
     }
   ]
 }

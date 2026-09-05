@@ -587,7 +587,7 @@ func TestApplyProjectChangesLockAcquisitionCleansOnlyCreatedDirectory(t *testing
 	}
 }
 
-func TestApplyProjectChangesPreservesExistingUnknownWithoutDuplicatingWarning(t *testing.T) {
+func TestApplyProjectChangesQuarantinesExistingUnknown(t *testing.T) {
 	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
 	unknown := filepath.Join(session.Layout.AgentsSkillsPath, "unknown")
 	if err := os.MkdirAll(unknown, 0o755); err != nil {
@@ -597,39 +597,49 @@ func TestApplyProjectChangesPreservesExistingUnknownWithoutDuplicatingWarning(t 
 		t.Fatal(err)
 	}
 	makeSessionPlanCurrent(t, session)
-	if len(session.Plan.Warnings) != 1 {
-		t.Fatalf("reviewed warnings = %#v, want one", session.Plan.Warnings)
-	}
 	result, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Plan.Warnings) != 1 || result.Plan.Warnings[0].Code != "unmanaged-preserved" {
-		t.Fatalf("applied warnings = %#v, want one preserved warning", result.Plan.Warnings)
+	if len(result.Quarantined) != 1 || result.Quarantine == nil {
+		t.Fatalf("result = %#v", result)
 	}
-	if data, err := os.ReadFile(filepath.Join(unknown, "SKILL.md")); err != nil || string(data) != "unknown\n" {
-		t.Fatalf("unknown entry changed: data=%q err=%v", data, err)
+	if _, err := os.Lstat(unknown); !os.IsNotExist(err) {
+		t.Fatalf("unknown still active: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(session.Layout.QuarantinePath, result.Quarantine.ID, "entries", ".agents", "unknown", "SKILL.md"))
+	if err != nil || string(data) != "unknown\n" {
+		t.Fatalf("quarantined bytes: %q %v", data, err)
 	}
 }
 
-func TestApplyProjectChangesReportsUnknownAppearingBeforeLockedRefresh(t *testing.T) {
-	session, _, _, _ := newApplyFixture(t, []Target{TargetAgents})
-	unknown := filepath.Join(session.Layout.AgentsSkillsPath, "raced-unknown")
-	deps := ApplyDeps{beforeLock: func() error {
-		if err := os.MkdirAll(unknown, 0o755); err != nil {
-			return err
-		}
-		return os.WriteFile(filepath.Join(unknown, "SKILL.md"), []byte("preserve\n"), 0o644)
-	}}
-	result, err := ApplyProjectChanges(context.Background(), session, deps)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result.Plan.Warnings) != 1 || !strings.Contains(result.Plan.Warnings[0].Message, "raced-unknown") {
-		t.Fatalf("applied warnings = %#v, want raced unknown", result.Plan.Warnings)
-	}
-	if data, err := os.ReadFile(filepath.Join(unknown, "SKILL.md")); err != nil || string(data) != "preserve\n" {
-		t.Fatalf("raced unknown changed: data=%q err=%v", data, err)
+func TestApplyProjectChangesRejectsUnknownAppearingDuringSync(t *testing.T) {
+	for _, phase := range []string{"before-lock", "before-commit"} {
+		t.Run(phase, func(t *testing.T) {
+			session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+			unknown := filepath.Join(session.Layout.AgentsSkillsPath, "raced-unknown")
+			add := func() error {
+				if err := os.MkdirAll(unknown, 0o755); err != nil {
+					return err
+				}
+				return os.WriteFile(filepath.Join(unknown, "SKILL.md"), []byte("preserve\n"), 0o644)
+			}
+			deps := ApplyDeps{}
+			if phase == "before-lock" {
+				deps.beforeLock = add
+			} else {
+				deps.beforeCommit = add
+			}
+			if _, err := ApplyProjectChanges(context.Background(), session, deps); err == nil {
+				t.Fatal("sync succeeded with unreviewed extra")
+			}
+			if data, err := os.ReadFile(filepath.Join(unknown, "SKILL.md")); err != nil || string(data) != "preserve\n" {
+				t.Fatalf("raced unknown changed: %q %v", data, err)
+			}
+			if _, err := os.Lstat(filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)); !os.IsNotExist(err) {
+				t.Fatalf("installation was not rolled back: %v", err)
+			}
+		})
 	}
 }
 

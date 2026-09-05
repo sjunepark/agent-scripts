@@ -254,7 +254,7 @@ func validProjectQuarantineEntry(entry ProjectQuarantineManifestEntry) bool {
 	case ProjectQuarantineEntryActionRemove:
 		// Empty replacement fields are intentionally omitted by encoding/json so
 		// a remove entry cannot be mistaken for an update by restore.
-		return isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) &&
+		return (entry.OldSourceIdentity == "" || isCanonicalProjectSourceIdentity(entry.OldSourceIdentity)) &&
 			entry.NewSourceIdentity == "" && entry.NewTreeHash == ""
 	default:
 		return false

@@ -31,18 +31,22 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 		record, managed := records[key]
 		oldHash, oldHashOK := treeHashFromPlanEvidence(operation.Current)
 		expectedHash, expectedHashOK := treeHashFromPlanEvidence(operation.Expected)
-		if !managed || !oldHashOK ||
+		if !oldHashOK {
+			return applyConflict("reviewed quarantine content identity changed")
+		}
+		if operation.Action == PlanActionUpdate && (!managed ||
 			record.Scope != session.Desired.Scope || record.Skill != operation.Skill || record.Target != operation.Target ||
-			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest {
+			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || !treeHashMatchesRecord(oldHash, record)) {
 			return applyConflict("reviewed quarantine provenance identity changed")
 		}
+
 		entry := ProjectQuarantineManifestEntry{
 			Action:               ProjectQuarantineEntryActionRemove,
 			Skill:                operation.Skill,
 			Target:               operation.Target,
 			OriginalPlacement:    projectOriginalPlacement(operation.Target, operation.Skill),
 			QuarantinedPlacement: projectQuarantinedPlacement(operation.Target, operation.Skill),
-			OldSourceIdentity:    record.SourceIdentity,
+			OldSourceIdentity:    removalSourceIdentity(record, managed, oldHash),
 			TreeHashAlgorithm:    oldHash.Algorithm,
 			OldTreeHash:          oldHash.Digest,
 			Status:               ProjectQuarantineEntryPending,
@@ -61,7 +65,7 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 			entry.NewSourceIdentity = newSource
 			entry.NewTreeHash = newHash.Digest
 		case PlanActionQuarantine:
-			if _, wanted := desired[key]; wanted || operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != record.SourceIdentity ||
+			if _, wanted := desired[key]; wanted || operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != entry.OldSourceIdentity ||
 				!expectedHashOK || expectedHash != oldHash {
 				return applyConflict("reviewed removal provenance identity changed")
 			}
@@ -219,12 +223,12 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 	expectedHash, expectedOK := treeHashFromPlanEvidence(operation.Expected)
 	record, recordOK := quarantineRecord(preimage.state, operation.Target, operation.Skill)
 	entry := tx.quarantine.manifest.Entries[index]
-	if !recordOK || record.Scope != session.Desired.Scope || record.Skill != operation.Skill || record.Target != operation.Target ||
-		record.SourceIdentity != entry.OldSourceIdentity || record.TreeHashAlgorithm != oldHash.Algorithm || record.TreeHash != oldHash.Digest ||
+	if entry.OldSourceIdentity != removalSourceIdentity(record, recordOK, oldHash) ||
 		(action == ProjectQuarantineEntryActionRemove &&
-			(operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != record.SourceIdentity || !expectedOK || expectedHash != oldHash)) {
+			(operation.Manager != ManagerSkillsCLI || operation.SourceID != "" || operation.Source != entry.OldSourceIdentity || !expectedOK || expectedHash != oldHash)) {
 		return applyConflict("quarantine provenance identity changed before move")
 	}
+
 	if action == ProjectQuarantineEntryActionUpdate {
 		skill, wanted := desiredByPlacement(session.Desired)[projectPlacementKey(operation.Target, operation.Skill)]
 		newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)

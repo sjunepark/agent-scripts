@@ -113,8 +113,9 @@ into a generic temporary-files approval. Explain that disabling startup does not
 uninstall an app, while uninstalling may remove local app data and can require an
 installer, license, or account to reverse.
 
-End the preview by requesting confirmation for the exact actions. Do not begin
-one action while confirmation for another is unresolved.
+Request confirmation for previewed actions that are not already confirmed.
+An unresolved action blocks its dependent work; independent confirmed actions
+may proceed after their own prerequisites pass.
 
 ## Apply only the confirmed actions
 

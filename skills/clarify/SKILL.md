@@ -35,4 +35,9 @@ Leave stacks, libraries, patterns, naming, file layout, algorithms, and other im
 
 Stop asking when you can state the user's goal, motivation, scope, constraints, and success criteria in words they are likely to endorse.
 
-Give a compact readback, label deliberate assumptions, and ask for confirmation or correction. After confirmation, proceed with the original task carrying that intent. When clarification itself is the request, the confirmed readback is the deliverable.
+Give a compact readback and label consequential assumptions. Treat clear answers
+and established constraints as settled. Ask for confirmation or correction only
+where the readback introduces an unresolved consequential assumption or changes
+the understood intent. Once those gaps are resolved, proceed with the original
+authorized task. When clarification itself is the request, the settled readback
+is the deliverable.

@@ -325,14 +325,14 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Installed)+len(result.Updated)+len(result.Quarantined) != 0 || result.Quarantine != nil || !result.Migrated {
+	if len(result.Installed)+len(result.Updated) != 0 || len(result.Quarantined) != 1 || result.Quarantine == nil || !result.Migrated {
 		t.Fatalf("result = %#v", result)
 	}
 	inventory, err = InspectGlobal(session.Layout)
 	if err != nil || inventory.ProvenanceFormat != GlobalProvenanceCurrent || inventory.MigrationRequired {
 		t.Fatalf("current inventory=%#v err=%v", inventory, err)
 	}
-	if len(inventory.State.Records) != 3 {
+	if len(inventory.State.Records) != 2 {
 		t.Fatalf("migrated records = %#v", inventory.State.Records)
 	}
 	foundFormer := false
@@ -341,8 +341,8 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 			foundFormer = record.Scope == ScopeGlobal && record.TreeHash == formerHash.Digest
 		}
 	}
-	if !foundFormer {
-		t.Fatalf("trusted former-profile provenance was not preserved: %#v", inventory.State.Records)
+	if foundFormer {
+		t.Fatalf("removed former-profile provenance survived: %#v", inventory.State.Records)
 	}
 }
 

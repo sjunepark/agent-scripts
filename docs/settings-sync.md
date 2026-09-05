@@ -180,9 +180,11 @@ skill reports them and asks the user to remove them rather than deleting them
 automatically. Shared hook files should retain their unrelated entries.
 
 Greenfield work, redesigns, missing product context, and other consequential
-design choices use resumable approval phases. Claude returns questions or
-options to Codex, Codex relays them to the user, and implementation resumes in
-the same Claude session after approval. Claude remains read-only during these
+design choices use resumable approval phases when user judgment remains
+unresolved. Apply existing answers and delegated authority before relaying a
+question. Claude returns unresolved choices to Codex, Codex relays them to the
+user, and implementation resumes in the same Claude session once the decision
+is settled. Claude remains read-only during these
 phases; Codex may persist an approved PM-owned contract such as `PRODUCT.md`
 when Impeccable needs it to derive the next options. Scoped work that inherits
 an established product and visual world can use a one-shot run; so can work
@@ -232,6 +234,11 @@ procedures in skills and route to them with a concise harness-specific rule.
 Do not mix personal defaults with this repo's maintenance-specific rules.
 Pointer ownership may vary by machine; use the inspection commands above to
 identify whether chezmoi or explicit local setup owns each one before editing.
+
+Editing these sources updates the content reached by their symlinks. Published
+skill copies follow the separate installation workflow above. Verify the active
+session's loaded instructions and skill metadata before treating a source edit
+as evidence of changed runtime behavior.
 
 ## Bootstrap Order For A New Machine
 

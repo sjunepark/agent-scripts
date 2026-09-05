@@ -4,8 +4,9 @@ Read this guide when a target skill includes `agents/openai.yaml` for Codex.
 
 ## Default
 
-Make the skill manual-only unless the entry point's full implicit-discovery gate
-passes:
+Preserve an existing skill's invocation policy unless changing it is requested.
+For a new skill, use this repository's manual-only default unless the entry
+point's full implicit-discovery gate passes:
 
 ```yaml
 policy:

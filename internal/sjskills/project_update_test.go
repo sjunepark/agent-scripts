@@ -161,7 +161,7 @@ func TestApplyProjectChangesReportsCommittedUpdateOnFinalizationFailure(t *testi
 	}
 }
 
-func TestApplyProjectChangesMixedInstallAndUpdatePreservesUnknown(t *testing.T) {
+func TestApplyProjectChangesMixedInstallAndUpdateQuarantinesUnknown(t *testing.T) {
 	session, _, prior, _ := newApplyFixture(t, []Target{TargetAgents})
 	applyFixture(t, session)
 	unknown := filepath.Join(session.Layout.AgentsSkillsPath, "unknown")
@@ -185,7 +185,7 @@ func TestApplyProjectChangesMixedInstallAndUpdatePreservesUnknown(t *testing.T) 
 	if !reflect.DeepEqual(result.Installed, []AppliedPlacement{{Skill: added.Name, Target: TargetClaude}}) || !reflect.DeepEqual(result.Updated, []AppliedPlacement{{Skill: prior.Name, Target: TargetAgents}}) {
 		t.Fatalf("mixed result = %#v", result)
 	}
-	if content, err := os.ReadFile(filepath.Join(unknown, "keep")); err != nil || string(content) != "keep\n" {
+	if content, err := os.ReadFile(filepath.Join(session.Layout.QuarantinePath, testQuarantineID, "entries", ".agents", "unknown", "keep")); err != nil || string(content) != "keep\n" {
 		t.Fatalf("unknown content = %q err=%v", content, err)
 	}
 	state := readApplyState(t, session)
@@ -432,7 +432,7 @@ func TestApplyProjectChangesQuarantinesRemovedPlacementWithoutMaterialization(t 
 		t.Fatal(err)
 	}
 	makeSessionPlanCurrent(t, session)
-	if session.Materialized != nil || len(session.Plan.Operations) != 1 || session.Plan.Operations[0].Action != PlanActionQuarantine {
+	if session.Materialized != nil || len(session.Plan.Operations) != 2 || session.Plan.Operations[0].Action != PlanActionQuarantine {
 		t.Fatalf("removal session = %#v", session)
 	}
 
@@ -440,7 +440,7 @@ func TestApplyProjectChangesQuarantinesRemovedPlacementWithoutMaterialization(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(result.Quarantined, []AppliedPlacement{{Skill: skill.Name, Target: TargetAgents}}) ||
+	if !reflect.DeepEqual(result.Quarantined, []AppliedPlacement{{Skill: skill.Name, Target: TargetAgents}, {Skill: "unknown", Target: TargetAgents}}) ||
 		len(result.Installed) != 0 || len(result.Updated) != 0 {
 		t.Fatalf("removal result = %#v", result)
 	}
@@ -454,7 +454,7 @@ func TestApplyProjectChangesQuarantinesRemovedPlacementWithoutMaterialization(t 
 		t.Fatalf("quarantined hash = %#v, want %#v", got, oldHash)
 	}
 	manifest := readUpdateManifest(t, session)
-	if manifest.Status != ProjectQuarantineCommitted || len(manifest.Entries) != 1 {
+	if manifest.Status != ProjectQuarantineCommitted || len(manifest.Entries) != 2 {
 		t.Fatalf("removal manifest = %#v", manifest)
 	}
 	entry := manifest.Entries[0]
@@ -474,7 +474,7 @@ func TestApplyProjectChangesQuarantinesRemovedPlacementWithoutMaterialization(t 
 	if len(state.Records) != 0 {
 		t.Fatalf("removed provenance survived: %#v", state)
 	}
-	if data, err := os.ReadFile(filepath.Join(unknown, "keep")); err != nil || string(data) != "keep\n" {
+	if data, err := os.ReadFile(filepath.Join(session.Layout.QuarantinePath, testQuarantineID, "entries", ".agents", "unknown", "keep")); err != nil || string(data) != "keep\n" {
 		t.Fatalf("unknown content = %q err=%v", data, err)
 	}
 }
@@ -546,24 +546,29 @@ func TestApplyProjectChangesMixedInstallUpdateRemoveUsesOneDeterministicManifest
 	}
 }
 
-func TestApplyProjectChangesRefusesModifiedRemovedPlacementBeforeWrites(t *testing.T) {
-	session, _, skill, oldHash := removedApplyFixture(t, []Target{TargetAgents})
+func TestApplyProjectChangesQuarantinesAndRestoresModifiedRemovedPlacement(t *testing.T) {
+	session, _, skill, _ := removedApplyFixture(t, []Target{TargetAgents})
 	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
 	if err := os.WriteFile(filepath.Join(destination, "local"), []byte("changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	observed := hashSkillAt(t, destination)
 	makeSessionPlanCurrent(t, session)
-	if len(session.Plan.Operations) != 1 || session.Plan.Operations[0].Action != PlanActionBlocked {
-		t.Fatalf("modified removal plan = %#v", session.Plan.Operations)
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil {
-		t.Fatal("modified removal unexpectedly applied")
+	if result.Quarantine == nil {
+		t.Fatal("missing quarantine")
 	}
-	if got := hashPlacedSkill(t, session, skill.Name, TargetAgents); got == oldHash {
-		t.Fatal("modified removal unexpectedly retained the old exact hash")
+	if _, err := RestoreProjectQuarantine(context.Background(), session.Layout, result.Quarantine.ID, ApplyDeps{}); err != nil {
+		t.Fatal(err)
 	}
-	if _, err := os.Lstat(session.Layout.QuarantinePath); !os.IsNotExist(err) {
-		t.Fatalf("modified removal created quarantine: %v", err)
+	if got := hashSkillAt(t, destination); got != observed {
+		t.Fatalf("restore lost local changes: %#v", got)
+	}
+	if state := readApplyState(t, session); len(state.Records) != 0 {
+		t.Fatalf("modified copy acquired ownership: %#v", state)
 	}
 }
 

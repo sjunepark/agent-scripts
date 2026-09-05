@@ -1,6 +1,6 @@
 # Authorized Automation Workflow
 
-Use this workflow only when Release Please ownership is verified and the user has explicitly authorized the specific automation or release operation. Apply the version-confirmation gate in `SKILL.md` before every side-effecting step.
+Use this workflow only when Release Please ownership is verified and the user has explicitly authorized the specific automation or release operation. Verify the operation-and-version gate in `SKILL.md` before each side-effecting step; reuse applicable explicit confirmation while both still match.
 
 1. Wait for or inspect the relevant workflow and Release Please PR using the repository's documented tooling.
 2. Review the PR before recommending merge:

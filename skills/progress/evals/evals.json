@@ -327,7 +327,13 @@
     {
       "id": 35,
       "prompt": "Use $progress review to reconstruct this migration's end state, then implement the approved migration and edit production code and tests now.",
-      "expected_output": "The agent may perform the requested read-only end-state review and, after explicit approval, update only planning artifacts. It refuses production-code and test edits because the progress review workflow does not authorize implementation, and routes that work to a separate implementation request.",
+      "expected_output": "The agent completes the read-only end-state review and any authorized planning updates, then returns through the progress entry point to implement the already approved migration. It recovers the effective goal and boundaries before editing production code and tests; it does not require the user to repeat the implementation request. Unresolved consequential decisions block only dependent work, and no additional commit, push, or publication authority is inferred.",
+      "files": []
+    },
+    {
+      "id": 36,
+      "prompt": "Use $progress review to reconstruct this migration's end state and recommend the next step. This is a review-only request.",
+      "expected_output": "The agent reviews read-only and reports the end state, evidence, and recommendations. It does not edit production code or tests, change the current phase, or start implementation or delivery merely because the plan contains actionable work. It asks only for consequential missing information.",
       "files": []
     }
   ]

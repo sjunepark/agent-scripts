@@ -49,7 +49,10 @@ This skill is explanatory. Explain syntax, line-by-line execution, or how to wri
 
 ## Output shape
 
-For a whole-application orientation, use the output shape in [guides/whole-application.md](guides/whole-application.md). For a focused target, use this shape unless the user asks for something else.
+For a whole-application orientation, use the output shape in [guides/whole-application.md](guides/whole-application.md).
+For changes, use [guides/changes.md](guides/changes.md). For other focused targets,
+use the elements below only when they help; combine or omit sections for small
+targets and honor the user's requested format.
 
 ### Big Picture
 

@@ -44,6 +44,7 @@ const (
 	ProjectStateReasonPreviouslyManagedModified   ProjectStateReason = "previously-managed-modified"
 	ProjectStateReasonUnmanagedMisplacedPreserved ProjectStateReason = "unmanaged-misplaced-preserved"
 	ProjectStateReasonUnmanagedEntryPreserved     ProjectStateReason = "unmanaged-entry-preserved"
+	ProjectStateReasonNotDesired                  ProjectStateReason = "not-desired"
 	ProjectStateReasonProvenanceUntrusted         ProjectStateReason = "provenance-untrusted"
 	ProjectStateReasonManualManager               ProjectStateReason = "manual-manager"
 	ProjectStateReasonWorkflowManager             ProjectStateReason = "workflow-manager"
@@ -140,6 +141,9 @@ func classifyManagedState(boundary, statePath string, stateTrusted bool, desired
 	for _, target := range []Target{TargetAgents, TargetClaude} {
 		root := rootsByTarget[target]
 		if !root.Safe {
+			result.States = append(result.States, ProjectState{Kind: ProjectStateProtected,
+				Action: PlanActionBlocked, Target: target, Path: root.Path,
+				Reason: ProjectStateReasonRootUnavailable})
 			continue
 		}
 		entries := append([]InventoryEntry(nil), root.Entries...)
@@ -259,59 +263,45 @@ func classifyCopyPlacement(state *ProjectState, skill DesiredSkill, root Project
 	state.Reason = ProjectStateReasonLocalModification
 }
 
+// Removal authority comes from the selected directory's desired set. Provenance
+// is retained only when it describes the actual bytes, so restore never adopts
+// an unknown or locally edited copy as a verified installation.
 func classifyRemovedManagedEntry(entry InventoryEntry, record ProvenanceRecord) ProjectState {
-	state := ProjectState{
-		Target:         entry.Target,
-		Skill:          entry.Name,
-		Path:           entry.Path,
-		Manager:        ManagerSkillsCLI,
-		SourceIdentity: record.SourceIdentity,
-		Expected:       treeHashPointerFromRecord(record),
-	}
-	if entry.Problem == "" && entry.Kind == InventoryEntryDirectory && entry.Hash != nil {
-		state.Current = cloneTreeHashPointer(entry.Hash)
-		if treeHashMatchesRecord(*entry.Hash, record) {
+	state := classifyUnownedObservedEntry(entry, nil)
+	if state.Action == PlanActionQuarantine {
+		state.SourceIdentity = removalSourceIdentity(record, true, *entry.Hash)
+		if state.SourceIdentity != "" {
 			state.Kind = ProjectStateOutdated
-			state.Action = PlanActionQuarantine
 			state.Reason = ProjectStateReasonPreviouslyManagedNotDesired
-			return state
+		} else {
+			state.Kind = ProjectStateModified
+			state.Reason = ProjectStateReasonPreviouslyManagedModified
 		}
 	}
-	state.Kind = ProjectStateModified
-	state.Action = PlanActionBlocked
-	state.Reason = ProjectStateReasonPreviouslyManagedModified
 	return state
 }
 
-func classifyUnownedObservedEntry(entry InventoryEntry, desiredByName map[string]DesiredSkill) ProjectState {
-	state := ProjectState{
-		Target: entry.Target,
-		Skill:  entry.Name,
-		Path:   entry.Path,
-	}
-	if entry.Problem != "" || entry.Kind != InventoryEntryDirectory || entry.Hash == nil {
+func classifyUnownedObservedEntry(entry InventoryEntry, _ map[string]DesiredSkill) ProjectState {
+	state := ProjectState{Target: entry.Target, Skill: entry.Name, Path: entry.Path,
+		Manager: ManagerSkillsCLI, Current: cloneTreeHashPointer(entry.Hash)}
+	if !isPortableName(entry.Name) || entry.Problem != "" || entry.Kind != InventoryEntryDirectory || entry.Hash == nil {
 		state.Kind = ProjectStateMalformed
 		state.Action = PlanActionBlocked
-		state.Reason = ProjectStateReasonMalformedEntryPreserved
-		state.Current = cloneTreeHashPointer(entry.Hash)
-		return state
-	}
-	if desired, known := desiredByName[entry.Name]; known {
-		state.Kind = ProjectStateMisplaced
-		state.Action = PlanActionUnchanged
-		state.Manager = desired.Manager
-		if desired.Manager == ManagerSkillsCLI {
-			state.SourceIdentity, _ = canonicalProjectSourceIdentity(desired.Source)
-		}
-		state.Reason = ProjectStateReasonUnmanagedMisplacedPreserved
-		state.Current = cloneTreeHashPointer(entry.Hash)
+		state.Reason = ProjectStateReasonCurrentEntryUnverifiable
 		return state
 	}
 	state.Kind = ProjectStateUnmanaged
-	state.Action = PlanActionUnchanged
-	state.Reason = ProjectStateReasonUnmanagedEntryPreserved
-	state.Current = cloneTreeHashPointer(entry.Hash)
+	state.Action = PlanActionQuarantine
+	state.Reason = ProjectStateReasonNotDesired
+	state.Expected = cloneTreeHashPointer(entry.Hash)
 	return state
+}
+
+func removalSourceIdentity(record ProvenanceRecord, exists bool, current TreeHash) string {
+	if exists && treeHashMatchesRecord(current, record) {
+		return record.SourceIdentity
+	}
+	return ""
 }
 
 func validateProjectClassificationInputs(desired DesiredState, expected map[string]TreeHash, inventory ProjectInventory) (map[string]DesiredSkill, map[string]TreeHash, map[string]ProvenanceRecord, map[Target]ProjectSkillsRootInventory, []Issue) {

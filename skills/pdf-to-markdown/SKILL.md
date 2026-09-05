@@ -14,14 +14,14 @@ them.
 
 1. Resolve each source PDF and intended output path. Process multiple PDFs one
    at a time so each result can be validated independently.
-2. If the intended output exists, stop before conversion. Do not replace it or
-   invent an alternate destination. Pass `--overwrite` only after the user
-   explicitly authorizes replacing that exact file; use another path only when
-   the user selects or approves it.
-3. Check for the `xberg` executable. If it is missing, show the current official
-   installation method for the host platform and request approval before
-   installing it. Do not run an install script, package manager, or model
-   download prewarming without approval.
+2. If the intended output exists, use `--overwrite` only when the user has
+   explicitly authorized replacing that exact file. If that authority is
+   missing, stop before conversion. Do not invent an alternate destination;
+   use another path only when the user selects or approves it.
+3. Check for the `xberg` executable. If it is missing, identify the current
+   official installation method for the host platform and use applicable user
+   approval, requesting it only when absent. Do not run an install script,
+   package manager, or model download prewarming beyond that approval.
 4. Resolve `scripts/convert_pdf.py` relative to this `SKILL.md` and run:
 
    ```bash
