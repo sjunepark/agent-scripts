@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -55,8 +56,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(global.Skills) != 10 {
-		t.Fatalf("global baseline = %d, want 10", len(global.Skills))
+	if len(global.Skills) != 9 {
+		t.Fatalf("global baseline = %d, want 9", len(global.Skills))
 	}
 	if got := global.Skills[0].Name; got != "brainstorming" {
 		t.Fatalf("first global skill = %q", got)
@@ -73,8 +74,8 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 16 {
-		t.Fatalf("dev+go skills = %d, want 16", len(state.Skills))
+	if len(state.Skills) != 15 {
+		t.Fatalf("dev+go skills = %d, want 15", len(state.Skills))
 	}
 	for _, skill := range state.Skills {
 		if skill.Scope != ScopeProject {
@@ -111,7 +112,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 17 {
+	if len(state.Skills) != 16 {
 		t.Fatalf("canonical desired state = %#v", state)
 	}
 	var direct *DesiredSkill
@@ -128,6 +129,8 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 
 func TestBuildPlanKeepsWarningsAndEvidenceAtPureBoundary(t *testing.T) {
 	registry := fixtureRegistry(t)
+	registry.Profiles["dev"] = Profile{Skills: append(registry.Profiles["dev"].Skills, "context7-mcp")}
+	slices.Sort(registry.Profiles["dev"].Skills)
 	manifest := fixtureManifest(t, "dev-go.toml")
 	plan, err := BuildPlan(ResolveRequest{Registry: registry, Manifest: &manifest})
 	if err != nil {
@@ -157,6 +160,8 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	}
 
 	registry := fixtureRegistry(t)
+	registry.Profiles["dev"] = Profile{Skills: append(registry.Profiles["dev"].Skills, "context7-mcp")}
+	slices.Sort(registry.Profiles["dev"].Skills)
 	dev := fixtureManifest(t, "dev-go.toml")
 	state, err = ResolveProject(registry, dev)
 	if err != nil {

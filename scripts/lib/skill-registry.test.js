@@ -59,8 +59,7 @@ test("version 4 resolves one fixed global baseline with target exceptions", () =
       "next-goal",
       "pdf-to-markdown",
       "progress",
-      "sjskills",
-      "skills-cli"
+      "sjskills"
     ]
   );
   assert.deepEqual(entries.find((entry) => entry.name === "codex-cleanup").targets, [".agents"]);

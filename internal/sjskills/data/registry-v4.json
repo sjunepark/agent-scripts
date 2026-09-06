@@ -17,8 +17,7 @@
       "next-goal",
       "pdf-to-markdown",
       "progress",
-      "sjskills",
-      "skills-cli"
+      "sjskills"
     ]
   },
   "profiles": {
@@ -28,7 +27,6 @@
         "agents-md-writer",
         "code-review",
         "context7-cli",
-        "context7-mcp",
         "create-pr",
         "delegate",
         "delegate-ui-to-claude",
