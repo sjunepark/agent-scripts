@@ -88,9 +88,6 @@
     "codex-cleanup": [
       ".agents"
     ],
-    "delegate": [
-      ".agents"
-    ],
     "delegate-ui-to-claude": [
       ".agents"
     ],
