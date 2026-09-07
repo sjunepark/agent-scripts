@@ -11,12 +11,13 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 
 1. Inspect the PR surface before opening anything.
    - Check current branch, upstream, uncommitted changes, existing PR status, base branch evidence, relevant diff, commits, and validation output.
-   - If intended PR changes are uncommitted, use existing authorization for the exact commit scope. If that authority is missing, inspect and validate the intended diff and prepare the PR draft before asking whether to commit it. Preserve unrelated changes.
+   - A request to create or update a PR authorizes the scoped commits and push needed to publish its intended changes, unless the user limits the task to drafting or inspection. Reuse earlier authority and preserve unrelated changes. If the intended diff or publication target is materially unclear, inspect and validate the candidate diff and prepare the PR draft before asking about that boundary.
    - If a PR already exists for the branch, update it instead of creating a duplicate.
    - For a stacked PR, read
      [workflows/stacked-prs.md](workflows/stacked-prs.md) before creating or
-     retargeting branches or PRs. Confirm the integration branch, parent
-     sequence, and landing order before proceeding.
+     retargeting branches or PRs. Verify the integration branch, parent
+     sequence, and landing order from repository evidence and existing instructions;
+     ask only when a material choice remains unresolved.
 
 2. Draft the PR from evidence.
    - Use the repo's PR template when present, but remove irrelevant prompts.

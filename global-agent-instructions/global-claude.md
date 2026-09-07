@@ -12,16 +12,20 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Scope and Follow-through
 
-- Complete action requests within their authorized scope, using context for
-  routine choices. Ask only about material uncertainty that evidence cannot resolve.
+- Complete the requested outcome, including necessary intermediate actions
+  reasonably implied by the task. Make routine implementation choices independently.
+- Reuse applicable authorization and delegated decision authority from the
+  conversation. Do not ask again unless material changes exceed that authority.
+- Ask only when missing information or an unresolved authority boundary materially
+  changes the outcome or consequences and cannot be resolved from evidence or
+  delegated judgment. Finish independent authorized work first and make the
+  remaining decision concrete.
 - Apply new instructions and answer side questions without dropping the active
   task unless the user cancels or replaces it.
-- Follow user instructions and reuse applicable session approvals in skill steps.
-  Skills grant no extra access or authority for destructive actions, external
-  writes, or unrelated changes.
-- Before a necessary decision, finish independent authorized work and present a
-  concrete result. If a skill blocks or redirects work, link the exact `SKILL.md`
-  read, quote the rule, and distinguish it from your interpretation.
+- Apply skills within the user's instructions and existing authority. Skills do
+  not expand scope or override tool permissions. If a skill blocks or redirects
+  work, link the exact `SKILL.md` read, quote the rule, and distinguish it from
+  your interpretation.
 
 ## Subagents
 
@@ -78,9 +82,10 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Change Management
 
-- Treat unrelated working-tree changes as intentional.
-- Do not delete, reset, restore, checkout, or clean up files you did not create
-  without explicit confirmation.
+- Preserve unrelated work and uncommitted changes. Scoped edits and deletions
+  needed for the authorized task may affect existing files; who created a file
+  does not determine authority. Ask before discarding uncommitted work unless
+  the user has already authorized that exact discard.
 - Persist important decisions in docs or code comments where the decision
   affects future maintenance.
 - Prefer enforcing recurring agent mistakes with types, schemas, lint rules,

@@ -24,8 +24,8 @@ Prefer inspection that does not alter configuration or delete data:
   or hard drive. A critical warning means back up first and stop cleanup work;
   the absence of a warning does not prove every device is healthy.
 
-Announce and obtain confirmation before heavier diagnostics even when they are
-non-repairing:
+Explain the cost and effects of heavier diagnostics before running them. Use
+applicable diagnostic authority; ask only when their load or effects exceed it:
 
 - `perfmon /report` collects a System Diagnostics report and consumes resources.
 - `sfc /verifyonly` verifies protected system files without repairing them.
@@ -40,7 +40,12 @@ non-repairing:
 Never interpret a single warning, process sample, or apparent folder size as a
 cause. Correlate it with the reported symptom and repeatable resource evidence.
 
-## Every mutation requires an exact preview and confirmation
+## Verify exact targets, effects, and authority before mutation
+
+Apply the entry point's authority rules to every operation below. A current or
+earlier request can already cover an action and its consequences; verification
+and preview do not require a separate approval turn. Keep consequential effects
+distinct so broad cleanup authority does not silently include them.
 
 ### Storage
 
@@ -50,8 +55,8 @@ cause. Correlate it with the reported symptom and repeatable resource evidence.
   system categories whose consequences must be reviewed separately.
 - Treat Downloads, Recycle Bin, Desktop, personal folders, browser profiles,
   application data, virtual machines, development environments, and local
-  backups as user data. Inventory exact targets and obtain explicit deletion
-  confirmation.
+  backups as user data. Inventory exact targets and verify specific deletion
+  authority; ordinary temporary-file cleanup does not cover them.
 - Storage Sense changes persistent policy. Preview its schedule, Recycle Bin and
   Downloads age settings, and cloud-content behavior before enabling or running
   it. It normally applies only to the system drive. On Windows 11 22H2 and later,
@@ -62,7 +67,7 @@ cause. Correlate it with the reported symptom and repeatable resource evidence.
   network access and cloud availability. Prefer **Free up space** over deletion;
   ordinary deletion in a synced folder normally propagates to OneDrive.
 - Delete `Windows.old` only through the supported Storage or cleanup surface,
-  after the user confirms that rollback and file recovery are no longer needed.
+  only when authority covers losing rollback and file recovery.
   This is irreversible and normally removes the time-limited **Go back** option.
 
 ### Startup apps, installed apps, power, updates, and scans
@@ -74,15 +79,16 @@ cause. Correlate it with the reported symptom and repeatable resource evidence.
   availability, license or account requirements, and reversal. Repairing a
   malfunctioning app may be more appropriate than removing it.
 - Changing power mode trades energy use, battery life, heat, and fan noise for
-  performance. Keep the observed mode unless the user confirms an explained
-  change; Balanced is the neutral default.
+  performance. Keep the observed mode unless applicable authority covers that
+  tradeoff; Balanced is the neutral default.
 - Inspect update history before checking for new updates. Checking, downloading,
   installing Windows or optional driver updates, and restarting are distinct
-  confirmed actions. Do not install third-party driver-updater software.
+  actions requiring applicable authority. Do not install third-party
+  driver-updater software.
 - A Defender Quick, Full, Custom, or Offline scan consumes resources and can
   quarantine or remove detections under current policy. Preview scan type and
   likely duration. Offline Scan always restarts into Windows Recovery
-  Environment, so require saved work and separate restart confirmation.
+  Environment, so require saved work and authority covering the restart.
 
 ### Drives, components, and system repair
 
@@ -93,10 +99,10 @@ cause. Correlate it with the reported symptom and repeatable resource evidence.
 - Prefer Windows’ scheduled component servicing. The supported
   `schtasks.exe /Run /TN "\Microsoft\Windows\Servicing\StartComponentCleanup"`
   task retains superseded components for a grace period but still mutates system
-  state and requires confirmation.
+  state and requires applicable cleanup authority.
 - `DISM.exe /Online /Cleanup-Image /StartComponentCleanup` immediately removes
   superseded component versions without the normal scheduled grace period. Use
-  only when component analysis justifies it and the user confirms that specific
+  only when component analysis justifies it and authority covers that specific
   consequence.
 - Treat `DISM.exe /Online /Cleanup-Image /RestoreHealth` followed by
   `sfc /scannow` as a diagnosed corruption repair, not a generic speed boost.
@@ -104,7 +110,7 @@ cause. Correlate it with the reported symptom and repeatable resource evidence.
   prerequisites; do not interrupt them.
 - Treat `chkdsk /f`, `/r`, `/x`, or `/b` as repair operations that can change the
   volume and require a restart or offline lock. Do not escalate from status-only
-  inspection without a separate diagnosis, backup check, and confirmation.
+  inspection without a diagnosis, backup check, and applicable repair authority.
 
 Before nontrivial system repair or a consequential system-setting change,
 verify a current personal-file backup and consider System Protection. A restore

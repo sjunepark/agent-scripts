@@ -1,14 +1,14 @@
 ---
 name: macos-storage-cleanup
-description: "Audit and safely reclaim local macOS storage through measured, itemized proposals and separately confirmed actions. Explicit invocation only; use when the user names $macos-storage-cleanup for low disk space, broad Storage categories, large files, application caches, developer package caches or build artifacts, containers, cloud-local files, device backups, or local snapshots. Do not use for Windows cleanup, Codex-owned task and database cleanup, disk repair, malware response, device reset, secure erasure, or blind deletion of System Data."
+description: "Audit and safely reclaim local macOS storage through measured targets and authorized actions. Explicit invocation only; use when the user names $macos-storage-cleanup for low disk space, broad Storage categories, large files, application caches, developer package caches or build artifacts, containers, cloud-local files, device backups, or local snapshots. Do not use for Windows cleanup, Codex-owned task and database cleanup, disk repair, malware response, device reset, secure erasure, or blind deletion of System Data."
 compatibility: "Requires macOS and read-only filesystem, process, and command inspection; optional cleanup requires the supported owning app or CLI."
 ---
 
 # macOS Storage Cleanup
 
-Measure what occupies local storage, rank actionable candidates, and stop with an
-exact proposal. Execute an action only after the user gives fresh consent to the
-displayed target and operation.
+Measure what occupies local storage, identify exact targets and effects, and
+complete authorized cleanup. Stop with an itemized proposal for choices that
+remain outside the user's request or delegated authority.
 
 When invoked without a narrower scope, default to a read-only staged audit of the
 startup volume and current user's data. Do not scan other users, request Full
@@ -20,21 +20,22 @@ Disk Access, run an intensive whole-filesystem traversal, or change anything.
   Trash, deleting a cache, pruning a store, uninstalling software, stopping a
   process, changing a retention setting, removing a local cloud copy, deleting a
   snapshot, or running a command that garbage-collects data is a state change.
-- Treat an initial request such as “clean my Mac,” “remove JetBrains caches,” or
-  “free as much space as possible” as authority to inspect that scope and propose
-  actions. It is not deletion consent. After the preview, obtain fresh consent
-  for exact row identifiers or exact target-and-operation pairs.
-- A category name, aggregate size, or phrase such as “remove them” is not an
-  itemized preview or valid execution consent. Preview exact resolved targets and
-  exact operations in one turn, then wait for a subsequent user turn to approve
-  those rows. Never preview and mutate in the same turn.
-- Never expand an approval. A JetBrains-only request does not authorize cleaning
-  `uv`, npm, pnpm, Bun, Docker, Xcode, or any other category. A displayed list may
-  be approved together, but do not add undisclosed descendants, caches, flags,
-  Trash contents, or follow-up actions.
-- Re-preview and reconfirm when a path resolves differently, becomes a symlink,
-  its contents or size change materially, an owning process resumes, sync state
-  changes, or the supported cleanup command differs from the preview.
+- Use the current request and applicable earlier authority. “Remove JetBrains
+  caches” authorizes verified regenerable JetBrains caches, including resolving
+  exact product/version paths; it does not require a second user turn. Honor
+  explicit delegation to choose cleanup candidates within its stated limits.
+- A broad “clean my Mac” or “free as much space as possible” leaves data-retention
+  choices unresolved. Inspect and propose those choices before deleting. A clear
+  “remove them” can authorize previously identified targets; resolve ambiguous
+  referents from context or ask when materially different targets remain.
+- Preserve scope: a JetBrains-only request does not authorize other categories.
+  Settings, plugins, Local History, user files, backups, container volumes, and
+  unrelated Trash contents are not implied by cache-cleanup authority. Verify
+  command flags and descendants stay within the authorized data effects.
+- Recheck changed paths, symlinks, contents, processes, sync state, and command
+  behavior before mutation. Restore safe preconditions within existing authority;
+  ask again only when the changed target or effects exceed that authority. Never
+  transfer approval through an unexpected symlink.
 - Work without elevation during discovery. Treat macOS privacy or permission
   errors as **not inspected**; report them instead of bypassing them. Full Disk
   Access or elevation is a separate user decision, not a routine prerequisite.
@@ -113,27 +114,30 @@ Give every proposed action a stable row identifier and all of these fields:
 
 Keep user files, Trash, synced data, backups, snapshots, archives, container
 volumes, IDE Local History, Xcode archives, and project dependency trees as
-separate rows. End the preview by asking which exact rows the user approves.
-If the answer does not unambiguously select displayed rows or repeat exact
-target-and-operation pairs, ask again and do not mutate anything.
+separate rows. Show the exact resolved targets and operations before execution;
+already-authorized rows may proceed in the same turn after verification. Ask
+only about rows whose targets or effects are not covered by existing authority.
+An unresolved row does not block independent authorized rows.
 
-## Apply only confirmed rows
+## Apply authorized rows
 
 1. Immediately before each action, re-resolve the target without following an
    unexpected symlink, remeasure it, verify its owner and filesystem, and check
-   required process, sync, backup, and free-space gates. Re-preview on drift.
+   required process, sync, backup, and free-space gates. Reassess authority on drift.
 2. Use the supported owning app or CLI with exactly the previewed flags. Prefer
    the narrowest reversible mechanism. Never substitute a broad recursive
    deletion because a supported cleanup action is unavailable or slow.
 3. Apply one row at a time. Capture the command or app result and remeasure free
    space before starting another row. Stop that branch on an error or unexpected
    effect; do not escalate to force flags, permissions changes, a wider target,
-   or permanent deletion without another preview and confirmation.
+   or permanent deletion beyond the authorized operation.
 4. Treat Trash as storage, not completion. Moving an exact item to Trash is one
-   confirmed action; permanently emptying those exact items is another. Never
-   empty unrelated Trash contents to realize an estimate.
-5. Do not restart an app or the Mac without separate confirmation after saving
-   work. Do not schedule an unattended destructive command.
+   authorized action; permanently emptying those exact items needs its own
+   applicable authority. Never empty unrelated Trash contents to realize an estimate.
+5. Preserve unsaved work before stopping or restarting an app or the Mac. Proceed
+   only when the interruption is covered by existing authority; otherwise ask
+   after showing its effect. Do not infer permission to schedule future cleanup
+   from a request to clean now.
 
 ## Verify and finish
 
@@ -146,7 +150,7 @@ The task is complete when either:
 
 - the read-only audit and itemized proposal have been delivered with no state
   change; or
-- every confirmed row has been applied and verified, with all unconfirmed rows
+- every authorized row has been applied and verified, with all unauthorized rows
   and unrelated data unchanged.
 
 Never claim cleanup succeeded solely because a command exited successfully.

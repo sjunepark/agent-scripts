@@ -6,8 +6,8 @@ description: "Diagnose why a Windows PC feels slower and cautiously reclaim stor
 # Windows Cleanup
 
 Find the measured cause of a slowdown before trying to clean it. Keep assessment
-read-only, preview exact targets and consequences, obtain confirmation for every
-state change, use a supported Windows mechanism, and verify the result.
+read-only, preview exact targets and consequences, execute within applicable
+authority using supported Windows mechanisms, and verify the result.
 
 When invoked without a narrower symptom or requested action, default to a
 read-only orientation and baseline: identify the Windows version and management
@@ -24,16 +24,17 @@ after reporting the findings and an itemized plan that awaits confirmation.
   lifecycle. State that free support for ordinary Windows 10 editions ended on
   October 14, 2025, while enrolled ESU devices and some LTSC editions have
   different security-update timelines. Cleanup cannot change that lifecycle.
-- Treat a broad request such as “clean this PC” as authority to assess and plan,
-  not to delete or reconfigure. After the preview, obtain explicit confirmation
-  for every exact state-changing action. A confirmation may approve a displayed
-  list; never add an undisclosed action to it.
-- Work without elevation for discovery. Elevate only the confirmed operation
+- Reuse the current request, earlier authorization, and delegated choices. A
+  specific requested action may proceed after verification without another user
+  turn. A broad “clean this PC” leaves deletion and configuration choices
+  unresolved; inspect and propose them unless the user delegated those choices.
+  Keep every target and effect within that authority.
+- Work without elevation for discovery. Elevate only the authorized operation
   that requires it, immediately before execution. Never disable UAC or run the
   whole workflow elevated.
 - Preserve user data, credentials, security controls, backup and sync software,
   VPNs, accessibility tools, hardware-support services, restore points, and
-  rollback options unless the user separately approves a justified change.
+  rollback options unless applicable specific authority covers a justified change.
 - Never install or run a registry cleaner, “optimizer,” debloater, or third-party
   bulk driver updater. Never recursively delete from Windows-owned or
   application-managed directories because a name or size makes the contents
@@ -73,9 +74,9 @@ version-sensitive Microsoft references.
    treat Windows Storage's red capacity bar as low free space, not proof of drive
    failure. Do not infer that every warning in Event Viewer caused the slowdown
    or that no drive-health warning proves a SATA drive is healthy.
-5. Ask before any resource-intensive diagnostic, including a Defender scan,
-   performance report, component-store scan, or CHKDSK inspection. Explain its
-   duration, load, possible restart, and whether it can remediate automatically.
+5. Before a resource-intensive diagnostic, explain its duration, load, possible
+   restart, and whether it can remediate automatically. Proceed when the request
+   or delegated diagnostic authority covers those effects; otherwise ask.
 
 ## Diagnose before proposing cleanup
 
@@ -113,14 +114,16 @@ into a generic temporary-files approval. Explain that disabling startup does not
 uninstall an app, while uninstalling may remove local app data and can require an
 installer, license, or account to reverse.
 
-Request confirmation for previewed actions that are not already confirmed.
-An unresolved action blocks its dependent work; independent confirmed actions
-may proceed after their own prerequisites pass.
+Ask only about previewed actions whose targets or effects exceed existing
+authority. Already-authorized actions may proceed in the same turn. An unresolved
+action blocks its dependent work; independent authorized actions may proceed
+after their own prerequisites pass.
 
-## Apply only the confirmed actions
+## Apply authorized actions
 
 1. Re-read the live setting or target immediately before mutation and stop if it
-   differs materially from the preview.
+   differs materially from the preview. Reassess the target, effects, and safe
+   preconditions; ask again only when the change exceeds existing authority.
 2. Prefer the smallest evidence-backed and most reversible supported mechanism:
    Settings storage surfaces before raw file operations; disabling a measured
    nonessential startup entry before uninstalling its app; OneDrive **Free up
@@ -133,9 +136,9 @@ may proceed after their own prerequisites pass.
    ownership changes, ACL changes, forced deletion, or a broader repair.
 5. Treat SFC, DISM repair, CHKDSK repair, component cleanup, Windows Update,
    Defender scans, power changes, hibernation changes, and drive optimization as
-   separate confirmed actions—not routine steps in every cleanup.
-6. Restart only after explicit confirmation. Save work first and state why the
-   restart is required.
+   distinct actions requiring applicable authority, not routine cleanup steps.
+6. Save work and explain a required restart. Proceed when existing authority
+   covers its interruption; otherwise ask before restarting.
 
 ## Verify the outcome
 
@@ -143,12 +146,13 @@ Repeat the relevant baseline under the same workload and after the same boot
 stage when possible. Compare exact free space, startup behavior, and resource
 pressure; inspect new Defender, Update, Reliability, or operation results only
 where relevant. Restore a reversible setting if the intended benefit did not
-materialize and the user confirms the rollback.
+materialize, the prior state is still safe, and the authorized change includes
+that restoration; otherwise propose the rollback before applying it.
 
 Finish by reporting:
 
 - findings and their evidence;
-- confirmed actions completed and exact settings or targets retained;
+- authorized actions completed and exact settings or targets retained;
 - measured results, separately from estimates;
 - restarts, recovery artifacts, or online-only files created;
 - failures, skipped actions, and risks that remain;

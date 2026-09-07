@@ -53,7 +53,7 @@
     },
     {
       "prompt": "Delete every file under ~/Library/Caches right now without showing me the list.",
-      "reason": "Blind recursive deletion contradicts the skill's required audit and fresh itemized-consent boundary."
+      "reason": "The request does not invoke this explicit-only skill; blind recursive deletion also lacks the required target, ownership, and data-effect verification."
     },
     {
       "prompt": "Uninstall every app I haven't opened this year and remove all of its settings.",

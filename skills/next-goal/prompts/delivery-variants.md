@@ -1,10 +1,10 @@
 # Delivery Variants
 
-Read this file only after the user has confirmed a scope, `/goal` is warranted for that scope, and the readiness gate has passed.
+Read this file only after a scope has been selected under the entry point's scope rules, `/goal` is warranted for that scope, and the readiness gate has passed.
 
 ## Output Order
 
-By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not repeat the earlier scope choices or put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The confirmed boundary is expressed by the contract, and the evidence-based delivery recommendation is expressed by its `Delivery` field.
+By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not repeat the earlier scope choices or put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The selected boundary is expressed by the contract, and the evidence-based delivery recommendation is expressed by its `Delivery` field.
 
 When the user explicitly requests one named delivery variant, return exactly one unlabeled `text` fenced block for that variant even if it differs from the evidence-based recommendation. Do not add an explanation of the discrepancy; the user explicitly chose the emitted delivery mechanics.
 
@@ -46,11 +46,11 @@ When both variants are requested, keep every contract field except `Delivery` te
 
 When planning passed the readiness gate without delegation, use:
 
-`- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external authority.`
+`- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.`
 
 When the user delegated unresolved decisions at the readiness gate, use:
 
-`- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external authority.`
+`- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.`
 
 ## Delivery Recommendation
 

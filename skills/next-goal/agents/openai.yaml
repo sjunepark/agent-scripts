@@ -1,7 +1,7 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Recommend substantial goal scopes for user selection"
-  default_prompt: "Use $next-goal to present the evidence-backed substantial scope choices, recommend one, and pause for my confirmation before generating any /goal prompt. After I choose, apply the readiness gate; return the copy-ready routing envelope if it passes, or ask for delegation or planning repair if it does not."
+  short_description: "Select substantial goals within delegated authority"
+  default_prompt: "Use $next-goal to select the best evidence-backed substantial scope using my existing direction or your judgment. Apply the readiness gate and return the copy-ready routing envelope; ask only for material decisions outside that authority or for planning repair when needed."
 
 policy:
   allow_implicit_invocation: false
