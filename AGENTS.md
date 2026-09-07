@@ -137,11 +137,12 @@
 - Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
 - Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
 - Do not run `sjskills apply --global` or global restore against a real home
-  as repository validation. Real-machine rollout requires a separate reviewed,
-  evidence-bound plan and explicit authorization. Global apply also requires
-  the reviewed JSON artifact through `--approved-plan` and its approved digest
-  through `--approved-plan-sha256`; those flags bind evidence but do not grant
-  authorization.
+  as repository validation. A user-requested `sjskills` sync authorizes the
+  configured scopes under `skills/sjskills/SKILL.md`; the agent reviews the
+  plans and may use `--yes` without another approval turn. Global apply still
+  requires the reviewed JSON artifact through `--approved-plan` and its digest
+  through `--approved-plan-sha256`. Preserve provenance, current-tree, and
+  filesystem checks; those flags bind evidence rather than expanding scope.
 - Restore project or global quarantines only with the identifier reported by
   `sjskills`; restoration refuses to overwrite an active path.
 

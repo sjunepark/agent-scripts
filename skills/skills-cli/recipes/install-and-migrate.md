@@ -41,12 +41,12 @@ full_depth = true
 
 Treat `.sjskills/`, `.agents/skills/`, and `.claude/skills/` as generated
 machine-local state only after reviewing any content already committed at
-those paths. Unknown entries are preserved. Unmanaged desired paths, locally
-modified managed trees, unsafe filesystem boundaries, and untrusted provenance
-block the affected change.
+those paths. Verifiable undeclared directories move into recoverable quarantine,
+including unknown or modified copies. Unmanaged or locally modified desired
+paths, unsafe filesystem boundaries, and untrusted provenance block apply.
 
-An update or removal moves the trusted prior tree into manifest-backed
-quarantine and prints an opaque identifier. Retain it through a normal work
+An update or removal moves the prior tree into manifest-backed quarantine with
+its applicable provenance and prints an opaque identifier. Retain it through a normal work
 cycle. Restore refuses to overwrite:
 
 ```bash
@@ -76,13 +76,14 @@ sjskills apply --global \
 sjskills restore --global <quarantine-id>
 ```
 
-Before a real-machine apply, require a separately reviewed evidence-bound plan
-and explicit authorization. The approval must name the exact plan SHA-256;
-global apply rejects missing or changed approval evidence and recomputes the
-complete plan before prompting or mutation. `sjskills` never adopts a
+For a requested configured sync, the agent prepares and reviews the evidence;
+no separate user approval of the plan hash is required. Use one verified
+executable throughout, and use `--yes` when the request already authorizes apply.
+Global apply rejects missing or changed evidence and recomputes the complete
+plan before mutation. `sjskills` never adopts a
 preexisting desired tree from byte equality alone and has no force-adopt or
-force-replace flag. Former profile placements and legacy Pi copies remain
-report-only.
+force-replace flag. Former profile placements inside managed roots are
+undeclared extras; legacy Pi copies remain outside reconciliation.
 
 ## Publish before reconciliation
 

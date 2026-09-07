@@ -1,8 +1,10 @@
 # Agent authority
 
 Status: source edits, bounded review, scoped documentation harmonization, and
-validation, publication, and project reconciliation complete. Global skill drift
-is inspected but not applied.
+validation, publication, and project reconciliation complete for the initial
+authority edits. The sjskills follow-up has passed bounded review, scoped documentation
+harmonization, skill validation, and the Node and Go suites; publication and
+configured reconciliation are next.
 
 Scope: consolidate task authority in the Codex, Claude, and Pi global defaults;
 remove redundant confirmation from `next-goal`, `create-pr`, and the macOS and
@@ -29,10 +31,11 @@ Windows cleanup skills, including their runtime references and live evaluations.
   all placements unchanged with no warnings or blocks.
 - Retain project quarantine `9b95c14d0107e91ca8e71924429afaa3` through a normal
   work cycle. Restore is a separate operation.
-- Global inspection found only the Codex and Claude `next-goal` updates; global
-  apply awaits its separate evidence-bound authorization. Cleanup skills are
-  outside this project selection and the fixed global baseline. Vendor metadata,
-  backups, plugin caches, and runtime locations remain protected.
+- The follow-up extends sync authority to the configured project manifest and
+  fixed global baseline. The agent prepares and reviews required evidence;
+  provenance, conflict, and filesystem checks remain mandatory. Publication and
+  completion of the pending global updates are next. Cleanup skills remain
+  outside this project selection and the fixed global baseline.
 - The Codex, Claude, and Pi global instruction symlinks resolve to the revised
   sources; active-session reloading remains unverified. See
   [settings sync](../docs/settings-sync.md) for installation boundaries.

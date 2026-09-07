@@ -201,18 +201,20 @@ bin/sjskills plan --global
 Global apply uses trusted provenance only; it does not adopt or replace a
 preexisting desired-path tree merely because the bytes happen to match.
 Verified global updates preserve prior content in manifest-backed quarantine
-under `~/.agents/.sjskills-global/`. Former-profile and other non-baseline
-placements remain report-only in v1. Restore uses the reported identifier and
-refuses to overwrite:
+under `~/.agents/.sjskills-global/`. Verifiable non-baseline placements inside
+managed roots, including former-profile copies, also move into quarantine.
+Legacy Pi and protected locations remain outside reconciliation. Restore uses
+the reported identifier and refuses to overwrite:
 
 ```bash
 bin/sjskills restore --global <quarantine-id>
 ```
 
 Do not put `bin/sjskills apply --global` or global restore into chezmoi bootstrap.
-Those real-home mutations require a separate reviewed, evidence-bound rollout
-plan and explicit authorization. Chezmoi may run the read-only global plan
-after this repo is cloned, but it must not own or copy the generated skill
+A requested sjskills sync supplies authority for its configured scopes; the
+agent reviews and binds global plan evidence under the
+[sjskills workflow](../skills/sjskills/SKILL.md). Chezmoi may run the read-only
+global plan after this repo is cloned, but it must not own or copy the generated skill
 roots. `scripts/audit-global-skills` is only a read-only transition wrapper
 for that plan; its former profile and mutation arguments are retired.
 
@@ -251,8 +253,8 @@ as evidence of changed runtime behavior.
    repo plugins. Configure Pushover credentials locally if installing
    `codex-pushover-notify`.
 7. Run `bin/sjskills plan --global` to inspect managed-root state without
-   changing it. Use [the separate rollout plan](../plans/sjskills-global-rollout.md)
-   for any explicitly authorized global mutation.
+   changing it. Use [the global procedure](../skills/sjskills/references/global-rollout.md)
+   for requested global reconciliation; inspection alone does not authorize apply.
 8. Apply or verify Codex stable config keys.
 9. Re-authenticate other tools locally; do not copy auth files from another
    machine.

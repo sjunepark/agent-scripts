@@ -12,6 +12,10 @@
     {
       "prompt": "Use $sjskills to prepare the fixed global baseline for an evidence-bound rollout.",
       "reason": "Explicitly invokes the skill for its guarded global workflow."
+    },
+    {
+      "prompt": "Use $sjskills to sync the configured project profiles and global baseline.",
+      "reason": "Explicitly invokes configured reconciliation; the request supplies apply authority within those scopes."
     }
   ],
   "near_miss": [

@@ -1,6 +1,6 @@
 interface:
   display_name: "sjskills"
   short_description: "Reconcile project and global skill state"
-  default_prompt: "Use $sjskills to inspect or reconcile the skill state selected by this project's manifest."
+  default_prompt: "Use $sjskills to sync the fixed global baseline and this project's committed manifest when present. Review the plans, apply verified changes within that configured scope, and report the final state."
 policy:
   allow_implicit_invocation: false

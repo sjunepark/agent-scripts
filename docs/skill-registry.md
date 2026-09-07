@@ -127,5 +127,8 @@ replace reviewed expected content after the recheck. Missing evidence, artifact
 substitution, content movement, or inventory drift fails closed.
 
 Real-home global apply, restore, migration, and quarantine are operational
-changes, not repository validation. They require a separate reviewed,
-evidence-bound rollout plan and explicit authorization.
+changes, not repository validation. The [sjskills skill](../skills/sjskills/SKILL.md)
+defines request scope: a configured sync authorizes reconciliation, while the
+agent prepares and reviews the required evidence. No separate human approval of
+hashes or counts is required. Restore still needs its named-quarantine request;
+sync never bypasses provenance, conflict, or filesystem checks.

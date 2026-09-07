@@ -1,6 +1,6 @@
 ---
 name: sjskills
-description: "Operate sjskills to initialize project manifests, inspect or reconcile project skill state, recover quarantined changes, or conduct an explicitly authorized rollout of the fixed global baseline. Explicit invocation only."
+description: "Operate sjskills to initialize project manifests, inspect or sync configured project profiles and the fixed global baseline, or restore named quarantines. Explicit invocation only."
 ---
 
 # sjskills
@@ -30,9 +30,16 @@ change `PATH` unless the user asks.
 
 ## Classify the request
 
+- **Sync configured state:** An unqualified request to sync or reconcile with
+  this skill authorizes both the fixed global baseline and the current project's
+  committed `sjskills.toml`, when present. Honor an explicit project-only,
+  global-only, machine, or preservation limit. If no project manifest exists,
+  reconcile only the global baseline and report that the project is unconfigured;
+  do not initialize it or infer profiles from installed copies.
 - **Explain or inspect:** Use `profiles`, `plan`, or `plan --global`. These are
   read-only with respect to managed roots, although planning may fetch and
-  materialize remote expected content temporarily.
+  materialize remote expected content temporarily. A bare invocation without an
+  action defaults to inspection, not sync.
 - **Adopt a project:** Create `sjskills.toml` only when the user asks to adopt
   or initialize managed project skills. List available profiles first and use
   only profiles the user selected.
@@ -40,13 +47,31 @@ change `PATH` unless the user asks.
   to install, bootstrap, reconcile, or sync the project, then run `plan` again.
 - **Recover project state:** Restore only the exact quarantine identifier the
   user named, and only after confirming every modeled destination is absent.
-- **Inspect or roll out global state:** Default to `plan --global`. For global
-  apply or restore, read [references/global-rollout.md](references/global-rollout.md)
-  and require its separate evidence and authorization.
+- **Global reconciliation or restore:** Read
+  [references/global-rollout.md](references/global-rollout.md) before global
+  mutation. A sync request supplies reconciliation authority; prepare and review
+  the required evidence yourself instead of asking the user to approve hashes.
+  Restore still requires a request identifying the quarantine.
 
 Use the ordinary Skills CLI workflow for direct `bunx skills` discovery or
 ad hoc installs. Use the repository's plugin workflow for Codex plugins. Local
 catalog validation and publication are not reconciliation.
+
+## Use configured authority
+
+The request grants authority; the committed manifest and fixed baseline define
+the desired set. Proceed with verified installs, updates, provenance migration,
+and recoverable quarantine of undeclared copies within that set's managed roots.
+Summarize the reviewed operations before applying, without requiring another
+user turn. Use `--yes` for an already-authorized apply unless the user requests
+an interactive checkpoint. A flag or plan artifact does not create authority.
+
+"Override and sync" can override a redundant approval step; it does not resolve
+unmanaged or modified desired copies, corrupt provenance, unsafe boundaries, or
+failed materialization. Stop the affected scope on those conflicts and explain
+the concrete resolution needed. Do not force-adopt, manually replace roots,
+change profiles, or include another machine to make a plan pass. Complete an
+independent unblocked scope unless the user required an all-or-nothing result.
 
 ## Project workflow
 
@@ -63,10 +88,9 @@ catalog validation and publication are not reconciliation.
 4. Stop before apply when the plan reports an unmanaged or locally modified
    desired copy, malformed or untrusted provenance, an unsafe filesystem
    boundary, an unverifiable extra, failed materialization, or another conflict.
-5. If the user authorized project reconciliation, run `sjskills apply` and
-   keep interactive confirmation unless non-interactive execution was
-   explicitly requested. `--yes` suppresses a prompt; it does not grant
-   authority.
+5. For authorized project reconciliation, run `sjskills apply --yes` after the
+   plan passes review. Honor any explicit request to stop at a preview or keep
+   interactive confirmation.
 6. Run `sjskills plan` again. Do not claim exact state while changes or blocks
    remain. Retain every reported quarantine identifier through a normal work
    cycle.
@@ -96,15 +120,18 @@ Restore does not grant ownership to unknown or locally modified copies. Run
 
 ## Global boundary
 
-`sjskills plan --global` is the ordinary global operation. The baseline is
-fixed and machine-independent; do not select a profile, infer one from the
-hostname, or synthesize Pi-specific copies.
+Global reconciliation uses the fixed, machine-independent baseline. Profiles
+select project skills; do not invent a global profile, infer one from the
+hostname, or synthesize Pi-specific copies. An inspection request runs only
+`sjskills plan --global`; configured sync continues through verified apply.
 
 The `--approved-plan` and `--approved-plan-sha256` flags bind global apply to
-reviewed evidence but do not authorize mutation. Never run global apply or
-restore from general setup, validation, cleanup, or sync authority. Use the
-global rollout reference and stop if any required evidence or exact approval is
-missing.
+the agent-reviewed evidence. Their names do not require a separate human
+approval ceremony: create the artifact, inspect every operation and warning,
+compute its digest, and use the same verified executable through apply and the
+final plan. A sync request covers this work; an audit, repository validation,
+or unrelated setup request does not. Restore and conflict resolution remain
+separate from making the configured desired set exact.
 
 ## Completion
 

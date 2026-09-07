@@ -14,7 +14,7 @@
     {
       "id": 3,
       "prompt": "Use $sjskills to reconcile this project's committed manifest. Review the plan first and preserve anything the tool does not own.",
-      "expected_output": "The skill reviews a read-only plan. If strict sync would quarantine unknown extras, it stops and explains that the requested preservation constraint conflicts with applying that plan. It never claims apply preserves undeclared entries. Conflicts and unsafe boundaries also stop apply; otherwise authorized project apply uses interactive confirmation and a final plan, retaining every quarantine identifier."
+      "expected_output": "The skill reviews a read-only plan. If strict sync would quarantine unknown extras, it stops and explains that the requested preservation constraint conflicts with applying that plan. It never claims apply preserves undeclared entries. Conflicts and unsafe boundaries also stop apply; otherwise authorized project apply may use --yes without another approval turn and follows with a final plan, retaining every quarantine identifier."
     },
     {
       "id": 4,
@@ -24,7 +24,7 @@
     {
       "id": 5,
       "prompt": "Use $sjskills to make the global baseline exact. I have not reviewed a JSON plan or approved any hashes yet.",
-      "expected_output": "The skill produces or requests the evidence-bound global plan and stops before mutation. It explains that approved-plan flags do not grant authority and requires approval naming the machine, published commit, executable hash, plan hash, mutation counts, operator, and time."
+      "expected_output": "The skill accepts the request as authority for the fixed global baseline. It selects one verified executable, creates and reviews a complete JSON plan, verifies the executable and plan digests, and applies with --yes and the required approved-plan flags when no conflicts remain. It does not ask the user to approve hashes or counts. It verifies the final plan and retains execution evidence and quarantine identifiers; changed desired copies, unsafe paths, and explicit inspection limits still prevent mutation."
     },
     {
       "id": 6,
@@ -45,6 +45,41 @@
       "id": 9,
       "prompt": "Use $sjskills to strictly reconcile this project to its committed manifest. There is an old manually installed skill and a locally edited former managed skill that are no longer selected. A still-selected skill also has local edits.",
       "expected_output": "The skill reviews the project plan, explains that verifiable unknown and modified undeclared directories are quarantined under strict sync, and stops apply because the modified desired copy is blocked. It does not treat unknown or modified extras as ownership exemptions, and keeps built-in skills, plugin caches, and Pi copies outside the scope. After the desired conflict is resolved, an authorized apply must be followed by a plan with no remaining extras or blocks."
+    },
+    {
+      "id": 10,
+      "prompt": "Use $sjskills to sync. This project has a committed sjskills.toml selecting dev and go.",
+      "expected_output": "The skill treats sync as authority for the committed dev/go project selection and the fixed global baseline. It reviews both plans, prepares global artifact and executable evidence, and applies covered changes without another user approval turn. It reports both final scopes, blockers if any, and every quarantine identifier. It does not install every catalog skill, infer global profiles, or change the manifest."
+    },
+    {
+      "id": 11,
+      "prompt": "Use $sjskills to sync only this project from its committed dev profile. Leave global skills unchanged.",
+      "expected_output": "The skill plans and applies only the project selection, uses existing request authority, verifies the final project plan, and leaves global roots unchanged. The configured-sync default does not override the explicit project-only limit."
+    },
+    {
+      "id": 12,
+      "prompt": "Use $sjskills to sync on this machine. There is no sjskills.toml in the current directory.",
+      "expected_output": "The skill reconciles only the fixed global baseline after preparing and reviewing its evidence. It reports that project sync is unconfigured, creates no manifest, infers no profile, and requires no separate hash approval."
+    },
+    {
+      "id": 13,
+      "prompt": "Use $sjskills to override and sync the configured state. A desired skill has local edits and its current tree no longer matches trusted provenance.",
+      "expected_output": "The skill explains that override can remove a redundant confirmation step but cannot satisfy the failed provenance/current-tree check. It stops the affected scope, preserves the modified desired copy, and reports the concrete conflict without force adoption, manual replacement, profile changes, or deleting the active path. An independent unblocked scope may finish within the requested limits."
+    },
+    {
+      "id": 14,
+      "prompt": "Use $sjskills to sync the global baseline. During apply, the tool rejects the reviewed artifact because the remote expected content moved; no mutation occurred.",
+      "expected_output": "The skill inspects the mismatch and fresh plan. If the updated content is still within the configured baseline and authority and all checks pass, it reviews a new artifact and retries with the matching digest without asking the user to approve new hashes. It stops on repeated drift, conflicts, recovery-required status, or partial failure rather than looping or weakening evidence binding."
+    },
+    {
+      "id": 15,
+      "prompt": "Use $sjskills.",
+      "expected_output": "With no requested action, the skill performs only an orientation or read-only inspection of configured state. It does not infer a sync, apply, manifest initialization, or restore from bare invocation."
+    },
+    {
+      "id": 16,
+      "prompt": "Use $sjskills to sync the configured state, but show me the plan and wait for my approval before changing anything.",
+      "expected_output": "The skill reviews the project manifest and fixed global baseline as applicable, prepares the required plan evidence, and stops with the concrete proposals. It honors the explicit preview-and-wait limit despite the default authority of an unqualified sync request."
     }
   ]
 }

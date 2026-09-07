@@ -73,11 +73,11 @@ bin/sjskills plan --global
 The plan materializes remote expected content in isolated temporary storage,
 then reads only the two managed skill roots and explicitly modeled migration
 locations. Planning is read-only. Do not run `apply --global` against a real
-home as repository validation; real-machine rollout requires a separately
-reviewed [rollout plan](plans/sjskills-global-rollout.md) and explicit
-authorization. Global apply additionally requires the exact reviewed JSON plan
-artifact and its approved SHA-256; it fails before mutation when either the
-artifact digest or a fresh plan recheck differs.
+home as repository validation. A configured sync request authorizes real-machine
+reconciliation; the agent reviews and retains the evidence using the
+[global procedure](skills/sjskills/references/global-rollout.md). Global apply
+requires the exact reviewed JSON plan artifact and its SHA-256; it fails before
+mutation when either the artifact digest or a fresh plan recheck differs.
 
 Enable the optional pre-commit hook:
 
@@ -143,12 +143,18 @@ sjskills restore <quarantine-id>
 ```
 
 Global reconciliation uses the same transaction engine and one
-machine-independent baseline:
+machine-independent baseline. A request to `$sjskills` to sync configured state
+covers that baseline and the current project's committed manifest when present;
+explicit scope or inspection limits take precedence. The agent reviews each
+plan and can apply with `--yes` without another approval turn. This is skill
+routing, not a new CLI `sync` subcommand.
+
+Use the same verified executable through global plan and apply:
 
 ```bash
 sjskills --json plan --global > plan.json
 plan_sha256=$(shasum -a 256 plan.json | awk '{print $1}')
-# Run only under a separately reviewed and explicitly authorized rollout:
+# Review the plan, then apply within the requested sync scope:
 sjskills apply --global \
   --approved-plan plan.json \
   --approved-plan-sha256 "$plan_sha256"
@@ -158,7 +164,9 @@ sjskills restore --global <quarantine-id>
 The two approval flags are mandatory for global apply and unavailable for
 project apply. They bind execution to the reviewed artifact bytes and to a
 fresh, complete global plan built from one retained verified materialization
-session. They do not grant machine approval by themselves.
+session. The sync request supplies authority; the agent prepares and reviews
+the evidence. See the [global procedure](skills/sjskills/references/global-rollout.md)
+for executable verification and recovery.
 
 The global state file is `~/.agents/.global-skill-state.json`; private locks,
 journals, recovery data, and quarantine live under
