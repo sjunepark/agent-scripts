@@ -44,7 +44,7 @@ func (a *application) collectStatus(ctx context.Context) []sjskills.Advisory {
 	defer cancel()
 	registry, err := a.registry()
 	if err != nil {
-		return []sjskills.Advisory{statusUnavailable(sjskills.ScopeGlobal, "skill registry unavailable")}
+		return unavailableRegistryStatus(a.directory)
 	}
 	results := make([]*sjskills.Advisory, 2)
 	var group sync.WaitGroup
@@ -94,6 +94,15 @@ func (a *application) collectStatus(ctx context.Context) []sjskills.Advisory {
 		}
 	}
 	return values
+}
+func unavailableRegistryStatus(directory string) []sjskills.Advisory {
+	values := []sjskills.Advisory{}
+	// Discover scope presence without requiring a usable registry or manifest.
+	// A missing manifest skips project status; an unreadable one remains unknown.
+	if _, err := sjskills.DiscoverProjectRoot(directory); !missingStatusManifest(err) {
+		values = append(values, statusUnavailable(sjskills.ScopeProject, "skill registry unavailable"))
+	}
+	return append(values, statusUnavailable(sjskills.ScopeGlobal, "skill registry unavailable"))
 }
 func missingStatusManifest(err error) bool {
 	var issues *sjskills.ValidationErrors

@@ -47,7 +47,7 @@ func (p *processTree) finish() error {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("%w: group active=%t, signal error=%v, inspection error=%v", errProcessTreeActive, active, signalErr, err)
+			return fmt.Errorf("group active=%t: %w", active, errors.Join(errProcessTreeActive, signalErr, err))
 		}
 		time.Sleep(5 * time.Millisecond)
 	}

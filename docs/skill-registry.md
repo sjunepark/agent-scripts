@@ -110,6 +110,8 @@ evidence and a 15-minute retry cooldown; incompatible or incomplete evidence
 cannot establish status. Per-scope locks, bounded reads, atomic replacement, and
 bounded pruning of entries older than 30 days protect this disposable cache.
 Deleting it causes a cold check without changing installed state or provenance.
+SIGINT and SIGTERM cancel ongoing checks and permit cleanup; a repeated signal
+restores the normal force-exit behavior when a command remains blocked on input.
 
 A successful verified plan or apply supplies its scope's hashes only after
 staging verification and cleanup. Notices inspect post-operation state, run after

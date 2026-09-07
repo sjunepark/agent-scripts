@@ -30,7 +30,7 @@ _None._
 Complete status-notice feature in plans/sjskills-status-notices.md.
 
 ### Next in-scope action
-Publish the single feature PR, finish native checks, and complete feedback and merge.
+Publish reviewed feedback fixes to PR #19, complete native checks and reviewer replies, then merge.
 
 ### Evidence and blockers
 - Candidate: feature implementation and PR delivery. Classification: included. Contract basis: complete status-notice feature and Delivery. Action: proceed.
@@ -41,3 +41,4 @@ Publish the single feature PR, finish native checks, and complete feedback and m
 - Implementation and documentation are present; one bounded review found a pruning race, fixed with regression coverage. Native delivery checks remain pending.
 - Source/option batching was selected after per-skill cold fetching exceeded the budget. Actual isolated cold checks completed both scopes in 7.35 s and 6.29 s with no remaining staging; warm 45-placement/360-file checks measured 11.4–18.1 ms.
 - Local Go and race suites passed; repeated process tests exposed Darwin EPERM during killed-group disappearance. The fix verifies remaining live processes after signal errors; 20 repeated runs passed. Final Go race suite, vet, Node registry tests, skill validation, and Windows cross-compilation passed.
+- PR #19 is open at c186e3a. Codex review completed with no findings; CodeRabbit completed with five comments. Four are addressed in follow-up; the batching claim is rejected by pinned parser and remote-run evidence. Local follow-up review is clean. Linux and both native macOS targets passed; Windows golden fixture correction awaits native revalidation.

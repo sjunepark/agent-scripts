@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -127,8 +128,8 @@ type projectRestoreFunc func(context.Context, sjskills.DerivedLayout, string, sj
 
 type globalRestoreFunc func(context.Context, sjskills.GlobalLayout, string, sjskills.ApplyDeps) (sjskills.RestoreResult, error)
 
-// productionMaterialize keeps construction lazy: profiles, init, help, and
-// version never construct or invoke the Skills CLI adapter.
+// productionMaterialize keeps primary plan/apply preparation lazy. Ancillary
+// checks use the same materializer through StatusService.
 func productionMaterialize(ctx context.Context, skills []sjskills.DesiredSkill) (*sjskills.MaterializationPlan, error) {
 	return sjskills.NewMaterializer(sjskills.MaterializerConfig{}).Materialize(ctx, skills)
 }
@@ -1246,7 +1247,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "sjskills: get working directory: %v\n", err)
 		os.Exit(int(sjskills.ExitExecutionFailure))
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ctx.Done()
+		// Restore the default signal action after cancellation, so a repeated
+		// signal can force exit even when confirmation is still reading stdin.
+		stop()
+	}()
 	code := executeWithInput(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr, directory)
 	stop()
 	os.Exit(code)

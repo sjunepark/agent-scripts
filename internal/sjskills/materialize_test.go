@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -759,7 +760,13 @@ func TestHashSkillTreeMatchesLegacyV2VectorAndDetectsTampering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if hash.Algorithm != TreeHashAlgorithmSHA256V2 || hash.Digest != "1a1731f91aeff9ae9af8aae368d794bd55fe555e4fb6bf40f66e00f0cfde6718" {
+	want := "1a1731f91aeff9ae9af8aae368d794bd55fe555e4fb6bf40f66e00f0cfde6718"
+	if runtime.GOOS == "windows" {
+		// Windows synthesizes regular-file permissions without execute bits;
+		// b.sh is non-executable in this fixture even when created with 0755.
+		want = "ae5040f40a5dbe1a8b89d64b0f2688493dbaa0f940225bdca9502b3db330637a"
+	}
+	if hash.Algorithm != TreeHashAlgorithmSHA256V2 || hash.Digest != want {
 		t.Fatalf("hash = %#v", hash)
 	}
 	if err := os.WriteFile(filepath.Join(root, "a.txt"), []byte("tampered"), 0o644); err != nil {
@@ -952,7 +959,11 @@ func TestMaterializeBatchesSourceAndDiscoveryOptionsWithoutPartialSuccess(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer plan.Cleanup()
+	defer func() {
+		if err := plan.Cleanup(); err != nil {
+			t.Errorf("cleanup materialization: %v", err)
+		}
+	}()
 	if len(runner.calls) != 5 || len(plan.Snapshots()) != 4 {
 		t.Fatalf("batches calls=%d snapshots=%d", len(runner.calls), len(plan.Snapshots()))
 	}

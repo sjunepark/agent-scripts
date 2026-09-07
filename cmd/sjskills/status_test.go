@@ -384,3 +384,24 @@ func TestStatusHumanRendererDeterminismAndSilence(t *testing.T) {
 		t.Fatalf("renderer %q", output.String())
 	}
 }
+
+func TestStatusRegistryFailurePreservesConfiguredScopes(t *testing.T) {
+	for _, manifest := range []string{"", "version = 1\nprofiles = [\"go\"]\n", "invalid ["} {
+		t.Run(manifest, func(t *testing.T) {
+			f := newStatusCLIFixture(t, manifest)
+			values := unavailableRegistryStatus(f.project)
+			want := []sjskills.Scope{sjskills.ScopeGlobal}
+			if manifest != "" {
+				want = []sjskills.Scope{sjskills.ScopeProject, sjskills.ScopeGlobal}
+			}
+			if len(values) != len(want) {
+				t.Fatalf("scopes %+v", values)
+			}
+			for i, value := range values {
+				if value.Scope != want[i] || value.Freshness != sjskills.AdvisoryUnavailable || value.Error != "skill registry unavailable" || value.ObservedAt != nil || len(value.Findings) != 0 {
+					t.Fatalf("advisory %+v", value)
+				}
+			}
+		})
+	}
+}

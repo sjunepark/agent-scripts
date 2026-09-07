@@ -11,7 +11,8 @@ avoid fetching upstream content on every invocation.
 ## Current state
 
 Implementation is present under [the goal contract](../goals/sjskills-status-notices.md),
-with one feature PR pending publication and delivery. Release, installation, and
+with [PR #19](https://github.com/sjunepark/agent-scripts/pull/19) in feedback and
+native-check follow-up. Release, installation, and
 real-machine rollout remain excluded.
 
 - Typed status service, complete-snapshot cache, independent scope inspection,
@@ -20,15 +21,17 @@ real-machine rollout remain excluded.
 - Source/option batching makes both cold scopes finish within the selected
   shared 30-second budget. Each requested tree remains individually verified.
 - One bounded code review completed. Its cache-pruning race is fixed with a
-  regression check; native Windows and Linux validation remains a PR check.
+  regression check. Linux checks and both native macOS targets passed. Windows
+  exposed a preexisting Unix executable-bit assumption in a hash golden test;
+  the follow-up retains separate fixed vectors without changing hashing.
 - Local Go and race suites passed. A repeated process test exposed Darwin
   returning EPERM for a disappearing killed group; cleanup now verifies the
   remaining process set after either signal result. All 20 repeated runs passed.
 
 ## Next action
 
-Publish the single feature PR, finish native checks, address review feedback, and
-merge it. Then persist terminal planning metadata without beginning rollout.
+Publish the reviewed feedback fixes, finish native checks, reply to the reviewed
+findings, and merge PR #19. Then persist terminal planning metadata without beginning rollout.
 
 ## Performance evidence
 
@@ -108,7 +111,11 @@ node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.
 scripts/validate-skills
 ```
 
-One bounded code review completed; its cache race is fixed. Documentation
+Initial and follow-up bounded code reviews completed without remaining findings.
+CodeRabbit feedback adds SIGTERM cleanup/repeated-signal coverage, complete
+unavailable registry scope reporting, and cleanup error handling. The batching
+syntax finding was rejected against the pinned CLI parser and remote-run evidence.
+The automatic Codex review completed with no findings. Documentation
 harmonization covers README, the registry contract, sjskills entry point/global
 procedure, and goal/roadmap/plan status. Windows cross-compilation is a local
 check, not a substitute for native PR validation. Release-test artifact
