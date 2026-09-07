@@ -57,8 +57,11 @@ additional configuration.
 
 `sjskills` invokes the exactly pinned Skills CLI only inside isolated
 temporary homes, verifies one staged tree per desired skill, and owns final
-placement itself. Byte equality and Skills CLI lock metadata do not grant
-ownership. A desired placement is updated only when trusted reconciler
+placement itself. Skills with the same source and `fullDepth` option share one
+fetch; every requested tree must still be present and verified. Materializer
+process groups on Unix and jobs on Windows stop descendants before staging
+cleanup, including after a parent exits. Byte equality and Skills CLI lock
+metadata do not grant ownership. A desired placement is updated only when trusted reconciler
 provenance still matches its source and current tree hash.
 
 Both scopes strictly reconcile their `.agents/skills` and `.claude/skills`
@@ -88,6 +91,43 @@ Global provenance is stored at
 recovery data, and manifest-backed quarantine live under
 `~/.agents/.sjskills-global/`. The prior `~/.skill-quarantine` location is
 protected and never reused by `sjskills`.
+
+## Automatic status evidence
+
+Eligible successful commands inspect both the nearest configured project and
+fixed global baseline. Each check inventories current files and provenance using
+the reconciliation classifier; cached findings are never reused. Missing project
+configuration skips that scope, while invalid configuration produces an advisory
+failure independently of the global result. Manual, workflow, and protected
+locations keep their existing ownership boundaries.
+
+Disposable complete expected-hash snapshots live under the platform user-cache
+directory in `sjskills/status/`. Identity includes the canonical scope root,
+embedded registry, desired sources, install options, targets, and format versions.
+Snapshots refresh after 24 hours, with a shared 30-second foreground budget and
+at most two concurrent scope refreshes. Failed attempts retain matching stale
+evidence and a 15-minute retry cooldown; incompatible or incomplete evidence
+cannot establish status. Per-scope locks, bounded reads, atomic replacement, and
+bounded pruning of entries older than 30 days protect this disposable cache.
+Deleting it causes a cold check without changing installed state or provenance.
+
+A successful verified plan or apply supplies its scope's hashes only after
+staging verification and cleanup. Notices inspect post-operation state, run after
+mutation locks are released, and never run during confirmation. Human output
+groups at most five names per category, with remaining counts and cached age;
+fresh explicit plans suppress duplicate notices for their scope. Exact state is
+silent, while unavailable or stale evidence is explicitly labeled.
+
+The optional JSON `advisories` field carries full findings, targets, reason codes,
+observation time, freshness, and review commands. It is separate from stable
+warnings and approval evidence. The artifact SHA-256 binds all bytes, including
+advisories; only the subsequent fresh-plan semantic comparison ignores that field.
+The strict loader validates advisory structure and still rejects unknown fields.
+Older artifacts remain readable by the new executable, but older strict loaders
+cannot read new artifacts containing advisories. Keep the same executable through
+plan and apply. Advisory failures never change command success or grant mutation
+authority. Use `--no-status-check` to disable all ancillary work, including cache
+writes; it does not disable the requested command's live verification.
 
 ## Validation and consumers
 

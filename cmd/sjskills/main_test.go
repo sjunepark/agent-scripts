@@ -119,6 +119,9 @@ func newCLICommand(t *testing.T, directory string, overrides map[string]string, 
 	for key, value := range overrides {
 		setEnvironmentValue(&environment, key, value)
 	}
+	if len(args) > 0 && args[0] != "--help" && args[0] != "--version" && !(len(args) == 2 && (args[0] == "--version" || args[1] == "--version")) {
+		args = append([]string{"--no-status-check"}, args...)
+	}
 	command := exec.Command(testBinary, args...)
 	command.Dir = directory
 	command.Env = environment
@@ -2713,23 +2716,31 @@ func (injectedMaterializeRunner) Run(_ context.Context, _ string, args []string,
 	if len(args) < 2 || args[0] != "skills@"+sjskills.SkillsCLIVersion || args[1] != "add" {
 		return sjskills.ProcessResult{}, fmt.Errorf("unexpected fake runner argv: %q", args)
 	}
-	name := ""
-	for index := 0; index+1 < len(args); index++ {
-		if args[index] == "--skill" {
-			name = args[index+1]
-			break
+	names := []string{}
+	for index, arg := range args {
+		if arg != "--skill" {
+			continue
 		}
+		for _, name := range args[index+1:] {
+			if strings.HasPrefix(name, "-") {
+				break
+			}
+			names = append(names, name)
+		}
+		break
 	}
-	if name == "" {
+	if len(names) == 0 {
 		return sjskills.ProcessResult{}, errors.New("fake runner received no skill")
 	}
 	root := environmentValue(environment, "CODEX_HOME")
-	path := filepath.Join(root, "skills", name)
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return sjskills.ProcessResult{}, err
-	}
-	if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("# "+name+"\n"), 0o644); err != nil {
-		return sjskills.ProcessResult{}, err
+	for _, name := range names {
+		path := filepath.Join(root, "skills", name)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return sjskills.ProcessResult{}, err
+		}
+		if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("# "+name+"\n"), 0644); err != nil {
+			return sjskills.ProcessResult{}, err
+		}
 	}
 	return sjskills.ProcessResult{}, nil
 }

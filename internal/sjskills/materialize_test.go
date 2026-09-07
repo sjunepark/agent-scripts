@@ -45,13 +45,17 @@ func defaultMaterializeRunner() *materializeRunner {
 		case reflect.DeepEqual(args, []string{"skills@" + SkillsCLIVersion, "--version"}):
 			return ProcessResult{Stdout: []byte(SkillsCLIVersion + "\n")}, nil
 		case len(args) >= 2 && args[1] == "add":
-			name := args[4]
-			root := envValue(env, "CODEX_HOME")
-			if err := os.MkdirAll(filepath.Join(root, "skills", name), 0o755); err != nil {
-				return ProcessResult{}, err
-			}
-			if err := os.WriteFile(filepath.Join(root, "skills", name, "SKILL.md"), []byte("# "+name+"\n"), 0o644); err != nil {
-				return ProcessResult{}, err
+			for _, name := range args[4:] {
+				if strings.HasPrefix(name, "-") {
+					break
+				}
+				root := envValue(env, "CODEX_HOME")
+				if err := os.MkdirAll(filepath.Join(root, "skills", name), 0755); err != nil {
+					return ProcessResult{}, err
+				}
+				if err := os.WriteFile(filepath.Join(root, "skills", name, "SKILL.md"), []byte("# "+name+"\n"), 0644); err != nil {
+					return ProcessResult{}, err
+				}
 			}
 			return ProcessResult{}, nil
 		default:
@@ -933,5 +937,43 @@ func TestBoundedExecRunnerHelperProcess(t *testing.T) {
 		select {}
 	case "child":
 		time.Sleep(400 * time.Millisecond)
+	}
+}
+
+func TestMaterializeBatchesSourceAndDiscoveryOptionsWithoutPartialSuccess(t *testing.T) {
+	a := desiredMaterializeSkill("a", "example/repo")
+	b := desiredMaterializeSkill("b", "example/repo")
+	c := desiredMaterializeSkill("c", "example/repo")
+	c.FullDepth = true
+	d := desiredMaterializeSkill("d", "other/repo")
+	runner := defaultMaterializeRunner()
+	materializer, _ := testMaterializer(t, runner, MaterializerLimits{})
+	plan, err := materializer.Materialize(context.Background(), []DesiredSkill{d, b, c, a})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer plan.Cleanup()
+	if len(runner.calls) != 5 || len(plan.Snapshots()) != 4 {
+		t.Fatalf("batches calls=%d snapshots=%d", len(runner.calls), len(plan.Snapshots()))
+	}
+	want := []string{"skills@" + SkillsCLIVersion, "add", "example/repo", "--skill", "a", "b", "--copy", "--global", "--agent", "codex", "--yes"}
+	if !reflect.DeepEqual(runner.calls[2].args, want) {
+		t.Fatalf("batch argv=%q", runner.calls[2].args)
+	}
+	if runner.calls[3].args[len(runner.calls[3].args)-1] != "--full-depth" {
+		t.Fatal("discovery options merged")
+	}
+	partial := defaultMaterializeRunner()
+	original := partial.invoke
+	partial.invoke = func(ctx context.Context, command string, args, env []string) (ProcessResult, error) {
+		result, err := original(ctx, command, args, env)
+		if len(args) > 2 && args[1] == "add" {
+			_ = os.RemoveAll(filepath.Join(envValue(env, "CODEX_HOME"), "skills", "b"))
+		}
+		return result, err
+	}
+	broken, stage := testMaterializer(t, partial, MaterializerLimits{})
+	if plan, err := broken.Materialize(context.Background(), []DesiredSkill{a, b}); err == nil || plan != nil || stage() != "" {
+		t.Fatalf("partial batch accepted: plan=%v err=%v stage=%s", plan, err, stage())
 	}
 }

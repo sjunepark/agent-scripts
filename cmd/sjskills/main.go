@@ -8,18 +8,21 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/sjunepark/agent-scripts/internal/sjskills"
 )
 
 type cli struct {
-	JSON    bool `name:"json" help:"Emit one JSON result document."`
-	Version bool `name:"version" help:"Print the sjskills version."`
+	NoStatusCheck bool `name:"no-status-check" help:"Skip automatic skill-status inspection, refresh, and cache writes."`
+	JSON          bool `name:"json" help:"Emit one JSON result document."`
+	Version       bool `name:"version" help:"Print the sjskills version."`
 
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
@@ -82,6 +85,8 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 }
 
 type application struct {
+	statusSnapshot      *commandStatusSnapshot
+	statusService       *sjskills.StatusService
 	directory           string
 	homeDirectory       func() (string, error)
 	envelope            sjskills.Envelope
@@ -233,6 +238,7 @@ func (a *application) init(profileNames []string) sjskills.Envelope {
 }
 
 type preparedPlan struct {
+	observedAt   time.Time
 	envelope     sjskills.Envelope
 	plan         sjskills.Plan
 	materialized *sjskills.MaterializationPlan
@@ -250,7 +256,7 @@ func (a *application) plan(ctx context.Context, global bool) sjskills.Envelope {
 	if prepared == nil {
 		return envelope
 	}
-	return prepared.finish(envelope, "cleanup")
+	return a.finishPrepared(prepared, envelope, "cleanup")
 }
 
 func (a *application) prepare(ctx context.Context, global bool, operation sjskills.CommandOperation) (*preparedPlan, sjskills.Envelope) {
@@ -321,6 +327,7 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 		prepared.expected[snapshot.Skill.Name] = snapshot.Hash
 	}
 	prepared.verified = true
+	prepared.observedAt = time.Now().UTC()
 	prepared.syncPlan(plan)
 
 	if global {
@@ -527,7 +534,7 @@ func (a *application) applyApproved(ctx context.Context, global, yes bool, appro
 	if applyErr != nil {
 		setApplyFailureForScope(&envelope, applyErr, global)
 	}
-	return prepared.finish(envelope, "apply")
+	return a.finishPrepared(prepared, envelope, "apply")
 }
 
 func approvedPlanEvidence(digest string) sjskills.Evidence {
@@ -1208,7 +1215,22 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 		}
 		return int(sjskills.ExitExecutionFailure)
 	}
-	return emitEnvelope(stdout, stderr, commands.JSON, app.envelope)
+	if commands.NoStatusCheck || app.envelope.Result != sjskills.ResultSuccess || ctx.Err() != nil {
+		return emitEnvelope(stdout, stderr, commands.JSON, app.envelope)
+	}
+	if !commands.JSON {
+		renderHuman(stdout, stderr, app.envelope)
+	}
+	app.envelope.Advisories = app.collectStatus(ctx)
+	if commands.JSON {
+		return emitEnvelope(stdout, stderr, true, app.envelope)
+	}
+	var explicit *sjskills.Plan
+	if app.envelope.Operation == sjskills.CommandOperationPlan {
+		explicit = app.envelope.Plan
+	}
+	renderStatus(stderr, app.envelope.Advisories, explicit, time.Now())
+	return int(app.envelope.ExitStatus())
 }
 
 func isExactVersionRequest(args []string) bool {
@@ -1224,5 +1246,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "sjskills: get working directory: %v\n", err)
 		os.Exit(int(sjskills.ExitExecutionFailure))
 	}
-	os.Exit(executeWithInput(context.Background(), os.Args[1:], os.Stdin, os.Stdout, os.Stderr, directory))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	code := executeWithInput(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr, directory)
+	stop()
+	os.Exit(code)
 }

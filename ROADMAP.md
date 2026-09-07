@@ -2,15 +2,14 @@
 
 ## Current
 
-_None._
+[Show project and global skill status on CLI use](plans/sjskills-status-notices.md)
+is implemented and locally validated; one feature PR awaits native checks and review.
 
 ## Plans
 
 1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
-2. [Show project and global skill status on CLI use](plans/sjskills-status-notices.md)
-   is planned; implementation has not started.
 
 ## Tasks
 
