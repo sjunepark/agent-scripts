@@ -42,7 +42,9 @@ try {
     } finally { $zip.Dispose() }
     $identity = & $candidate --version
     if ($LASTEXITCODE -ne 0 -or $identity -cne "sjskills $Version") { throw 'Binary version mismatch' }
-    if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($candidate, $destination, $null) }
+    # PowerShell 5.1 binds $null to an empty string for this .NET string argument.
+    # Keep the backup in staging so replacement stays atomic and cleanup owns it.
+    if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($candidate, $destination, (Join-Path $work 'previous.exe')) }
     else { [IO.File]::Move($candidate, $destination) }
     Write-Host "Installed sjskills $Version to $destination. Add $InstallDir to PATH."
 } finally { Remove-Item -LiteralPath $work -Recurse -Force }

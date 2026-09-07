@@ -71,9 +71,10 @@ bin/sjskills plan --global
 ```
 
 The plan materializes remote expected content in isolated temporary storage,
-then reads only the two managed skill roots and explicitly modeled migration
-locations. Planning is read-only. Do not run `apply --global` against a real
-home as repository validation. A configured sync request authorizes real-machine
+then reads the selected scope's managed roots and explicitly modeled migration
+locations. Automatic notices also inspect the other configured scope as described
+below. Planning never changes managed roots. Do not run `apply --global` against
+a real home as repository validation. A configured sync request authorizes real-machine
 reconciliation; the agent reviews and retains the evidence using the
 [global procedure](skills/sjskills/references/global-rollout.md). Global apply
 requires the exact reviewed JSON plan artifact and its SHA-256; it fails before
@@ -133,6 +134,21 @@ these roots into recoverable quarantine, including unknown and locally modified
 copies. Unmanaged or modified desired copies and unverifiable entries block
 apply. See the
 [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation).
+
+Successful `init`, `profiles`, `plan`, `apply`, and `restore` commands also check
+the nearest configured project and fixed global baseline. Notices on stderr name
+updates, missing skills, extras, and conflicts; `--json` includes them in the same
+result document's optional `advisories` field. Review findings with `sjskills plan`
+or `sjskills plan --global` before changing anything.
+
+Local drift is checked each time. Upstream hashes refresh daily; a cold or expired
+check can add up to 30 seconds plus bounded process cleanup. Failed refreshes use
+clearly labeled stale evidence when available and wait 15 minutes before retrying.
+Use `--no-status-check` to skip ancillary inspection, fetching, and cache writes;
+the requested command retains its own verification and network requirements.
+Help, version, invalid invocations, and unsuccessful commands skip these checks.
+See the [status evidence contract](docs/skill-registry.md#automatic-status-evidence)
+for cache and approval boundaries.
 
 When apply prints a quarantine identifier, retain it until the replacement or
 removal has completed a normal work cycle. Restore refuses to overwrite an

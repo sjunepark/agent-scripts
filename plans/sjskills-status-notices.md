@@ -10,258 +10,99 @@ avoid fetching upstream content on every invocation.
 
 ## Current state
 
-Planning only; implementation has not started. The user requested this feature
-and a detailed plan. Daily upstream refresh and coverage of all actionable
-drift are proposed defaults from the design discussion, not explicit answers
-to the earlier clarification questions. The contract below makes those defaults
-concrete for implementation review.
+Implementation is present under [the goal contract](../goals/sjskills-status-notices.md),
+with [PR #19](https://github.com/sjunepark/agent-scripts/pull/19) in feedback and
+native-check follow-up. Release, installation, and real-machine rollout remain excluded.
 
-Repository evidence:
-
-- `cmd/sjskills/main.go`: `application.prepare` resolves one scope, materializes
-  expected content, inventories installed files, and classifies a plan.
-  `executeWithInput` owns dispatch and final output; help and version bypass
-  ordinary command execution. There is no automatic cross-scope notice service.
-- `internal/sjskills/classify.go`: a verified managed copy differing from
-  expected content is `verified-update`; local modifications and unowned
-  desired placements are blocked separately. The global classifier reuses
-  managed-state classification.
-- `internal/sjskills/materialize.go`: expected hashes come from verified
-  temporary copies produced through the Skills CLI. Fetching is substantially
-  more work than reading a version string; there is no advisory fingerprint
-  cache to reuse today.
-- `internal/sjskills/types.go` and `reviewed_plan.go`: JSON uses one `Envelope`;
-  global approval loads it strictly and compares normalized envelopes, including
-  top-level warnings. Time-varying notices cannot be appended to those warnings.
-- `internal/sjskills/discover.go` finds the nearest parent `sjskills.toml`.
-  The registry is embedded in the executable; checking source content does not
-  update registry membership or check for a new CLI release.
+- Typed status service, complete-snapshot cache, independent scope inspection,
+  CLI output and opt-out, post-mutation inventory, and strict approval separation
+  are implemented using existing reconciliation policy.
+- Source/option batching makes both cold scopes finish within the selected
+  shared 30-second budget. Each requested tree remains individually verified.
+- One bounded code review completed. Its cache-pruning race is fixed with a
+  regression check. Linux, both native macOS targets, and the Windows Go suite
+  passed. Fixed a platform-specific golden test without changing hashing.
+  Windows consumer checks then exposed an invalid null backup path in the
+  existing installer; a reviewed staging-backup correction awaits native validation.
+- Local Go and race suites passed. A repeated process test exposed Darwin
+  returning EPERM for a disappearing killed group; cleanup now verifies the
+  remaining process set after either signal result. All 20 repeated runs passed.
 
 ## Next action
 
-When implementation is requested, redispatch through `$progress`, then implement
-the advisory result model and approval-boundary regression tests described in
-the first implementation slice. Treat the proposed product defaults below as
-visible planning assumptions and incorporate any user corrections before coding.
+Publish the reviewed installer correction, finish native checks, and merge
+PR #19. Review feedback is resolved. Then persist terminal planning metadata
+without beginning rollout.
 
-## Proposed behavior
+## Performance evidence
 
-### Invocation and scope
+Measured on an Apple M1 Pro (darwin/arm64), using isolated temporary homes and
+projects, with the embedded `dev`/`go` selection and fixed global baseline:
 
-- After a successfully dispatched `init`, `profiles`, `plan`, `apply`, or
-  `restore`, inspect the fixed global baseline and the nearest configured
-  project, even when the command selected only one scope.
-- Skip automatic work for help, version, invalid invocations, cancelled
-  commands, and unsuccessful operations. Preserve the primary diagnostic and
-  exit status; an explicit failed plan is not converted into a cached success.
-- No project manifest means global-only inspection. Do not initialize a
-  project or infer profiles. An invalid project manifest produces an advisory
-  check error while global inspection remains independent.
-- Findings cover the current project's configured `.agents/skills` and
-  `.claude/skills` roots plus the existing fixed-global roots. Reuse existing
-  read-only global inventory observations of protected and legacy locations,
-  but exclude those locations from update or reconciliation recommendations.
-  Do not add scans of other projects, built-in skills, or plugin contents.
-- Add one root flag, `--no-status-check`, to disable ancillary inspection,
-  fetching, and cache writes for scripts or deliberate offline use. It does
-  not disable the requested command's own verification or network needs.
+- Warm local inspection: 11.4–18.1 ms per two-scope check across four ten-iteration
+  benchmark runs. Fixture: 45 placements, 360 files, 2.8125 MiB; upstream calls
+  are forbidden in the benchmark. This satisfies the 250 ms target.
+- Actual remote cold checks after source/option batching: 7.35 s and 6.29 s;
+  both scopes were fresh and staging directories were empty afterward. The
+  initial per-skill strategy exceeded 30 seconds and was replaced.
 
-### Findings and output
+The selected defaults are 24-hour refresh, 15-minute failure cooldown, and a
+shared 30-second foreground budget plus bounded process cleanup. CI uses
+isolated fake-CLI call assertions rather than network timing thresholds.
 
-- Distinguish available updates, missing desired skills, undeclared extras,
-  and conflicts requiring attention. Preserve stable reason codes and targets.
-  A local modification, untrusted provenance, or source mismatch is never
-  described as a routine update.
-- Manual and workflow-managed skills retain their existing classification;
-  do not invent an upstream version or an automatic update recommendation.
-- Group human notices by scope and category. Count distinct skills within each
-  group, retain affected targets in structured data, and sort deterministically.
-  A skill may have an update in one target and a conflict in another.
-- Write human notices to stderr after normal command output. Show at most five
-  names per category followed by a remaining count. JSON contains full findings
-  in a separate optional `advisories` field in the same result document; JSON
-  mode does not additionally print human notices to stderr.
-- Include the upstream observation time and freshness in structured output.
-  Human findings based on cached evidence show its age; failed refreshes clearly
-  say that upstream status could not be refreshed. Never imply that an old or
-  unavailable observation establishes current upstream state.
-- Recommend `sjskills plan` for project findings and `sjskills plan --global`
-  for global findings. These review instructions cover extras and conflicts
-  without suggesting an unconditional apply.
-- Suppress duplicate human findings already printed by a fresh explicit plan
-  for that scope. Emit nothing advisory when both scopes are verified exact;
-  unavailable evidence must not silently masquerade as exact state.
-- Repeat actionable findings on eligible invocations until resolved. Do not
-  add notification history, dismissals, or a separate scheduling service.
+## Decisions and boundaries
 
-Illustrative output:
+- Notices cover all actionable updates, missing skills, undeclared extras, and
+  conflicts in the nearest configured project and fixed global baseline.
+  Manual/workflow ownership and protected/legacy boundaries remain unchanged.
+- Reuse reconciliation inventory and classification. Cache complete expected
+  hashes, never local findings or apply authority. Command snapshots become
+  reusable only after verification and cleanup; notices run after mutation locks
+  are released and describe post-operation state.
+- Use one bounded foreground check with two independent scopes. Source/option
+  batching reuses the pinned materializer and individually verifies every tree.
+  Unix process groups and Windows jobs contain subprocesses through cleanup.
+- Root flag `--no-status-check` skips all ancillary work. Human notices use
+  stderr after command output; JSON has one typed optional `advisories` field.
+  Advisory failures preserve primary success and exit status.
+- Exact artifact SHA-256 includes notices. Only fresh-plan semantic comparison
+  ignores advisories; stable warnings and all plan evidence remain enforced.
+  Older artifacts remain readable, and plan/apply must use the same executable.
+- No release, installation, real-machine rollout, automatic apply, daemon,
+  CLI self-update, registry migration, all-project scan, or replacement
+  ownership policy belongs to this goal.
 
-```text
-sjskills: project — updates available: code-review, modern-go (checked 2h ago)
-sjskills: global — missing: clarify
-sjskills: project — local changes need attention: teach
-sjskills: review with `sjskills plan` and `sjskills plan --global`.
-```
+The [registry contract](../docs/skill-registry.md#automatic-status-evidence) owns
+current cache, output, freshness, and approval behavior. The
+[README](../README.md#skill-installs) owns command usage; the
+[sjskills skill](../skills/sjskills/SKILL.md) and its global procedure own operator
+authority and evidence preparation.
 
-### Freshness, delay, and failure
+## Acceptance coverage
 
-- Reinspect local content and provenance on each eligible invocation. Cache
-  verified expected hashes, not final findings, so local edits, deletions, and
-  successful syncs become visible without waiting for the refresh interval.
-- Refresh a matching scope's complete expected-hash snapshot when absent or
-  at least 24 hours old. A fresh explicit `plan` or verified `apply` preparation
-  can supply that snapshot without another materialization.
-- Run needed ancillary scope refreshes in-process under a shared 30-second
-  deadline, with at most two concurrent refreshes. Each scope has independent
-  results; a broken source or manifest in one cannot discard the other's
-  evidence. Propagate CLI interruption into the ancillary context. Stop the
-  refresh process and its descendants before removing temporary staging;
-  bounded pipe waiting alone does not establish that descendants have stopped.
-- This is a bounded foreground check: warm invocations use local evidence,
-  while a first or expired-cache invocation can wait up to the refresh budget
-  plus bounded cleanup. Do not promise invisible background work or spawn a
-  detached process. The main command's work has already completed.
-- After a failed refresh, keep matching last-successful evidence, label it
-  stale, and retry no sooner than 15 minutes later. Without matching evidence,
-  mark upstream status unavailable. Do not feed partial expected maps into
-  classifiers that require a complete desired set. A failed check is not drift.
-- Cache directory errors, corrupt cache data, missing tooling, offline sources,
-  and timeouts remain advisory failures. They do not alter the command's result,
-  exit code, installed skills, provenance, quarantine, or approval state.
-- Measure the warm path and representative cold refreshes before accepting
-  this design. Target under 250 ms added warm latency for a representative
-  dev/go project plus global baseline on a development machine. Record fixture
-  size and measurements; use deterministic dependency-call assertions in CI.
-  If normal cold checks cannot complete within the budget, revise fetching
-  granularity or the explicit latency contract before declaring completion;
-  an implementation that routinely reports unknown is not sufficient.
+All tests use isolated temporary homes, projects, and caches. CI fake-CLI tests
+must never fall through to real tooling or mutate a real home.
 
-## Implementation design
-
-### One classification policy, separate advisory lifecycle
-
-Add a small status service in `internal/sjskills` that owns expected-hash cache
-lookup, scope inspection, classification, and advisory summaries. Keep command
-dispatch, flag parsing, final rendering, and access to command-produced verified
-hashes in `cmd/sjskills`. Use the existing resolver, inventories, classifiers,
-materializer, and diagnostic sanitization. Do not shell out recursively to
-`sjskills plan` or build a second ownership policy.
-
-Extract only the reusable preparation/inspection seams needed by both callers.
-Keep `preparedPlan`'s verified staging lifecycle and apply sessions intact;
-advisory hashes must never substitute for the live snapshots needed by apply.
-Distinguish observation completeness/freshness from finding categories using
-explicit types, including an unavailable result without fabricated operations.
-
-### Cache contract
-
-- Store disposable versioned cache files under the platform user-cache
-  directory in `sjskills/status/`, outside project and global managed state.
-  Keep the clock, cache root, and refresh dependency injectable for tests.
-- Identify a scope by canonical project root or selected global home. Validate
-  the expected-content identity using a deterministic digest of the resolved
-  desired set, registry content, source identities, install options, targets,
-  and tree-hash/cache format versions. Do not key only by skill name or CLI
-  version. Changed identities cannot reuse old evidence, including when offline.
-- Store successful complete expected-hash maps, their observation time, and
-  bounded retry metadata separately from installed provenance. Validate all
-  cached hashes and the exact expected installable set before classification.
-  Reject future timestamps as stale and handle clock rollback explicitly.
-- Use bounded regular-file reads, safe cache paths, and atomic replacement;
-  never follow a cache entry symlink into another location. No source content,
-  credentials, raw subprocess output, or approval artifacts belong in the cache.
-- Coordinate concurrent refreshes per scope with a short-lived lock. Contention
-  uses valid cached evidence or returns unavailable without waiting on another
-  invocation's network work. Clean abandoned temporary files/locks safely and
-  prevent an older refresh from overwriting newer evidence. Prune obsolete
-  entries under a bounded retention policy during refresh only.
-- Deleting the cache requires no migration or recovery. It causes a cold check.
-  It never removes managed files or invalidates trusted reconciler provenance.
-
-### JSON and reviewed-plan compatibility
-
-Add `Envelope.Advisories` as an optional, typed field. Preserve existing
-`warnings`, `evidence`, `plan`, result, and exit semantics. Keep advisory data
-outside the approved semantic comparison by clearing only this field in
-`normalizeReviewedEnvelope`; retain all existing stable evidence comparisons.
-The SHA-256 still binds the exact artifact bytes, including any advisory bytes.
-Only the subsequent fresh-plan semantic comparison ignores advisory content.
-
-The updated loader must accept older artifacts without this field, continue
-rejecting unknown fields, and validate the advisory shape when present. Older
-executables with strict decoding cannot consume new artifacts containing it;
-retain the existing operational requirement to plan and apply with the same
-retained executable. Do not add a general unknown-field escape hatch, downgrade
-converter, or new provenance schema.
-
-### Command lifecycle
-
-Collect validated command-produced expected hashes before staging cleanup, but
-publish them to the advisory cache only after successful verification and
-cleanup. Ancillary checks run after the requested operation and release of its
-mutation locks. They must not run while an interactive prompt is pending.
-
-After successful apply, re-inventory current files against its verified expected
-hashes. After restore, re-inventory against matching cached hashes or perform
-the ordinary bounded refresh. Never cache or display pre-mutation findings.
-For an unsuccessful operation, skip ancillary checks; the next invocation's
-fresh local inventory determines the actual state. Failure to write disposable
-cache data cannot turn an otherwise successful mutation into a failed command.
-
-## Implementation slices
-
-1. **Result model and approval contract.** Add typed advisory observations and
-   findings, deterministic summarization, and the optional envelope field.
-   Prove that changing advisory timestamps/findings alone does not break a
-   reviewed recheck, while changed artifact bytes still fail the supplied hash
-   and changed stable plan evidence still fails comparison. No automatic hook
-   is enabled in this slice.
-2. **Scope inspection and cache.** Extract the shared inspection seam; implement
-   validated complete-snapshot cache storage, identity invalidation, freshness,
-   retry cooldown, locking, cancellation, and cleanup. Extend the materializer's
-   process lifecycle only as needed to terminate refresh descendants safely on
-   supported platforms; preserve ordinary plan/apply behavior. Reuse current
-   ownership classification and materialization. Validate isolated scope
-   failures and fresh local classification against cached upstream hashes.
-3. **CLI integration and output.** Add the dispatch hook, `--no-status-check`,
-   renderer, structured JSON output, command-result reuse, and post-mutation
-   inspection. Cover every invocation category and suppress duplicate explicit
-   plan notices. Measure warm and cold behavior against the stated budget.
-4. **Documentation and final validation.** Update the README's command behavior,
-   `docs/skill-registry.md` for advisory versus trusted evidence boundaries,
-   and `skills/sjskills/SKILL.md` plus its global procedure where the operator
-   workflow is affected. Keep this item current; run one bounded `$code-review`
-   pass and `$harmonize-docs changes` after each reviewable behavioral slice.
-
-These are dependent implementation checkpoints within one feature. They do
-not mandate multiple PRs, commits, or delivery work. Commit, push, release,
-installation, and real-machine reconciliation require a later request.
-
-## Acceptance and validation
-
-Use temporary homes, projects, and cache roots throughout. Extend the existing
-fake Skills CLI at `cmd/sjskills/testdata/fakebunx/main.go` where needed; tests
-must not depend on external network access or mutate the user's real home.
-
-| Scenario | Required evidence |
+| Obligation | Evidence |
 | --- | --- |
-| Project plus global drift | Correct scope, category, skill names, targets, and review commands; neither scope lost. |
-| Local edits, missing files, extras, and unmanaged desired copies | Existing reason/ownership rules preserved; local edits never mislabeled as updates. |
-| Exact state | No human advisory; no misleading clean result from incomplete or stale evidence. |
-| Warm cache | No upstream subprocess; changed local files detected on the next invocation. |
-| Cold/expired cache | Successful complete snapshots refreshed within budget; no partial snapshot accepted. |
-| Offline or failed source | Healthy scope still reported; stale age or unavailable state explicit; exit code unchanged. |
-| Manifest/source/target/registry change | Incompatible evidence rejected immediately, including under retry cooldown. |
-| Missing or malformed project | Missing project skips cleanly; malformed project cannot suppress global results. |
-| Apply/restore | Notices describe observed post-operation state; no second same-scope materialization when reusable evidence exists. |
-| Help/version/invalid/failure/opt-out | No ancillary inventory, subprocess, or cache write; command output contracts preserved. |
-| JSON | Exactly one document; structured findings; no human notice on stderr; old artifacts remain readable by the new binary. |
-| Reviewed global apply | Advisory-only changes ignored semantically; byte digest, stable warnings, ownership, current/expected hashes still enforced. |
-| Concurrent/cancelled refresh | Bounded waiting; a fake CLI spawning a descendant that retains staging access is fully stopped before cleanup, including on timeout/interruption; no torn writes, stale overwrite, or changed managed roots. |
-| Hostile/corrupt cache | Oversize, symlink, malformed hash, wrong identity, future timestamp, and unsupported schema handled safely. |
-| Manual/workflow/protected paths | No invented upstream update or expanded reconciliation scope. |
+| Correct scope, category, skill, target, reason, and review command for updates/missing/extras/conflicts | Internal status classification tests and CLI renderer/JSON tests |
+| Local edits, deletions, successful sync, unowned desired copies, and extra directories detected on warm checks; no invented manual/workflow/protected updates | Provenance/local drift fixtures; no-upstream assertions |
+| Cold/expired refresh complete; identity changes invalidate immediately; failed scope independent; stale/unavailable explicit; retry and rollback bounded | Status freshness, identity, cooldown, malformed/missing manifest, and independent scope tests |
+| No partial/hostile snapshot; bounded regular-file reads, links rejected, strict format/hash checks, safe locking/pruning, newer publication preserved | Cache adversarial, contention, abandoned-file, rollback, publication, and pruning regressions |
+| Successful init/profiles/plan/apply/restore eligible; help/version/invalid/failure/cancel/opt-out skip; same-scope snapshot reuse and post-mutation state | CLI fake-bunx command/call assertions, restore and reviewed global apply tests |
+| Human output follows primary output, exact silent, names capped/deduplicated, fresh explicit plan duplicate suppressed; one JSON document | Renderer and CLI integration tests |
+| Advisory changes ignored only semantically; byte digest and stable warnings/current/ownership/expected comparisons enforced; old artifacts accepted and unknown fields rejected | Reviewed-plan tests and global approved-apply CLI test |
+| Shared foreground deadline, cancellation, parent exit and descendants holding staging handles; staging retained if termination unverifiable | Process-tree and materializer lifecycle tests on supported native targets |
+| Warm overhead below 250 ms; representative remote cold checks finish both scopes within 30 s | Recorded performance evidence above; reproducible BenchmarkStatusWarm |
 
-Run focused tests as each slice lands, then the relevant repository checks:
+## Delivery checks
+
+One connected feature PR contains the dependent model, cache, CLI, documentation,
+and acceptance work. Complete its initial CodeRabbit review and all feedback,
+validate native supported targets through the existing main-PR workflow, then
+merge before persisting terminal goal and project-planning metadata.
+
+Required local checks:
 
 ```sh
 go test ./internal/sjskills ./cmd/sjskills
@@ -271,17 +112,13 @@ node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.
 scripts/validate-skills
 ```
 
-Use the existing native release-test workflow for supported-platform coverage
-when implementation is delivered; local execution proves only the current host.
-Retain warm/cold timing evidence and subprocess counts with the implementation
-review. Planning-file validation checks links, queue uniqueness, and whitespace;
-it does not claim any of these behavior tests have passed.
-
-## End-state boundaries
-
-Retain the existing strict approval, provenance, protected-root, and same-binary
-artifact contracts. Consolidate inspection and classification where shared;
-keep the advisory cache permanently distinct from authoritative apply evidence
-because their lifetimes and trust differ. No background daemon, automatic
-apply, CLI self-update, remote registry migration, all-project scan, generalized
-notification framework, or replacement materializer is part of this feature.
+Initial and follow-up bounded code reviews completed without remaining findings.
+CodeRabbit feedback adds SIGTERM cleanup/repeated-signal coverage, complete
+unavailable registry scope reporting, and cleanup error handling. The batching
+syntax finding was withdrawn after pinned CLI parser and remote-run evidence.
+The automatic Codex review completed with no findings. Documentation
+harmonization covers README, the registry contract, sjskills entry point/global
+procedure, and goal/roadmap/plan status. Windows cross-compilation is a local
+check, not a substitute for native PR validation. Release-test artifact
+installation uses temporary CI fixtures and does not activate or install the
+feature on a user's machine.

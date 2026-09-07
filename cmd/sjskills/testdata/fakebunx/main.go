@@ -5,10 +5,36 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
 	args := os.Args[1:]
+	names := []string{}
+	for index, arg := range args {
+		if arg != "--skill" {
+			continue
+		}
+		for _, name := range args[index+1:] {
+			if strings.HasPrefix(name, "-") {
+				break
+			}
+			names = append(names, name)
+		}
+		break
+	}
+	if path := os.Getenv("SJSKILLS_FAKE_LOG"); path != "" {
+		labels := names
+		if len(labels) == 0 {
+			labels = []string{"version"}
+		}
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		if err != nil {
+			panic(err)
+		}
+		_, _ = fmt.Fprintln(file, strings.Join(labels, " "))
+		_ = file.Close()
+	}
 	if len(args) == 1 && args[0] == "--version" {
 		fmt.Println("bunx 1")
 		return
@@ -20,11 +46,11 @@ func main() {
 	if len(args) < 2 || args[0] != "skills@1.5.23" || args[1] != "add" {
 		os.Exit(4)
 	}
-	for index := 2; index+1 < len(args); index++ {
-		if args[index] != "--skill" {
-			continue
+	for _, skill := range names {
+		if skill == os.Getenv("SJSKILLS_FAKE_FAIL_SKILL") {
+			fmt.Fprintln(os.Stderr, "injected unavailable source")
+			os.Exit(7)
 		}
-		skill := args[index+1]
 		target := filepath.Join(os.Getenv("CODEX_HOME"), "skills", skill)
 		if err := os.MkdirAll(target, 0o755); err != nil {
 			panic(err)
@@ -33,7 +59,8 @@ func main() {
 		if err := os.WriteFile(filepath.Join(target, "SKILL.md"), []byte(content), 0o644); err != nil {
 			panic(err)
 		}
-		return
 	}
-	os.Exit(3)
+	if len(names) == 0 {
+		os.Exit(3)
+	}
 }

@@ -67,7 +67,8 @@ def main():
         result = cli('--json', 'plan')
         assert result.returncode != 0 and 'bunx' in result.stdout, result
         # Reinstallation uses the same supported path.
-        assert invoke(installer, output, destination).returncode == 0
+        result = invoke(installer, output, destination)
+        assert result.returncode == 0, result.stderr + result.stdout
         assert binary.read_bytes() == original
         fixtures = root / 'fixtures'
         fixtures.mkdir()

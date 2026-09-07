@@ -327,14 +327,15 @@ type Evidence struct {
 // evidence are always emitted (including null/empty values) for stable
 // automation consumption.
 type Envelope struct {
-	Operation CommandOperation `json:"operation"`
-	Result    Result           `json:"result"`
-	Error     *Issue           `json:"error"`
-	Warnings  []Warning        `json:"warnings"`
-	Evidence  []Evidence       `json:"evidence"`
-	Plan      *Plan            `json:"plan,omitempty"`
-	Profiles  []ProfileInfo    `json:"profiles,omitempty"`
-	Path      string           `json:"path,omitempty"`
+	Advisories []Advisory       `json:"advisories,omitempty"`
+	Operation  CommandOperation `json:"operation"`
+	Result     Result           `json:"result"`
+	Error      *Issue           `json:"error"`
+	Warnings   []Warning        `json:"warnings"`
+	Evidence   []Evidence       `json:"evidence"`
+	Plan       *Plan            `json:"plan,omitempty"`
+	Profiles   []ProfileInfo    `json:"profiles,omitempty"`
+	Path       string           `json:"path,omitempty"`
 }
 
 type ProfileInfo struct {

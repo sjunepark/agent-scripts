@@ -28,6 +28,15 @@ Prefer `sjskills` on `PATH`. In the tool's source repository, use
 `bin/sjskills` when the command is not installed. Do not install the command or
 change `PATH` unless the user asks.
 
+Successful commands automatically report advisory status for the nearest
+configured project and global baseline. Treat notices as prompts to review a
+fresh plan, never as apply authority or proof of exact state. Cached upstream
+evidence may be stale; advisory failures do not invalidate a successful primary
+command. Use `--no-status-check` when the user requests offline ancillary behavior
+or when scripts should skip extra inspection and fetching; the requested command
+still performs its own verification. JSON keeps notices in `advisories`, separate
+from the plan and stable warnings.
+
 ## Classify the request
 
 - **Sync configured state:** An unqualified request to sync or reconcile with

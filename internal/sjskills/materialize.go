@@ -205,8 +205,11 @@ func (m *Materializer) Preflight(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(root)
-	return m.preflightIn(ctx, root)
+	err = m.preflightIn(ctx, root)
+	if !errors.Is(err, errProcessTreeActive) {
+		_ = os.RemoveAll(root)
+	}
+	return err
 }
 
 func (m *Materializer) preflightIn(ctx context.Context, root string) error {
@@ -272,8 +275,9 @@ func skillsCLIAddArgs(skill DesiredSkill) ([]string, error) {
 }
 
 // Materialize runs one plan.  Installable skills are keyed by identity (name,
-// source, and full-depth behavior), so repeated desired placements share one
-// verified snapshot and one subprocess invocation. Manual and workflow entries
+// source, and full-depth behavior). Skills sharing a source and discovery
+// options share one fetch; every selected skill still needs its own verified
+// snapshot. Manual and workflow entries
 // are returned as skipped and never reported as materialized successes.
 func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (*MaterializationPlan, error) {
 	if ctx == nil {
@@ -299,46 +303,86 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 	plan.cleanupRoot = root
 	plan.limits = m.limits
 	if err := m.preflightIn(ctx, root); err != nil {
-		_ = plan.Cleanup()
+		if !errors.Is(err, errProcessTreeActive) {
+			_ = plan.Cleanup()
+		}
 		return nil, err
 	}
 
-	for _, skill := range installable {
+	for _, batch := range materializationBatches(installable) {
+		skill := batch[0]
 		args, err := skillsCLIAddArgs(skill)
+		if err == nil && len(batch) > 1 {
+			names := make([]string, 0, len(batch)-1)
+			for _, member := range batch[1:] {
+				names = append(names, member.Name)
+			}
+			args = append(args[:5:5], append(names, args[5:]...)...)
+		}
 		if err != nil {
 			_ = plan.Cleanup()
 			return nil, m.errorAt(root, safeSkillName(skill.Name), "build Skills CLI command", err)
 		}
 		result, runErr := m.run(ctx, root, args)
 		if runErr != nil {
-			_ = plan.Cleanup()
+			if !errors.Is(runErr, errProcessTreeActive) {
+				_ = plan.Cleanup()
+			}
 			return nil, m.diagnosticErrorAt(root, safeSkillName(skill.Name), "Skills CLI command failed", runErr, result)
 		}
 		if result.ExitCode != 0 {
 			_ = plan.Cleanup()
 			return nil, m.diagnosticErrorAt(root, safeSkillName(skill.Name), fmt.Sprintf("Skills CLI command exited with status %d", result.ExitCode), nil, result)
 		}
-		path, err := locateStagedSkill(root, skill.Name)
-		if err != nil {
-			_ = plan.Cleanup()
-			return nil, m.errorAt(root, safeSkillName(skill.Name), "locate staged skill", err)
+		// The pinned CLI may exit successfully after installing only a subset.
+		// Never accept or publish partial expected-content evidence.
+		for _, skill := range batch {
+			path, err := locateStagedSkill(root, skill.Name)
+			if err != nil {
+				_ = plan.Cleanup()
+				return nil, m.errorAt(root, safeSkillName(skill.Name), "locate staged skill", err)
+			}
+			digest, err := hashSkillTree(path, m.limits)
+			if err != nil {
+				_ = plan.Cleanup()
+				return nil, m.errorAt(root, safeSkillName(skill.Name), "verify staged tree", err)
+			}
+			snapshot := &SkillSnapshot{
+				Skill:     skill,
+				Path:      path,
+				Hash:      digest,
+				plan:      plan,
+				stageRoot: root,
+				limits:    m.limits,
+			}
+			plan.snapshots[skill.Name] = snapshot
 		}
-		digest, err := hashSkillTree(path, m.limits)
-		if err != nil {
-			_ = plan.Cleanup()
-			return nil, m.errorAt(root, safeSkillName(skill.Name), "verify staged tree", err)
-		}
-		snapshot := &SkillSnapshot{
-			Skill:     skill,
-			Path:      path,
-			Hash:      digest,
-			plan:      plan,
-			stageRoot: root,
-			limits:    m.limits,
-		}
-		plan.snapshots[skill.Name] = snapshot
 	}
 	return plan, nil
+}
+
+// Keep source text and full-depth discovery options exact. Canonical source
+// aliases can have different subpaths or fetch semantics despite common origin.
+func materializationBatches(skills []DesiredSkill) [][]DesiredSkill {
+	skills = append([]DesiredSkill(nil), skills...)
+	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
+	type key struct {
+		source    string
+		fullDepth bool
+	}
+	positions := map[key]int{}
+	batches := [][]DesiredSkill{}
+	for _, skill := range skills {
+		k := key{skill.Source, skill.FullDepth}
+		index, ok := positions[k]
+		if !ok {
+			index = len(batches)
+			positions[k] = index
+			batches = append(batches, nil)
+		}
+		batches[index] = append(batches[index], skill)
+	}
+	return batches
 }
 
 func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []DesiredSkill, error) {
@@ -468,6 +512,9 @@ func (m *Materializer) run(ctx context.Context, root string, args []string) (Pro
 	}
 	if stderrExceeded {
 		result.Stderr = nil
+	}
+	if errors.Is(err, errProcessTreeActive) {
+		return result, errProcessTreeActive
 	}
 	if stdoutExceeded {
 		return result, errors.New("process: stdout exceeded its bound")
@@ -1245,24 +1292,42 @@ type boundedExecRunner struct {
 }
 
 const boundedExecWaitDelay = 250 * time.Millisecond
+const processTreeCleanupBudget = 2 * time.Second
+
+var errProcessTreeActive = errors.New("process tree termination could not be verified; staging retained")
 
 func (r boundedExecRunner) Run(ctx context.Context, command string, args []string, env []string) (ProcessResult, error) {
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Env = env
 	cmd.Stdin = nil
-	// A descendant can inherit stdout/stderr after CommandContext kills the
-	// direct child. WaitDelay bounds the internal copy goroutines that os/exec
-	// owns for these writers so cancellation cannot leave Wait blocked forever.
+	// Pipe waiting and process-tree lifetime are independent bounds. Even on
+	// successful parent exit, all contained descendants stop before Run returns.
 	cmd.WaitDelay = boundedExecWaitDelay
 	var stdout, stderr boundedBuffer
 	stdout.limit = r.limits.MaxStdoutBytes
 	stderr.limit = r.limits.MaxStderrBytes
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	tree, err := prepareProcessTree(cmd)
+	if err != nil {
+		return ProcessResult{}, err
+	}
+	defer tree.close()
 	if err := cmd.Start(); err != nil {
 		return ProcessResult{}, err
 	}
+	if err := tree.started(); err != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		if stopErr := tree.finish(); stopErr != nil {
+			return ProcessResult{}, stopErr
+		}
+		return ProcessResult{}, err
+	}
 	waitErr := cmd.Wait()
+	if err := tree.finish(); err != nil {
+		return ProcessResult{}, err
+	}
 	result := ProcessResult{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
 	if stdout.exceeded {
 		return result, materializationError("process", "stdout exceeded its bound", nil)
@@ -1315,6 +1380,9 @@ var (
 )
 
 func (m *Materializer) diagnosticErrorAt(root, scope, message string, processErr error, result ProcessResult) error {
+	if errors.Is(processErr, errProcessTreeActive) {
+		return errProcessTreeActive
+	}
 	parts := make([]string, 0, 2)
 	if scope != "" {
 		parts = append(parts, scope)

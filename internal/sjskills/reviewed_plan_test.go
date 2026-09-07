@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadReviewedPlanBindsDigestAndContract(t *testing.T) {
@@ -119,4 +120,90 @@ func reviewedIssueCode(err error) IssueCode {
 		return ""
 	}
 	return issue.Code
+}
+
+func TestReviewedAdvisoriesAreStrictButOutsideSemanticApproval(t *testing.T) {
+	now := time.Date(2026, 9, 7, 0, 0, 0, 0, time.UTC)
+	envelope := reviewedPlanFixture()
+	advisory := newAdvisory(ScopeGlobal)
+	advisory.Freshness = AdvisoryFresh
+	advisory.ObservedAt = &now
+	advisory.Findings = []AdvisoryFinding{{Category: AdvisoryMissing, Skill: "fixture", Target: TargetAgents, Reason: "expected-entry-absent"}}
+	envelope.Advisories = []Advisory{advisory}
+	load := func(t *testing.T, data []byte) (ReviewedPlan, error) {
+		t.Helper()
+		path := filepath.Join(t.TempDir(), "plan.json")
+		if err := os.WriteFile(path, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+		hash := sha256.Sum256(data)
+		return LoadReviewedPlan(path, hex.EncodeToString(hash[:]))
+	}
+	data, _ := json.Marshal(envelope)
+	reviewed, err := load(t, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := envelope
+	current.Advisories = nil
+	if err := VerifyReviewedPlanRecheck(reviewed, current); err != nil {
+		t.Fatalf("omitted advisory affects approval: %v", err)
+	}
+	changed := advisory
+	later := now.Add(time.Hour)
+	changed.ObservedAt = &later
+	changed.Cached = true
+	changed.Findings = []AdvisoryFinding{{Category: AdvisoryConflict, Skill: "different", Target: TargetClaude, Reason: "local-modification"}}
+	current.Advisories = []Advisory{changed}
+	if err := VerifyReviewedPlanRecheck(reviewed, current); err != nil {
+		t.Fatalf("advisory change affects approval: %v", err)
+	}
+	for _, mutate := range []func(*Envelope){
+		func(e *Envelope) { e.Warnings = append(e.Warnings, Warning{Code: "stable", Message: "changed"}) },
+		func(e *Envelope) { e.Plan = cloneReviewedPlan(e.Plan); e.Plan.Operations[0].Current.Detail = "changed" },
+		func(e *Envelope) {
+			e.Plan = cloneReviewedPlan(e.Plan)
+			e.Plan.Operations[0].Reason = "different-ownership"
+		},
+		func(e *Envelope) {
+			e.Plan = cloneReviewedPlan(e.Plan)
+			e.Plan.Operations[0].Expected.Detail = "changed"
+		},
+	} {
+		candidate := current
+		mutate(&candidate)
+		if VerifyReviewedPlanRecheck(reviewed, candidate) == nil {
+			t.Fatal("stable evidence change ignored")
+		}
+	}
+	// Exact artifact bytes, including notices, still require a matching digest.
+	path := filepath.Join(t.TempDir(), "artifact.json")
+	originalHash := sha256.Sum256(data)
+	changedData, _ := json.Marshal(current)
+	_ = os.WriteFile(path, changedData, 0600)
+	if _, err := LoadReviewedPlan(path, hex.EncodeToString(originalHash[:])); reviewedIssueCode(err) != IssueReconciliationConflict {
+		t.Fatalf("notice byte digest not bound: %v", err)
+	}
+	for _, mutation := range []func(*Advisory){
+		func(a *Advisory) { a.Freshness = "clean" }, func(a *Advisory) { a.Scope = "other" }, func(a *Advisory) { a.ObservedAt = nil }, func(a *Advisory) { a.ReviewCommand = "apply" },
+		func(a *Advisory) {
+			a.Findings = []AdvisoryFinding{{Category: "install", Reason: "expected-entry-absent"}}
+		},
+		func(a *Advisory) {
+			a.Findings = []AdvisoryFinding{{Category: AdvisoryMissing, Target: ".pi", Reason: "expected-entry-absent"}}
+		},
+	} {
+		bad := advisory
+		mutation(&bad)
+		candidate := envelope
+		candidate.Advisories = []Advisory{bad}
+		bytes, _ := json.Marshal(candidate)
+		if _, err := load(t, bytes); reviewedIssueCode(err) != IssueMalformedInput {
+			t.Fatalf("invalid advisory accepted: %+v %v", bad, err)
+		}
+	}
+	unknown := strings.Replace(string(data), `"freshness":"fresh"`, `"unexpected":true,"freshness":"fresh"`, 1)
+	if _, err := load(t, []byte(unknown)); reviewedIssueCode(err) != IssueMalformedInput {
+		t.Fatalf("unknown nested advisory field accepted: %v", err)
+	}
 }
