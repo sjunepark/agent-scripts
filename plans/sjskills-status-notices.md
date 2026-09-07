@@ -10,29 +10,14 @@ avoid fetching upstream content on every invocation.
 
 ## Current state
 
-Implementation is present under [the goal contract](../goals/sjskills-status-notices.md),
-with [PR #19](https://github.com/sjunepark/agent-scripts/pull/19) in feedback and
-native-check follow-up. Release, installation, and real-machine rollout remain excluded.
-
-- Typed status service, complete-snapshot cache, independent scope inspection,
-  CLI output and opt-out, post-mutation inventory, and strict approval separation
-  are implemented using existing reconciliation policy.
-- Source/option batching makes both cold scopes finish within the selected
-  shared 30-second budget. Each requested tree remains individually verified.
-- One bounded code review completed. Its cache-pruning race is fixed with a
-  regression check. Linux, both native macOS targets, and the Windows Go suite
-  passed. Fixed a platform-specific golden test without changing hashing.
-  Windows consumer checks then exposed an invalid null backup path in the
-  existing installer; a reviewed staging-backup correction awaits native validation.
-- Local Go and race suites passed. A repeated process test exposed Darwin
-  returning EPERM for a disappearing killed group; cleanup now verifies the
-  remaining process set after either signal result. All 20 repeated runs passed.
+Complete under [the goal contract](../goals/sjskills-status-notices.md).
+[PR #19](https://github.com/sjunepark/agent-scripts/pull/19) merged as `57dd2f1`
+on 2026-09-07. The feature, documentation, review feedback, and native acceptance
+checks are delivered. Release, installation, and real-machine rollout remain excluded.
 
 ## Next action
 
-Publish the reviewed installer correction, finish native checks, and merge
-PR #19. Review feedback is resolved. Then persist terminal planning metadata
-without beginning rollout.
+None — goal complete.
 
 ## Performance evidence
 
@@ -95,14 +80,16 @@ must never fall through to real tooling or mutate a real home.
 | Shared foreground deadline, cancellation, parent exit and descendants holding staging handles; staging retained if termination unverifiable | Process-tree and materializer lifecycle tests on supported native targets |
 | Warm overhead below 250 ms; representative remote cold checks finish both scopes within 30 s | Recorded performance evidence above; reproducible BenchmarkStatusWarm |
 
-## Delivery checks
+## Delivery evidence
 
-One connected feature PR contains the dependent model, cache, CLI, documentation,
-and acceptance work. Complete its initial CodeRabbit review and all feedback,
-validate native supported targets through the existing main-PR workflow, then
-merge before persisting terminal goal and project-planning metadata.
+One feature PR delivered the connected model, cache, CLI, documentation, and
+acceptance work. Initial and follow-up bounded reviews completed. CodeRabbit
+confirmed four fixes and withdrew its batching finding after pinned-parser and
+remote-run evidence; all threads are resolved. Codex completed without findings.
+Documentation harmonization covers the README, registry contract, sjskills entry
+point/global procedure, and goal/roadmap/plan status.
 
-Required local checks:
+Local validation passed:
 
 ```sh
 go test ./internal/sjskills ./cmd/sjskills
@@ -110,15 +97,13 @@ go test -race ./internal/sjskills ./cmd/sjskills
 go vet ./...
 node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js
 scripts/validate-skills
+python3 scripts/release_test.py
 ```
 
-Initial and follow-up bounded code reviews completed without remaining findings.
-CodeRabbit feedback adds SIGTERM cleanup/repeated-signal coverage, complete
-unavailable registry scope reporting, and cleanup error handling. The batching
-syntax finding was withdrawn after pinned CLI parser and remote-run evidence.
-The automatic Codex review completed with no findings. Documentation
-harmonization covers README, the registry contract, sjskills entry point/global
-procedure, and goal/roadmap/plan status. Windows cross-compilation is a local
-check, not a substitute for native PR validation. Release-test artifact
-installation uses temporary CI fixtures and does not activate or install the
-feature on a user's machine.
+Final [run 34108846117](https://github.com/sjunepark/agent-scripts/actions/runs/34108846117)
+passed Linux source/build checks, native Go suites on macOS Intel/ARM and Windows,
+and temporary installer/consumer checks. Validation exposed and corrected a
+cache-pruning race, Darwin process-group disappearance handling, a Windows hash
+golden assumption, and the Windows installer's null backup-path binding.
+The repeated process-cleanup run passed 20 times. Temporary CI artifact
+installation did not activate or install the feature on a user's machine.

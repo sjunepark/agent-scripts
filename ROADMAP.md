@@ -2,9 +2,7 @@
 
 ## Current
 
-[Show project and global skill status on CLI use](plans/sjskills-status-notices.md)
-is implemented; [PR #19](https://github.com/sjunepark/agent-scripts/pull/19)
-has resolved review feedback and is completing native installer validation.
+_None._
 
 ## Plans
 
@@ -21,3 +19,4 @@ _None._
 - [Deliver `sjskills` v1](goals/sjskills-v1.md)
 - [Build the profile-aware global reconciler](goals/profile-aware-global-skill-reconciler.md)
 - [Bind global apply to reviewed expected-content evidence](goals/sjskills-global-rollout-approval-binding.md)
+- [Deliver automatic project and global skill-status notices](goals/sjskills-status-notices.md)

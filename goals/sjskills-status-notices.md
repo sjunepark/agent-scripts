@@ -1,6 +1,6 @@
 # Goal: Automatic project and global skill-status notices
 
-Status: active
+Status: complete
 Planning scope: ROADMAP.md
 
 ## Original contract
@@ -24,22 +24,22 @@ _None._
 ## Execution status
 
 ### Completed included results
-_None._
+Automatic project and global status notices, complete-snapshot cache lifecycle,
+CLI integration, approval compatibility, documentation, and acceptance coverage.
+Delivered through [PR #19](https://github.com/sjunepark/agent-scripts/pull/19),
+merged as `57dd2f1` on 2026-09-07 with individual commits preserved.
 
 ### Current in-scope result
-Complete status-notice feature in plans/sjskills-status-notices.md.
+None — all included results delivered.
 
 ### Next in-scope action
-Publish the reviewed Windows installer fix, complete native validation of PR #19, then merge.
+None — goal complete.
 
 ### Evidence and blockers
-- Candidate: feature implementation and PR delivery. Classification: included. Contract basis: complete status-notice feature and Delivery. Action: proceed.
-- Delivery base: main; repository admin access, no branch protection or rulesets. Initialization and terminal metadata may be committed directly.
-- One PR covers the dependent implementation checkpoints. No release, installation, or real-machine reconciliation.
-- Adopt all actionable drift notices, 24-hour refresh, 15-minute failure cooldown, and shared 30-second foreground refresh budget, supported by measured warm and cold performance.
-- Candidate: bounded code review, documentation harmonization, and acceptance checks. Classification: necessary. Contract basis: repository-required review and complete documented feature. Action: proceed.
-- Implementation and documentation are present; bounded review found a pruning race, fixed with regression coverage. Final native delivery validation remains pending.
-- Source/option batching was selected after per-skill cold fetching exceeded the budget. Actual isolated cold checks completed both scopes in 7.35 s and 6.29 s with no remaining staging; warm 45-placement/360-file checks measured 11.4–18.1 ms.
-- Local Go and race suites passed; repeated process tests exposed Darwin EPERM during killed-group disappearance. The fix verifies remaining live processes after signal errors; 20 repeated runs passed. Final Go race suite, vet, Node registry tests, skill validation, and Windows cross-compilation passed.
-- PR #19 reviews are complete: Codex found no issues; CodeRabbit confirmed four fixes and withdrew the batching finding. All threads are resolved. Local follow-up reviews are clean. Linux, both native macOS targets, and the Windows Go suite passed.
-- Candidate: Windows installer reinstall correction. Classification: necessary. Contract basis: required native consumer checks cannot pass without this narrow existing-path fix. Action: proceed without release or real-machine installation. Native diagnostics exposed PowerShell binding the null backup argument as an invalid path; use a staging-owned backup with the same atomic replacement API. Six release unit tests and bounded review pass; native consumer validation is pending.
+- Selected all actionable drift notices, 24-hour refresh, 15-minute failure cooldown, and one shared 30-second foreground refresh budget.
+- Source/option batching completed both real remote cold scopes in 7.35 s and 6.29 s with no remaining staging. Warm checks measured 11.4–18.1 ms across 45 placements and 360 files.
+- Local Go/race suites, vet, Node registry tests, skill validation, repeated process-cleanup tests, and release unit tests passed. Bounded initial and follow-up reviews and documentation harmonization completed.
+- Final [native validation](https://github.com/sjunepark/agent-scripts/actions/runs/34108846117) passed Linux source/build checks, macOS Intel/ARM and Windows Go suites, and temporary installer/consumer preservation checks.
+- Codex review completed without findings. CodeRabbit confirmed four fixes and withdrew its batching finding; all threads are resolved and validation is recorded on the PR.
+- Native checks required a platform-specific golden test correction and a narrow Windows installer backup-path fix. Both are reviewed and validated; no release or real-machine installation occurred.
+- No blockers remain. Release, installation, and real-machine rollout remain excluded and unstarted. Terminal bookkeeping is limited to goal and project-planning metadata on main.
