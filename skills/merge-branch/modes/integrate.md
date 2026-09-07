@@ -84,21 +84,15 @@
 
    - Record whether each pattern is absent, still present for an intentional reason, or a missed source deletion that must be fixed before completion.
 
-8. Validate.
+8. Validate and finish.
    - Before a merge commit, inspect the full index and require every staged change to belong to the authorized merge scope. Do not unstage unrelated user work to make this gate pass; ask how to isolate it when necessary.
    - Run required repository checks and tests relevant to the integrated behavior and affected contracts. Broaden validation when those contracts, a failure, or an unresolved concern justify it; do not repeat passing checks without relevant new evidence or changes.
    - If broad checks fail because of unrelated existing issues, run targeted validation and clearly separate unrelated failures from integration failures.
 
+   - If committing is authorized, stage only integration changes, recheck the full index, and commit after validation. Preserve explicitly uncommitted and conflict-resolution-only endpoints.
+   - Publish only when separately authorized.
+
 9. Report.
-   - Include:
-     - destination branch, source branch, and merge base
-     - whether merge-as-draft or manual transplant was used, and why
-     - convergence status for whole-branch integrations: before the merge commit, verify `MERGE_HEAD` and report convergence as pending; after the merge commit, verify with `git merge-base --is-ancestor <source> HEAD`
-     - source commit-intent ledger summary
-     - where each source intent landed
-     - path mappings used
-     - residual differences and the classification for each meaningful difference
-     - deletion grep audit commands and results
-     - files changed
-     - validation commands and outcomes
-     - remaining risks or user decisions
+   - Summarize the destination, source, merge base, integration method and rationale, and where source intent landed. Include material path mappings, classified residual differences, and deletion-audit evidence.
+   - For whole-branch merges, verify `MERGE_HEAD` before committing and report convergence as pending; after committing, verify with `git merge-base --is-ancestor <source> HEAD`. For intentional transplants, report adopted ledger items without requiring ancestry.
+   - Report changed files, validation outcomes, and remaining risks or decisions. Include commands and detailed ledger entries when needed to verify or explain the result.

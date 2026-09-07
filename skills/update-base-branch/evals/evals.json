@@ -16,7 +16,7 @@
     {
       "id": 3,
       "prompt": "Use $update-base-branch to switch from this feature branch to the latest primary branch, but the worktree contains an untracked draft.",
-      "expected_output": "The agent stops before fetching or switching, identifies the untracked file, and asks the user to commit or stash it. It does not stash, reset, clean, or choose a branch while local work is unprotected.",
+      "expected_output": "The agent identifies the untracked file and completes read-only branch, worktree, and upstream assessment. It reports an evidence-backed target and upstream, or the unresolved choices, alongside the request to commit or stash the draft. It does not fetch, switch, stash, reset, clean, or change refs or files while local work is unprotected.",
       "files": []
     },
     {

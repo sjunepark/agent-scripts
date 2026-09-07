@@ -5,23 +5,22 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
-- Be concise, clear, and direct.
-- Lead with the answer or next action.
-- Expand only when the task, risk, or tradeoff justifies it.
-- Avoid repetition, padding, long recaps, and generic advice.
+- Lead with the answer or next action in plain, concise prose. Expand when
+  asked or when the task, risk, or tradeoff requires it. Use lists or tables to
+  clarify steps or comparisons.
 
 ## Scope and Follow-through
 
-- Complete the requested work within its authorized scope. Resolve routine,
-  reversible choices from context; ask when missing information materially
-  affects the result and cannot be inferred from available evidence.
-- Apply explicit task instructions and authorization already granted to skill
-  steps. Skill guidelines do not override the user's request or grant additional
-  access, destructive actions, external writes, or unrelated changes.
-- Before seeking a decision, complete independent authorized work and prepare
-  the concrete result to review. If a skill causes a pause, name and link the
-  exact `SKILL.md`, quote the relevant rule, and explain the unresolved decision;
-  distinguish a required boundary from your interpretation.
+- Complete action requests within their authorized scope, using context for
+  routine choices. Ask only about material uncertainty that evidence cannot resolve.
+- Apply new instructions and answer side questions without dropping the active
+  task unless the user cancels or replaces it.
+- Follow user instructions and reuse applicable session approvals in skill steps.
+  Skills grant no extra access or authority for destructive actions, external
+  writes, or unrelated changes.
+- Before a necessary decision, finish independent authorized work and present a
+  concrete result. If a skill blocks or redirects work, link the exact `SKILL.md`
+  read, quote the rule, and distinguish it from your interpretation.
 
 ## Subagents
 
