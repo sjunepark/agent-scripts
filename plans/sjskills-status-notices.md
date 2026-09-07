@@ -12,8 +12,7 @@ avoid fetching upstream content on every invocation.
 
 Implementation is present under [the goal contract](../goals/sjskills-status-notices.md),
 with [PR #19](https://github.com/sjunepark/agent-scripts/pull/19) in feedback and
-native-check follow-up. Release, installation, and
-real-machine rollout remain excluded.
+native-check follow-up. Release, installation, and real-machine rollout remain excluded.
 
 - Typed status service, complete-snapshot cache, independent scope inspection,
   CLI output and opt-out, post-mutation inventory, and strict approval separation
@@ -21,17 +20,19 @@ real-machine rollout remain excluded.
 - Source/option batching makes both cold scopes finish within the selected
   shared 30-second budget. Each requested tree remains individually verified.
 - One bounded code review completed. Its cache-pruning race is fixed with a
-  regression check. Linux checks and both native macOS targets passed. Windows
-  exposed a preexisting Unix executable-bit assumption in a hash golden test;
-  the follow-up retains separate fixed vectors without changing hashing.
+  regression check. Linux, both native macOS targets, and the Windows Go suite
+  passed. Fixed a platform-specific golden test without changing hashing.
+  Windows consumer checks then exposed an invalid null backup path in the
+  existing installer; a reviewed staging-backup correction awaits native validation.
 - Local Go and race suites passed. A repeated process test exposed Darwin
   returning EPERM for a disappearing killed group; cleanup now verifies the
   remaining process set after either signal result. All 20 repeated runs passed.
 
 ## Next action
 
-Publish the reviewed feedback fixes, finish native checks, reply to the reviewed
-findings, and merge PR #19. Then persist terminal planning metadata without beginning rollout.
+Publish the reviewed installer correction, finish native checks, and merge
+PR #19. Review feedback is resolved. Then persist terminal planning metadata
+without beginning rollout.
 
 ## Performance evidence
 
@@ -114,7 +115,7 @@ scripts/validate-skills
 Initial and follow-up bounded code reviews completed without remaining findings.
 CodeRabbit feedback adds SIGTERM cleanup/repeated-signal coverage, complete
 unavailable registry scope reporting, and cleanup error handling. The batching
-syntax finding was rejected against the pinned CLI parser and remote-run evidence.
+syntax finding was withdrawn after pinned CLI parser and remote-run evidence.
 The automatic Codex review completed with no findings. Documentation
 harmonization covers README, the registry contract, sjskills entry point/global
 procedure, and goal/roadmap/plan status. Windows cross-compilation is a local

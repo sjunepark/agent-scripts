@@ -4,7 +4,7 @@
 
 [Show project and global skill status on CLI use](plans/sjskills-status-notices.md)
 is implemented; [PR #19](https://github.com/sjunepark/agent-scripts/pull/19)
-is addressing review findings and completing native validation.
+has resolved review feedback and is completing native installer validation.
 
 ## Plans
 
