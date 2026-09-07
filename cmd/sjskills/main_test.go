@@ -147,7 +147,7 @@ func TestExternalHelpAndVersion(t *testing.T) {
 		t.Fatalf("help code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	code, stdout, stderr = runCLI(t, directory, "--version")
-	if code != 0 || stdout != "sjskills 1.0.0\n" || stderr != "" {
+	if code != 0 || stdout != "sjskills "+sjskills.ToolVersion+"\n" || stderr != "" {
 		t.Fatalf("version code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 }

@@ -160,7 +160,9 @@
 - Prefer exact commands and concrete paths over generic guidance.
 
 ## Current repo facts
-- There is no package manifest, CI workflow, or formatter config at the repo root today.
+- There is no package manifest or formatter config at the repo root today.
+- GitHub Actions development checks run on Linux only. Main integration and
+  release checks verify supported native targets; see `docs/sjskills-releases.md`.
 - Dependency-free Node tests cover the registry and read-only audit transition
   wrapper; Go tests cover project and global reconciliation.
 - There is a repository-local skill validation script at `scripts/validate-skills`.

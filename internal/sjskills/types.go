@@ -12,7 +12,6 @@ import (
 const (
 	RegistryVersion = 4
 	ManifestVersion = 1
-	ToolVersion     = "1.0.0"
 )
 
 // Target is a supported installation target. Targets are intentionally not

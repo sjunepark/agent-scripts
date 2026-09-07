@@ -34,12 +34,17 @@ below remains mandatory and must name the exact artifact digest.
 
 ## Produce review evidence
 
-Use a dedicated clean checkout of the exact published commit proposed for the
-machine. `bin/sjskills` builds the current checkout on every invocation, so it
+Once binary releases are available, use the same [verified installer](../docs/sjskills-releases.md)
+as other consumers, record the archive metadata commit and executable hash,
+and retain that exact executable throughout approval and execution.
+
+The source-build procedure below is the pre-release fallback. Use a dedicated
+clean checkout of the exact published commit proposed for the machine.
+`bin/sjskills` builds the current checkout on every invocation, so it
 is not suitable for binding approval by itself. Build one executable, hash it,
 and reuse that exact file for plan, recheck, apply, and post-apply inspection.
 
-On macOS or Linux:
+On macOS:
 
 ```bash
 git fetch origin main

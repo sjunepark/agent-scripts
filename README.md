@@ -89,18 +89,16 @@ git config core.hooksPath hooks
 
 ### Install the command
 
-`bin/sjskills` is the stable source wrapper. It builds the Go command from the
-checked-out repository into a temporary directory for each invocation, so Go
-1.23 or newer must be available. Add this repository's `bin/` directory to
-`PATH`, or create a one-time symlink from an absolute checkout path:
+Standalone release tooling is implemented for macOS (Intel and Apple
+silicon) and Windows x64; activation is pending. No binary release is published
+yet. See
+[installation and release details](docs/sjskills-releases.md) for the supported
+installer contract and activation status.
 
-```bash
-mkdir -p ~/.local/bin
-ln -s /absolute/path/to/agent-scripts/bin/sjskills ~/.local/bin/sjskills
-```
-
-Update the command by fast-forwarding the checkout. No generated executable is
-committed and no separate auto-updater is required.
+For development, `bin/sjskills` builds the checked-out Go command into a temporary
+directory on each invocation. It requires Go 1.23 or newer. Add this checkout's
+`bin/` to PATH or symlink its absolute path into `~/.local/bin`. Update this
+development command by fast-forwarding the checkout.
 
 Inspect the local source while developing:
 
