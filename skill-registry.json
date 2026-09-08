@@ -46,6 +46,7 @@
     },
     "kicpa": {
       "skills": [
+        "krx-cli",
         "windows-cleanup"
       ]
     },
@@ -72,6 +73,10 @@
     "impeccable": {
       "kind": "external",
       "location": "npm:impeccable@latest"
+    },
+    "krx-cli": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/krx-cli/tree/main/skills/krx-cli"
     },
     "matt-pocock": {
       "kind": "external",
@@ -214,6 +219,12 @@
     {
       "name": "interview",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "krx-cli",
+      "source": "krx-cli",
       "manager": "skills-cli",
       "mode": "copy"
     },
