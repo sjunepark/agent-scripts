@@ -135,20 +135,28 @@ copies. Unmanaged or modified desired copies and unverifiable entries block
 apply. See the
 [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation).
 
-Successful `init`, `profiles`, `plan`, `apply`, and `restore` commands also check
-the nearest configured project and fixed global baseline. Notices on stderr name
-updates, missing skills, extras, and conflicts; `--json` includes them in the same
-result document's optional `advisories` field. Review findings with `sjskills plan`
-or `sjskills plan --global` before changing anything.
+Run `sjskills` (or `sjskills status`) for a project and global status report.
+It shows the nearest configured project root, or setup guidance when no manifest
+exists, without creating anything. Both scopes visibly report no drift, findings,
+or unavailable evidence. Review findings with `sjskills plan` or
+`sjskills plan --global` before changing anything.
+
+Status reports go to stdout and exit 0 even for drift, missing setup, stale
+sources, or unavailable inspection; they are advisory, not a synchronization gate.
+`--json` emits one `operation: "status"` envelope with setup metadata and full
+`advisories`. Argument errors exit 64; cancellation exits nonzero. Successful
+`init`, `profiles`, `plan`, `apply`, and `restore` retain incidental notices on
+stderr (or `advisories` in JSON), with silence for fresh scopes without findings.
 
 Local drift is checked each time. Upstream hashes refresh daily; a cold or expired
 check can add up to 30 seconds plus bounded process cleanup. Failed refreshes use
 clearly labeled stale evidence when available and wait 15 minutes before retrying.
-Use `--no-status-check` to skip ancillary inspection, fetching, and cache writes;
-the requested command retains its own verification and network requirements.
-Help, version, invalid invocations, and unsuccessful commands skip these checks.
-See the [status evidence contract](docs/skill-registry.md#automatic-status-evidence)
-for cache and approval boundaries.
+Use `--no-status-check` to skip status inspection, fetching, and cache writes;
+the status command reports that checks are disabled. Other commands retain their
+own verification and network requirements. Help, exact version requests, invalid
+invocations, and unsuccessful commands skip these checks. See the
+[status evidence contract](docs/skill-registry.md#automatic-status-evidence)
+for JSON, cache, and approval boundaries.
 
 When apply prints a quarantine identifier, retain it until the replacement or
 removal has completed a normal work cycle. Restore refuses to overwrite an

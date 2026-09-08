@@ -18,13 +18,13 @@ import (
 	"github.com/sjunepark/agent-scripts/internal/sjskills"
 )
 
-type statusCLIFixture struct{ project, home, cache, log string }
+type statusCLIFixture struct{ project, home, cache, log, stage string }
 
 func newStatusCLIFixture(t *testing.T, manifest string) statusCLIFixture {
 	t.Helper()
 	root := t.TempDir()
-	f := statusCLIFixture{filepath.Join(root, "project"), filepath.Join(root, "home"), filepath.Join(root, "cache"), filepath.Join(root, "calls")}
-	for _, dir := range []string{f.project, f.home, f.cache} {
+	f := statusCLIFixture{filepath.Join(root, "project"), filepath.Join(root, "home"), filepath.Join(root, "cache"), filepath.Join(root, "calls"), filepath.Join(root, "stage")}
+	for _, dir := range []string{f.project, f.home, f.cache, f.stage} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -39,7 +39,7 @@ func newStatusCLIFixture(t *testing.T, manifest string) statusCLIFixture {
 func (f statusCLIFixture) command(t *testing.T, overrides map[string]string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
 	env := append([]string(nil), os.Environ()...)
-	values := map[string]string{"HOME": f.home, "USERPROFILE": f.home, "LOCALAPPDATA": f.cache, "XDG_CACHE_HOME": f.cache, "SJSKILLS_FAKE_LOG": f.log, "PATH": filepath.Dir(testBinary) + string(os.PathListSeparator) + os.Getenv("PATH")}
+	values := map[string]string{"TMPDIR": f.stage, "TMP": f.stage, "TEMP": f.stage, "HOME": f.home, "USERPROFILE": f.home, "LOCALAPPDATA": f.cache, "XDG_CACHE_HOME": f.cache, "SJSKILLS_FAKE_LOG": f.log, "PATH": filepath.Dir(testBinary) + string(os.PathListSeparator) + os.Getenv("PATH")}
 	for k, v := range overrides {
 		values[k] = v
 	}
@@ -354,7 +354,7 @@ func TestStatusScopesShareDeadlineAndCancellation(t *testing.T) {
 	app := &application{directory: f.project, homeDirectory: func() (string, error) { return f.home, nil }, envelope: sjskills.Envelope{Result: sjskills.ResultSuccess}, statusService: &service}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan []sjskills.Advisory, 1)
-	go func() { done <- app.collectStatus(ctx) }()
+	go func() { done <- app.collectStatus(ctx).advisories }()
 	d1, d2 := <-entered, <-entered
 	if !d1.Equal(d2) || time.Until(d1) > sjskills.StatusRefreshBudget {
 		t.Fatal("scopes did not share refresh deadline")
@@ -382,26 +382,5 @@ func TestStatusHumanRendererDeterminismAndSilence(t *testing.T) {
 	renderStatus(&output, []sjskills.Advisory{value}, nil, now)
 	if strings.Count(output.String(), "updates available: same") != 1 || !strings.Contains(output.String(), "conflicts need attention: same") || !reflect.DeepEqual(original, value.Findings) {
 		t.Fatalf("renderer %q", output.String())
-	}
-}
-
-func TestStatusRegistryFailurePreservesConfiguredScopes(t *testing.T) {
-	for _, manifest := range []string{"", "version = 1\nprofiles = [\"go\"]\n", "invalid ["} {
-		t.Run(manifest, func(t *testing.T) {
-			f := newStatusCLIFixture(t, manifest)
-			values := unavailableRegistryStatus(f.project)
-			want := []sjskills.Scope{sjskills.ScopeGlobal}
-			if manifest != "" {
-				want = []sjskills.Scope{sjskills.ScopeProject, sjskills.ScopeGlobal}
-			}
-			if len(values) != len(want) {
-				t.Fatalf("scopes %+v", values)
-			}
-			for i, value := range values {
-				if value.Scope != want[i] || value.Freshness != sjskills.AdvisoryUnavailable || value.Error != "skill registry unavailable" || value.ObservedAt != nil || len(value.Findings) != 0 {
-					t.Fatalf("advisory %+v", value)
-				}
-			}
-		})
 	}
 }

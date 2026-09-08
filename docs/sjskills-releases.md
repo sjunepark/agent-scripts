@@ -22,7 +22,13 @@ GitHub HTTPS channel and immutable release identity.
 The installers require no checkout, Go, or GitHub CLI. macOS uses system shell,
 `curl`, `tar`, and `shasum`; Windows uses Windows PowerShell 5.1 or newer and
 .NET. `plan` and `apply` still require Bun (`bunx`) and access to the existing pinned Skills CLI and Git
-sources. Help, version, profiles, and manifest initialization work without them.
+sources. Help and version perform no status checks. Profiles and manifest
+initialization retain their primary behavior without Bun; their incidental
+notices may report unavailable upstream evidence. Bare/named `status` also
+succeeds with an explicit unavailable report when no cached evidence or Bun is
+available. `--no-status-check` skips those checks entirely. See the
+[status contract](skill-registry.md#automatic-status-evidence) for latency and
+stream/exit semantics.
 
 ## Install and update
 
@@ -82,8 +88,10 @@ python3 scripts/test-release.py --output .tmp/release-check
 ```
 
 The consumer checks install the exact archives into a temporary location,
-exercise pure commands from an unrelated directory with an empty PATH, and
-verify reinstallation and failure preservation. Linux runs source checks and
+exercise help/version, profiles/init, and bare/named/JSON/disabled status from an
+unrelated directory with an empty PATH and isolated home/cache/staging roots,
+and verify reinstallation and failure preservation. Status checks cover both
+unconfigured and configured projects without Bun. Linux runs source checks and
 cross-builds, not reconciliation tests. Development PRs targeting `dev` and
 manual source checks run on Linux only.
 Integration PRs to `main`, merge-queue runs targeting `main`, and releases

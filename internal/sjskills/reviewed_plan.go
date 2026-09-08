@@ -70,6 +70,17 @@ func LoadReviewedPlan(path, approvedSHA256 string) (ReviewedPlan, error) {
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved plan contains trailing JSON content"}
 	}
+	// Presence is forbidden even for JSON null: status metadata is never approval
+	// evidence and must not become another ignored semantic field.
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return ReviewedPlan{}, err
+	}
+	for name := range fields {
+		if strings.EqualFold(name, "status") {
+			return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved plan must not contain status metadata"}
+		}
+	}
 	if envelope.Operation != CommandOperationPlan || envelope.Result != ResultSuccess || envelope.Error != nil || envelope.Plan == nil || envelope.Plan.Desired.Scope != ScopeGlobal {
 		return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved artifact must be a successful global plan"}
 	}

@@ -17,8 +17,9 @@ executable SHA-256, complete before/after JSON plans, reviewed plan SHA-256, and
 reported quarantine identifiers through a normal work cycle. These are
 execution evidence, not extra user decisions.
 
-Automatic project/global notices are advisory. Review the global plan's operations
-and evidence even when notices are silent. Preserve the full JSON artifact when
+Explicit `status` reports and automatic project/global notices are advisory.
+Status JSON cannot serve as a reviewed plan. Review the global plan's operations
+and evidence even when status reports no drift or notices are silent. Preserve the full JSON artifact when
 hashing it: its digest includes `advisories`, although the fresh-plan semantic
 comparison excludes that field. `--no-status-check` may suppress ancillary checks
 without weakening the explicit plan or apply verification.

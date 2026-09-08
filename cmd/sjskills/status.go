@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,16 +37,65 @@ func (a *application) finishPrepared(p *preparedPlan, envelope sjskills.Envelope
 	}
 	return envelope
 }
-func (a *application) collectStatus(ctx context.Context) []sjskills.Advisory {
-	if a.envelope.Result != sjskills.ResultSuccess || ctx.Err() != nil {
-		return nil
+
+// statusCollection keeps discovery metadata and scope evidence together; only the
+// status operation exposes metadata, while incidental callers use advisories.
+type statusCollection struct {
+	result     sjskills.StatusResult
+	advisories []sjskills.Advisory
+}
+
+func (a *application) status(ctx context.Context) sjskills.Envelope {
+	envelope := a.base(sjskills.CommandOperationStatus)
+	if a.noStatusCheck {
+		envelope.Status = &sjskills.StatusResult{ProjectConfiguration: sjskills.ProjectSkipped}
+		return envelope
 	}
+	if ctx.Err() == nil {
+		report := a.collectStatus(ctx)
+		envelope.Status = &report.result
+		envelope.Advisories = report.advisories
+	}
+	if ctx.Err() != nil {
+		envelope.Result = sjskills.ResultUnavailable
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Message: "status inspection cancelled"}
+	}
+	return envelope
+}
+
+func discoverStatusProject(directory string) sjskills.StatusResult {
+	result := sjskills.StatusResult{ProjectConfiguration: sjskills.ProjectUnavailable}
+	// DiscoverProjectRoot accepts files and classifies invalid starts as missing.
+	// A status invocation must establish an inspectable directory before setup advice.
+	file, err := os.Open(directory)
+	if err != nil {
+		return result
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || !info.IsDir() {
+		return result
+	}
+	if _, err := file.Readdirnames(1); err != nil && err != io.EOF {
+		return result
+	}
+	project, err := sjskills.DiscoverProjectRoot(directory)
+	if missingStatusManifest(err) {
+		result.ProjectConfiguration = sjskills.ProjectNotConfigured
+	} else if err == nil {
+		result.ProjectRoot = project.Root
+		if _, err := sjskills.ReadManifest(project.ManifestPath); err == nil {
+			result.ProjectConfiguration = sjskills.ProjectConfigured
+		}
+	}
+	return result
+}
+
+func (a *application) collectStatus(ctx context.Context) statusCollection {
 	ctx, cancel := context.WithTimeout(ctx, sjskills.StatusRefreshBudget)
 	defer cancel()
-	registry, err := a.registry()
-	if err != nil {
-		return unavailableRegistryStatus(a.directory)
-	}
+	report := statusCollection{result: discoverStatusProject(a.directory)}
+	registry, registryErr := a.registry()
 	results := make([]*sjskills.Advisory, 2)
 	var group sync.WaitGroup
 	// There are exactly two independent scopes and one shared foreground budget.
@@ -55,23 +105,40 @@ func (a *application) collectStatus(ctx context.Context) []sjskills.Advisory {
 			defer group.Done()
 			directory := a.directory
 			scopeName := sjskills.ScopeProject
+			unavailable := func(message string) {
+				v := statusUnavailable(scopeName, message)
+				results[index] = &v
+			}
 			if global {
 				scopeName = sjskills.ScopeGlobal
 				var homeErr error
 				directory, homeErr = a.selectedGlobalHome()
 				if homeErr != nil {
-					v := statusUnavailable(scopeName, "global home unavailable")
-					results[index] = &v
+					unavailable("global home unavailable")
+					return
+				}
+			} else {
+				switch report.result.ProjectConfiguration {
+				case sjskills.ProjectNotConfigured:
+					return
+				case sjskills.ProjectUnavailable:
+					unavailable("scope configuration could not be inspected")
 					return
 				}
 			}
+			if registryErr != nil {
+				if !global {
+					report.result.ProjectConfiguration = sjskills.ProjectUnavailable
+				}
+				unavailable("skill registry unavailable")
+				return
+			}
 			scope, resolveErr := sjskills.ResolveStatusScope(directory, registry, global)
 			if resolveErr != nil {
-				if !global && missingStatusManifest(resolveErr) {
-					return
+				if !global {
+					report.result.ProjectConfiguration = sjskills.ProjectUnavailable
 				}
-				v := statusUnavailable(scopeName, "scope configuration could not be inspected")
-				results[index] = &v
+				unavailable("scope configuration could not be inspected")
 				return
 			}
 			var reusable *sjskills.StatusSnapshot
@@ -87,22 +154,12 @@ func (a *application) collectStatus(ctx context.Context) []sjskills.Advisory {
 		}(index, global)
 	}
 	group.Wait()
-	values := []sjskills.Advisory{}
 	for _, result := range results {
 		if result != nil {
-			values = append(values, *result)
+			report.advisories = append(report.advisories, *result)
 		}
 	}
-	return values
-}
-func unavailableRegistryStatus(directory string) []sjskills.Advisory {
-	values := []sjskills.Advisory{}
-	// Discover scope presence without requiring a usable registry or manifest.
-	// A missing manifest skips project status; an unreadable one remains unknown.
-	if _, err := sjskills.DiscoverProjectRoot(directory); !missingStatusManifest(err) {
-		values = append(values, statusUnavailable(sjskills.ScopeProject, "skill registry unavailable"))
-	}
-	return append(values, statusUnavailable(sjskills.ScopeGlobal, "skill registry unavailable"))
+	return report
 }
 func missingStatusManifest(err error) bool {
 	var issues *sjskills.ValidationErrors
@@ -117,18 +174,7 @@ func statusUnavailable(scope sjskills.Scope, message string) sjskills.Advisory {
 }
 func renderStatus(output io.Writer, values []sjskills.Advisory, explicit *sjskills.Plan, now time.Time) {
 	for _, value := range values {
-		suffix := ""
-		if value.Cached && value.ObservedAt != nil {
-			age := now.Sub(*value.ObservedAt)
-			if age < 0 {
-				suffix = " (cached observation is in the future)"
-			} else {
-				suffix = " (checked " + statusAge(age) + " ago)"
-			}
-		}
-		if value.Freshness == sjskills.AdvisoryStale {
-			suffix += " (stale upstream evidence)"
-		}
+		suffix := statusSuffix(value, now)
 		if value.Error != "" {
 			fmt.Fprintf(output, "sjskills: %s — %s%s\n", value.Scope, value.Error, suffix)
 		}
@@ -137,43 +183,10 @@ func renderStatus(output io.Writer, values []sjskills.Advisory, explicit *sjskil
 			continue
 		}
 		printed := false
-		for _, category := range []sjskills.AdvisoryCategory{sjskills.AdvisoryUpdate, sjskills.AdvisoryMissing, sjskills.AdvisoryExtra, sjskills.AdvisoryConflict} {
-			names := map[string]bool{}
-			for _, finding := range value.Findings {
-				if finding.Category == category {
-					name := finding.Skill
-					if name == "" {
-						name = "scope state"
-					}
-					names[name] = true
-				}
-			}
-			if len(names) == 0 {
-				continue
-			}
-			ordered := make([]string, 0, len(names))
-			for name := range names {
-				ordered = append(ordered, name)
-			}
-			sort.Strings(ordered)
-			count := len(ordered)
-			if count > 5 {
-				ordered = ordered[:5]
-			}
-			for index, name := range ordered {
-				quoted := strconv.QuoteToASCII(name)
-				if quoted != "\""+name+"\"" {
-					ordered[index] = quoted
-				}
-			}
-			list := strings.Join(ordered, ", ")
-			if count > 5 {
-				list += fmt.Sprintf(" (+%d more)", count-5)
-			}
-			label := map[sjskills.AdvisoryCategory]string{sjskills.AdvisoryUpdate: "updates available", sjskills.AdvisoryMissing: "missing", sjskills.AdvisoryExtra: "undeclared extras", sjskills.AdvisoryConflict: "conflicts need attention"}[category]
-			fmt.Fprintf(output, "sjskills: %s — %s: %s%s\n", value.Scope, label, list, suffix)
+		renderStatusFindings(value, func(line string) {
+			fmt.Fprintf(output, "sjskills: %s — %s%s\n", value.Scope, line, suffix)
 			printed = true
-		}
+		})
 		if printed {
 			fmt.Fprintf(output, "sjskills: review with `%s`.\n", value.ReviewCommand)
 		}
@@ -190,4 +203,99 @@ func statusAge(age time.Duration) string {
 		return fmt.Sprintf("%dh", int(age/time.Hour))
 	}
 	return fmt.Sprintf("%dd", int(age/(24*time.Hour)))
+}
+
+func statusSuffix(value sjskills.Advisory, now time.Time) string {
+	suffix := ""
+	if value.Cached && value.ObservedAt != nil {
+		age := now.Sub(*value.ObservedAt)
+		if age < 0 {
+			suffix = " (cached observation is in the future)"
+		} else {
+			suffix = " (checked " + statusAge(age) + " ago)"
+		}
+	}
+	if value.Freshness == sjskills.AdvisoryStale {
+		suffix += " (stale upstream evidence)"
+	}
+	return suffix
+}
+
+func renderStatusFindings(value sjskills.Advisory, emit func(string)) {
+	for _, category := range []sjskills.AdvisoryCategory{sjskills.AdvisoryUpdate, sjskills.AdvisoryMissing, sjskills.AdvisoryExtra, sjskills.AdvisoryConflict} {
+		names := map[string]bool{}
+		for _, finding := range value.Findings {
+			if finding.Category == category {
+				name := finding.Skill
+				if name == "" {
+					name = "scope state"
+				}
+				names[name] = true
+			}
+		}
+		if len(names) == 0 {
+			continue
+		}
+		ordered := make([]string, 0, len(names))
+		for name := range names {
+			ordered = append(ordered, name)
+		}
+		sort.Strings(ordered)
+		count := len(ordered)
+		if count > 5 {
+			ordered = ordered[:5]
+		}
+		for index, name := range ordered {
+			quoted := strconv.QuoteToASCII(name)
+			if quoted != "\""+name+"\"" {
+				ordered[index] = quoted
+			}
+		}
+		list := strings.Join(ordered, ", ")
+		if count > 5 {
+			list += fmt.Sprintf(" (+%d more)", count-5)
+		}
+		label := map[sjskills.AdvisoryCategory]string{sjskills.AdvisoryUpdate: "updates available", sjskills.AdvisoryMissing: "missing", sjskills.AdvisoryExtra: "undeclared extras", sjskills.AdvisoryConflict: "conflicts need attention"}[category]
+		emit(label + ": " + list)
+	}
+}
+
+func renderStatusReport(output io.Writer, result sjskills.StatusResult, values []sjskills.Advisory, now time.Time) {
+	if result.ProjectConfiguration == sjskills.ProjectSkipped {
+		fmt.Fprintln(output, "Status checks disabled (--no-status-check).")
+		return
+	}
+	if result.ProjectConfiguration == sjskills.ProjectNotConfigured {
+		fmt.Fprintln(output, "Project: not configured\n  Run `sjskills profiles` to choose profiles, then `sjskills init <profile>...`.")
+	}
+	for _, value := range values {
+		label := "Global"
+		if value.Scope == sjskills.ScopeProject {
+			label = "Project"
+			if result.ProjectRoot != "" {
+				label += " (" + strconv.QuoteToASCII(result.ProjectRoot) + ")"
+			}
+		}
+		summary := "drift detected"
+		switch {
+		case value.Freshness == sjskills.AdvisoryUnavailable:
+			summary = "inspection unavailable"
+		case len(value.Findings) == 0:
+			summary = "no drift detected"
+		}
+		if value.Freshness == sjskills.AdvisoryStale {
+			summary += " against stale evidence"
+		}
+		fmt.Fprintf(output, "%s: %s%s\n", label, summary, statusSuffix(value, now))
+		if value.Error != "" {
+			fmt.Fprintf(output, "  %s\n", value.Error)
+		}
+		renderStatusFindings(value, func(line string) { fmt.Fprintf(output, "  %s\n", line) })
+		if len(value.Findings) != 0 || value.Freshness != sjskills.AdvisoryFresh {
+			fmt.Fprintf(output, "  Review with `%s`.\n", value.ReviewCommand)
+		}
+		if value.Scope == sjskills.ScopeProject && result.ProjectConfiguration == sjskills.ProjectUnavailable {
+			fmt.Fprintln(output, "  Review the project directory and repair any existing sjskills.toml configuration.")
+		}
+	}
 }

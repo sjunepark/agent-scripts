@@ -21,10 +21,11 @@ import (
 )
 
 type cli struct {
-	NoStatusCheck bool `name:"no-status-check" help:"Skip automatic skill-status inspection, refresh, and cache writes."`
+	NoStatusCheck bool `name:"no-status-check" help:"Skip skill-status inspection, refresh, and cache writes."`
 	JSON          bool `name:"json" help:"Emit one JSON result document."`
 	Version       bool `name:"version" help:"Print the sjskills version."`
 
+	Status   statusCommand   `cmd:"" default:"1" help:"Report project and global skill status (default)."`
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
@@ -37,6 +38,12 @@ type initCommand struct {
 }
 
 type profilesCommand struct{}
+type statusCommand struct{}
+
+func (c *statusCommand) Run(ctx *commandContext) error {
+	ctx.application.envelope = ctx.application.status(ctx.context)
+	return nil
+}
 
 type planCommand struct {
 	Global bool `name:"global" help:"Resolve the fixed global baseline."`
@@ -86,6 +93,8 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 }
 
 type application struct {
+	loadRegistry        func() (sjskills.Registry, error)
+	noStatusCheck       bool
 	statusSnapshot      *commandStatusSnapshot
 	statusService       *sjskills.StatusService
 	directory           string
@@ -135,6 +144,9 @@ func productionMaterialize(ctx context.Context, skills []sjskills.DesiredSkill) 
 }
 
 func (a *application) registry() (sjskills.Registry, error) {
+	if a.loadRegistry != nil {
+		return a.loadRegistry()
+	}
 	return sjskills.EmbeddedRegistry()
 }
 
@@ -1090,6 +1102,10 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		fmt.Fprintf(stderr, "sjskills: %s\n", envelope.Error.Error())
 	}
 	switch envelope.Operation {
+	case sjskills.CommandOperationStatus:
+		if envelope.Status != nil {
+			renderStatusReport(stdout, *envelope.Status, envelope.Advisories, time.Now())
+		}
 	case sjskills.CommandOperationProfiles:
 		for _, profile := range envelope.Profiles {
 			fmt.Fprintf(stdout, "%s (%d skills)\n", profile.Name, profile.Count)
@@ -1200,6 +1216,7 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 		return int(sjskills.ExitInvalidInvocation)
 	}
 	app := &application{
+		noStatusCheck: commands.NoStatusCheck,
 		directory:     directory,
 		homeDirectory: os.UserHomeDir,
 		jsonMode:      commands.JSON,
@@ -1216,13 +1233,16 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 		}
 		return int(sjskills.ExitExecutionFailure)
 	}
+	if app.envelope.Operation == sjskills.CommandOperationStatus {
+		return emitEnvelope(stdout, stderr, commands.JSON, app.envelope)
+	}
 	if commands.NoStatusCheck || app.envelope.Result != sjskills.ResultSuccess || ctx.Err() != nil {
 		return emitEnvelope(stdout, stderr, commands.JSON, app.envelope)
 	}
 	if !commands.JSON {
 		renderHuman(stdout, stderr, app.envelope)
 	}
-	app.envelope.Advisories = app.collectStatus(ctx)
+	app.envelope.Advisories = app.collectStatus(ctx).advisories
 	if commands.JSON {
 		return emitEnvelope(stdout, stderr, true, app.envelope)
 	}

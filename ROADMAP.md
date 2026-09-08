@@ -16,6 +16,8 @@ _None._
 
 ## Completed
 
+- [Show useful status when sjskills runs without a subcommand](tasks/sjskills-default-status.md)
+  is implemented and locally validated; binary release publication is separate.
 - [Deliver `sjskills` v1](goals/sjskills-v1.md)
 - [Build the profile-aware global reconciler](goals/profile-aware-global-skill-reconciler.md)
 - [Bind global apply to reviewed expected-content evidence](goals/sjskills-global-rollout-approval-binding.md)

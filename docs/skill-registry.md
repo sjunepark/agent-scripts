@@ -94,12 +94,29 @@ protected and never reused by `sjskills`.
 
 ## Automatic status evidence
 
-Eligible successful commands inspect both the nearest configured project and
-fixed global baseline. Each check inventories current files and provenance using
-the reconciliation classifier; cached findings are never reused. Missing project
-configuration skips that scope, while invalid configuration produces an advisory
-failure independently of the global result. Manual, workflow, and protected
-locations keep their existing ownership boundaries.
+`sjskills` and `sjskills status` share one explicit report of the nearest project
+and fixed global baseline. Project discovery follows the nearest ancestor
+`sjskills.toml`, independently of Git boundaries, and displays its resolved root.
+An inspectable directory without a manifest gets optional setup guidance through
+`profiles` and `init`; no manifest or project cache entry is created. Invalid or
+unreadable configuration and invalid starting directories are unavailable
+inspection, with review/repair guidance. Each scope survives failure of its peer.
+Absent global installation roots ordinarily mean missing skills, not missing setup.
+
+Explicit human reports go to stdout, project before global. Fresh empty findings
+say “no drift detected”; stale empty findings say “no drift detected against stale
+evidence.” Reports include cache observation age when applicable and review
+commands for drift or unavailable/stale evidence. A produced report exits 0 for
+all advisory outcomes, including missing setup. Invalid command/flag/argument
+invocations exit 64 without checking; cancellation uses execution-failure exit 2
+and a diagnostic on stderr in human mode. JSON encodes failures in its envelope.
+
+Successful `init`, `profiles`, `plan`, `apply`, and `restore` instead emit
+incidental notices on stderr after primary output, omitting unconfigured projects
+and fresh scopes without findings. Both paths share the reconciliation classifier
+and inspect current files and provenance each time; cached findings are never
+reused. “No drift detected” does not verify externally provisioned manual or
+workflow tools. Protected locations retain their existing ownership boundaries.
 
 Disposable complete expected-hash snapshots live under the platform user-cache
 directory in `sjskills/status/`. Identity includes the canonical scope root,
@@ -117,8 +134,9 @@ A successful verified plan or apply supplies its scope's hashes only after
 staging verification and cleanup. Notices inspect post-operation state, run after
 mutation locks are released, and never run during confirmation. Human output
 groups at most five names per category, with remaining counts and cached age;
-fresh explicit plans suppress duplicate notices for their scope. Exact state is
-silent, while unavailable or stale evidence is explicitly labeled.
+fresh explicit plans suppress duplicate notices for their scope. Fresh scopes
+with no findings are silent in incidental notices; explicit reports always show
+checked scopes.
 
 The optional JSON `advisories` field carries full findings, targets, reason codes,
 observation time, freshness, and review commands. It is separate from stable
@@ -127,9 +145,24 @@ advisories; only the subsequent fresh-plan semantic comparison ignores that fiel
 The strict loader validates advisory structure and still rejects unknown fields.
 Older artifacts remain readable by the new executable, but older strict loaders
 cannot read new artifacts containing advisories. Keep the same executable through
-plan and apply. Advisory failures never change command success or grant mutation
-authority. Use `--no-status-check` to disable all ancillary work, including cache
-writes; it does not disable the requested command's live verification.
+plan and apply. Advisory failures never change primary command success or grant
+mutation authority.
+
+Only status envelopes include the optional `status` result object:
+`projectConfiguration` is `configured`, `not-configured`, `unavailable`, or
+`skipped`; `projectRoot` is present when discovery resolved it. A configured or
+unavailable project has a project advisory, including empty findings; an
+unconfigured project has only the global advisory. Setup states never replace
+advisory freshness. Status contains no plan or approval evidence. Reviewed global
+apply rejects status envelopes and any `status` field on a plan, including null;
+only advisories retain the existing limited semantic-comparison exclusion.
+
+`--no-status-check` disables all status discovery, inventory, refresh, and cache
+work. Explicit status then prints “Status checks disabled (--no-status-check).”
+or emits `projectConfiguration: "skipped"` with no root or advisories in JSON.
+For other commands the flag does not disable primary live verification. Root
+flags work before or after a named command. Help and exact version requests
+perform no status work.
 
 ## Validation and consumers
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -45,6 +46,11 @@ func main() {
 	}
 	if len(args) < 2 || args[0] != "skills@1.5.23" || args[1] != "add" {
 		os.Exit(4)
+	}
+	if os.Getenv("SJSKILLS_FAKE_BLOCK") == "1" {
+		for {
+			time.Sleep(time.Second)
+		}
 	}
 	for _, skill := range names {
 		if skill == os.Getenv("SJSKILLS_FAKE_FAIL_SKILL") {

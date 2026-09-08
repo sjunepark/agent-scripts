@@ -209,6 +209,7 @@ type Plan struct {
 type CommandOperation string
 
 const (
+	CommandOperationStatus   CommandOperation = "status"
 	CommandOperationInit     CommandOperation = "init"
 	CommandOperationProfiles CommandOperation = "profiles"
 	CommandOperationPlan     CommandOperation = "plan"
@@ -327,6 +328,7 @@ type Evidence struct {
 // evidence are always emitted (including null/empty values) for stable
 // automation consumption.
 type Envelope struct {
+	Status     *StatusResult    `json:"status,omitempty"`
 	Advisories []Advisory       `json:"advisories,omitempty"`
 	Operation  CommandOperation `json:"operation"`
 	Result     Result           `json:"result"`
@@ -336,6 +338,24 @@ type Envelope struct {
 	Plan       *Plan            `json:"plan,omitempty"`
 	Profiles   []ProfileInfo    `json:"profiles,omitempty"`
 	Path       string           `json:"path,omitempty"`
+}
+
+// ProjectConfiguration describes invocation-local setup, independently of upstream
+// freshness. Only configured/unavailable projects have a project advisory.
+type ProjectConfiguration string
+
+const (
+	ProjectConfigured    ProjectConfiguration = "configured"
+	ProjectNotConfigured ProjectConfiguration = "not-configured"
+	ProjectUnavailable   ProjectConfiguration = "unavailable"
+	ProjectSkipped       ProjectConfiguration = "skipped"
+)
+
+// StatusResult appears only on explicit/default status reports. Skipped reports
+// have no root or advisories; missing setup has only the global advisory.
+type StatusResult struct {
+	ProjectConfiguration ProjectConfiguration `json:"projectConfiguration"`
+	ProjectRoot          string               `json:"projectRoot,omitempty"`
 }
 
 type ProfileInfo struct {

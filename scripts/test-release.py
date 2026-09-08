@@ -24,6 +24,52 @@ def invoke(installer, assets, destination, version=release.VERSION):
     return subprocess.run(command, capture_output=True, text=True)
 
 
+def check_status(cli, consumer, configured):
+    # Opt-out must not discover scopes or touch even the disposable cache.
+    before = {str(p.relative_to(consumer)): (p.stat().st_mtime_ns, p.read_bytes() if p.is_file() else None)
+              for p in consumer.rglob('*')}
+    for arguments in [('--no-status-check',), ('status', '--no-status-check'),
+                      ('--json', '--no-status-check'), ('--no-status-check', 'status', '--json')]:
+        result = cli(*arguments)
+        assert result.returncode == 0 and not result.stderr, result
+        if '--json' in arguments:
+            value = json.loads(result.stdout)
+            assert value['operation'] == 'status' and value['result'] == 'success', value
+            assert value['status'] == {'projectConfiguration': 'skipped'}, value
+            assert not value.get('advisories') and 'plan' not in value, value
+        else:
+            assert result.stdout == 'Status checks disabled (--no-status-check).\n', result
+    after = {str(p.relative_to(consumer)): (p.stat().st_mtime_ns, p.read_bytes() if p.is_file() else None)
+             for p in consumer.rglob('*')}
+    assert after == before, 'disabled status changed consumer files or cache'
+    for arguments in [(), ('status',), ('--json',), ('--json', 'status'), ('status', '--json')]:
+        result = cli(*arguments)
+        assert result.returncode == 0 and not result.stderr, result
+        if '--json' in arguments:
+            value = json.loads(result.stdout)
+            assert value['operation'] == 'status' and value['result'] == 'success', value
+            assert 'plan' not in value, value
+            assert value['status']['projectConfiguration'] == ('configured' if configured else 'not-configured'), value
+            if configured:
+                assert Path(value['status']['projectRoot']).resolve() == consumer.resolve(), value
+            else:
+                assert 'projectRoot' not in value['status'], value
+            advisories = value['advisories']
+            assert [v['scope'] for v in advisories] == (['project', 'global'] if configured else ['global']), value
+            # No Bun and no existing evidence must produce honest unavailability,
+            # while the advisory command itself still succeeds.
+            assert all(v['freshness'] == 'unavailable' and v['error'] for v in advisories), value
+        else:
+            assert 'Global:' in result.stdout, result
+            if configured:
+                quoted_root = json.dumps(str(consumer.resolve()), ensure_ascii=True)
+                assert f'Project ({quoted_root}):' in result.stdout, result
+            else:
+                assert 'Project: not configured' in result.stdout and 'sjskills init' in result.stdout, result
+        if not configured:
+            assert not (consumer / 'sjskills.toml').exists(), 'status initialized a project'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=release.ROOT / '.tmp/release')
@@ -46,22 +92,31 @@ def main():
         binary = destination / executable
         original = binary.read_bytes()
         # An unrelated cwd and empty PATH establish that source, Go, gh, Git,
-        # and Bun are unnecessary for the pure command surface.
+        # and Bun are unnecessary for the pure command surface. Status reports
+        # unavailable upstream evidence successfully when Bun is absent.
         consumer = root / 'consumer'
         consumer.mkdir()
-        env = dict(os.environ, PATH='', HOME=str(consumer), USERPROFILE=str(consumer))
+        staging = consumer / 'temporary'
+        staging.mkdir()
+        env = dict(os.environ, PATH='', HOME=str(consumer), USERPROFILE=str(consumer),
+                   LOCALAPPDATA=str(consumer / 'cache'), XDG_CACHE_HOME=str(consumer / 'cache'),
+                   TMPDIR=str(staging), TEMP=str(staging), TMP=str(staging))
         def cli(*arguments):
-            return subprocess.run([str(binary), *arguments], cwd=consumer, env=env, capture_output=True, text=True)
+            return subprocess.run([str(binary), *arguments], cwd=consumer, env=env,
+                                  capture_output=True, text=True, timeout=45)
         result = cli('--version')
         assert result.returncode == 0 and result.stdout == f'sjskills {release.VERSION}\n', result
         result = cli('--help')
-        assert result.returncode == 0 and 'sjskills <command>' in result.stdout, result
+        assert result.returncode == 0 and 'sjskills <command>' in result.stdout and 'status' in result.stdout, result
+        check_status(cli, consumer, configured=False)
         result = cli('--json', 'profiles')
         assert result.returncode == 0 and json.loads(result.stdout)['result'] == 'success', result
         result = cli('init', 'dev')
         assert result.returncode == 0, result
         manifest = consumer / 'sjskills.toml'
         before = manifest.read_bytes()
+        check_status(cli, consumer, configured=True)
+        assert manifest.read_bytes() == before, 'status changed the project manifest'
         result = cli('init', 'go')
         assert result.returncode != 0 and manifest.read_bytes() == before, result
         result = cli('--json', 'plan')

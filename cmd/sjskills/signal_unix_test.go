@@ -98,3 +98,55 @@ func TestCLISignalsDuringConfirmation(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultStatusSignalCleanup(t *testing.T) {
+	for _, args := range [][]string{nil, {"status"}} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			f := newStatusCLIFixture(t, "version = 1\nprofiles = [\"go\"]\n")
+			cmd, out, errout := f.command(t, map[string]string{"SJSKILLS_FAKE_BLOCK": "1"}, args...)
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			defer cmd.Process.Kill()
+			done := make(chan error, 1)
+			go func() { done <- cmd.Wait() }()
+			deadline := time.NewTimer(10 * time.Second)
+			defer deadline.Stop()
+			tick := time.NewTicker(10 * time.Millisecond)
+			defer tick.Stop()
+			waiting := true
+			for waiting {
+				select {
+				case <-tick.C:
+					if len(f.calls(t)) >= 2 {
+						waiting = false
+					}
+				case err := <-done:
+					t.Fatalf("exit before refresh: %v", err)
+				case <-deadline.C:
+					t.Fatal("refresh did not start")
+				}
+			}
+			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case err := <-done:
+				if err == nil || cmd.ProcessState.ExitCode() != 2 || !strings.Contains(errout.String(), "cancelled") {
+					t.Fatalf("cancel %v %q %q", err, out.String(), errout.String())
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("status cancellation exceeded cleanup budget")
+			}
+			entries, err := os.ReadDir(f.stage)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("staging retained: %v %v", entries, err)
+			}
+			for _, path := range []string{filepath.Join(f.project, ".agents"), filepath.Join(f.project, ".claude"), filepath.Join(f.home, ".agents"), filepath.Join(f.home, ".claude")} {
+				if _, err := os.Stat(path); !os.IsNotExist(err) {
+					t.Fatalf("status mutated %s: %v", path, err)
+				}
+			}
+		})
+	}
+}

@@ -28,14 +28,20 @@ Prefer `sjskills` on `PATH`. In the tool's source repository, use
 `bin/sjskills` when the command is not installed. Do not install the command or
 change `PATH` unless the user asks.
 
-Successful commands automatically report advisory status for the nearest
-configured project and global baseline. Treat notices as prompts to review a
-fresh plan, never as apply authority or proof of exact state. Cached upstream
-evidence may be stale; advisory failures do not invalidate a successful primary
-command. Use `--no-status-check` when the user requests offline ancillary behavior
-or when scripts should skip extra inspection and fetching; the requested command
-still performs its own verification. JSON keeps notices in `advisories`, separate
-from the plan and stable warnings.
+Use `sjskills` or `sjskills status` for a two-scope advisory report. It names the
+resolved project root, offers setup guidance for a missing manifest, and reports
+configuration failures without recommending replacement. It never initializes
+or synchronizes. Status exits 0 even when inspection is unavailable; inspect the
+findings and freshness rather than treating success as exact state. Cold checks
+may take 30 seconds plus cleanup. Stale evidence remains explicitly labeled.
+
+Explicit reports use stdout; other successful commands retain incidental stderr
+notices and are silent for fresh scopes without findings.
+`--json` keeps full findings in `advisories`; status also includes setup metadata
+under `status`. Neither is apply authority or a substitute for a reviewed plan.
+Use `--no-status-check` to skip discovery, inspection, fetching, and cache writes;
+status then reports checks disabled, while other commands retain their primary
+verification.
 
 ## Classify the request
 
@@ -45,10 +51,10 @@ from the plan and stable warnings.
   global-only, machine, or preservation limit. If no project manifest exists,
   reconcile only the global baseline and report that the project is unconfigured;
   do not initialize it or infer profiles from installed copies.
-- **Explain or inspect:** Use `profiles`, `plan`, or `plan --global`. These are
-  read-only with respect to managed roots, although planning may fetch and
-  materialize remote expected content temporarily. A bare invocation without an
-  action defaults to inspection, not sync.
+- **Explain or inspect:** Use `status` for both scopes, `profiles` for available
+  selections, or `plan` / `plan --global` for a full selected-scope review. These
+  preserve managed roots but may fetch expected content temporarily. A bare
+  invocation without an action defaults to status inspection.
 - **Adopt a project:** Create `sjskills.toml` only when the user asks to adopt
   or initialize managed project skills. List available profiles first and use
   only profiles the user selected.
