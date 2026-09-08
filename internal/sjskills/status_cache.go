@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const statusCacheVersion = 1
+const statusCacheVersion = 2
 const maxStatusCacheBytes = 1 << 20
 const statusRetention = 30 * 24 * time.Hour
 
@@ -129,7 +129,7 @@ func (s StatusService) read(scope StatusScope) (statusCacheEntry, error) {
 	if err := decoder.Decode(new(any)); err != io.EOF {
 		return statusCacheEntry{}, errors.New("trailing status cache data")
 	}
-	if entry.Version != statusCacheVersion || entry.Identity != scope.identity() {
+	if entry.Version != statusCacheVersion || entry.Identity != scope.cacheKey() {
 		return statusCacheEntry{}, errors.New("incompatible status cache")
 	}
 	// A failed cold refresh has no snapshot but retains its bounded cooldown.
@@ -236,8 +236,8 @@ func (s StatusService) prune(scope StatusScope) {
 		return
 	}
 	defer dir.Close()
-	// Bound directory work as well as deletion work. A fresh scope replaces its
-	// previous identity in place, so ordinary use cannot accumulate versions.
+	// Bound directory work as well as deletion work. Identical upstream inputs
+	// share one entry; obsolete selections and formats age out independently.
 	entries, _ := dir.ReadDir(256)
 	for _, entry := range entries {
 		name := entry.Name()
@@ -257,7 +257,7 @@ func (s StatusService) prune(scope StatusScope) {
 			}
 			continue
 		}
-		// Reuse the per-scope lock so pruning cannot race an active writer. The
+		// Reuse the evidence lock so pruning cannot race an active writer. The
 		// key alone suffices here; no cache payload or foreign path is followed.
 		path := filepath.Join(directory, name[:64]+".lock")
 		file, err := createApplyLockFile(path)
@@ -284,7 +284,7 @@ func (s StatusService) prune(scope StatusScope) {
 	}
 }
 
-// The caller holds this entry's scope lock.
+// The caller holds this entry's evidence lock.
 func (s StatusService) removeExpiredStatusFile(path string, candidate os.FileInfo) {
 	current, err := lstatIdentity(path)
 	if err == nil && current.Mode().IsRegular() && os.SameFile(candidate, current) && s.now().Sub(current.ModTime()) >= statusRetention {

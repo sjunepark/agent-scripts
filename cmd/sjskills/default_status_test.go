@@ -89,6 +89,47 @@ func TestDefaultStatusCLI(t *testing.T) {
 	}
 }
 
+func TestDefaultStatusSharesEvidenceAcrossProjects(t *testing.T) {
+	manifest := "version = 1\nprofiles = [\"go\"]\n"
+	f := newStatusCLIFixture(t, manifest)
+	code, out, errout := f.run(t, nil, "--json")
+	if code != 0 || errout != "" {
+		t.Fatalf("first project: %d %s %s", code, out, errout)
+	}
+	first := advisoryFor(t, decodeStatusEnvelope(t, out), sjskills.ScopeProject)
+	calls := len(f.calls(t))
+	if calls == 0 || first.Cached || first.Freshness != sjskills.AdvisoryFresh {
+		t.Fatalf("cold evidence: %+v calls=%d", first, calls)
+	}
+	f.project = t.TempDir()
+	if err := os.WriteFile(filepath.Join(f.project, "sjskills.toml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The second project has different local state. Shared upstream hashes must
+	// not reuse the first project's findings or confer ownership on this path.
+	path := filepath.Join(f.project, ".agents", "skills", "modern-go")
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("# local\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, errout = f.run(t, nil, "--json")
+	if code != 0 || errout != "" {
+		t.Fatalf("second project: %d %s %s", code, out, errout)
+	}
+	second := advisoryFor(t, decodeStatusEnvelope(t, out), sjskills.ScopeProject)
+	if len(f.calls(t)) != calls || !second.Cached || second.Freshness != sjskills.AdvisoryFresh || !second.ObservedAt.Equal(*first.ObservedAt) {
+		t.Fatalf("second project fetched again: %+v calls=%d want=%d", second, len(f.calls(t)), calls)
+	}
+	for _, finding := range second.Findings {
+		if finding.Skill == "modern-go" && finding.Target == sjskills.TargetAgents && finding.Reason == "desired-path-unmanaged" && finding.Category == sjskills.AdvisoryConflict {
+			return
+		}
+	}
+	t.Fatalf("second project's local state was not inspected: %+v", second)
+}
+
 func TestDefaultStatusDispatchNoWork(t *testing.T) {
 	for _, args := range [][]string{
 		{"--no-status-check"}, {"status", "--no-status-check"}, {"--no-status-check", "status"},

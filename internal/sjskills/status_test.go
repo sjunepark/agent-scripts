@@ -227,6 +227,8 @@ func TestStatusCompleteSnapshotsAndHostileCache(t *testing.T) {
 }
 func TestStatusConcurrentRefreshAndSnapshotOrdering(t *testing.T) {
 	scope, service, now, calls := statusFixture(t, false)
+	peer := scope
+	peer.Root = canonicalTempHome(t)
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	original := service.Refresh
@@ -239,7 +241,7 @@ func TestStatusConcurrentRefreshAndSnapshotOrdering(t *testing.T) {
 	go func() { done <- service.Check(context.Background(), scope, nil) }()
 	<-entered
 	start := time.Now()
-	contended := service.Check(context.Background(), scope, nil)
+	contended := service.Check(context.Background(), peer, nil)
 	if time.Since(start) > time.Second || contended.Freshness != AdvisoryUnavailable || contended.Error == "" {
 		t.Fatalf("contention %+v", contended)
 	}
@@ -247,6 +249,9 @@ func TestStatusConcurrentRefreshAndSnapshotOrdering(t *testing.T) {
 	fresh := <-done
 	if fresh.Freshness != AdvisoryFresh || calls.Load() != 1 {
 		t.Fatalf("fresh %+v calls %d", fresh, calls.Load())
+	}
+	if value := service.Check(context.Background(), peer, nil); value.Freshness != AdvisoryFresh || !value.Cached || calls.Load() != 1 {
+		t.Fatalf("peer did not reuse completed refresh: %+v calls=%d", value, calls.Load())
 	}
 	entry, _ := service.read(scope)
 	old := entry
@@ -267,6 +272,76 @@ func TestStatusConcurrentRefreshAndSnapshotOrdering(t *testing.T) {
 	group.Wait()
 	if calls.Load() != 1 {
 		t.Fatalf("warm concurrency refreshed %d", calls.Load())
+	}
+}
+
+func TestStatusSharedEvidenceInputs(t *testing.T) {
+	scope, _, _, _ := statusFixture(t, false)
+	otherSkill := scope.Plan.Desired.Skills[0]
+	otherSkill.Name += "-other"
+	scope.Plan.Desired.Skills = append(scope.Plan.Desired.Skills, otherSkill)
+	for _, test := range []struct {
+		name   string
+		share  bool
+		change func(*StatusScope)
+	}{
+		{"root", true, func(s *StatusScope) { s.Root += "-other" }},
+		{"registry metadata", true, func(s *StatusScope) { s.Registry.Description += " changed" }},
+		{"scope", true, func(s *StatusScope) {
+			s.Plan.Desired.Scope = ScopeGlobal
+			for i := range s.Plan.Desired.Skills {
+				s.Plan.Desired.Skills[i].Scope = ScopeGlobal
+			}
+		}},
+		{"selection order", true, func(s *StatusScope) {
+			s.Plan.Desired.Skills[0], s.Plan.Desired.Skills[1] = s.Plan.Desired.Skills[1], s.Plan.Desired.Skills[0]
+		}},
+		{"targets", true, func(s *StatusScope) { s.Plan.Desired.Skills[0].Targets = []Target{TargetAgents} }},
+		{"origin", true, func(s *StatusScope) { s.Plan.Desired.Skills[0].Origin = "direct" }},
+		{"source alias", true, func(s *StatusScope) { s.Plan.Desired.Skills[0].SourceID = "renamed" }},
+		{"source", false, func(s *StatusScope) { s.Plan.Desired.Skills[0].Source = "other/repo" }},
+		{"full depth", false, func(s *StatusScope) { s.Plan.Desired.Skills[0].FullDepth = !s.Plan.Desired.Skills[0].FullDepth }},
+		{"mode", false, func(s *StatusScope) { s.Plan.Desired.Skills[0].Mode = "" }},
+		{"name", false, func(s *StatusScope) { s.Plan.Desired.Skills[0].Name += "-renamed" }},
+		{"selection", false, func(s *StatusScope) { s.Plan.Desired.Skills = s.Plan.Desired.Skills[:1] }},
+		{"manager", false, func(s *StatusScope) { s.Plan.Desired.Skills[0].Manager = ManagerManual }},
+		{"manual entry", true, func(s *StatusScope) {
+			s.Plan.Desired.Skills = append(s.Plan.Desired.Skills, DesiredSkill{Name: "external", Manager: ManagerManual})
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			changed := scope
+			changed.Plan.Desired = cloneDesiredState(scope.Plan.Desired)
+			test.change(&changed)
+			if shares := changed.cacheKey() == scope.cacheKey(); shares != test.share {
+				t.Fatalf("shared evidence=%v want=%v", shares, test.share)
+			}
+		})
+	}
+}
+
+func TestStatusSharedEvidenceCooldownAndSourceIsolation(t *testing.T) {
+	scope, service, now, calls := statusFixture(t, false)
+	if value := service.Check(context.Background(), scope, nil); value.Freshness != AdvisoryFresh {
+		t.Fatalf("cold: %+v", value)
+	}
+	peer := scope
+	peer.Root = canonicalTempHome(t)
+	*now = now.Add(statusRefreshInterval)
+	service.Refresh = func(context.Context, []DesiredSkill) (StatusSnapshot, error) {
+		calls.Add(1)
+		return StatusSnapshot{}, errors.New("offline")
+	}
+	if value := service.Check(context.Background(), scope, nil); value.Freshness != AdvisoryStale || calls.Load() != 2 {
+		t.Fatalf("failed refresh: %+v calls=%d", value, calls.Load())
+	}
+	if value := service.Check(context.Background(), peer, nil); value.Freshness != AdvisoryStale || calls.Load() != 2 || !strings.Contains(value.Error, "cooldown") {
+		t.Fatalf("peer cooldown: %+v calls=%d", value, calls.Load())
+	}
+	peer.Plan.Desired = cloneDesiredState(peer.Plan.Desired)
+	peer.Plan.Desired.Skills[0].Source = "other/repo"
+	if value := service.Check(context.Background(), peer, nil); value.Freshness != AdvisoryUnavailable || len(value.Findings) != 0 || calls.Load() != 3 {
+		t.Fatalf("different source reused evidence or cooldown: %+v calls=%d", value, calls.Load())
 	}
 }
 func TestStatusClockRollbackAndIdentityInputs(t *testing.T) {

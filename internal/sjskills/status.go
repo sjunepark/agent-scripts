@@ -179,7 +179,27 @@ func (s StatusScope) identity() string {
 	return hex.EncodeToString(sum[:])
 }
 func (s StatusScope) cacheKey() string {
-	sum := sha256.Sum256([]byte(string(s.Plan.Desired.Scope) + "\x00" + s.Root))
+	// Only upstream materialization inputs belong here. Roots, placement targets,
+	// profile names, and registry metadata affect local classification, which is
+	// always recomputed. Keep Matches stricter for command-produced snapshots.
+	type input struct {
+		Name, Source string
+		Mode         InstallMode
+		FullDepth    bool
+	}
+	inputs := make([]input, 0, len(s.Plan.Desired.Skills))
+	for _, skill := range s.Plan.Desired.Skills {
+		if skill.Manager == ManagerSkillsCLI {
+			inputs = append(inputs, input{skill.Name, skill.Source, skill.Mode, skill.FullDepth})
+		}
+	}
+	sort.Slice(inputs, func(i, j int) bool { return inputs[i].Name < inputs[j].Name })
+	data, _ := json.Marshal(struct {
+		Inputs    []input
+		CLI, Hash string
+		Format    int
+	}{inputs, SkillsCLIVersion, TreeHashAlgorithmSHA256V2, statusCacheVersion})
+	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
 }
 
@@ -285,11 +305,11 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 	now := s.now()
 	entry, err := s.read(scope)
 	if err != nil {
-		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.identity()}
+		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey()}
 	}
 	result.Cached = true
 	if reusable != nil && validStatusExpected(scope.Plan.Desired, reusable.Expected) && !reusable.ObservedAt.IsZero() && !reusable.ObservedAt.After(now) {
-		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.identity(), Expected: reusable.Expected, ObservedAt: reusable.ObservedAt}
+		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey(), Expected: reusable.Expected, ObservedAt: reusable.ObservedAt}
 		result.Cached = false
 		if err := s.publish(scope, entry); err != nil {
 			result.Error = "status cache could not be written"
@@ -316,7 +336,7 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 					snapshot, refreshErr := refresh(ctx, scope.Plan.Desired.Skills)
 					finished := s.now()
 					if refreshErr == nil && ctx.Err() == nil && validStatusExpected(scope.Plan.Desired, snapshot.Expected) && !snapshot.ObservedAt.IsZero() && !snapshot.ObservedAt.After(finished) {
-						entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.identity(), Expected: snapshot.Expected, ObservedAt: snapshot.ObservedAt}
+						entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey(), Expected: snapshot.Expected, ObservedAt: snapshot.ObservedAt}
 						result.Cached = false
 					} else {
 						entry.RetryAt = finished.Add(statusRetryInterval)

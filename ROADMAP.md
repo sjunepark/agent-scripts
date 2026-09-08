@@ -16,6 +16,9 @@ _None._
 
 ## Completed
 
+- [Reduce repeated sjskills status work](tasks/sjskills-status-performance.md)
+  shares upstream evidence across matching selections and prefers the native CLI
+  locally; implemented, reviewed, and verified with the updated local binary.
 - [Show useful status when sjskills runs without a subcommand](tasks/sjskills-default-status.md)
   is implemented and locally validated; binary release publication is separate.
 - [Deliver `sjskills` v1](goals/sjskills-v1.md)

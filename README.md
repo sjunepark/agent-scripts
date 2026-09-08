@@ -97,9 +97,11 @@ yet. See
 installer contract and activation status.
 
 For development, `bin/sjskills` builds the checked-out Go command into a temporary
-directory on each invocation. It requires Go 1.23 or newer. Add this checkout's
-`bin/` to PATH or symlink its absolute path into `~/.local/bin`. Update this
-development command by fast-forwarding the checkout.
+directory on each invocation. It requires Go 1.23 or newer; call it explicitly
+when testing checkout changes. If a native executable is installed, put its
+directory before this checkout's `bin/` on PATH to avoid rebuilding during
+everyday use. Fast-forwarding the checkout updates the development wrapper's
+source; an installed native executable needs a separate rebuild or update.
 
 Inspect the local source while developing:
 
@@ -148,8 +150,10 @@ sources, or unavailable inspection; they are advisory, not a synchronization gat
 `init`, `profiles`, `plan`, `apply`, and `restore` retain incidental notices on
 stderr (or `advisories` in JSON), with silence for fresh scopes without findings.
 
-Local drift is checked each time. Upstream hashes refresh daily; a cold or expired
-check can add up to 30 seconds plus bounded process cleanup. Failed refreshes use
+Local drift is checked each time. Matching skill selections share upstream hashes
+across projects, so changing directories does not repeat the fetch. Upstream
+hashes refresh daily; a cold or expired check can add up to 30 seconds plus
+bounded process cleanup. Failed refreshes use
 clearly labeled stale evidence when available and wait 15 minutes before retrying.
 Use `--no-status-check` to skip status inspection, fetching, and cache writes;
 the status command reports that checks are disabled. Other commands retain their

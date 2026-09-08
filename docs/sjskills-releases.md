@@ -55,6 +55,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -Version $vers
 ```
 
 Add `~/.local/bin` on macOS or `%LOCALAPPDATA%\sjskills\bin` on Windows to PATH.
+Place it before the checkout's `bin/` so the development wrapper does not shadow
+the installed executable and rebuild the CLI on every invocation.
 Use the same installer and destination to update or reinstall a chosen version.
 There is no automatic updater or update notice. A failed download, checksum, or
 binary identity check leaves an existing executable untouched. Symlink and
