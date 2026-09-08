@@ -139,6 +139,7 @@ func TestDefaultStatusDispatchNoWork(t *testing.T) {
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			f := newStatusCLIFixture(t, "")
+			f.clearCLIRelease(t)
 			code, out, errout := f.run(t, nil, args...)
 			joined := strings.Join(args, " ")
 			if strings.Contains(joined, "--no-status-check") {
@@ -248,7 +249,7 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 			service := sjskills.StatusService{CacheRoot: f.cache, Refresh: func(context.Context, []sjskills.DesiredSkill) (sjskills.StatusSnapshot, error) {
 				return sjskills.StatusSnapshot{}, errors.New("test upstream unavailable")
 			}}
-			app := &application{directory: f.project, homeDirectory: func() (string, error) { return f.home, nil }, statusService: &service}
+			app := &application{directory: f.project, homeDirectory: func() (string, error) { return f.home, nil }, statusService: &service, cliStatusService: f.cliService()}
 			switch kind {
 			case "deleted":
 				app.directory = filepath.Join(f.project, "absent")
@@ -298,6 +299,9 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 				t.Fatalf("configuration %+v", e)
 			}
 			if kind != "disabled" {
+				if e.CLIAdvisory == nil || e.CLIAdvisory.Comparison != sjskills.CLINoRelease || e.CLIAdvisory.Freshness != sjskills.AdvisoryFresh {
+					t.Fatalf("CLI evidence depends on skill configuration: %+v", e.CLIAdvisory)
+				}
 				_ = advisoryFor(t, e, sjskills.ScopeGlobal)
 			}
 			if want == sjskills.ProjectUnavailable && advisoryFor(t, e, sjskills.ScopeProject).Freshness != sjskills.AdvisoryUnavailable {

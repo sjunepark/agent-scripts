@@ -21,11 +21,11 @@ import (
 )
 
 type cli struct {
-	NoStatusCheck bool `name:"no-status-check" help:"Skip skill-status inspection, refresh, and cache writes."`
+	NoStatusCheck bool `name:"no-status-check" help:"Skip CLI-version and skill-status inspection, refresh, and cache writes."`
 	JSON          bool `name:"json" help:"Emit one JSON result document."`
 	Version       bool `name:"version" help:"Print the sjskills version."`
 
-	Status   statusCommand   `cmd:"" default:"1" help:"Report project and global skill status (default)."`
+	Status   statusCommand   `cmd:"" default:"1" help:"Report CLI version, project, and global skill status (default)."`
 	Init     initCommand     `cmd:"" help:"Create a project manifest without overwriting one."`
 	Profiles profilesCommand `cmd:"" help:"List selectable project profiles."`
 	Plan     planCommand     `cmd:"" help:"Resolve desired state and verified expected content without changing managed roots."`
@@ -96,6 +96,7 @@ type application struct {
 	loadRegistry        func() (sjskills.Registry, error)
 	noStatusCheck       bool
 	statusSnapshot      *commandStatusSnapshot
+	cliStatusService    *sjskills.CLIStatusService
 	statusService       *sjskills.StatusService
 	directory           string
 	homeDirectory       func() (string, error)
@@ -1104,6 +1105,7 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 	switch envelope.Operation {
 	case sjskills.CommandOperationStatus:
 		if envelope.Status != nil {
+			renderCLIStatus(stdout, envelope.CLIAdvisory, true, time.Now())
 			renderStatusReport(stdout, *envelope.Status, envelope.Advisories, time.Now())
 		}
 	case sjskills.CommandOperationProfiles:
@@ -1242,7 +1244,9 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 	if !commands.JSON {
 		renderHuman(stdout, stderr, app.envelope)
 	}
-	app.envelope.Advisories = app.collectStatus(ctx).advisories
+	report := app.collectStatus(ctx)
+	app.envelope.Advisories = report.advisories
+	app.envelope.CLIAdvisory = report.cli
 	if commands.JSON {
 		return emitEnvelope(stdout, stderr, true, app.envelope)
 	}
@@ -1250,6 +1254,7 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 	if app.envelope.Operation == sjskills.CommandOperationPlan {
 		explicit = app.envelope.Plan
 	}
+	renderCLIStatus(stderr, app.envelope.CLIAdvisory, false, time.Now())
 	renderStatus(stderr, app.envelope.Advisories, explicit, time.Now())
 	return int(app.envelope.ExitStatus())
 }

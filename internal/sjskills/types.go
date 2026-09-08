@@ -328,16 +328,17 @@ type Evidence struct {
 // evidence are always emitted (including null/empty values) for stable
 // automation consumption.
 type Envelope struct {
-	Status     *StatusResult    `json:"status,omitempty"`
-	Advisories []Advisory       `json:"advisories,omitempty"`
-	Operation  CommandOperation `json:"operation"`
-	Result     Result           `json:"result"`
-	Error      *Issue           `json:"error"`
-	Warnings   []Warning        `json:"warnings"`
-	Evidence   []Evidence       `json:"evidence"`
-	Plan       *Plan            `json:"plan,omitempty"`
-	Profiles   []ProfileInfo    `json:"profiles,omitempty"`
-	Path       string           `json:"path,omitempty"`
+	Status      *StatusResult    `json:"status,omitempty"`
+	CLIAdvisory *CLIAdvisory     `json:"cliAdvisory,omitempty"`
+	Advisories  []Advisory       `json:"advisories,omitempty"`
+	Operation   CommandOperation `json:"operation"`
+	Result      Result           `json:"result"`
+	Error       *Issue           `json:"error"`
+	Warnings    []Warning        `json:"warnings"`
+	Evidence    []Evidence       `json:"evidence"`
+	Plan        *Plan            `json:"plan,omitempty"`
+	Profiles    []ProfileInfo    `json:"profiles,omitempty"`
+	Path        string           `json:"path,omitempty"`
 }
 
 // ProjectConfiguration describes invocation-local setup, independently of upstream
@@ -352,7 +353,8 @@ const (
 )
 
 // StatusResult appears only on explicit/default status reports. Skipped reports
-// have no root or advisories; missing setup has only the global advisory.
+// have no root or advisories; missing setup has only the global skill advisory,
+// alongside independent CLI evidence.
 type StatusResult struct {
 	ProjectConfiguration ProjectConfiguration `json:"projectConfiguration"`
 	ProjectRoot          string               `json:"projectRoot,omitempty"`

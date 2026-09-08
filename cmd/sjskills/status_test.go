@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,12 +35,13 @@ func newStatusCLIFixture(t *testing.T, manifest string) statusCLIFixture {
 			t.Fatal(err)
 		}
 	}
+	f.seedCLIRelease(t, "", false)
 	return f
 }
 func (f statusCLIFixture) command(t *testing.T, overrides map[string]string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
 	env := append([]string(nil), os.Environ()...)
-	values := map[string]string{"TMPDIR": f.stage, "TMP": f.stage, "TEMP": f.stage, "HOME": f.home, "USERPROFILE": f.home, "LOCALAPPDATA": f.cache, "XDG_CACHE_HOME": f.cache, "SJSKILLS_FAKE_LOG": f.log, "PATH": filepath.Dir(testBinary) + string(os.PathListSeparator) + os.Getenv("PATH")}
+	values := map[string]string{"TMPDIR": f.stage, "TMP": f.stage, "TEMP": f.stage, "HOME": f.home, "USERPROFILE": f.home, "LOCALAPPDATA": f.cache, "XDG_CACHE_HOME": f.cache, "SJSKILLS_FAKE_LOG": f.log, "HTTPS_PROXY": "http://127.0.0.1:1", "NO_PROXY": "", "PATH": filepath.Dir(testBinary) + string(os.PathListSeparator) + os.Getenv("PATH")}
 	for k, v := range overrides {
 		values[k] = v
 	}
@@ -167,6 +169,9 @@ func TestStatusCLIEligibility(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			f := newStatusCLIFixture(t, test.manifest)
+			if !test.check {
+				f.clearCLIRelease(t)
+			}
 			cmd, out, errout := f.command(t, nil, test.args...)
 			cmd.Stdin = strings.NewReader(test.input)
 			_ = cmd.Run()
@@ -343,7 +348,7 @@ func TestStatusCommandSnapshotWaitsForSuccessfulCleanup(t *testing.T) {
 func TestStatusScopesShareDeadlineAndCancellation(t *testing.T) {
 	f := newStatusCLIFixture(t, "version = 1\nprofiles = [\"go\"]\n")
 	var calls atomic.Int32
-	entered := make(chan time.Time, 2)
+	entered := make(chan time.Time, 3)
 	service := sjskills.StatusService{CacheRoot: f.cache, Refresh: func(ctx context.Context, _ []sjskills.DesiredSkill) (sjskills.StatusSnapshot, error) {
 		calls.Add(1)
 		deadline, _ := ctx.Deadline()
@@ -351,18 +356,26 @@ func TestStatusScopesShareDeadlineAndCancellation(t *testing.T) {
 		<-ctx.Done()
 		return sjskills.StatusSnapshot{}, ctx.Err()
 	}}
-	app := &application{directory: f.project, homeDirectory: func() (string, error) { return f.home, nil }, envelope: sjskills.Envelope{Result: sjskills.ResultSuccess}, statusService: &service}
+	app := &application{directory: f.project, homeDirectory: func() (string, error) { return f.home, nil }, envelope: sjskills.Envelope{Result: sjskills.ResultSuccess}, statusService: &service, cliStatusService: f.cliService()}
+	f.clearCLIRelease(t)
+	app.cliStatusService.Client = &http.Client{Transport: cliTestTransport(func(r *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		deadline, _ := r.Context().Deadline()
+		entered <- deadline
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	})}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan []sjskills.Advisory, 1)
 	go func() { done <- app.collectStatus(ctx).advisories }()
-	d1, d2 := <-entered, <-entered
-	if !d1.Equal(d2) || time.Until(d1) > sjskills.StatusRefreshBudget {
+	d1, d2, d3 := <-entered, <-entered, <-entered
+	if !d1.Equal(d2) || !d1.Equal(d3) || time.Until(d1) > sjskills.StatusRefreshBudget {
 		t.Fatal("scopes did not share refresh deadline")
 	}
 	cancel()
 	select {
 	case values := <-done:
-		if len(values) != 2 || calls.Load() != 2 {
+		if len(values) != 2 || calls.Load() != 3 {
 			t.Fatalf("values %+v", values)
 		}
 	case <-time.After(time.Second):
@@ -382,5 +395,118 @@ func TestStatusHumanRendererDeterminismAndSilence(t *testing.T) {
 	renderStatus(&output, []sjskills.Advisory{value}, nil, now)
 	if strings.Count(output.String(), "updates available: same") != 1 || !strings.Contains(output.String(), "conflicts need attention: same") || !reflect.DeepEqual(original, value.Findings) {
 		t.Fatalf("renderer %q", output.String())
+	}
+}
+
+// Seed public metadata, not skill evidence; subprocesses remain offline even if
+// a regression unexpectedly tries to refresh it (the proxy refuses connections).
+func (f statusCLIFixture) releaseDirectory() string {
+	base := f.cache
+	if runtime.GOOS == "darwin" {
+		base = filepath.Join(f.home, "Library", "Caches")
+	}
+	return filepath.Join(base, "sjskills", "cli-status")
+}
+func (f statusCLIFixture) seedCLIRelease(t *testing.T, version string, installable bool) {
+	t.Helper()
+	directory := f.releaseDirectory()
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(map[string]any{"schema": 1, "source": "sjunepark/agent-scripts", "platform": runtime.GOOS + "/" + runtime.GOARCH, "version": version, "installable": installable, "observedAt": time.Now().UTC(), "retryAt": time.Time{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "release.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+}
+func (f statusCLIFixture) clearCLIRelease(t *testing.T) {
+	t.Helper()
+	root := filepath.Join(f.cache, "sjskills")
+	if runtime.GOOS == "darwin" {
+		root = filepath.Join(f.home, "Library")
+	}
+	if err := os.RemoveAll(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type cliTestTransport func(*http.Request) (*http.Response, error)
+
+func (f cliTestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+func (f statusCLIFixture) cliService() *sjskills.CLIStatusService {
+	return &sjskills.CLIStatusService{CacheRoot: f.releaseDirectory(), Client: &http.Client{Transport: cliTestTransport(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader("[]")), Header: make(http.Header)}, nil
+	})}}
+}
+func TestCLIVersionStatusSurfaces(t *testing.T) {
+	f := newStatusCLIFixture(t, "")
+	f.seedCLIRelease(t, "99.0.0", true)
+	for _, args := range [][]string{nil, {"status"}, {"--json"}, {"status", "--json"}, {"profiles"}, {"profiles", "--json"}} {
+		code, out, errout := f.run(t, nil, args...)
+		if code != 0 {
+			t.Fatal(code, out, errout)
+		}
+		if strings.Contains(strings.Join(args, " "), "--json") {
+			e := decodeStatusEnvelope(t, out)
+			if e.CLIAdvisory == nil || e.CLIAdvisory.Comparison != sjskills.CLIUpdate || !e.CLIAdvisory.Cached || errout != "" {
+				t.Fatal(e, errout)
+			}
+		} else {
+			target := out
+			if len(args) > 0 && args[0] == "profiles" {
+				target = errout
+			}
+			if strings.Count(target, "CLI — update available") != 1 || !strings.Contains(target, "/releases/tag/sjskills-v99.0.0") {
+				t.Fatal(out, errout)
+			}
+			if target == out && strings.Index(out, "CLI —") > strings.Index(out, "Project:") {
+				t.Fatal("CLI report must precede scopes", out)
+			}
+		}
+	}
+	for _, args := range [][]string{{"--no-status-check", "--json"}, {"profiles", "--no-status-check", "--json"}, {"--version", "--json"}} {
+		code, out, errout := f.run(t, nil, args...)
+		if code != 0 || errout != "" || strings.Contains(out, "cliAdvisory") {
+			t.Fatal(code, out, errout)
+		}
+	}
+}
+
+func TestCLIVersionRendererStates(t *testing.T) {
+	now := time.Now().UTC()
+	for _, tc := range []struct {
+		comparison sjskills.CLIComparison
+		freshness  sjskills.AdvisoryFreshness
+		error      string
+		incidental bool
+		text       string
+	}{
+		{sjskills.CLIEqual, sjskills.AdvisoryFresh, "", false, "matches latest stable version"},
+		{sjskills.CLIAhead, sjskills.AdvisoryFresh, "", false, "ahead of latest stable version"},
+		{sjskills.CLINoRelease, sjskills.AdvisoryFresh, "", false, "no published stable"},
+		{sjskills.CLIUncomparable, sjskills.AdvisoryFresh, "", true, "cannot compare"},
+		{sjskills.CLIDistributionUnavailable, sjskills.AdvisoryFresh, "missing assets", true, "distribution unavailable"},
+		{sjskills.CLIUnknown, sjskills.AdvisoryUnavailable, "offline", true, "evidence unavailable"},
+		{sjskills.CLIUpdate, sjskills.AdvisoryStale, "refresh failed", true, "stale upstream evidence"},
+		{sjskills.CLIEqual, sjskills.AdvisoryStale, "refresh failed", true, "stale upstream evidence"},
+		{sjskills.CLINoRelease, sjskills.AdvisoryStale, "refresh failed", true, "stale upstream evidence"},
+	} {
+		t.Run(string(tc.comparison)+"/"+string(tc.freshness), func(t *testing.T) {
+			a := &sjskills.CLIAdvisory{RunningVersion: "local\n\x1b[31m", AvailableVersion: "2.0.0", Comparison: tc.comparison, Freshness: tc.freshness, Error: tc.error, ObservedAt: &now, Cached: true, ReleaseURL: "https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v2.0.0"}
+			var explicit, incidental bytes.Buffer
+			renderCLIStatus(&explicit, a, true, now)
+			renderCLIStatus(&incidental, a, false, now)
+			if !strings.Contains(explicit.String(), tc.text) || strings.Contains(explicit.String(), "\x1b") || strings.Contains(explicit.String(), "local\n") {
+				t.Fatal(explicit.String())
+			}
+			if (incidental.Len() > 0) != tc.incidental {
+				t.Fatal(incidental.String())
+			}
+			if tc.comparison != sjskills.CLIUpdate && strings.Contains(explicit.String(), "Release and installation assets") {
+				t.Fatal("misleading installation guidance", explicit.String())
+			}
+		})
 	}
 }

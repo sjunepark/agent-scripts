@@ -137,7 +137,10 @@ copies. Unmanaged or modified desired copies and unverifiable entries block
 apply. See the
 [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation).
 
-Run `sjskills` (or `sjskills status`) for a project and global status report.
+Run `sjskills` (or `sjskills status`) for CLI version, project, and global status.
+The CLI check compares the running version against the latest stable published
+`sjskills` release and links to available updates. It reports absent releases or
+unavailable evidence explicitly and never installs an update.
 It shows the nearest configured project root, or setup guidance when no manifest
 exists, without creating anything. Both scopes visibly report no drift, findings,
 or unavailable evidence. Review findings with `sjskills plan` or
@@ -146,13 +149,15 @@ or unavailable evidence. Review findings with `sjskills plan` or
 Status reports go to stdout and exit 0 even for drift, missing setup, stale
 sources, or unavailable inspection; they are advisory, not a synchronization gate.
 `--json` emits one `operation: "status"` envelope with setup metadata and full
-`advisories`. Argument errors exit 64; cancellation exits nonzero. Successful
+`advisories`, plus independent version evidence in `cliAdvisory`. Argument errors exit 64; cancellation exits nonzero. Successful
 `init`, `profiles`, `plan`, `apply`, and `restore` retain incidental notices on
-stderr (or `advisories` in JSON), with silence for fresh scopes without findings.
+stderr (or the advisory fields in JSON), with silence for fresh scopes without
+findings and fresh CLI comparisons without updates or problems.
 
 Local drift is checked each time. Matching skill selections share upstream hashes
 across projects, so changing directories does not repeat the fetch. Upstream
-hashes refresh daily; a cold or expired check can add up to 30 seconds plus
+hashes and CLI release metadata refresh daily within one shared budget; a cold
+or expired check can add up to 30 seconds plus
 bounded process cleanup. Failed refreshes use
 clearly labeled stale evidence when available and wait 15 minutes before retrying.
 Use `--no-status-check` to skip status inspection, fetching, and cache writes;

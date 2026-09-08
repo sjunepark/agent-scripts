@@ -41,6 +41,7 @@ func (a *application) finishPrepared(p *preparedPlan, envelope sjskills.Envelope
 // statusCollection keeps discovery metadata and scope evidence together; only the
 // status operation exposes metadata, while incidental callers use advisories.
 type statusCollection struct {
+	cli        *sjskills.CLIAdvisory
 	result     sjskills.StatusResult
 	advisories []sjskills.Advisory
 }
@@ -55,6 +56,7 @@ func (a *application) status(ctx context.Context) sjskills.Envelope {
 		report := a.collectStatus(ctx)
 		envelope.Status = &report.result
 		envelope.Advisories = report.advisories
+		envelope.CLIAdvisory = report.cli
 	}
 	if ctx.Err() != nil {
 		envelope.Result = sjskills.ResultUnavailable
@@ -98,7 +100,17 @@ func (a *application) collectStatus(ctx context.Context) statusCollection {
 	registry, registryErr := a.registry()
 	results := make([]*sjskills.Advisory, 2)
 	var group sync.WaitGroup
-	// There are exactly two independent scopes and one shared foreground budget.
+	// CLI evidence and both skill scopes share one foreground deadline.
+	group.Add(1)
+	go func() {
+		defer group.Done()
+		service := sjskills.CLIStatusService{}
+		if a.cliStatusService != nil {
+			service = *a.cliStatusService
+		}
+		value := service.Check(ctx)
+		report.cli = &value
+	}()
 	for index, global := range []bool{false, true} {
 		group.Add(1)
 		go func(index int, global bool) {
@@ -297,5 +309,41 @@ func renderStatusReport(output io.Writer, result sjskills.StatusResult, values [
 		if value.Scope == sjskills.ScopeProject && result.ProjectConfiguration == sjskills.ProjectUnavailable {
 			fmt.Fprintln(output, "  Review the project directory and repair any existing sjskills.toml configuration.")
 		}
+	}
+}
+
+func renderCLIStatus(output io.Writer, value *sjskills.CLIAdvisory, explicit bool, now time.Time) {
+	if value == nil {
+		return
+	}
+	if !explicit && value.Freshness == sjskills.AdvisoryFresh && value.Error == "" && value.Comparison != sjskills.CLIUpdate && value.Comparison != sjskills.CLIUncomparable {
+		return
+	}
+	running := strconv.QuoteToASCII(value.RunningVersion)
+	summary := "release evidence unavailable"
+	switch value.Comparison {
+	case sjskills.CLIUpdate:
+		summary = "update available: " + running + " → " + value.AvailableVersion
+	case sjskills.CLIEqual:
+		summary = running + " matches latest stable version " + value.AvailableVersion
+	case sjskills.CLIAhead:
+		summary = running + " is ahead of latest stable version " + value.AvailableVersion
+	case sjskills.CLINoRelease:
+		summary = running + "; no published stable sjskills release"
+	case sjskills.CLIUncomparable:
+		summary = "cannot compare running version " + running + "; latest stable version " + value.AvailableVersion
+	case sjskills.CLIDistributionUnavailable:
+		summary = running + "; release " + value.AvailableVersion + " distribution unavailable"
+	}
+	if value.Comparison == sjskills.CLIUnknown {
+		summary = running + "; " + summary
+	}
+	suffix := statusSuffix(sjskills.Advisory{Cached: value.Cached, ObservedAt: value.ObservedAt, Freshness: value.Freshness}, now)
+	fmt.Fprintf(output, "sjskills: CLI — %s%s\n", summary, suffix)
+	if value.Error != "" {
+		fmt.Fprintf(output, "  %s\n", strconv.QuoteToASCII(value.Error))
+	}
+	if value.Comparison == sjskills.CLIUpdate {
+		fmt.Fprintf(output, "  Release and installation assets: %s\n", value.ReleaseURL)
 	}
 }

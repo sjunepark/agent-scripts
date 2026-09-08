@@ -25,8 +25,9 @@ The installers require no checkout, Go, or GitHub CLI. macOS uses system shell,
 sources. Help and version perform no status checks. Profiles and manifest
 initialization retain their primary behavior without Bun; their incidental
 notices may report unavailable upstream evidence. Bare/named `status` also
-succeeds with an explicit unavailable report when no cached evidence or Bun is
-available. `--no-status-check` skips those checks entirely. See the
+succeeds with explicit unavailable skill evidence when no cached evidence or Bun
+is available. CLI release comparison independently uses public HTTPS metadata
+and needs no external command. `--no-status-check` skips those checks entirely. See the
 [status contract](skill-registry.md#automatic-status-evidence) for latency and
 stream/exit semantics.
 
@@ -58,7 +59,8 @@ Add `~/.local/bin` on macOS or `%LOCALAPPDATA%\sjskills\bin` on Windows to PATH.
 Place it before the checkout's `bin/` so the development wrapper does not shadow
 the installed executable and rebuild the CLI on every invocation.
 Use the same installer and destination to update or reinstall a chosen version.
-There is no automatic updater or update notice. A failed download, checksum, or
+Status checks offer an advisory update notice linking to the selected stable
+release; installing that update remains an explicit operation. A failed download, checksum, or
 binary identity check leaves an existing executable untouched. Symlink and
 directory destinations are refused; remove an old checkout symlink explicitly
 before migrating that path, or select another directory.
@@ -93,7 +95,8 @@ The consumer checks install the exact archives into a temporary location,
 exercise help/version, profiles/init, and bare/named/JSON/disabled status from an
 unrelated directory with an empty PATH and isolated home/cache/staging roots,
 and verify reinstallation and failure preservation. Status checks cover both
-unconfigured and configured projects without Bun. Linux runs source checks and
+unconfigured and configured projects without Bun, plus CLI update comparison
+from seeded release metadata with network access blocked. Linux runs source checks and
 cross-builds, not reconciliation tests. Development PRs targeting `dev` and
 manual source checks run on Linux only.
 Integration PRs to `main`, merge-queue runs targeting `main`, and releases

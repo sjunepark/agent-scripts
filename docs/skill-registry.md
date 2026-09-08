@@ -94,8 +94,9 @@ protected and never reused by `sjskills`.
 
 ## Automatic status evidence
 
-`sjskills` and `sjskills status` share one explicit report of the nearest project
-and fixed global baseline. Project discovery follows the nearest ancestor
+`sjskills` and `sjskills status` share one explicit report of the running CLI
+version, nearest project, and fixed global baseline. Project discovery follows
+the nearest ancestor
 `sjskills.toml`, independently of Git boundaries, and displays its resolved root.
 An inspectable directory without a manifest gets optional setup guidance through
 `profiles` and `init`; no manifest or project cache entry is created. Invalid or
@@ -103,7 +104,8 @@ unreadable configuration and invalid starting directories are unavailable
 inspection, with review/repair guidance. Each scope survives failure of its peer.
 Absent global installation roots ordinarily mean missing skills, not missing setup.
 
-Explicit human reports go to stdout, project before global. Fresh empty findings
+Explicit human reports go to stdout, CLI before project before global. Fresh
+empty findings
 say “no drift detected”; stale empty findings say “no drift detected against stale
 evidence.” Reports include cache observation age when applicable and review
 commands for drift or unavailable/stale evidence. A produced report exits 0 for
@@ -128,7 +130,8 @@ the current scope, registry, files, and provenance. Older scope-keyed cache entr
 are not reused, so the first check after this format change refreshes upstream.
 
 Snapshots refresh after 24 hours, with a shared 30-second foreground budget and
-at most two concurrent scope refreshes. Failed attempts retain matching stale
+at most two concurrent skill-scope refreshes alongside one independent CLI
+release lookup within that same budget. Failed attempts retain matching stale
 evidence and a 15-minute retry cooldown; incompatible or incomplete evidence
 cannot establish status. Matching selections share refresh locks and cooldowns;
 a concurrent cold check reports unavailable evidence while another refresh holds
@@ -148,28 +151,61 @@ fresh explicit plans suppress duplicate notices for their scope. Fresh scopes
 with no findings are silent in incidental notices; explicit reports always show
 checked scopes.
 
-The optional JSON `advisories` field carries full findings, targets, reason codes,
-observation time, freshness, and review commands. It is separate from stable
-warnings and approval evidence. The artifact SHA-256 binds all bytes, including
-advisories; only the subsequent fresh-plan semantic comparison ignores that field.
-The strict loader validates advisory structure and still rejects unknown fields.
-Older artifacts remain readable by the new executable, but older strict loaders
-cannot read new artifacts containing advisories. Keep the same executable through
-plan and apply. Advisory failures never change primary command success or grant
-mutation authority.
+CLI release evidence uses the public GitHub releases API for
+`sjunepark/agent-scripts`, without credentials or a dependency on the registry,
+project setup, Bun, Git, or `gh`. It selects the highest numeric stable
+`sjskills-vX.Y.Z` published release, ignoring other tags, drafts, and prereleases.
+Lookup is bounded to ten pages of at most 100 releases and 4 MiB per response;
+incomplete listings and HTTP failures are unavailable evidence. Required uploaded
+assets are the current target's archive, `SHA256SUMS`, and platform installer,
+with exact release download URLs. Missing assets produce a distribution problem
+instead of an installable update notice. Archive contents are not downloaded or
+verified during status; installation performs its own verification.
+
+The explicit CLI report distinguishes update, equal version, ahead of release,
+no published stable release, uncomparable running identity, distribution
+unavailable, and unavailable evidence. Equality compares the embedded version;
+it establishes neither source-commit freshness nor binary integrity. An update
+links to the exact release's installation assets and never installs anything.
+Incidental CLI notices stay silent for fresh equal/ahead/no-release results;
+updates, uncomparable identities, distribution problems, and evidence errors
+remain visible. Stale results always retain their label and observation age.
+
+A fixed release metadata record lives separately in `sjskills/cli-status/`, keyed
+by repository and platform identity. It shares the daily refresh and 15-minute
+failure cooldown policy, preserves explicit no-release observations and stale
+successes, and recompares against the running executable on every invocation.
+Replacing the executable therefore changes the comparison immediately. Cache
+schema and required fields are checked strictly; future observations cannot
+extend freshness. Nonblocking locks, safe regular-file reads, atomic replacement,
+and bounded cleanup of abandoned temporary files protect this separate cache.
+Cache access failures are advisory; skill-cache pruning never touches it.
+
+The optional JSON `advisories` field carries skill findings, targets, reason
+codes, observation time, freshness, and review commands. The optional
+`cliAdvisory` carries `runningVersion`, `availableVersion` when observed,
+`comparison`, `freshness`, `observedAt`, `cached`, `releaseURL`, and `error` as
+applicable. Both are separate from stable warnings and approval evidence. The
+artifact SHA-256 binds every byte, including both advisory fields; only the
+subsequent fresh-plan semantic comparison excludes them. The strict loader
+validates their structure and still rejects unknown fields. Older artifacts
+without CLI metadata remain readable; older strict loaders may reject the new
+field. Use the same compatible executable for plan and apply. Advisory failures
+never change primary command success or grant mutation authority.
 
 Only status envelopes include the optional `status` result object:
 `projectConfiguration` is `configured`, `not-configured`, `unavailable`, or
 `skipped`; `projectRoot` is present when discovery resolved it. A configured or
 unavailable project has a project advisory, including empty findings; an
-unconfigured project has only the global advisory. Setup states never replace
-advisory freshness. Status contains no plan or approval evidence. Reviewed global
+unconfigured project has only the global skill advisory. CLI evidence remains
+independent of these setup states. Setup states never replace advisory freshness. Status contains no plan or approval evidence. Reviewed global
 apply rejects status envelopes and any `status` field on a plan, including null;
-only advisories retain the existing limited semantic-comparison exclusion.
+only `advisories` and `cliAdvisory` retain the limited semantic-comparison exclusion.
 
 `--no-status-check` disables all status discovery, inventory, refresh, and cache
 work. Explicit status then prints “Status checks disabled (--no-status-check).”
-or emits `projectConfiguration: "skipped"` with no root or advisories in JSON.
+or emits `projectConfiguration: "skipped"` with no root, skill advisories, or CLI
+advisory in JSON.
 For other commands the flag does not disable primary live verification. Root
 flags work before or after a named command. Help and exact version requests
 perform no status work.

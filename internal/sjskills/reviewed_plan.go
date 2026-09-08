@@ -84,6 +84,9 @@ func LoadReviewedPlan(path, approvedSHA256 string) (ReviewedPlan, error) {
 	if envelope.Operation != CommandOperationPlan || envelope.Result != ResultSuccess || envelope.Error != nil || envelope.Plan == nil || envelope.Plan.Desired.Scope != ScopeGlobal {
 		return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved artifact must be a successful global plan"}
 	}
+	if err := validateCLIAdvisory(envelope.CLIAdvisory); err != nil {
+		return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved artifact has invalid CLI advisory"}
+	}
 	if err := validateAdvisories(envelope.Advisories); err != nil {
 		return ReviewedPlan{}, &Issue{Code: IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved artifact has invalid advisories"}
 	}
@@ -115,6 +118,7 @@ func VerifyReviewedPlanRecheck(reviewed ReviewedPlan, current Envelope) error {
 
 func normalizeReviewedEnvelope(envelope Envelope) Envelope {
 	envelope.Advisories = nil
+	envelope.CLIAdvisory = nil
 	evidence := make([]Evidence, 0, len(envelope.Evidence))
 	for _, item := range envelope.Evidence {
 		if item.Kind != "materialization" {

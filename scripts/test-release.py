@@ -3,6 +3,7 @@
 import argparse
 import importlib.util
 import json
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import platform
@@ -36,7 +37,7 @@ def check_status(cli, consumer, configured):
             value = json.loads(result.stdout)
             assert value['operation'] == 'status' and value['result'] == 'success', value
             assert value['status'] == {'projectConfiguration': 'skipped'}, value
-            assert not value.get('advisories') and 'plan' not in value, value
+            assert not value.get('advisories') and 'cliAdvisory' not in value and 'plan' not in value, value
         else:
             assert result.stdout == 'Status checks disabled (--no-status-check).\n', result
     after = {str(p.relative_to(consumer)): (p.stat().st_mtime_ns, p.read_bytes() if p.is_file() else None)
@@ -49,6 +50,9 @@ def check_status(cli, consumer, configured):
             value = json.loads(result.stdout)
             assert value['operation'] == 'status' and value['result'] == 'success', value
             assert 'plan' not in value, value
+            assert value['cliAdvisory']['comparison'] == 'update', value
+            assert value['cliAdvisory']['availableVersion'] == '999999.0.0', value
+            assert value['cliAdvisory']['cached'], value
             assert value['status']['projectConfiguration'] == ('configured' if configured else 'not-configured'), value
             if configured:
                 assert Path(value['status']['projectRoot']).resolve() == consumer.resolve(), value
@@ -100,7 +104,20 @@ def main():
         staging.mkdir()
         env = dict(os.environ, PATH='', HOME=str(consumer), USERPROFILE=str(consumer),
                    LOCALAPPDATA=str(consumer / 'cache'), XDG_CACHE_HOME=str(consumer / 'cache'),
-                   TMPDIR=str(staging), TEMP=str(staging), TMP=str(staging))
+                   TMPDIR=str(staging), TEMP=str(staging), TMP=str(staging),
+                   HTTPS_PROXY='http://127.0.0.1:1', NO_PROXY='')
+        # Exercise release comparison offline with the packaged executable and
+        # empty PATH. Metadata is disposable and does not require Bun or gh.
+        cache_base = consumer / 'Library' / 'Caches' if system == 'darwin' else consumer / 'cache'
+        release_cache = cache_base / 'sjskills' / 'cli-status'
+        release_cache.mkdir(parents=True)
+        (release_cache / 'release.json').write_text(json.dumps({
+            'schema': 1, 'source': 'sjunepark/agent-scripts',
+            'platform': f"{target['os']}/{target['arch']}",
+            'version': '999999.0.0', 'installable': True,
+            'observedAt': datetime.now(timezone.utc).isoformat(),
+            'retryAt': '0001-01-01T00:00:00Z',
+        }))
         def cli(*arguments):
             return subprocess.run([str(binary), *arguments], cwd=consumer, env=env,
                                   capture_output=True, text=True, timeout=45)

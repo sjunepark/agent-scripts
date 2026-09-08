@@ -33,7 +33,10 @@ func (e statusCacheEntry) retryDue(now time.Time) bool {
 }
 
 func (s StatusService) cacheDirectory() (string, error) {
-	root := s.CacheRoot
+	return disposableCacheDirectory(s.CacheRoot, "status")
+}
+
+func disposableCacheDirectory(root, namespace string) (string, error) {
 	var base string
 	if root == "" {
 		var err error
@@ -50,7 +53,7 @@ func (s StatusService) cacheDirectory() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		root = filepath.Join(base, "sjskills", "status")
+		root = filepath.Join(base, "sjskills", namespace)
 	} else {
 		var err error
 		root, err = filepath.Abs(root)
@@ -146,7 +149,10 @@ func (s StatusService) lock(scope StatusScope) (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	path := filepath.Join(directory, scope.cacheKey()+".lock")
+	return lockStatusPath(filepath.Join(directory, scope.cacheKey()+".lock"))
+}
+
+func lockStatusPath(path string) (func(), error) {
 	if info, err := os.Lstat(path); err == nil && !info.Mode().IsRegular() {
 		return nil, errors.New("unsafe cache lock")
 	}

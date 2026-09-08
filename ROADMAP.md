@@ -12,10 +12,13 @@ _None._
 
 ## Tasks
 
-- [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
+_None._
 
 ## Completed
 
+- [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
+  is implemented and locally validated against stable published releases;
+  installation and release publication remain separate.
 - [Reduce repeated sjskills status work](tasks/sjskills-status-performance.md)
   shares upstream evidence across matching selections and prefers the native CLI
   locally; implemented, reviewed, and verified with the updated local binary.
