@@ -12,7 +12,7 @@ _None._
 
 ## Tasks
 
-_None._
+- [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
 
 ## Completed
 

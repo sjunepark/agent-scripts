@@ -13,9 +13,10 @@ or changing the primary command's result.
 
 ## Current state
 
-Planning only, captured on 2026-09-08 against `cddd448`. The user authorized
-creating a detailed plan and committing only this file. Implementation, release,
-installation, pushing, and scheduling are outside that authorization.
+Planning only, captured on 2026-09-08 against `cddd448` and committed as
+`580a0ef`. The user subsequently authorized registering it in the roadmap.
+Implementation, release, installation, pushing, and selecting this task for
+execution remain outside the current authorization.
 
 - `c186e3a` added automatic project/global skill notices; PR #19 merged as
   `57dd2f1`, and `6b45e83` recorded completion. These checks do not inspect the
@@ -32,20 +33,19 @@ installation, pushing, and scheduling are outside that authorization.
   `sjskills status` reports and refactors collection and rendering. Its code,
   tests, task file, and `ROADMAP.md` belong to that ongoing work.
 - The ordinary queue has no current item, a proposed global rollout in Plans,
-  and default status in Tasks. Existing goal contracts are complete. This plan
-  starts no goal and does not select or displace queued work.
+  and default status plus this item in Tasks. Existing goal contracts are
+  complete. This plan starts no goal and does not select or displace queued work.
 
-This is an unscheduled draft in `tasks/`. Its roadmap link is intentionally
-deferred because the user requested a commit containing only this plan and the
-roadmap is being edited concurrently. When this work is selected, add exactly
-one link in the existing scope; do not create a second roadmap or duplicate item.
+This is an unscheduled draft listed once under Tasks in
+[the roadmap](../ROADMAP.md). Registration does not change the current item or
+the order of scheduled plans.
 
 ## Next action
 
 Resolve the comparison baseline below before implementing the release lookup.
 After implementation is authorized, re-read the landed default-status contract
-and current diff, coordinate ownership of shared files, and integrate this task
-into the ordinary queue without taking over the parallel work.
+and current diff, and coordinate ownership of shared files before selecting
+this task for execution without taking over the parallel work.
 
 ## Product decision still open
 
@@ -268,5 +268,5 @@ Keep documentation truthful about whether any release has actually shipped.
 Completion requires the baseline decision resolved, all applicable acceptance
 cases passing, coherent documentation, and no actionable bounded-review
 findings. PR delivery, publication, installed-binary upgrades, and real-machine
-rollout require their own authorized work; this planning request completes
-when this plan alone is reviewed and committed.
+rollout require their own authorized work. The planning document was reviewed
+and committed separately; its roadmap registration keeps it unscheduled.
