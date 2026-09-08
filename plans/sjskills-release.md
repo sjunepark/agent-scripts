@@ -1,47 +1,40 @@
-# sjskills standalone release alignment
+# sjskills standalone release delivery
 
-Status: implementation and local review complete; release ownership and remote
-activation pending. No push, tag, or publication performed.
+Status: first immutable release published on 2026-09-08. Hosted verification is
+working; unattended hosted publication still needs a suitable GitHub identity.
 
-The [release guide](../docs/sjskills-releases.md) owns the distribution contract
-and installation procedures. Initial targets are macOS amd64/arm64 and Windows
-amd64; Linux reconciliation is unsupported and outside this change.
+## Published release
 
-## Delivered
+- [sjskills-v1.0.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.0.0)
+  points to `7e5e2ba91581ee903c6eef069ad812f9180e94fe` and is immutable.
+- The [release run](https://github.com/sjunepark/agent-scripts/actions/runs/34181179768)
+  built all archives and passed native reconciliation and installer/consumer
+  checks on macOS amd64, macOS arm64, and Windows amd64. Hosted
+  [source checks](https://github.com/sjunepark/agent-scripts/actions/runs/34181181919)
+  also passed.
+- Publication used those exact CI artifacts: three archives, both installers,
+  and `SHA256SUMS`. Tag/commit and archive identity were revalidated locally;
+  every uploaded asset digest matched before publishing. No installed binary
+  or managed skill state was changed.
 
-- One target definition for archives, generated installers, and native CI.
-- Embedded version file; deterministic archives and SHA-256 manifest.
-- Installers that verify and stage before replacing; reinstall upgrades.
-- Linux-only development CI; native checks only for main integration and release.
-  Publication requires immutable releases,
-  matching tag/version/commit, successful native tests, and verified draft assets.
-- Bounded subagent review completed. Fixed timestamp nondeterminism that prevented
-  partial draft retries; regression tests cover it and publication boundaries.
-- Documentation harmonized, including the existing rollout platform claim.
-- CI follow-up review found no actionable issues; latest strict-sync source and
-  registry behavior remain unchanged from `origin/main`.
+The [release guide](../docs/sjskills-releases.md) owns distribution, installation,
+and verification procedures.
 
-## Validation
+## Remaining automation work
 
-Passed locally: Go tests and vet, Node registry tests, skill validation,
-Actionlint, release regression tests, cross-builds for all three targets, and
-macOS arm64 installation/consumer/failure-preservation checks. Downloads are
-controlled in local installer tests; live HTTPS installation and macOS Intel /
-Windows native runs still require remote execution.
+The workflow's default `GITHUB_TOKEN` cannot read the repository-administration
+endpoint used to check release immutability; publication failed with HTTP 403
+after all native jobs passed. Immutability was enabled and verified through the
+user's authenticated administrator session, which completed publication.
+Configure a suitable publisher identity before using hosted `publish=true` again;
+verification-only runs remain usable without additional permissions.
 
-## Remaining
+During authenticated publication, the draft's by-tag API lookup returned HTTP
+404 after successful creation/upload. Listing releases and fetching draft ID
+`384416450` worked. Verification used that ID, then `gh release edit` published
+it. Harden draft lookup to retain or resolve the draft ID before future releases.
 
-- User choice pending: Release Please-managed versions/tags or manual version
-  tags. The reusable release pipeline is ready for either owner.
-- Push through the normal review flow; run hosted checks at their intended boundaries.
-- Enable GitHub release immutability (read-only inspection found it disabled)
-  and configure the `Checks` required job in branch protection.
-- Select and authorize the exact first release version before publishing.
-
-The feature branch was fast-forwarded from `bc9fac9` to the latest published
-`a61eb73` before committing, preserving strict-sync and registry corrections.
-The CI correction follows the committed mytech Linux-only dev policy; local
-mytech edits were left untouched.
-
-Next: resolve release ownership and complete its configuration. No real-home
-skill reconciliation or global rollout is part of this work.
+The first release used a manually created tag matching the embedded `1.0.0`
+version. Ongoing automated version ownership and the previously recommended
+required branch check remain separate repository configuration work; this
+release did not configure either.

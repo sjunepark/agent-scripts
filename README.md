@@ -90,11 +90,9 @@ git config core.hooksPath hooks
 
 ### Install the command
 
-Standalone release tooling is implemented for macOS (Intel and Apple
-silicon) and Windows x64; activation is pending. No binary release is published
-yet. See
-[installation and release details](docs/sjskills-releases.md) for the supported
-installer contract and activation status.
+Standalone releases are available for macOS (Intel and Apple silicon) and
+Windows x64. See [installation and release details](docs/sjskills-releases.md)
+for downloads and the verified installer contract.
 
 For development, `bin/sjskills` builds the checked-out Go command into a temporary
 directory on each invocation. It requires Go 1.23 or newer; call it explicitly

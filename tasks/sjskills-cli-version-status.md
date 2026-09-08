@@ -10,7 +10,7 @@ alongside skill status in explicit reports, incidental notices, and JSON.
 The [status contract](../docs/skill-registry.md#automatic-status-evidence) owns
 comparison states, release selection, caching, output, and approval compatibility.
 The [release guide](../docs/sjskills-releases.md) owns installation and publication.
-Read-only GitHub inspection on 2026-09-08 returned no published releases.
+Before publication on 2026-09-08, GitHub inspection returned no releases.
 
 ## Implementation and validation
 
@@ -31,8 +31,8 @@ Read-only GitHub inspection on 2026-09-08 returned no published releases.
 - Full Go and race suites, vet, Node registry/audit tests, and release regression
   tests passed. Release archives cross-built for the supported targets; native
   macOS arm64 consumer and installation-preservation checks passed without
-  Go, Bun, Git, or gh on PATH. Native macOS Intel and Windows execution remains
-  a hosted release-delivery check.
+  Go, Bun, Git, or gh on PATH. The hosted release run subsequently passed native
+  macOS Intel, macOS arm64, and Windows amd64 tests and installer checks.
 - A warm release-only check measured approximately 0.04 ms without HTTP. The
   slow-server test cancels under its 100 ms test deadline and verifies prompt
   return; production shares the existing 30-second budget.
@@ -43,7 +43,9 @@ Read-only GitHub inspection on 2026-09-08 returned no published releases.
 
 ## Delivery boundary
 
-Source implementation is complete. The user authorized commit/push to main and
-GitHub release publication on 2026-09-08; delivery is in progress as
-`sjskills-v1.0.0`. Installed-binary replacement and other-machine rollout remain
-separate operations. Tests perform no real-home reconciliation or installation.
+Committed and pushed to main as `7e5e2ba`. Published in the immutable
+[sjskills-v1.0.0 release](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.0.0)
+on 2026-09-08. All supported native targets passed before publication; the
+[release record](../plans/sjskills-release.md) records the authenticated manual
+publication fallback. Installed-binary replacement and other-machine rollout
+remain separate operations.

@@ -1,9 +1,10 @@
 # sjskills releases
 
-Status: tooling is implemented and locally checked; remote validation and
-activation are pending. No binary release has been published. See the
-[delivery record](../plans/sjskills-release.md) for remaining work. The checkout
-wrapper remains usable until the first release is available.
+[sjskills v1.0.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.0.0)
+is published as an immutable release. Its archives passed native tests and
+installer checks on macOS Intel, macOS Apple silicon, and Windows x64. The
+[delivery record](../plans/sjskills-release.md) records publication evidence and
+the remaining hosted-publication permission limitation.
 
 ## Distribution contract
 
@@ -33,7 +34,7 @@ stream/exit semantics.
 
 ## Install and update
 
-After a release is published, select its numeric version from the repository's
+Select a numeric version from the repository's
 [releases](https://github.com/sjunepark/agent-scripts/releases). Download the
 installer from that exact release and run it with the same version.
 
@@ -113,6 +114,11 @@ identity, refuses tracked source changes, uploads to a draft, verifies server
 asset SHA-256 identities, and only then publishes. Existing published releases
 and mismatched draft assets are never overwritten; corrections use new versions.
 
-Enable repository release immutability before first publication. Choose a
-version/tag owner before activating release automation; the delivery record
-tracks that decision and remote setup.
+Repository release immutability is enabled. The first release uses a manually
+created version tag. Hosted verification works with the default workflow token;
+publication's immutability preflight requires repository administration read
+access, which that token lacks. Until a suitable publisher identity is configured,
+run verification with `publish=false` and publish the exact successful workflow
+artifacts using an authenticated administrator session. Recheck tag/commit,
+archive contents, immutability, and every uploaded asset digest before publication.
+The delivery record owns the current operational limitation.
