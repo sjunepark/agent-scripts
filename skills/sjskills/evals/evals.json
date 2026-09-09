@@ -80,6 +80,16 @@
       "id": 16,
       "prompt": "Use $sjskills to sync the configured state, but show me the plan and wait for my approval before changing anything.",
       "expected_output": "The skill reviews the project manifest and fixed global baseline as applicable, prepares the required plan evidence, and stops with the concrete proposals. It honors the explicit preview-and-wait limit despite the default authority of an unqualified sync request."
+    },
+    {
+      "id": 17,
+      "prompt": "Use $sjskills to set up a new project with only the team-review skill from your-org/team-skills. That source and skill name are verified. I do not want any profiles. Prepare the manifest and preview only; do not commit or install anything.",
+      "expected_output": "The skill creates a non-overwriting version 1 sjskills.toml with a direct declaration using the supplied name and source, omitting profiles or setting profiles = []. It does not run profile-only init, require a profile choice, modify the central registry, commit, or apply. It reviews the project plan and reports any materialization failure as an operational failure rather than a valid preview."
+    },
+    {
+      "id": 18,
+      "prompt": "Use $sjskills to add the verified team-review skill from your-org/team-skills to this project's existing dev/go manifest. Keep the other declarations. Configure and preview only.",
+      "expected_output": "The skill preserves existing profiles and direct declarations, adds the requested direct entry in name order after checking collisions with the selected profiles and fixed global baseline, and reviews the project plan. It does not rerun init, add a central profile or registry entry, perform an ad hoc install, commit, apply, or change global skills."
     }
   ]
 }

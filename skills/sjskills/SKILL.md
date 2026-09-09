@@ -1,6 +1,6 @@
 ---
 name: sjskills
-description: "Operate sjskills to initialize project manifests, inspect or sync configured project profiles and the fixed global baseline, or restore named quarantines. Explicit invocation only."
+description: "Operate sjskills to configure project profiles and direct skills, inspect or sync project manifests and the fixed global baseline, or restore named quarantines. Explicit invocation only."
 ---
 
 # sjskills
@@ -61,9 +61,10 @@ verification.
   selections, or `plan` / `plan --global` for a full selected-scope review. These
   preserve managed roots but may fetch expected content temporarily. A bare
   invocation without an action defaults to status inspection.
-- **Adopt a project:** Create `sjskills.toml` only when the user asks to adopt
-  or initialize managed project skills. List available profiles first and use
-  only profiles the user selected.
+- **Configure a project:** Create or edit `sjskills.toml` when the user asks to
+  adopt managed project skills or change the selection. Use selected profiles,
+  direct declarations, or both as described below. Preserve unrelated entries;
+  configuration alone does not authorize apply or global changes.
 - **Reconcile a project:** Review `plan`, run `apply` only when the user asked
   to install, bootstrap, reconcile, or sync the project, then run `plan` again.
 - **Recover project state:** Restore only the exact quarantine identifier the
@@ -74,9 +75,49 @@ verification.
   the required evidence yourself instead of asking the user to approve hashes.
   Restore still requires a request identifying the quarantine.
 
-Use the ordinary Skills CLI workflow for direct `bunx skills` discovery or
-ad hoc installs. Use the repository's plugin workflow for Codex plugins. Local
-catalog validation and publication are not reconciliation.
+Use the ordinary Skills CLI workflow to discover source skill names or perform
+requested ad hoc installs. For a project managed by `sjskills`, record external
+skills in `[[direct]]` and reconcile through `sjskills`; undeclared ad hoc
+installs in managed roots become quarantine candidates. Use the repository's
+plugin workflow for Codex plugins. Local catalog validation and publication are
+not reconciliation.
+
+## Project selections
+
+Profiles are named collections defined centrally in `agent-scripts`'s
+`skill-registry.json`; `sjskills profiles` lists them. A project selects those
+names, but cannot define new profiles in its manifest. It can independently add
+skills from other repositories with `[[direct]]`, without changing the central
+registry or publishing those skills in `agent-scripts`.
+
+For example, using a placeholder source and skill name:
+
+```toml
+version = 1
+profiles = ["dev"]
+
+[[direct]]
+name = "team-review"
+source = "your-org/team-skills"
+```
+
+Use the source's actual skill name, not an alias. Repeat `[[direct]]` for more
+skills, sorting entries by name and profile names alphabetically. Direct names
+must be unique and cannot overlap selected profiles or the fixed global
+baseline. Sources accept Git shorthand (`owner/repo[/path]`) or credential-free
+HTTPS; local paths, embedded credentials, URL queries, npm specifiers, and other
+schemes are unsupported. Set optional `full_depth = true` only when deeper
+source discovery is needed. Direct skills use copy mode and the registry's
+default targets, currently project `.agents/skills` and `.claude/skills`;
+per-entry manager, mode, target, and workflow fields are unsupported.
+
+For a direct-only project, omit `profiles` or use `profiles = []`, and include
+at least one `[[direct]]` entry. Create that manifest directly when adoption is
+requested: `sjskills init` requires a profile and cannot initialize this case.
+For an existing manifest, edit the requested selection in place rather than
+rerunning `init`. Keep the manifest as committed project configuration; commit
+only when authorized. Review `sjskills plan` after configuration, and apply
+only when installation or synchronization was requested.
 
 ## Use configured authority
 
@@ -97,10 +138,12 @@ independent unblocked scope unless the user required an all-or-nothing result.
 ## Project workflow
 
 1. Resolve the command and project root. If no `sjskills.toml` exists, stop
-   unless the user requested initialization.
-2. For a new manifest, run `sjskills profiles`, obtain the user's profile
-   choices, and run `sjskills init <profile> ...`. Do not infer profiles from
-   installed copies. `init` must not overwrite an existing manifest.
+   unless the user requested adoption or initialization.
+2. For a new manifest with profiles, run `sjskills profiles`, use the user's
+   selected profiles, and run `sjskills init <profile> ...`; then add requested
+   direct declarations. For direct-only adoption or an existing manifest, use
+   the configuration procedure above. Do not infer profiles from installed
+   copies or overwrite an existing manifest with `init`.
 3. Read the manifest and run `sjskills plan`. Summarize installs, updates,
    quarantines, unchanged placements, manual or workflow-managed entries,
    warnings, and blocks.

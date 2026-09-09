@@ -18,7 +18,8 @@ bunx skills add ./skills --list
 
 ## Reconcile committed project intent
 
-Initialize once, commit `sjskills.toml`, and review before applying:
+For selected profiles, initialize once, commit `sjskills.toml`, and review
+before applying:
 
 ```bash
 sjskills init dev go
@@ -38,6 +39,13 @@ name = "third-party-review"
 source = "example/third-party-skills/review"
 full_depth = true
 ```
+
+For direct-only selection, create `sjskills.toml` with `version = 1` and the
+requested `[[direct]]` entries, omitting `profiles`; `init` requires a profile.
+For an existing manifest, edit the requested declarations in place. Use actual
+source skill names, sort direct entries by name, and avoid collisions with
+selected profiles or the global baseline. Review `plan` before an authorized
+`apply`; merely editing the manifest does not authorize installation.
 
 Treat `.sjskills/`, `.agents/skills/`, and `.claude/skills/` as generated
 machine-local state only after reviewing any content already committed at
