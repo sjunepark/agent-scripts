@@ -14,18 +14,16 @@
 
 # Address issues skill
 
-- Candidate: `skills/address-issues/`, with single-issue delivery and a confirmed,
-  sequential Codex task queue using Astra/medium. Each issue ends at verified
-  resolution after PR review and merge; blocked issues defer dependents while
-  independent issues continue.
-- Candidate authoring and bounded independent review are complete. Synthetic
-  behavior trials passed 6/6 and fresh trigger classifications passed 8/8;
-  evidence and limits are in `skills/address-issues/evals/evaluation.md`.
-  App coordination is established by exposed tool schemas, not a live issue run.
-- Registered in the dev profile in both canonical and CLI-embedded registries.
-  Full skill validation, registry tests, and the full Go suite pass; bounded registry review found
-  no remaining issues. Runtime instructions are unchanged from the evaluated
-  candidate.
-- Publication and configured project/global sync are authorized. Next: push the
-  validated source, verify the remote skill tree, and reconcile both scopes
-  using one temporary binary built from that published commit.
+- Published in `fa8ed7c`: single-issue delivery and confirmed sequential
+  Astra/medium task queues, registered in the dev profile in both registries.
+- Skill validation, registry tests, the full Go suite, and bounded independent
+  reviews passed. Synthetic behavior trials passed 6/6 and trigger cases 8/8;
+  evidence and live-execution limits are in
+  `skills/address-issues/evals/evaluation.md`.
+- On 2026-09-10, synced this project's dev+go selection from the published source:
+  both address-issues copies installed and verified; all 33 project placements
+  and all 16 fixed-global placements are exact. No quarantines or blockers.
+- Sync used one verified temporary binary built from the published commit.
+  The installed CLI was not replaced and still embeds the older registry;
+  future syncs need a build containing the updated registry to retain the skill.
+- Publication and requested skill reconciliation are complete.
