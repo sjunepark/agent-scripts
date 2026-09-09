@@ -49,8 +49,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 38 {
-		t.Fatalf("skills = %d, want 38", len(registry.Skills))
+	if len(registry.Skills) != 40 {
+		t.Fatalf("skills = %d, want 40", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {
@@ -155,11 +155,17 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 2 || state.Skills[0].Name != "krx-cli" || state.Skills[1].Name != "windows-cleanup" {
+	if len(state.Skills) != 4 || state.Skills[0].Name != "kasb" || state.Skills[1].Name != "kisnet-ytm" || state.Skills[2].Name != "krx-cli" || state.Skills[3].Name != "windows-cleanup" {
 		t.Fatalf("kicpa = %#v", state.Skills)
 	}
-	if !slices.Equal(state.Skills[0].Targets, []Target{TargetAgents, TargetClaude}) || !slices.Equal(state.Skills[1].Targets, []Target{TargetAgents}) {
-		t.Fatalf("kicpa targets = %#v", state.Skills)
+	for _, skill := range state.Skills {
+		wantTargets := []Target{TargetAgents, TargetClaude}
+		if skill.Name == "windows-cleanup" {
+			wantTargets = []Target{TargetAgents}
+		}
+		if !slices.Equal(skill.Targets, wantTargets) {
+			t.Fatalf("%s targets = %#v", skill.Name, skill.Targets)
+		}
 	}
 
 	registry := fixtureRegistry(t)

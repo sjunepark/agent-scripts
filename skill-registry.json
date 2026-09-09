@@ -47,6 +47,8 @@
     },
     "kicpa": {
       "skills": [
+        "kasb",
+        "kisnet-ytm",
         "krx-cli",
         "windows-cleanup"
       ]
@@ -74,6 +76,14 @@
     "impeccable": {
       "kind": "external",
       "location": "npm:impeccable@latest"
+    },
+    "kasb": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/kasb/tree/main/skills/kasb"
+    },
+    "kisnet-ytm": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/ytm/tree/main/skills/kisnet-ytm"
     },
     "krx-cli": {
       "kind": "external",
@@ -230,6 +240,18 @@
     {
       "name": "interview",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "kasb",
+      "source": "kasb",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "kisnet-ytm",
+      "source": "kisnet-ytm",
       "manager": "skills-cli",
       "mode": "copy"
     },
