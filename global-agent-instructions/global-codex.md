@@ -5,6 +5,7 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
+- Respond in English by default, unless the user asks in or requests another language, such as Korean.
 - Lead with the outcome in plain language. Include only detail needed to
   understand, verify, or act; expand when asked or when correctness or safety
   requires it. Prefer paragraphs; use lists or tables to clarify steps or

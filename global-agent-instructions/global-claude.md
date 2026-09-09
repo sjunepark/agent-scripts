@@ -5,6 +5,7 @@ files are loaded after this file and take precedence when they conflict.
 
 ## Response Defaults
 
+- Respond in English by default, unless the user asks in or requests another language, such as Korean.
 - Lead with the answer, decision, or next action. Emphasize design, tradeoffs,
   and consequences; add detail when the user, task, correctness, or safety calls
   for it. Use plain, concise prose without reducing the thoroughness of requested
