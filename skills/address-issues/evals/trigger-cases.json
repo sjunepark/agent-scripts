@@ -1,0 +1,13 @@
+{
+  "policy": "Explicit invocation only",
+  "cases": [
+    {"id": "single", "prompt": "$address-issues https://github.com/cpaikr/ytm/issues/45", "activate": true},
+    {"id": "multiple", "prompt": "$address-issues multiple cpaikr/ytm; propose issues and order first.", "activate": true},
+    {"id": "resume", "prompt": "Use $address-issues to continue my confirmed issue queue.", "activate": true},
+    {"id": "uninvoked", "prompt": "Fix GitHub issue #45.", "activate": false},
+    {"id": "review-only", "prompt": "Address the review comments on PR #61.", "activate": false},
+    {"id": "triage", "prompt": "List and prioritize the open issues; do not implement them.", "activate": false},
+    {"id": "authoring", "prompt": "Create a skill named address-issues for handling GitHub issues.", "activate": false},
+    {"id": "quoted-example", "prompt": "Explain what the example `$address-issues multiple cpaikr/ytm` would do. Do not run it.", "activate": false}
+  ]
+}

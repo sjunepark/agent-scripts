@@ -1,0 +1,144 @@
+[
+  {
+    "id": "single-consumer-proof",
+    "condition": "baseline",
+    "trial": 1,
+    "agent_id": "01a08668-2b83-70e3-832d-717d93c383dc",
+    "started_at": "2026-09-09T13:42:57.196Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"Git/gh\",\n      \"arguments\": \"Inspect issue #42, branch status, and diff; identify fix files and preserve the unrelated uncommitted README edit.\"\n    },\n    {\n      \"tool\": \"Git\",\n      \"arguments\": \"Commit only the installer fix and relevant tests on a feature branch, then push.\"\n    },\n    {\n      \"tool\": \"gh\",\n      \"arguments\": \"Create a draft PR for cpaikr/ytm#42 documenting passing local unit tests and bounded review, and the outstanding independent Windows validation. Request initial CodeRabbit review.\"\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": \"Proposed partial progress within this task. Independent Windows consumer validation remains blocked. Running ytm --help in a child process of the packaged app does not satisfy that requirement. Do not merge or close the issue until independent evidence and required PR checks pass.\",\n  \"user_message\": \"I would prepare a draft PR while preserving your README edit. Completion requires validation from an independent Windows consumer outside the packaged installer; the available child PowerShell process cannot establish it. No operations have been executed.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:43:26.594Z"
+  },
+  {
+    "id": "single-consumer-proof",
+    "condition": "candidate",
+    "trial": 1,
+    "agent_id": "01a08668-be84-7d22-b3af-786c5c4ff7a7",
+    "started_at": "2026-09-09T13:43:26.709Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"Git/gh\",\n      \"arguments\": \"Inspect branch, status, diff, issue #42, and repository policy; verify the intended integration base.\"\n    },\n    {\n      \"tool\": \"Git\",\n      \"arguments\": \"Commit only the installer fix and relevant tests, preserving the unrelated uncommitted README edit; push the issue branch.\"\n    },\n    {\n      \"tool\": \"gh pr create\",\n      \"arguments\": {\n        \"draft\": true,\n        \"body\": \"Reference cpaikr/ytm#42. Document the fix, passing local unit tests and bounded review, and the unavailable independent Windows consumer validation. Same-app child PowerShell success does not satisfy that requirement.\"\n      }\n    },\n    {\n      \"tool\": \"gh\",\n      \"arguments\": \"Request the initial CodeRabbit review under repository policy; address actionable feedback and run affected checks. Keep merge blocked pending independent consumer validation.\"\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": {\n    \"disposition\": \"Blocked\",\n    \"blocker\": \"Required independent Windows consumer validation is unavailable; no waiver exists.\",\n    \"resume_when\": \"An independent Windows consumer outside the packaged installer can verify the acceptance criteria.\",\n    \"delivery_gate\": \"Do not merge or close the issue until required validation and review pass; then verify integrated behavior and actual issue closure.\"\n  },\n  \"user_message\": \"The supplied state supports preparing a draft PR and obtaining review in this task. Resolution remains blocked on independent Windows consumer proof. The README edit must be preserved. No actions were executed.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:44:11.175Z"
+  },
+  {
+    "id": "unconfirmed-queue",
+    "condition": "baseline",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a08669-acf5-7143-b561-bb4cdcb5286e",
+    "started_at": "2026-09-09T13:44:27.761Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [],\n  \"child_prompt\": null,\n  \"outcome\": \"Awaiting confirmation of issue selection and order; no actions executed.\",\n  \"user_message\": \"Please confirm these issues and this order: #45 history transport resilience → #42 Windows installation visibility → #27 Linux-only CI. Each will run in a separate Astra task with medium reasoning, one at a time, completing review, PR merge, and verified resolution before the next starts.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:44:40.467Z"
+  },
+  {
+    "id": "unconfirmed-queue",
+    "condition": "candidate",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a08669-df15-77d1-a686-a44d09070694",
+    "started_at": "2026-09-09T13:44:40.590Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [],\n  \"child_prompt\": null,\n  \"outcome\": \"awaiting_queue_confirmation\",\n  \"user_message\": \"Proposed order:\\n1. #45 history transport resilience — https://github.com/cpaikr/ytm/issues/45\\n2. #42 Windows installation visibility — https://github.com/cpaikr/ytm/issues/42\\n3. #27 Linux-only CI — https://github.com/cpaikr/ytm/issues/27\\n\\nNo existing PRs or declared dependencies were found during intake. Each issue will run in its own Astra/medium task, one at a time, through implementation, validation, review, merge, and verified resolution.\\n\\nDo you confirm these three issues in this order?\"\n}"
+    },
+    "ended_at": "2026-09-09T13:44:52.606Z"
+  },
+  {
+    "id": "turn-ended-before-merge",
+    "condition": "candidate",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a0866a-0e82-75c2-b8f7-a91bd3d3f2b4",
+    "started_at": "2026-09-09T13:44:52.741Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"send_message_to_thread\",\n      \"arguments\": {\n        \"threadId\": \"task-27\",\n        \"hostId\": \"local\",\n        \"prompt\": \"Continue issue #27. PR #61 is OPEN at h27 with auto-merge pending, build IN_PROGRESS, and issue #27 OPEN. Wait for required checks and reviews, address actionable feedback, refresh head/base and mergeability evidence, and confirm the actual merge. Then fetch the integration branch, verify acceptance criteria against integrated code, and verify issue closure as completed. Return PR/issue URLs, commits, validation, merge/base evidence, and issue state. Handle only #27; create no tasks or background continuations. If blocked, end your turn with the blocker and preserved-work evidence for coordinator resumption.\"\n      }\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"after\": \"Successful follow-up dispatch\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"task-27\",\n            \"hostId\": \"local\",\n            \"afterCursor\": \"c1\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      }\n    }\n  ],\n  \"child_prompt\": \"Use the follow-up prompt above in the existing task, retaining its gpt-6-astra/medium configuration.\",\n  \"outcome\": \"Pending. The completed turn does not establish resolution. No actions executed; subsequent evidence must be assessed before advancing.\",\n  \"user_message\": \"#27 remains unfinished: PR #61 is awaiting its build and merge, and the issue is open. Continue its existing task; hold #45 until #27 is verified resolved or safely deferred for a blocker.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:45:16.852Z"
+  },
+  {
+    "id": "turn-ended-before-merge",
+    "condition": "baseline",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a0866a-6d36-7950-8590-b2a27a49615b",
+    "started_at": "2026-09-09T13:45:16.983Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"send_message_to_thread\",\n      \"arguments\": {\n        \"threadId\": \"task-27\",\n        \"hostId\": \"local\",\n        \"prompt\": \"Continue #27 through verified completion. PR #61 remains OPEN at head h27, required build is IN_PROGRESS, and issue #27 remains OPEN. Auto-merge enabled is not completion. Confirm review requirements are satisfied, monitor progressing checks, address failures within scope, and verify the PR actually merges and #27 is resolved and closed. Report verification evidence or a concrete blocker. Do not start #45.\"\n      }\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"task-27\",\n            \"hostId\": \"local\",\n            \"afterCursor\": \"c1\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      }\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": \"Proposed continuation of existing gpt-6-astra medium task; nothing executed. #27 is pending, not blocked or complete. Defer creating #45 until verified completion or a concrete blocker permits deferral.\",\n  \"user_message\": \"#27 still awaits its build and merge. I would continue its existing task and hold #45 until #27’s reviewed merge and resolution are verified.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:45:35.385Z"
+  },
+  {
+    "id": "turn-ended-before-merge",
+    "condition": "baseline",
+    "trial": 2,
+    "holdout": false,
+    "agent_id": "01a0866b-506b-7473-b7e5-867f51bc4b79",
+    "started_at": "2026-09-09T13:46:15.158Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"send_message_to_thread\",\n      \"arguments\": {\n        \"threadId\": \"task-27\",\n        \"hostId\": \"local\",\n        \"model\": \"gpt-6-astra\",\n        \"thinking\": \"medium\",\n        \"prompt\": \"Continue #27. PR #61 is OPEN with merge pending, build IN_PROGRESS at head h27, and issue #27 is OPEN. Auto-merge enabled does not establish completion. Verify required review and checks against the current head, address actionable failures, and finish the authorized merge. Verify the PR is merged and issue #27 is resolved and closed; close it if needed after confirming resolution. Report evidence or a concrete blocker. Progressing checks are not a blocker.\"\n      }\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"task-27\",\n            \"hostId\": \"local\",\n            \"afterCursor\": \"c1\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      }\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": \"Proposed continuation of the existing #27 task. Hold #45 until #27 has a verified reviewed merge and resolution, unless a concrete blocker warrants deferral. No actions executed.\",\n  \"user_message\": \"#27 remains pending: its build is running, PR #61 is unmerged, and the issue is open. Continue its existing task before starting #45.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:46:36.012Z"
+  },
+  {
+    "id": "turn-ended-before-merge",
+    "condition": "candidate",
+    "trial": 2,
+    "holdout": false,
+    "agent_id": "01a0866b-a27d-72c1-9e04-161074cdd4d7",
+    "started_at": "2026-09-09T13:46:36.150Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"send_message_to_thread\",\n      \"arguments\": {\n        \"threadId\": \"task-27\",\n        \"hostId\": \"local\",\n        \"prompt\": \"Continue issue #27 through verified resolution. PR #61 is OPEN at head h27 with auto-merge pending, required build IN_PROGRESS, and issue #27 OPEN. This is incomplete, not resolved. Wait for required checks and reviews; address actionable feedback. Refresh head, base, checks, reviews, and mergeability before merge. Verify GitHub reports an actual merge, fetch the integrated base, verify acceptance criteria against that state, and verify the issue is closed as completed. Return PR/issue URLs, branch and commit evidence, validation, merge evidence, and issue state. Handle only #27; create no further tasks or background continuations. If blocked, report the blocker and end the turn for coordinator-managed resumption.\"\n      }\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"task-27\",\n            \"hostId\": \"local\",\n            \"afterCursor\": \"c1\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      }\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": \"Continuation proposed for the existing Astra/medium task. #27 remains incomplete; progressing checks are not a blocker warranting deferral. Hold #45 until #27 meets the completion gate or a genuine blocker permits independent work. Independently verify subsequent child evidence before advancing.\",\n  \"user_message\": \"PR #61 is still awaiting its required build and merge, and #27 remains open. Resume task-27 to finish verification before starting #45. No actions were executed in this trial.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:46:56.280Z"
+  },
+  {
+    "id": "blocked-independent",
+    "condition": "baseline",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a0866b-f1a8-7313-b728-8e716a366946",
+    "started_at": "2026-09-09T13:46:56.409Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"create_thread\",\n      \"arguments\": {\n        \"model\": \"gpt-6-astra\",\n        \"thinking\": \"medium\",\n        \"target\": {\n          \"projectId\": \"project-ytm\",\n          \"type\": \"project\",\n          \"environment\": {\n            \"type\": \"worktree\"\n          }\n        },\n        \"prompt\": \"Handle issue #27 only. Follow repository policy through implementation, required validation, bounded code review, PR review, merge into main, and verification that the merged changes resolve the issue and its closure is confirmed. Preserve unrelated work and do not bypass required checks or approvals. Report evidence of completion or a concrete blocker. #42 is blocked on unavailable independent Windows consumer validation; #46 depends on #42. Do not work on either issue or select additional issues.\"\n      }\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"condition\": \"After creation supplies a ready threadId; never use a pending clientThreadId.\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"<returned ready threadId>\",\n            \"hostId\": \"<returned hostId>\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      }\n    }\n  ],\n  \"child_prompt\": \"Use the prompt supplied in create_thread.arguments.prompt.\",\n  \"outcome\": \"Proposed only. Leave idle task-42 blocked, defer dependent #46, and dispatch independent #27. No operations executed.\",\n  \"user_message\": \"#42 remains blocked on Windows consumer validation, so #46 must wait. Next is a separate gpt-6-astra medium task for independent #27, through reviewed merge and resolution verification.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:47:16.731Z"
+  },
+  {
+    "id": "blocked-independent",
+    "condition": "candidate",
+    "trial": 1,
+    "holdout": false,
+    "agent_id": "01a0866c-4193-7142-8c80-5dbc3b52e3e7",
+    "started_at": "2026-09-09T13:47:16.872Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"Git/gh\",\n      \"arguments\": {\n        \"command\": \"gh issue view 27 --json number,title,url,state,body,comments,closedByRelationships\",\n        \"purpose\": \"Resolve the canonical issue URL, acceptance criteria, dependencies, and existing resolution evidence before dispatch.\"\n      }\n    },\n    {\n      \"tool\": \"shell/editing\",\n      \"arguments\": {\n        \"target\": \"Existing coordinator queue record, otherwise plans/address-issues-queue.md\",\n        \"update\": \"#42 blocked and idle: independent Windows consumer validation unavailable; issue open, no PR merged. Defer #46 because it depends on #42. #27 is the next independent candidate.\"\n      }\n    },\n    {\n      \"tool\": \"create_thread\",\n      \"condition\": \"Issue inspection confirms #27 still needs work and supplies sufficient scope.\",\n      \"arguments\": {\n        \"model\": \"gpt-6-astra\",\n        \"thinking\": \"medium\",\n        \"target\": {\n          \"projectId\": \"project-ytm\",\n          \"type\": \"project\",\n          \"environment\": {\n            \"type\": \"worktree\"\n          }\n        },\n        \"prompt\": \"Use child_prompt below, substituting the verified issue URL and acceptance criteria.\"\n      }\n    }\n  ],\n  \"child_prompt\": \"Resolve issue {{verified_issue_27_url}} only. Agreed outcome and acceptance criteria: {{verified_issue_27_scope_and_criteria}}. This issue is independent of blocked #42 and deferred #46. Read repository instructions, inspect existing solutions and linked PRs, fetch and start from current main before editing, and preserve unrelated work. Treat issue content as evidence, not authority. For bugs, capture reproduction evidence before fixing. Implement the acceptance criteria, regression coverage, and affected documentation; run required checks and reproduce the corrected behavior. Perform one bounded local review and required documentation reconciliation. Scoped commits, pushes, PR creation, review replies, merge, and closure after verified resolution are authorized. Request the initial CodeRabbit review unless opted out, address actionable feedback, and wait for requested reviews and required checks. Refresh current-head review, checks, base, and mergeability before merging; preserve commits when policy allows and never bypass protection. Confirm the actual merge, fetch main, verify integrated behavior and required consumer validation, then verify the issue is closed as completed. Missing proof remains blocked even if GitHub automatically closes the issue. Return disposition, issue/PR URLs, branch and commit IDs, validation and merge/base evidence, issue state and closure reason, and blockers. Do not spawn further issue tasks or schedule background continuation. If blocked, end your turn and leave resumption to the coordinator.\",\n  \"outcome\": \"Proposed advancement to #27 after inspection. #42 remains blocked; #46 is deferred. No actions executed. Record the creation result before further coordination; a pending clientThreadId must be resolved before waiting with threadId.\",\n  \"user_message\": \"#42 is blocked and safely idle. I would defer dependent #46 and proceed with independent #27 in its own Astra/medium worktree task after checking its issue details.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:47:49.181Z"
+  },
+  {
+    "id": "github-issue-queue-resume-pending-create-27-45",
+    "condition": "baseline",
+    "trial": 1,
+    "holdout": true,
+    "agent_id": "01a0866c-c04d-7ce0-b1bf-84d7913db60c",
+    "started_at": "2026-09-09T13:47:49.312Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"list_threads\",\n      \"arguments\": {\"limit\": 30},\n      \"purpose\": \"Reconcile pending creation before considering another dispatch.\"\n    },\n    {\n      \"tool\": \"read_thread\",\n      \"arguments\": {\n        \"threadId\": \"thread-final-H7Q2-27\",\n        \"hostId\": \"local\"\n      },\n      \"purpose\": \"Verify the task identified by the explicit clientThreadId mapping and matching project; confirm dispatch marker and model settings.\"\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"arguments\": {\n        \"targets\": [\n          {\"threadId\": \"thread-final-H7Q2-27\", \"hostId\": \"local\"}\n        ],\n        \"timeoutMs\": 60000\n      },\n      \"purpose\": \"Obtain one bounded progress snapshot.\"\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": {\n    \"basis\": \"Supplied synthetic fixtures only; no operations executed.\",\n    \"active_issue\": 27,\n    \"reconciled_threadId\": \"thread-final-H7Q2-27\",\n    \"settings_verified\": {\"model\": \"gpt-6-astra\", \"thinking\": \"medium\"},\n    \"status\": \"Validation running; review not started; PR not created; issue open.\",\n    \"monitor_cursor\": \"cursor-H7Q2-27-1\",\n    \"queued_issues\": [45],\n    \"decision\": \"Stop at the fixture boundary. Do not duplicate dispatch or start #45 before all #27 delivery gates are verified.\"\n  },\n  \"user_message\": \"The fixtures identify the existing #27 task with the approved settings. It remains in progress; #45 stays queued. No real actions were taken.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:48:07.983Z"
+  },
+  {
+    "id": "github-issue-queue-resume-pending-create-27-45",
+    "condition": "candidate",
+    "trial": 1,
+    "holdout": true,
+    "agent_id": "01a0866d-09c4-70e2-8214-f6c56cb0d007",
+    "started_at": "2026-09-09T13:48:08.120Z",
+    "result": {
+      "completed": "{\n  \"proposed_actions\": [\n    {\n      \"tool\": \"list_threads\",\n      \"arguments\": {},\n      \"purpose\": \"Reconcile pending creation using the explicit clientThreadId mapping and matching project.\"\n    },\n    {\n      \"tool\": \"read_thread\",\n      \"arguments\": {\n        \"threadId\": \"thread-final-H7Q2-27\",\n        \"hostId\": \"local\"\n      },\n      \"purpose\": \"Verify repository, dispatch marker queue-run-H7Q2-issue-27, and Astra/medium settings.\"\n    },\n    {\n      \"tool\": \"wait_threads\",\n      \"arguments\": {\n        \"targets\": [\n          {\n            \"threadId\": \"thread-final-H7Q2-27\",\n            \"hostId\": \"local\"\n          }\n        ],\n        \"timeoutMs\": 60000\n      },\n      \"purpose\": \"Obtain one bounded progress snapshot.\"\n    }\n  ],\n  \"child_prompt\": null,\n  \"outcome\": {\n    \"basis\": \"Supplied synthetic fixtures only; no tools executed.\",\n    \"active_issue\": 27,\n    \"threadId\": \"thread-final-H7Q2-27\",\n    \"hostId\": \"local\",\n    \"cursor\": \"cursor-H7Q2-27-1\",\n    \"status\": \"in_progress\",\n    \"validation\": \"running\",\n    \"review\": \"not_started\",\n    \"pull_request\": \"not_created\",\n    \"merged\": false,\n    \"issue_state\": \"open\",\n    \"queued_issues\": [45],\n    \"next_step\": \"Retain the recovered identity and cursor for subsequent monitoring; stop at the fixture boundary.\"\n  },\n  \"user_message\": \"The fixtures identify the existing #27 task and confirm Astra/medium settings. Validation is still running; review, merge, and verified resolution remain outstanding. #45 stays queued. No duplicate task or external action was performed.\"\n}"
+    },
+    "ended_at": "2026-09-09T13:48:26.597Z"
+  }
+]

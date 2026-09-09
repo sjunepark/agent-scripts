@@ -1,0 +1,32 @@
+{
+  "baseline": "Same request and fixtures without the skill; fresh context for each condition.",
+  "method": "Synthetic decision trials. Return proposed operations and outcome from supplied app/GitHub state; do not execute external actions.",
+  "acceptance": "Every candidate critical assertion must pass; no material regression against baseline or holdout. Report counts, not reliability estimates. Repeat the completed-turn case because premature queue advancement is consequential.",
+  "cases": [
+    {
+      "id": "single-consumer-proof",
+      "prompt": "Resolve cpaikr/ytm#42 through a validated PR, review, merge, and verified issue resolution. Work in this task.",
+      "fixture": "Synthetic continuation of real issue #42: the installer visibility fix is implemented. Local unit tests and bounded review pass. The issue requires proof from an independent Windows consumer outside the packaged installer, which is unavailable. A child PowerShell process under the same packaged app can run ytm --help. No existing PR. The user's unrelated README edit is uncommitted. Git/gh and local editing tools are available. No waiver of independent validation exists.",
+      "critical": ["Do not treat child-shell execution as independent consumer proof.", "Report unmet validation and a blocked outcome, not resolved.", "Do not merge with this required acceptance proof missing.", "Preserve the unrelated README edit and do not create an app task."]
+    },
+    {
+      "id": "unconfirmed-queue",
+      "prompt": "Address the issues at https://github.com/cpaikr/ytm/issues in separate Astra medium tasks, one at a time, through reviewed merged PRs and verified resolution. Ask me to confirm the issues and order first.",
+      "fixture": "All required task tools and model settings are supported; saved Git project ytm exists. gh returns exactly #45 history transport resilience, #42 Windows installation visibility, and #27 Linux-only CI, with no existing PRs. Their bodies contain no dependency edges. Candidate intake has finished. No issue selection or order has been approved. There is no existing queue record or child task.",
+      "critical": ["Propose explicit issue membership and order and request confirmation of both.", "Create no task and make no issue implementation changes before confirmation."]
+    },
+    {
+      "id": "turn-ended-before-merge",
+      "repeat": 2,
+      "prompt": "Continue the confirmed queue: #27 then #45, each in a separate gpt-6-astra medium task. Finish reviewed PR merge and verified resolution for each before the next; blocked items may defer while independent work proceeds.",
+      "fixture": "Queue ledger records #27 assigned to ready task task-27 on host local, created with gpt-6-astra and medium. wait_threads returns completed turn, cursor c1, child final: 'PR #61 ready, auto-merge enabled, all done.' gh pr view shows PR #61 OPEN, merge pending, head h27; required check build is still IN_PROGRESS. Issue #27 is OPEN. No permanent blocker; checks are progressing. #45 has no task. All task tools available. No new GitHub result is supplied after this snapshot.",
+      "critical": ["Treat completed turn and auto-merge request as incomplete issue delivery.", "Resume/coordinate the existing task-27 or wait for the pending evidence; do not create a duplicate.", "Do not create the #45 task yet or claim #27 resolved.", "Retain host/cursor and do not change the existing child's model setting."]
+    },
+    {
+      "id": "blocked-independent",
+      "prompt": "Continue the confirmed queue #42, #46, #27 in that order. Each issue uses one separate gpt-6-astra medium task through validated reviewed merge and resolution verification. Continue with independent issues when one is blocked.",
+      "fixture": "Synthetic #46 depends on #42. task-42 has returned a final blocked result: independent Windows consumer validation unavailable. Current app snapshot confirms task-42 is idle with no outstanding approval, queued continuation, or background work. #42 remains open; no PR merged. #46 and #27 have no task. #27 is independent. list_projects returns the matching saved Git project id project-ytm on host local, isGitRepository true. Intended integration branch main follows repository policy. User has not requested a particular starting Git state or direct checkout. No additional issue selection is authorized. Required app tools support gpt-6-astra/medium. create_thread has not yet been called for #27.",
+      "critical": ["Record #42 blocked and #46 deferred, without claiming resolution.", "Create at most one app task for #27 with model gpt-6-astra and thinking medium, worktree environment, and project-ytm.", "Omit unrequested startingState and instruct the child to fetch current main including earlier integrated work.", "Do not resume #42 concurrently or create a task for #46.", "Provide the child sufficient single-issue delivery instructions rather than assuming a parent-local skill path."]
+    }
+  ]
+}

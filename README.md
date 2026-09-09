@@ -47,6 +47,12 @@ Use `$progress` when explicitly invoked to organize, orient to, brief or review,
 continue, or hand off repo-local plans and tasks. Use `$code-review` for a
 bounded review pass that applies only obvious safe fixes.
 
+Use [$address-issues](skills/address-issues/SKILL.md) for a specified GitHub
+issue or a confirmed issue queue, through reviewed PR merge and verified
+resolution. Multiple mode requires Codex app task tools and runs one
+Astra/medium task at a time; blocked issues defer dependents while independent
+issues continue in the confirmed order.
+
 Use [$next-goal](skills/next-goal/SKILL.md) to select a substantial goal and
 return its prompt. `$next-goal prepare` completes and reviews planning, commits
 the relevant preparation, and returns the prompt. `$next-goal spawn luna`

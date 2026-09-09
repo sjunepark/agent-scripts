@@ -1,0 +1,58 @@
+[
+  {
+    "id": "single",
+    "expected": true,
+    "result": {
+      "completed": "{\"activate\":true,\"reason\":\"The prompt explicitly invokes $address-issues and specifies a GitHub issue URL.\"}"
+    }
+  },
+  {
+    "id": "multiple",
+    "expected": true,
+    "result": {
+      "completed": "{\"activate\":true,\"reason\":\"The prompt explicitly invokes $address-issues and requests proposing issues and their order for cpaikr/ytm before confirming the queue.\"}"
+    }
+  },
+  {
+    "id": "resume",
+    "expected": true,
+    "result": {
+      "completed": "{\"activate\":true,\"reason\":\"The prompt explicitly invokes $address-issues to continue a confirmed issue queue, matching the skill’s scope and explicit-invocation requirement.\"}"
+    }
+  },
+  {
+    "id": "uninvoked",
+    "expected": false,
+    "result": {
+      "completed": "{\"activate\":false,\"reason\":\"The skill requires explicit invocation, and the prompt does not name address-issues.\"}"
+    }
+  },
+  {
+    "id": "review-only",
+    "expected": false,
+    "result": {
+      "completed": "{\"activate\":false,\"reason\":\"The prompt requests addressing PR review comments, not resolving a GitHub issue, and does not explicitly invoke address-issues.\"}"
+    }
+  },
+  {
+    "id": "triage",
+    "expected": false,
+    "result": {
+      "completed": "{\"activate\":false,\"reason\":\"The skill requires explicit invocation and resolves issues through merged PRs. The prompt only requests listing and prioritization and explicitly excludes implementation.\"}"
+    }
+  },
+  {
+    "id": "authoring",
+    "expected": false,
+    "result": {
+      "completed": "{\"activate\":false,\"reason\":\"The prompt requests creating a skill named address-issues, not explicitly invoking the existing skill to resolve GitHub issues.\"}"
+    }
+  },
+  {
+    "id": "quoted-example",
+    "expected": false,
+    "result": {
+      "completed": "{\"activate\":false,\"reason\":\"The prompt asks to explain a quoted example, explicitly says not to run it, and does not invoke the skill for execution.\"}"
+    }
+  }
+]

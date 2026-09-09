@@ -23,6 +23,7 @@
   "profiles": {
     "dev": {
       "skills": [
+        "address-issues",
         "address-pr-feedback",
         "agents-md-writer",
         "code-review",
@@ -122,6 +123,12 @@
     ]
   },
   "skills": [
+    {
+      "name": "address-issues",
+      "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
     {
       "name": "address-pr-feedback",
       "source": "agent-scripts",

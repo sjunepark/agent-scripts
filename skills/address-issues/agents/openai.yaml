@@ -1,0 +1,6 @@
+interface:
+  display_name: "Address Issues"
+  short_description: "Resolve GitHub issues through reviewed, merged PRs"
+  default_prompt: "Use $address-issues to resolve the specified issue, or confirm an ordered queue and handle it in sequential Astra/medium tasks."
+policy:
+  allow_implicit_invocation: false
