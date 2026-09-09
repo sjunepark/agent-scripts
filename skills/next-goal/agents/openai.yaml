@@ -1,7 +1,7 @@
 interface:
   display_name: "Next Goal"
-  short_description: "Select substantial goals within delegated authority"
-  default_prompt: "Use $next-goal to select the best evidence-backed substantial scope using my existing direction or your judgment. Apply the readiness gate and return the copy-ready routing envelope; ask only for material decisions outside that authority or for planning repair when needed."
+  short_description: "Select, prepare, or spawn the next substantial goal"
+  default_prompt: "Use $next-goal to select the best evidence-backed substantial scope using my existing direction or your judgment and return its copy-ready contract. Use prepare only when requested to plan, review, and commit preparation; use spawn only when requested to prepare and start a new native-goal task, with an optional model preset and reasoning override. Ask only for material decisions outside existing authority."
 
 policy:
   allow_implicit_invocation: false

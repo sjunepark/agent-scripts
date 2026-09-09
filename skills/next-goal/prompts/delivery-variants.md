@@ -2,6 +2,11 @@
 
 Read this file only after a scope has been selected under the entry point's scope rules, `/goal` is warranted for that scope, and the readiness gate has passed.
 
+Build the same closed contract for prompt output and task creation. In `spawn`
+mode, the spawn workflow owns the outer task prompt and final launch report;
+this resource owns the unchanged contract and delivery lifecycle. The output
+formatting below applies only when returning prompts (`next-goal` or `prepare`).
+
 ## Output Order
 
 By default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not repeat the earlier scope choices or put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The selected boundary is expressed by the contract, and the evidence-based delivery recommendation is expressed by its `Delivery` field.

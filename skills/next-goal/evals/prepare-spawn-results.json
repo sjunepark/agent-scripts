@@ -1,0 +1,2450 @@
+{
+  "baseline_commit": "280ac7d7c0811d2ab6737dd87e4c4dfbdfd39e69",
+  "runtime_versions": {
+    "baseline": {
+      "SKILL.md": "2393750c2d68a8084a16f2f11b2ce12999f82d42487afe8e9622fc3dae193443",
+      "agents/openai.yaml": "41d32724fed25a3b0246d5830a102f69f06c7254e2f286e3be5fbdc29758def6",
+      "prompts/delivery-variants.md": "2fb2a0e5a2783c0eecb5189de08456c544831761ebab16c07747e285ea19e54b"
+    },
+    "candidate": {
+      "SKILL.md": "a7de6c6bc1f6becd2ea08351e1b2fb275582f1799193179c68407ea3f99dd849",
+      "agents/openai.yaml": "f9bc650ae038e30f21b1c1e6a24fa61428bdde1f2ab9f6566d057918d6c0a9ec",
+      "prompts/delivery-variants.md": "3c3d864a9c2efda9f8e2b373bcc149d43ad5846f9db92a3acbc48b9473a9b2fa",
+      "workflows/prepare.md": "de1dcb8de43a0bc6628106933a9f31735209bcfd59f9fb07234258c932dfb9d0",
+      "workflows/spawn.md": "6ba3f16619a74ffc1e800e778ccdce686aafb0fc38d7154ac75334d861b166b2",
+      "../candidate-progress-goal-contract.md": "1915ec8d6ff41380b9dc62e7bf7befe60bff92317553704c80900ea1ba9f9d07"
+    }
+  },
+  "trial_protocol": "Fresh independent workers; APIs and cross-skill invocation records synthetic; only P1 repository edits and Git commands executed. Raw record temporary root replaced with <trial-root> for portable evidence. No live task creation/native goal/network/publish/install.",
+  "metrics_limit": "Input/output tokens, wall time, and model identity were not uniformly captured; byte sizes and recorded task creation counts are observed, not pricing or latency estimates.",
+  "behavior_records": [
+    {
+      "case": "P0",
+      "condition": "baseline",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 3632,
+        "final_response_bytes": 1576,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P0",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/protocol.txt <trial-root>/P0.json <trial-root>/baseline/SKILL.md"
+            },
+            "result": "Read trial protocol, P0 case, and designated skill entry; all reads succeeded."
+          },
+          {
+            "tool": "fixture_evidence",
+            "arguments": {
+              "sources": [
+                "repository",
+                "conversation",
+                "files.AGENTS.md",
+                "files.ROADMAP.md",
+                "files.plans/import.md",
+                "available_skills"
+              ]
+            },
+            "result": "Supplied repository is clean on codex/import-ready at abc123. User selected substantial resumable CSV import spanning parser, persistence, service, and UI. plans/import.md is authoritative; acceptance and exclusion are specified. Routine implementation choices are delegated and storage/schema interfaces settled. User requests only its prompt and one PR after completion."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/baseline/prompts/delivery-variants.md"
+            },
+            "result": "Read linked delivery instructions successfully. Selected PR delivery and retained explicit user requirement for one PR after completed implementation."
+          }
+        ],
+        "final_response": "```text\nGoal contract\n- Outcome: Deliver resumable CSV import with validation and preview, atomic persistence, idempotent retries, accessible progress and retry controls, and end-to-end failure recovery coverage.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - UI progress and retry — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery. Preserve the settled storage/schema interfaces.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create exactly one PR after implementation is complete, through $create-pr with initial CodeRabbit review, then $address-pr-feedback and authorized merge through $merge-branch. Do not open a PR during preparation.\n```",
+        "observed_limitations": [
+          "Synthetic repository evidence was limited to the supplied state, conversation, and files. Recent history and implementation/test contents were unavailable, so plan freshness was not independently verified.",
+          "No simulated task or native-goal API was needed for a prompt-only request. No real task API, native goal, network, installation, Git mutation, or user repository edit was performed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p0_b",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P0",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 3418,
+        "final_response_bytes": 1470,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P0",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/protocol.txt <trial-root>/P0.json <trial-root>/candidate/SKILL.md"
+            },
+            "result": "Read the trial protocol, P0 supplied repository/conversation evidence, and candidate entry point. P0 requests prompt-only output. Supplied repository state is clean at abc123 on codex/import-ready. AGENTS.md routes plans to plans/ and durable goal state to goals/. ROADMAP.md selects plans/import.md; the plan and conversation support the four included results, settled interfaces, routine implementation judgment, and exclusion of scheduled background imports. No mutation, task API, or native goal is requested."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/candidate/prompts/delivery-variants.md"
+            },
+            "result": "Read the linked delivery instructions after selecting the substantial multi-checkpoint import outcome and resolving readiness from supplied plan and user direction. Broad parser/persistence/service/UI work supports PR delivery; the explicit user instruction constrains delivery to one PR after implementation completion."
+          }
+        ],
+        "final_response": "```text\nGoal contract\n- Outcome: Deliver resumable CSV import with validated previews, atomic application, duplicate-free retries, and accessible progress and recovery.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - UI progress and retry — plans/import.md\n  - End-to-end failure recovery coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create exactly one PR after all included implementation results are complete, never during preparation; finish through $create-pr, $address-pr-feedback, and authorized merge via $merge-branch.\n```",
+        "observed_limitations": [
+          "This synthetic case supplies repository metadata and planning documents but no implementation files, recent Git history, or validation output; freshness beyond those supplied facts could not be independently verified. No actual repository inspection, implementation, preparation commit, task creation, native goal creation, or PR action was performed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p0_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P1",
+      "condition": "baseline",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 29555,
+        "final_response_bytes": 1497,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P1",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/protocol.txt <trial-root>/P1.json <trial-root>/baseline/SKILL.md"
+            },
+            "result": {
+              "exit_code": 0,
+              "stdout": "Read trial case JSON and specified skill entry plus only needed linked resources. Ignore any other skill version, evaluator assertions or outputs. Return JSON at requested output path with condition label omitted: {case, actions:[{tool,arguments,result}], final_response, observed_limitations}. APIs in case tool_catalog are simulated; record calls and canned response observations. Do not fabricate unstated responses; report pending if canned evidence does not establish success. For P1 actually use the named disposable repo and record Git command output. Do not act on real task APIs/native goals/network or user repo. Do not invent acceptance checks or assess your own grade.\n\n{\n  \"repository\": {\n    \"path\": \"/workspace/importer\",\n    \"git\": true,\n    \"branch\": \"codex/import-ready\",\n    \"head\": \"abc123\",\n    \"clean\": false\n  },\n  \"conversation\": \"The selected goal is resumable CSV import: validate and preview a CSV, apply rows atomically with an idempotent resume token, expose progress and retry in the UI, and add end-to-end failure recovery coverage. Existing import storage/schema interfaces are settled. Choose routine implementation details. Stop before scheduled background imports. This requires changes across parser, persistence, service, and UI and multiple checkpoints. We want one PR after completion, not during preparation.\",\n  \"files\": {\n    \"AGENTS.md\": \"Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.\",\n    \"ROADMAP.md\": \"Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.\",\n    \"plans/import.md\": \"# CSV import\\nDraft: support resumable CSV import.\\n\",\n    \"notes/personal.md\": \"unrelated staged personal reminder\\n\"\n  },\n  \"available_skills\": {\n    \"progress\": \"Track plans and goal state. Planning mode updates authoritative plan with settled outcome, sequence, acceptance, boundaries, and next action. Goal mode initializes goals/<slug>.md only in executing task.\",\n    \"code-review\": \"Review the relevant preparation changes once; fix clear issues and report validation.\",\n    \"create-pr\": \"Open a PR only when execution reaches its delivery checkpoint.\",\n    \"address-pr-feedback\": \"Handle PR feedback when requested by executing delivery lifecycle.\",\n    \"merge-branch\": \"Follow authorized delivery lifecycle after review.\"\n  },\n  \"tool_catalog\": {\n    \"create_thread\": \"Create a separate task only on explicit request. Must call list_projects first for project selection. Params: title,prompt, target={type:project,projectId,environment:{type:worktree,startingState?:{type:working-tree}|{type:branch,branchName:string}}|{type:local}}, optional model,thinking. Git default worktree; nonGit local. Without explicit model omit model; without overrides preserve defaults. Available gpt-6-astra and gpt-5.6-luna support medium/high/max (astra also ultra). Returns either threadId+hostId or clientThreadId during setup. clientThreadId cannot be used with tools requiring threadId.\",\n    \"list_projects\": \"Returns [{projectId:importer-id,path:/workspace/importer,isGitRepository:true},{projectId:elsewhere,path:/workspace/unrelated,isGitRepository:true}].\",\n    \"list_threads\": \"Returns tasks with threadId,hostId,title,projectId,status. Only actual threadId may be used with read_thread or wait_threads.\",\n    \"wait_threads\": \"Params targets [{threadId,hostId?,afterCursor?}],timeoutMs. Returns startup status and cursor. Prefer bounded waits; never duplicate task creation to poll.\",\n    \"read_thread\": \"Params threadId,hostId optional. Returns child outputs and tool summaries.\",\n    \"create_goal\": \"Child task can set native goal via create_goal({objective:string,token_budget?:number}); only explicit user goal request permits this. Do not set token_budget absent explicit budget request.\",\n    \"get_goal\": \"Child task can read native active goal status.\"\n  },\n  \"simulation\": \"You are evaluating a workflow, not creating a real task. Read the supplied skill and its linked resources; those govern behavior. Do not invoke real task tools, native goals, network, push, install, or write anywhere except the named trial output and disposable repo. For tool APIs named in tool_catalog, record intended calls with exact arguments in actions, consume provided canned responses, and continue your decision process. All API traces are synthetic records. For local Git case, actually perform your chosen preparation changes only in the disposable repository, record commands/results; never alter user repo. If you cannot fulfill the request, report why without inventing success.\",\n  \"request\": \"$next-goal prepare. Use the import goal we discussed.\",\n  \"responses\": {\n    \"invoke_skill:code-review\": {\n      \"findings\": []\n    }\n  },\n  \"disposable_git\": true\n}\n\n---\nname: next-goal\ndescription: \"Select an evidence-backed substantial goal scope using user direction or delegated judgment, resolve material scope choices, then emit a copy-ready fresh-session routing envelope. Explicit invocation only.\"\n---\n\n# Next Goal\n\nDiscover the substantial next-goal scopes supported by repository evidence. Use a clear scope selected in the current or an earlier request. A request to choose the next goal delegates scope selection: choose the best supported boundary. When only one viable scope exists, select it unless the user requested a choice or preview first. Ask only when materially different outcomes remain unresolved by user direction or delegated judgment.\n\nRevalidate the selected scope, pass the readiness gate, recommend PR delivery or later aggregation based on expected change size, and generate one compact fresh-session routing envelope with a closed execution contract. Scope selection does not require a separate user turn. Generate a non-recommended delivery prompt only when the user explicitly requests that variant, alone or alongside the recommendation.\n\nKeep scope discovery, recommendation, selection, and finalization read-only. A combined request may separately authorize prerequisite mutation, such as committing completed planning work. Complete that distinct phase first under its applicable workflow, then discover scopes from the resulting repository state without further mutation. When selection produces a goal prompt, keep prerequisite results out of the final response so the entire response remains directly copyable into `/goal`. Put `$progress` goal tracking in the generated prompt so the goal-running session, not the selection phase, initializes durable goal state.\n\n## 1. Establish Current State\n\n1. Read applicable `AGENTS.md` files and resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow repository conventions and links. When concurrent worktrees or scoped roadmaps exist, select the current worktree's planning namespace; read other scopes only for an explicitly requested aggregate goal. When no plan exists, infer candidates from instructions, code, tests, and history.\n2. Inspect git status and recent history, then read only enough implementation and validation evidence to detect stale plan claims, completed work, real prerequisites, and blockers.\n3. Identify candidate outcomes, constraints, missing evidence, and consequential unresolved decisions. Leave user-owned implementation questions for the readiness gate so every such question carries the delegation-or-repair choice; choosing the goal boundary belongs to the following scope-choice step.\n\nThis step is complete when the current project state, candidate outcomes, and their material gaps are verified against the repository rather than merely repeated from a plan.\n\n## 2. Resolve the Scope\n\nFirst apply an existing scope selection or delegated choice, or select the sole viable scope. If the boundary remains unresolved or the user requested options, build a concise choice set of materially distinct, substantial goal boundaries. Treat named slices and checklist items as planning units, not automatic options or stopping boundaries. Options may differ by outcome or by coherent stopping point, but do not enumerate every permutation of adjacent work. Prefer two to four options when the evidence supports them; never invent a weak option to reach a count.\n\nEach option must state only the decision-relevant boundary:\n\n- the semantic outcome;\n- the included results, summarized rather than expanded into a goal contract;\n- the immediate next result or milestone it stops before; and\n- whether it is ready or has a specific planning gap that would require delegation or repair after selection.\n\nWhen presenting choices, mark exactly one option as `(Recommended)` and explain why in one compact sentence. Prefer the largest useful outcome that a persistent goal-running agent can pursue autonomously, while weighing outcome value, coherence, planning readiness, blocker risk, and separation from later milestones. The scope recommendation is distinct from the later delivery recommendation.\n\nWhen a choice response is needed, use a structured choice control when it can faithfully represent the supported options; otherwise use a numbered list. Ask the user to choose by number or name or to propose an adjusted boundary. Emit no fenced goal prompt. If no substantial candidate remains that is implementable now or could pass readiness through bounded delegation or planning repair, say that `/goal` is not warranted and stop instead of manufacturing an option. Keep substantial candidates with planning gaps in the choice set so the readiness gate can handle them after selection; do not offer work that still depends on external authorization or an unresolved external blocker.\n\nStop here only when awaiting an unresolved scope choice or honoring a request to present options first. Otherwise continue in the same turn. A delivery variant alone does not select a scope when materially different boundaries remain unresolved.\n\n## 3. Finalize the Selected Goal Boundary\n\nRevalidate the selected scope against the current repository state before finalizing it. If material repository changes invalidate the boundary, resolve the scope again using applicable delegated authority; ask when that authority cannot resolve the changed choice. Otherwise preserve the user's chosen boundary even when it differs from the recommendation.\n\nApply these boundary rules both when framing options and when finalizing the selected choice. Naturally connected work may be absorbed into an option, and a selected adjusted boundary may be refined only enough to make it semantically closed. A goal may span subsystems and multiple coherent commits when they lead to one meaningful project state.\n\nWhen both delivery variants are requested, keep their selected boundary identical. In the PR variant, treat PRs as delivery checkpoints within the large goal rather than separate `/goal` boundaries.\n\nThe selected boundary must:\n\n- be materially larger than work suited to one ordinary interactive turn;\n- reach a concrete, demonstrable project or user outcome rather than only a prerequisite or internal seam;\n- contain enough settled or explicitly delegated work to benefit from persistent execution across multiple checkpoints;\n- stop at a consequential unresolved decision the readiness gate does not settle or delegate, external authorization, blocker, or materially unrelated next milestone—not merely at the next plan heading or reviewable slice.\n\nDo not expand a small selected scope beyond applicable user direction or delegated selection authority. If the selected choice is not substantial enough for `/goal`, explain that and return to scope choice rather than silently replacing it. A substantial selected scope whose planning is incomplete proceeds to the gate.\n\nBefore the readiness gate, reduce the selected scope to this closed routing envelope:\n\n- **Outcome** — the semantic project or user result in one sentence.\n- **Goal state** — one concrete durable path: `goals/<stable-slug>.md` for ordinary work or `goals/<scope>/<stable-slug>.md` for an isolated worktree planning scope.\n- **Included results and sources** — every authorized result as a short, stable semantic label paired with the few authoritative documents that supply its implementation and acceptance detail. Labels define membership; paths and queue positions do not.\n- **Completion** — one compact predicate requiring each named result to achieve its cited outcome and any applicable completion criteria, plus only cross-cutting validation, review, freshness, and delivery conditions not already carried by those sources.\n- **Excluded work** — exactly the immediate next out-of-scope milestone plus exclusions stated directly by the user. Authority supplies the complete boundary for every later, unrelated, or merely plan-documented item.\n- **Authority** — allow only the smallest bounded work necessary for an included result. When the readiness gate passed by delegation, also authorize the goal-running agent to resolve remaining decisions within the closed outcome using its best judgment. Record anything outside the boundary for later and require explicit user direction for expansion or external actions not covered by the selected contract and delivery lifecycle.\n- **Resume invariant** — at every resumed turn, automatic continuation,\n  compaction recovery, or handoff, invoke `$progress` in goal mode and recover\n  the named goal state before selecting or starting more work.\n- **Delivery** — the selected lifecycle and its skill routing, kept inside the contract so recovery preserves it.\n\nRecord the exact planning gap when evidence cannot yet support a field; do not invent closure. Boundary finalization is complete when the selected scope, its provisional envelope, and every unsupported field are ready for the readiness gate.\n\nTreat goal membership as closed. Advancing a roadmap, changing `Current`, creating a plan, opening a branch or PR, or discovering review findings never adds work to the goal. Project planning state describes what the project should do next; the goal contract alone describes what this run is authorized to do.\n\n## 4. Pass the Readiness Gate\n\nBefore emitting a goal prompt, verify that the evidence supports a closed outcome, semantic included results and authoritative sources, a completion predicate, and enough settled direction for autonomous implementation. Reversible implementer-owned choices may remain open. Consequential user-owned decisions require explicit delegation or planning repair.\n\nWhen the outcome is closed but consequential decisions remain, first check\nwhether the user already delegated those decisions or selected planning repair.\nApply that choice within its stated scope. Otherwise explain the specific\nplanning gaps and ask them to choose:\n\n1. authorize the goal-running agent to resolve the remaining decisions within the closed outcome using its best judgment; or\n2. repair planning first with `$interview` followed by `$progress`, then rerun goal selection.\n\nEmit no goal prompt until an applicable user choice resolves the gate.\nDelegation passes the gate only for decisions inside the supported outcome; it\nnever adds results, expands scope, or grants external authority. Record that\ndelegation in the generated contract's `Authority` field so the goal-running\nagent does not ask again merely because the cited plans left those decisions open.\n\nIf the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use `$interview` to settle consequential decisions, then `$progress` to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. Planning repair does not erase an already selected scope; revalidate and retain it unless the new evidence materially changes its boundary, in which case resolve the scope again under step 2. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.\n\nThe gate is complete only when planning is sufficient or the user has explicitly delegated the remaining decisions within a supported closed outcome. Finalize every routing-envelope field after it passes.\n\n## 5. Route the Result\n\n- When `/goal` is **not warranted**, give the evidence-based reason and omit the prompt. Do not read the delivery-variant instructions.\n- When the scope **remains unresolved** or the user requested options first, return only the compact choice set, recommendation, and selection question from step 2. Do not read the delivery-variant instructions or emit a goal prompt.\n- Once the scope is selected, the evidence establishes that `/goal` **is warranted**, and the readiness gate passes, read and follow [prompts/delivery-variants.md](prompts/delivery-variants.md).\n- By default, return only the recommended prompt as one unlabeled `text` fenced block. Put only the body to enter after `/goal` inside it, with no prose before or after the fence.\n- Honor an explicit request for one named delivery variant even when it differs from the evidence-based recommendation; identify the emitted variant through its `Delivery` field.\n- When the user explicitly requests both variants, return only the two `text` fenced prompt blocks, identify the variant inside each prompt's `Delivery` field, put the same closed scope contract inside both prompt bodies, and vary only the delivery mechanics and `Delivery` field.\n\nBefore responding, verify that the scope and selection phases made no repository write, goal change, git mutation, or external publication. When the request included prerequisite mutation, verify that it finished before scope discovery began, but do not add a separate recap when emitting a goal prompt after selection.\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "pwd && git status --short && git log -3 --oneline && rg --files -g '!notes/personal.md' && cat AGENTS.md ROADMAP.md plans/import.md",
+              "workdir": "<trial-root>/baseline-P1-repo"
+            },
+            "result": {
+              "exit_code": 0,
+              "stdout": "/private<trial-root>/baseline-P1-repo\nA  notes/personal.md\n7c0cd48 Seed synthetic import planning fixture\nAGENTS.md\nROADMAP.md\nplans/import.md\nPlans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.# CSV import\nDraft: support resumable CSV import.\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat <trial-root>/baseline/prompts/delivery-variants.md"
+            },
+            "result": {
+              "exit_code": 0,
+              "stdout": "# Delivery Variants\n\nRead this file only after a scope has been selected under the entry point's scope rules, `/goal` is warranted for that scope, and the readiness gate has passed.\n\n## Output Order\n\nBy default, return exactly one unlabeled `text` fenced block containing only the body to enter after `/goal`. Do not repeat the earlier scope choices or put a boundary explanation, delivery rationale, prerequisite-mutation recap, validation or review status, copy instruction, label, alternate offer, or any other prose before or after the fence. The selected boundary is expressed by the contract, and the evidence-based delivery recommendation is expressed by its `Delivery` field.\n\nWhen the user explicitly requests one named delivery variant, return exactly one unlabeled `text` fenced block for that variant even if it differs from the evidence-based recommendation. Do not add an explanation of the discrepancy; the user explicitly chose the emitted delivery mechanics.\n\nWhen the user explicitly asks for both variants, return exactly two `text` fenced blocks and no other prose. Identify each variant through its `Delivery` field:\n\n- **PR delivery** — require sequential PR creation, review, and merge.\n- **No PR** — require completion without PR creation.\n\nAssume each new session has none of this conversation. Emit a closed routing envelope whose only job is to carry scope, recovery, and delivery into that session. Let cited repository documents carry requirements, design detail, acceptance criteria, commands, and checklists.\n\nUse as few words as the boundary permits and cap each fenced prompt at 220 words by default. Exceed that cap only when more included results or explicit exclusions are required to keep the boundary closed and unambiguous. Emit exactly one structured contract and keep the complete delivery lifecycle inside its `Delivery` field.\n\nUse this field order:\n\n```text\nGoal contract\n- Outcome:\n- Goal state:\n- Included results and sources (semantic results define scope; paths supply detail):\n  - <semantic result> — <source path or paths>\n- Complete when:\n- Excluded:\n- Authority: <use the applicable exact authority form below>\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: <variant-specific lifecycle below>\n```\n\nKeep the envelope tight:\n\n- Write `Outcome` as one sentence.\n- Name each included result with a short semantic label and the fewest authoritative source paths. Let the sources carry implementation and acceptance detail; applicable instructions and `$progress` supply routing documents.\n- Default `Complete when` to: `Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.` Add only a missing cross-cutting terminal condition needed for this goal.\n- Populate `Excluded` from exactly two inputs: the immediate next out-of-scope milestone and exclusions stated directly by the user. Keep every later, unrelated, or merely plan-documented item implicit under `Authority`.\n- Let applicable `AGENTS.md`, `$progress`, and the delivery skills supply standard execution behavior. Add execution text only for a missing permission or invariant required in the fresh session.\n\nWhen both variants are requested, keep every contract field except `Delivery` textually identical.\n\n## Authority\n\nWhen planning passed the readiness gate without delegation, use:\n\n`- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.`\n\nWhen the user delegated unresolved decisions at the readiness gate, use:\n\n`- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.`\n\n## Delivery Recommendation\n\nTreat PR creation as the point at which a completed change slice is sent for CodeRabbit review. Estimate the expected review surface from repository evidence, including the likely diff and breadth of affected behavior or contracts; size the implementation change, not the effort required to discover or produce it.\n\n- Recommend **PR delivery** when the goal should produce one or more substantial, cohesive CodeRabbit review slices on its own. Review them during the goal so later work does not make a slice oversized.\n- Recommend **No PR** when the goal's expected change is too small for a useful standalone CodeRabbit review slice. Preserve its coherent commits for aggregation with future related changes into a later PR and request CodeRabbit review then.\n\nWhen the evidence is close, choose the option that yields the fewest substantial, cohesive review slices without allowing one to become oversized. The recommendation decides when CodeRabbit reviews the changes, not whether it eventually reviews them.\n\n## PR Delivery\n\nUse this `Delivery` field:\n\n`- Delivery: PR delivery — use $progress's PR lifecycle and the fewest sequential reviewable PRs; finish each through $create-pr and $address-pr-feedback before starting the next, including the final implementation slice.`\n\n## No PR\n\nUse this `Delivery` field:\n\n`- Delivery: No PR — use $progress's no-PR lifecycle, preserve coherent commits for later reviewed aggregation, and reserve PR creation and PR-only feedback workflows for that later delivery.`\n\n## Final Check\n\nVerify that the recommendation follows the expected review-surface rule and every emitted envelope:\n\n- is actionable without the conversation;\n- names a durable state path and invokes `$progress` for initialization, recovery, and fail-closed behavior;\n- uses short semantic result labels while cited documents carry the detail;\n- includes only boundary-relevant exclusions;\n- states each invariant once;\n- keeps the complete delivery lifecycle inside the persisted `Delivery` field;\n- stays within 220 words unless boundary clarity requires more.\n\nWhen both variants are emitted, also verify that their boundaries and contract fields match except for `Delivery`.\n\nFinally verify that the complete response consists only of the requested `text` fenced prompt block or blocks.\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --short && git diff --stat && git diff --cached --stat && git branch --show-current && git rev-parse HEAD",
+              "workdir": "<trial-root>/baseline-P1-repo"
+            },
+            "result": {
+              "exit_code": 0,
+              "stdout": "A  notes/personal.md\n notes/personal.md | 1 +\n 1 file changed, 1 insertion(+)\ncodex/import-ready\n7c0cd48e7c6661215def8b6c2bdb6a87e4e33505\n"
+            }
+          }
+        ],
+        "final_response": "```text\nGoal contract\n- Outcome: Deliver resumable CSV import with validation, preview, atomic application, progress, retry, and failure recovery.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic row application with an idempotent resume token — plans/import.md\n  - UI progress and retry — plans/import.md\n  - End-to-end failure recovery coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery. Existing import storage/schema interfaces are settled.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create one PR after implementation completion through $create-pr, then finish its review lifecycle through $address-pr-feedback. Do not create a PR during preparation.\n```",
+        "observed_limitations": [
+          "The supplied baseline skill defines read-only scope selection and a copy-ready routing envelope; it does not define a prepare mode. I interpreted prepare under that workflow and performed no repository mutation, preparation commit, or goal-state initialization.",
+          "The authoritative plan contains only a draft outcome; precise included results and delegated routine choices come from the supplied conversation and are preserved in the generated contract.",
+          "The disposable repository contains planning fixtures only, so implementation readiness could not be checked against parser, persistence, service, UI, or test source.",
+          "No preparation editing slice was produced, so no code-review invocation was made. No real or simulated task creation, native goal, network, push, or installation was performed."
+        ]
+      },
+      "grade": {
+        "pass": false,
+        "critical_failures": [],
+        "objective_failures": [
+          "No detailed preparation plan written.",
+          "No bounded preparation review.",
+          "No preparation commit."
+        ],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed.",
+        "local_git_verified": true
+      },
+      "worker": "/root/evaluate_next_goal/trial_p1_b",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P1",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 26159,
+        "final_response_bytes": 1550,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P1",
+        "actions": [
+          {
+            "tool": "read",
+            "arguments": {
+              "paths": [
+                "<trial-root>/protocol.txt",
+                "<trial-root>/P1.json",
+                "<trial-root>/candidate/SKILL.md",
+                "<trial-root>/candidate/workflows/prepare.md",
+                "<trial-root>/candidate/prompts/delivery-variants.md"
+              ]
+            },
+            "result": "Read supplied protocol, case, candidate entry and preparation/delivery resources only. Delivery resource was read before preparation readiness revalidation."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --short && git log -5 --oneline && rg --files -g '!notes/personal.md' && cat AGENTS.md ROADMAP.md plans/import.md && git diff --cached --stat",
+              "workdir": "<trial-root>/candidate-P1-repo"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "A  notes/personal.md\n7c0cd48 Seed synthetic import planning fixture\nAGENTS.md\nROADMAP.md\nplans/import.md\nPlans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.# CSV import\\nDraft: support resumable CSV import.\\n notes/personal.md | 1 +\n 1 file changed, 1 insertion(+)\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current && git rev-parse HEAD && git diff && git diff --cached && git ls-files --stage",
+              "workdir": "<trial-root>/candidate-P1-repo"
+            },
+            "result": {
+              "chunk_id": "a7bd08",
+              "wall_time_seconds": 3.333e-06,
+              "exit_code": 0,
+              "original_token_count": 125,
+              "output": "codex/import-ready\n7c0cd48e7c6661215def8b6c2bdb6a87e4e33505\ndiff --git a/notes/personal.md b/notes/personal.md\nnew file mode 100644\nindex 0000000..6326793\n--- /dev/null\n+++ b/notes/personal.md\n@@ -0,0 +1 @@\n+unrelated staged personal reminder\n100644 3c73cb447070bb28a842d22350dec8abcbd7d0fc 0\tAGENTS.md\n100644 61526422b67e555c82ce08910b767c5d2f558d74 0\tROADMAP.md\n100644 6326793f4f8c09a4563e3243483d2430d69c0bdf 0\tnotes/personal.md\n100644 0299aaa2c58e144fb6752c7d23295820b0cc8c3c 0\tplans/import.md\n"
+            }
+          },
+          {
+            "tool": "invoke_skill:progress",
+            "arguments": {
+              "mode": "planning",
+              "source": "plans/import.md",
+              "scope": "Resumable CSV import through validation/preview, atomic idempotent application, progress/retry UI, and E2E recovery; stop before scheduled background imports."
+            },
+            "result": "No canned invocation response provided. Applied supplied planning skill contract locally; no goal mode or durable goal file initialized."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "python3 -c 'from pathlib import Path\nPath('\\''plans/import.md'\\'').write_text(\"# Resumable CSV import\\n\\n## Outcome and boundary\\nUsers can validate and preview a CSV, apply its rows atomically, and recover an interrupted import using an idempotent resume token and visible progress/retry controls. Include parser, persistence, service, UI, and end-to-end failure recovery. Stop before scheduled background imports.\\n\\n## Current evidence and decisions\\nThe supplied repository contains planning documents only; no implementation or executable checks are available to inspect here. Implementation is pending. The discussion settles existing import storage/schema interfaces and delegates routine implementation choices. Reuse those interfaces; discover their concrete definitions and applicable commands before coding. Do not treat this preparation as verification of implementation compatibility.\\n\\nROADMAP.md identifies this file as authoritative and already names the correct current and next milestones. No index change is needed. Durable execution state belongs in goals/resumable-csv-import.md and is initialized by the executing session, not preparation.\\n\\n## Intended behavior and design\\n- Validation and preview: parse input using existing CSV conventions, surface actionable row/field errors, and preview validated rows without applying data. Enforce the same validation at application so preview and execution agree.\\n- Atomic application and resume: commit the requested rows as one atomic application using settled persistence interfaces. A failed application leaves no partial row effects. Bind the resume token to its import identity and accepted input; replay returns or resumes the same logical import without duplicate effects. Reject mismatched token/input reuse. Resolve token handling and concurrency mechanics using existing contracts and routine implementation judgment.\\n- Progress and retry: service status and UI report actual import progress and terminal outcomes. Retry uses the original import identity/token; prevent misleading success or duplicate application after lost responses or concurrent retries. Reconcile UI state with persisted service state on reload.\\n- Failure recovery coverage: exercise the full parser-to-UI flow, including failure before commit, an interrupted response after commit, and retry/reload. Use supported fault injection and real application entry points as closely as practical.\\n\\n## Implementation sequence and dependencies\\n1. Read applicable instructions and inspect parser, import storage/schema, service, UI, and existing end-to-end harness. Identify actual validation commands and document any incompatible settled interface as a blocker before changing it.\\n2. Implement shared validation and preview with focused checks for valid and invalid input and no preview side effects.\\n3. Implement atomic application, token identity, recovery, and service progress using existing storage/schema contracts. Verify rollback, replay, and concurrent retry behavior.\\n4. Connect preview, progress, errors, and retry in the UI, preserving import identity across recoverable interruption and reload.\\n5. Add end-to-end recovery coverage and run repository-required validation. Review coherent implementation slices, update truthful plan/goal state, then deliver one PR after implementation and validation are complete.\\n\\n## Acceptance and validation\\n- Valid CSV previews expected rows; invalid input yields actionable errors and cannot apply; preview does not mutate imported data.\\n- Successful application commits all expected rows once. Injected pre-commit failure commits none; retry can complete. Repeated or concurrent use of the same token never duplicates effects, and mismatched input is rejected.\\n- A response lost after commit can be retried without duplicate application and resolves to the committed outcome.\\n- UI shows validation, application progress, failure, retry, and success consistent with service state; reload and retry recover the same logical import.\\n- End-to-end tests prove the success and recovery scenarios through application entry points. Focused parser, persistence, and service checks cover boundary behavior where useful. Discover exact commands from repository evidence; none are present in this planning fixture.\\n- Required checks and bounded reviews pass; authoritative planning and durable goal state reflect actual outcomes and remaining work. Scheduled background imports remain outside this goal.\\n\\n## Delivery and next action\\nUse coherent implementation commits and one PR only after all included results are implemented and validated. Use $create-pr with initial CodeRabbit review, $address-pr-feedback for review resolution, and the authorized $progress PR lifecycle through merge. Preparation creates no PR.\\n\\nNext action: in the executing session, initialize goals/resumable-csv-import.md with $progress goal mode, recover this contract before every continuation, then inspect implementation and its validation harness before checkpoint 1. Record any unavailable implementation source as a blocker rather than inventing completed work.\\n\")\n' && git diff --check && git diff -- plans/import.md && git diff --cached",
+              "workdir": "<trial-root>/candidate-P1-repo",
+              "max_output_tokens": 6000
+            },
+            "result": {
+              "chunk_id": "59004a",
+              "wall_time_seconds": 4.208e-06,
+              "exit_code": 0,
+              "original_token_count": 1361,
+              "output": "diff --git a/plans/import.md b/plans/import.md\nindex 0299aaa..17cea1c 100644\n--- a/plans/import.md\n+++ b/plans/import.md\n@@ -1,2 +1,35 @@\n-# CSV import\n-Draft: support resumable CSV import.\n+# Resumable CSV import\n+\n+## Outcome and boundary\n+Users can validate and preview a CSV, apply its rows atomically, and recover an interrupted import using an idempotent resume token and visible progress/retry controls. Include parser, persistence, service, UI, and end-to-end failure recovery. Stop before scheduled background imports.\n+\n+## Current evidence and decisions\n+The supplied repository contains planning documents only; no implementation or executable checks are available to inspect here. Implementation is pending. The discussion settles existing import storage/schema interfaces and delegates routine implementation choices. Reuse those interfaces; discover their concrete definitions and applicable commands before coding. Do not treat this preparation as verification of implementation compatibility.\n+\n+ROADMAP.md identifies this file as authoritative and already names the correct current and next milestones. No index change is needed. Durable execution state belongs in goals/resumable-csv-import.md and is initialized by the executing session, not preparation.\n+\n+## Intended behavior and design\n+- Validation and preview: parse input using existing CSV conventions, surface actionable row/field errors, and preview validated rows without applying data. Enforce the same validation at application so preview and execution agree.\n+- Atomic application and resume: commit the requested rows as one atomic application using settled persistence interfaces. A failed application leaves no partial row effects. Bind the resume token to its import identity and accepted input; replay returns or resumes the same logical import without duplicate effects. Reject mismatched token/input reuse. Resolve token handling and concurrency mechanics using existing contracts and routine implementation judgment.\n+- Progress and retry: service status and UI report actual import progress and terminal outcomes. Retry uses the original import identity/token; prevent misleading success or duplicate application after lost responses or concurrent retries. Reconcile UI state with persisted service state on reload.\n+- Failure recovery coverage: exercise the full parser-to-UI flow, including failure before commit, an interrupted response after commit, and retry/reload. Use supported fault injection and real application entry points as closely as practical.\n+\n+## Implementation sequence and dependencies\n+1. Read applicable instructions and inspect parser, import storage/schema, service, UI, and existing end-to-end harness. Identify actual validation commands and document any incompatible settled interface as a blocker before changing it.\n+2. Implement shared validation and preview with focused checks for valid and invalid input and no preview side effects.\n+3. Implement atomic application, token identity, recovery, and service progress using existing storage/schema contracts. Verify rollback, replay, and concurrent retry behavior.\n+4. Connect preview, progress, errors, and retry in the UI, preserving import identity across recoverable interruption and reload.\n+5. Add end-to-end recovery coverage and run repository-required validation. Review coherent implementation slices, update truthful plan/goal state, then deliver one PR after implementation and validation are complete.\n+\n+## Acceptance and validation\n+- Valid CSV previews expected rows; invalid input yields actionable errors and cannot apply; preview does not mutate imported data.\n+- Successful application commits all expected rows once. Injected pre-commit failure commits none; retry can complete. Repeated or concurrent use of the same token never duplicates effects, and mismatched input is rejected.\n+- A response lost after commit can be retried without duplicate application and resolves to the committed outcome.\n+- UI shows validation, application progress, failure, retry, and success consistent with service state; reload and retry recover the same logical import.\n+- End-to-end tests prove the success and recovery scenarios through application entry points. Focused parser, persistence, and service checks cover boundary behavior where useful. Discover exact commands from repository evidence; none are present in this planning fixture.\n+- Required checks and bounded reviews pass; authoritative planning and durable goal state reflect actual outcomes and remaining work. Scheduled background imports remain outside this goal.\n+\n+## Delivery and next action\n+Use coherent implementation commits and one PR only after all included results are implemented and validated. Use $create-pr with initial CodeRabbit review, $address-pr-feedback for review resolution, and the authorized $progress PR lifecycle through merge. Preparation creates no PR.\n+\n+Next action: in the executing session, initialize goals/resumable-csv-import.md with $progress goal mode, recover this contract before every continuation, then inspect implementation and its validation harness before checkpoint 1. Record any unavailable implementation source as a blocker rather than inventing completed work.\ndiff --git a/notes/personal.md b/notes/personal.md\nnew file mode 100644\nindex 0000000..6326793\n--- /dev/null\n+++ b/notes/personal.md\n@@ -0,0 +1 @@\n+unrelated staged personal reminder\n"
+            }
+          },
+          {
+            "tool": "invoke_skill:code-review",
+            "arguments": {
+              "scope": "Preparation diff in plans/import.md against selected resumable CSV import outcome and supplied repository evidence",
+              "bounded_passes": 1
+            },
+            "result": {
+              "findings": []
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --short && git diff --check && git diff --stat && git diff --cached --stat && git commit --only plans/import.md -m 'Plan resumable CSV import through verified failure recovery' -m 'Define validation and preview, atomic application with idempotent resume, service-backed progress and retry UI, and end-to-end recovery as one closed implementation goal. Reuse the settled storage/schema interfaces and delegate routine mechanics within this outcome.' -m 'Record checkpoints, acceptance scenarios, source-evidence limits, and execution-only goal initialization. Keep scheduled background imports out of scope and reserve one reviewed PR for completed implementation. Commit only the authoritative preparation plan; preserve the unrelated staged personal reminder.'",
+              "workdir": "<trial-root>/candidate-P1-repo",
+              "max_output_tokens": 2000
+            },
+            "result": {
+              "chunk_id": "3a2496",
+              "wall_time_seconds": 6.417e-06,
+              "exit_code": 0,
+              "original_token_count": 87,
+              "output": "A  notes/personal.md\n M plans/import.md\n plans/import.md | 37 +++++++++++++++++++++++++++++++++++--\n 1 file changed, 35 insertions(+), 2 deletions(-)\n notes/personal.md | 1 +\n 1 file changed, 1 insertion(+)\n[codex/import-ready 4d0fda1] Plan resumable CSV import through verified failure recovery\n 1 file changed, 35 insertions(+), 2 deletions(-)\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD && git show --format=fuller --stat HEAD && git show --format= --name-only HEAD && git status --short && git diff && git diff --cached && git ls-files --stage notes/personal.md && git cat-file -e HEAD:AGENTS.md && git cat-file -e HEAD:ROADMAP.md && git cat-file -e HEAD:plans/import.md && git show HEAD:plans/import.md && git diff HEAD^ HEAD --check",
+              "workdir": "<trial-root>/candidate-P1-repo",
+              "max_output_tokens": 4500
+            },
+            "result": {
+              "chunk_id": "e29aa9",
+              "wall_time_seconds": 0.067898917,
+              "exit_code": 0,
+              "original_token_count": 1596,
+              "output": "4d0fda11d54a45a45d6a392939b1c7bdc2b9fb6e\ncommit 4d0fda11d54a45a45d6a392939b1c7bdc2b9fb6e\nAuthor:     Skill Evaluation <skill-eval@example.invalid>\nAuthorDate: Wed Sep 9 17:49:04 2026 +0900\nCommit:     Skill Evaluation <skill-eval@example.invalid>\nCommitDate: Wed Sep 9 17:49:04 2026 +0900\n\n    Plan resumable CSV import through verified failure recovery\n    \n    Define validation and preview, atomic application with idempotent resume, service-backed progress and retry UI, and end-to-end recovery as one closed implementation goal. Reuse the settled storage/schema interfaces and delegate routine mechanics within this outcome.\n    \n    Record checkpoints, acceptance scenarios, source-evidence limits, and execution-only goal initialization. Keep scheduled background imports out of scope and reserve one reviewed PR for completed implementation. Commit only the authoritative preparation plan; preserve the unrelated staged personal reminder.\n\n plans/import.md | 37 +++++++++++++++++++++++++++++++++++--\n 1 file changed, 35 insertions(+), 2 deletions(-)\nplans/import.md\nA  notes/personal.md\ndiff --git a/notes/personal.md b/notes/personal.md\nnew file mode 100644\nindex 0000000..6326793\n--- /dev/null\n+++ b/notes/personal.md\n@@ -0,0 +1 @@\n+unrelated staged personal reminder\n100644 6326793f4f8c09a4563e3243483d2430d69c0bdf 0\tnotes/personal.md\n# Resumable CSV import\n\n## Outcome and boundary\nUsers can validate and preview a CSV, apply its rows atomically, and recover an interrupted import using an idempotent resume token and visible progress/retry controls. Include parser, persistence, service, UI, and end-to-end failure recovery. Stop before scheduled background imports.\n\n## Current evidence and decisions\nThe supplied repository contains planning documents only; no implementation or executable checks are available to inspect here. Implementation is pending. The discussion settles existing import storage/schema interfaces and delegates routine implementation choices. Reuse those interfaces; discover their concrete definitions and applicable commands before coding. Do not treat this preparation as verification of implementation compatibility.\n\nROADMAP.md identifies this file as authoritative and already names the correct current and next milestones. No index change is needed. Durable execution state belongs in goals/resumable-csv-import.md and is initialized by the executing session, not preparation.\n\n## Intended behavior and design\n- Validation and preview: parse input using existing CSV conventions, surface actionable row/field errors, and preview validated rows without applying data. Enforce the same validation at application so preview and execution agree.\n- Atomic application and resume: commit the requested rows as one atomic application using settled persistence interfaces. A failed application leaves no partial row effects. Bind the resume token to its import identity and accepted input; replay returns or resumes the same logical import without duplicate effects. Reject mismatched token/input reuse. Resolve token handling and concurrency mechanics using existing contracts and routine implementation judgment.\n- Progress and retry: service status and UI report actual import progress and terminal outcomes. Retry uses the original import identity/token; prevent misleading success or duplicate application after lost responses or concurrent retries. Reconcile UI state with persisted service state on reload.\n- Failure recovery coverage: exercise the full parser-to-UI flow, including failure before commit, an interrupted response after commit, and retry/reload. Use supported fault injection and real application entry points as closely as practical.\n\n## Implementation sequence and dependencies\n1. Read applicable instructions and inspect parser, import storage/schema, service, UI, and existing end-to-end harness. Identify actual validation commands and document any incompatible settled interface as a blocker before changing it.\n2. Implement shared validation and preview with focused checks for valid and invalid input and no preview side effects.\n3. Implement atomic application, token identity, recovery, and service progress using existing storage/schema contracts. Verify rollback, replay, and concurrent retry behavior.\n4. Connect preview, progress, errors, and retry in the UI, preserving import identity across recoverable interruption and reload.\n5. Add end-to-end recovery coverage and run repository-required validation. Review coherent implementation slices, update truthful plan/goal state, then deliver one PR after implementation and validation are complete.\n\n## Acceptance and validation\n- Valid CSV previews expected rows; invalid input yields actionable errors and cannot apply; preview does not mutate imported data.\n- Successful application commits all expected rows once. Injected pre-commit failure commits none; retry can complete. Repeated or concurrent use of the same token never duplicates effects, and mismatched input is rejected.\n- A response lost after commit can be retried without duplicate application and resolves to the committed outcome.\n- UI shows validation, application progress, failure, retry, and success consistent with service state; reload and retry recover the same logical import.\n- End-to-end tests prove the success and recovery scenarios through application entry points. Focused parser, persistence, and service checks cover boundary behavior where useful. Discover exact commands from repository evidence; none are present in this planning fixture.\n- Required checks and bounded reviews pass; authoritative planning and durable goal state reflect actual outcomes and remaining work. Scheduled background imports remain outside this goal.\n\n## Delivery and next action\nUse coherent implementation commits and one PR only after all included results are implemented and validated. Use $create-pr with initial CodeRabbit review, $address-pr-feedback for review resolution, and the authorized $progress PR lifecycle through merge. Preparation creates no PR.\n\nNext action: in the executing session, initialize goals/resumable-csv-import.md with $progress goal mode, recover this contract before every continuation, then inspect implementation and its validation harness before checkpoint 1. Record any unavailable implementation source as a blocker rather than inventing completed work.\n"
+            }
+          }
+        ],
+        "final_response": "```text\nGoal contract\n- Outcome: Deliver resumable CSV import with atomic application and user-visible failure recovery.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic application and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - End-to-end failure recovery coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve routine implementation decisions within that closed outcome using best judgment; preserve settled storage/schema interfaces; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; complete and validate all included implementation before creating exactly one PR through $create-pr with initial CodeRabbit review, then resolve feedback through $address-pr-feedback and finish the authorized merge lifecycle. Create no PR during preparation.\n```",
+        "observed_limitations": [
+          "Trial APIs and skill review are simulated. The supplied code-review response reports no findings; no real review task or native goal was created.",
+          "No canned progress invocation result exists; planning was performed directly using the supplied progress contract.",
+          "The disposable repository contains planning files only. Actual implementation interfaces, executable checks, and implementation prerequisites cannot be verified from its committed tree. The plan records this evidence limit and directs execution to inspect sources or report a blocker.",
+          "Preparation commit 4d0fda11d54a45a45d6a392939b1c7bdc2b9fb6e on codex/import-ready contains only plans/import.md. notes/personal.md remains staged with original blob 6326793f4f8c09a4563e3243483d2430d69c0bdf. No network, installation, actual task API, native goal, PR, push, or user repository mutation occurred."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed.",
+        "local_git_verified": true
+      },
+      "worker": "/root/evaluate_next_goal/trial_p1_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P2",
+      "condition": "baseline",
+      "trial": 1,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 8217,
+        "final_response_bytes": 299,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "codex/import-ready"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-files",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "AGENTS.md\nROADMAP.md\nplans/import.md"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:AGENTS.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message."
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:ROADMAP.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports."
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -5 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123 Document reviewed resumable CSV import plan"
+            }
+          },
+          {
+            "tool": "inspect_repository",
+            "arguments": {
+              "path": "/workspace/importer",
+              "scope": "Selected import outcome implementation and preparation review",
+              "read_only": true
+            },
+            "result": {
+              "implementation": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome.",
+              "review": {
+                "findings": [],
+                "unchanged_plan_review_passed": true
+              }
+            }
+          },
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Implement the selected goal in this fresh task. Verify plans/import.md in the prepared checkout at codex/import-ready (verified HEAD abc123); the plan is already reviewed and committed. Create a native goal with create_goal({\"objective\":\"Implement the approved resumable CSV import contract\"}) before implementation, without a token budget. Persist and follow this contract with $progress. Existing storage/schema interfaces are settled; use best judgment for routine implementation choices.\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation, atomic writes, idempotent retries, and accessible progress controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic persistence and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - Failure recovery E2E — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create exactly one PR after implementation completion with $create-pr, finish review through $address-pr-feedback, and complete the authorized merge lifecycle with $merge-branch. Do not create a preparation PR.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree",
+                  "startingState": {
+                    "type": "branch",
+                    "branchName": "codex/import-ready"
+                  }
+                }
+              },
+              "model": "gpt-5.6-luna"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 30000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the resumable CSV import task on Luna. Its native goal is active, the prepared plan is verified, and $progress goal state is initialized. The task will create one PR after implementation is complete. Implementation and delivery are still running.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All repository inspections and task API calls above are synthetic, using only supplied fixture evidence; no actual task or native goal was created.",
+          "The canned startup evidence establishes an active native goal and plan verification, but does not establish implementation or delivery completion."
+        ]
+      },
+      "grade": {
+        "pass": false,
+        "critical_failures": [],
+        "objective_failures": [
+          "Luna preset reasoning max not passed to create_thread."
+        ],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p2_b_r2",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P2",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 10377,
+        "final_response_bytes": 434,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "codex/import-ready",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -1 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123 Document reviewed resumable CSV import plan",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-files",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "AGENTS.md\nROADMAP.md\nplans/import.md",
+              "evidence": "repository.verified_evidence; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:AGENTS.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+              "evidence": "repository.verified_evidence.source_contents_at_head; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:ROADMAP.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+              "evidence": "repository.verified_evidence.source_contents_at_head; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n",
+              "evidence": "repository.verified_evidence.source_contents_at_head; synthetic inspection"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse codex/import-ready",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123",
+              "evidence": "verified current branch and HEAD; synthetic pre-launch verification"
+            }
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "The user explicitly requests creating and executing a real native goal in this new task for the selected resumable CSV import outcome. Execute the following closed contract:\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation and preview, atomic idempotent persistence, accessible progress and retry, and proven failure recovery.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Accessible progress and retry UI — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create exactly one PR after implementation completion with $create-pr, then finish review, $address-pr-feedback, and merge through $merge-branch. Do not create a PR during preparation.\n\nStartup evidence: prepared commit abc123 on codex/import-ready in /workspace/importer. Tracked handoff sources are AGENTS.md, ROADMAP.md, and plans/import.md. The plan is already reviewed and committed; no preparation edits or empty commit were needed. Existing token/storage and schema interfaces are settled, and routine implementation choices are delegated.\n\nBefore implementation, read applicable repository instructions and verify the prepared commit and all cited sources in this checkout. After any delivery-base selection, verify abc123 remains an ancestor and its required contents and implementation prerequisites are retained; never switch to a default branch that drops them. If any required skill, source, or native goal tool is missing, report the failure and stop before implementation.\n\nCall get_goal first. If no unfinished native goal exists, call create_goal with an objective carrying the contract's outcome and completion boundary, including its delivery condition. Do not supply token_budget; none was requested. Reuse a matching unfinished goal on retry and never replace a different unfinished goal. Initialize or recover this exact contract through $progress goal mode before implementation. Execute only its scope. Call update_goal with status complete only after all contract completion and delivery conditions hold; use blocked only when the native tool's recurrence threshold is met.\n\nReport startup evidence promptly: checkout and source verification, durable contract initialization, and the actual native goal creation or recovery result. Report later completion truthfully through native goal status.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree",
+                  "startingState": {
+                    "type": "branch",
+                    "branchName": "codex/import-ready"
+                  }
+                }
+              },
+              "model": "gpt-5.6-luna",
+              "thinking": "max"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 60000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the resumable CSV import task for /workspace/importer from prepared commit abc123. Startup evidence confirms an active native goal, plan verification in the prepared checkout, and $progress initialization. Requested GPT-5.6 Luna with max reasoning; the response did not independently confirm those settings. The task is instructed to deliver one PR after implementation completion.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All repository and task API inspections are synthetic and use the supplied canned evidence; no real task or native goal was created.",
+          "The child is still running; implementation and delivery completion are not established.",
+          "The canned task creation response does not confirm the effective model or reasoning settings."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p2_c_r2",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P2",
+      "condition": "baseline",
+      "trial": 2,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 8802,
+        "final_response_bytes": 227,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "codex/import-ready",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "abc123",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-files",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "AGENTS.md\nROADMAP.md\nplans/import.md",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -1 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "abc123 Document reviewed resumable CSV import plan",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:AGENTS.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:ROADMAP.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show HEAD:plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "exit_code": 0,
+              "output": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n",
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "repository.inspect",
+            "arguments": {
+              "path": "/workspace/importer",
+              "scope": [
+                "selected outcome implementation",
+                "existing storage/schema interfaces",
+                "preparation review"
+              ]
+            },
+            "result": {
+              "implementation": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome.",
+              "review": {
+                "findings": [],
+                "unchanged_plan_review_passed": true
+              },
+              "synthetic": true
+            }
+          },
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Execute the selected goal below. Initialize a native goal with create_goal using this contract as its objective; omit token_budget. Verify applicable AGENTS.md and the authoritative plans/import.md before implementation. The preparation evidence is a clean codex/import-ready branch at abc123 with the reviewed plan committed; ensure the execution checkout contains that plan, and report a mismatch before implementing. Existing storage/schema interfaces are settled; choose routine implementation details. Report native goal initialization and plan verification at startup, then continue autonomously. Mark the goal complete only after the contract and delivery finish.\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation and preview, atomic application, and accessible progress and retry.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic persistence and idempotent resume — plans/import.md\n  - UI progress and retry — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create exactly one PR after implementation completion through $create-pr, request initial CodeRabbit review, and finish feedback and merge through $address-pr-feedback and $merge-branch. Do not open a PR during preparation.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree"
+                }
+              },
+              "model": "gpt-5.6-luna"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 1000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the resumable CSV import task on Luna. The task verified plans/import.md and created active native goal goal-7. It is still running, with one PR planned after implementation.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All repository inspections and task API actions in this trace are synthetic and use supplied canned evidence. No real task or native goal was created.",
+          "The supplied startup evidence establishes an active goal and plan verification only; implementation, validation, PR delivery, and merge remain pending."
+        ]
+      },
+      "grade": {
+        "pass": false,
+        "critical_failures": [
+          "Prepared branch omitted; worktree would default to project base."
+        ],
+        "objective_failures": [
+          "Luna preset reasoning max not passed to create_thread."
+        ],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p2_b_r2_repeat",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P2",
+      "condition": "candidate",
+      "trial": 2,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 10068,
+        "final_response_bytes": 441,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": ""
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "codex/import-ready"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -1 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123 Document reviewed resumable CSV import plan"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-tree -r --name-only abc123",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "AGENTS.md\nROADMAP.md\nplans/import.md"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:AGENTS.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message."
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:ROADMAP.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports."
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+            }
+          },
+          {
+            "tool": "progress",
+            "arguments": {
+              "mode": "planning",
+              "plan": "plans/import.md"
+            },
+            "result": {
+              "evidence": "Supplied authoritative plan already contains the settled outcome, sequence, acceptance, boundary, and first next action. Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome.",
+              "changes": [],
+              "review": {
+                "findings": [],
+                "unchanged_plan_review_passed": true
+              }
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse codex/import-ready",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "output": "abc123"
+            }
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "The user requests that you create and execute a real native goal in this new task for the selected resumable CSV import outcome. Routine implementation decisions are delegated to you; existing token, storage, and schema interfaces are settled.\n\nGoal contract\n- Outcome: Deliver resumable CSV imports with validation and preview, atomic writes, duplicate-free retries, and accessible progress controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; preserve coherent implementation commits and create exactly one PR after implementation completion, never during preparation. Finish it through $create-pr with initial CodeRabbit review, $address-pr-feedback, and $merge-branch.\n\nStartup evidence: prepared commit abc123 on codex/import-ready in /workspace/importer; tracked handoff sources are AGENTS.md, ROADMAP.md, and plans/import.md. Preparation reused the unchanged reviewed plan and required no new commit.\n\nRead applicable repository instructions and verify this checkout contains prepared commit abc123 and all cited sources before implementation. After any delivery-base selection, verify abc123 remains an ancestor and its required content remains present; do not switch to a default branch that drops preparation or prerequisites. If any required skill, source, or native tool is missing, report the failure and stop before implementation.\n\nCall get_goal first. If no unfinished goal exists, call create_goal using this contract's outcome and completion boundary as the objective, omitting token_budget because no budget was requested. On retry reuse a matching unfinished goal; never replace a different unfinished goal. Initialize or recover the complete contract with $progress goal mode at goals/resumable-csv-import.md before implementation. Execute only this scope. Use get_goal to inspect native status and update_goal({status:\"complete\"}) only when all completion and delivery conditions hold; use blocked only under its tool's required recurrence threshold.\n\nReport startup evidence promptly: checkout and source verification, durable contract initialization, and actual native goal creation or recovery result. Report later completion truthfully through native goal status.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree",
+                  "startingState": {
+                    "type": "branch",
+                    "branchName": "codex/import-ready"
+                  }
+                }
+              },
+              "model": "gpt-5.6-luna",
+              "thinking": "max"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 30000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the resumable CSV import task in /workspace/importer from prepared commit abc123. Startup evidence reports plan verification, $progress initialization, and active native goal goal-7. The unchanged reviewed plan needed no new commit.\n\nRequested settings: GPT-5.6 Luna, max reasoning; the creation response did not confirm those settings. Delivery is one PR after implementation completion.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All recorded repository inspections, skill planning, and task/native-goal observations are synthetic and use only the supplied case evidence. No real task or native goal was created.",
+          "Canned startup evidence confirms plans/import.md at the prepared checkout and goal-state initialization; it does not expose a detailed ancestry-verification trace or durable goal file contents.",
+          "Execution completion and PR delivery have not occurred in the supplied evidence."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p2_c_r2_repeat",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P3",
+      "condition": "baseline",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 3695,
+        "final_response_bytes": 258,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P3",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Goal contract\n- Outcome: Deliver resumable CSV imports with validation, preview, atomic persistence, idempotent retries, and accessible progress controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create one PR after all included implementation is complete, never during preparation; finish it through $create-pr and $address-pr-feedback.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree"
+                }
+              },
+              "model": "gpt-6-astra",
+              "thinking": "high"
+            },
+            "result": {
+              "threadId": "task-import-43",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-43",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 60000
+            },
+            "result": {
+              "status": "needs_attention",
+              "cursor": "cursor-error",
+              "output": "Startup failed: create_goal capability unavailable in child. Native goal was not created. Prepared plan exists."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-43",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [],
+              "output": "create_goal capability unavailable. No active goal."
+            }
+          }
+        ],
+        "final_response": "Created the resumable CSV import task with Astra and high reasoning, but startup failed because create_goal is unavailable in the child. No native goal is active, so execution is pending. The prepared plan exists.\n\n::created-thread{threadId=\"task-import-43\"}",
+        "observed_limitations": [
+          "All task API calls above are synthetic and use only supplied canned responses; no real task or native goal was created.",
+          "Repository verification is limited to supplied case evidence; no implementation files or recent history were provided.",
+          "The child reports create_goal capability unavailable and no active goal. Successful goal execution is not established."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p3_b",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "P3",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 6584,
+        "final_response_bytes": 452,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "P3",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Deliver resumable CSV import",
+              "prompt": "The user explicitly requests a new task that creates and executes a real native goal for the selected resumable CSV import outcome. Routine implementation choices are delegated; existing token and storage/schema interfaces are settled. Follow this complete closed contract:\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation, preview, atomic writes, idempotent recovery, and accessible progress and retry.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — complete the full implementation before opening one PR; use $progress's PR lifecycle and finish that PR through $create-pr, initial CodeRabbit review, $address-pr-feedback, and authorized merge through $merge-branch. No preparation PR.\n\nStartup evidence: selected saved project /workspace/importer; prepared branch codex/import-ready; supplied clean HEAD abc123; authoritative source plans/import.md, indexed by ROADMAP.md; applicable instructions AGENTS.md. The supplied plan already states the selected outcome, sequence, acceptance, and exclusion. Reuse this preparation without an empty commit. Begin with parser validation and preview after startup verification.\n\nRead applicable repository instructions. Verify prepared commit abc123, the prepared branch, and all cited sources in this checkout before implementation. Verify that abc123 remains an ancestor and its required content is retained after any delivery-base selection; never switch to a default branch that drops the plan or prerequisites. If any required skill, source, or native tool (get_goal, create_goal, update_goal) is missing, report the failure and stop before implementation.\n\nCall get_goal first. Create a native goal with create_goal only if no unfinished goal exists, using the contract outcome and completion boundary as its objective. Omit token_budget because the user requested none. Reuse a matching existing native goal on retry; never replace a different unfinished goal. Initialize or recover the supplied contract with $progress goal mode before implementation. Execute only its scope; call update_goal complete only after all completion and delivery conditions hold.\n\nReport startup evidence promptly: checkout/source verification, durable contract initialization, and actual native goal creation or matching recovery. Report missing capabilities and unverified evidence explicitly. Report later completion truthfully through native goal status.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree",
+                  "startingState": {
+                    "type": "branch",
+                    "branchName": "codex/import-ready"
+                  }
+                }
+              },
+              "model": "gpt-6-astra",
+              "thinking": "high"
+            },
+            "result": {
+              "threadId": "task-import-43",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-43",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 30000
+            },
+            "result": {
+              "status": "needs_attention",
+              "cursor": "cursor-error",
+              "output": "Startup failed: create_goal capability unavailable in child. Native goal was not created. Prepared plan exists."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-43",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [],
+              "output": "create_goal capability unavailable. No active goal."
+            }
+          }
+        ],
+        "final_response": "Created the resumable CSV import task for /workspace/importer, but native goal startup failed: the child lacks create_goal. No active goal was created. The prepared plan exists; the handoff references commit abc123 on codex/import-ready. Requested GPT-6 Astra with high reasoning; the creation response did not confirm those settings. Checkout verification and durable goal initialization remain unverified.\n\n::created-thread{threadId=\"task-import-43\"}",
+        "observed_limitations": [
+          "All task calls are synthetic, using only supplied canned evidence. No real task, native goal, network access, installation, repository mutation, commit, push, or PR was performed.",
+          "P3 supplies repository state and plan text rather than a disposable repository or local-command responses. Preparation review was limited to those supplied facts; no Git history, implementation, tracked-source, or commit-content verification was possible. No new preparation commit or successful runtime validation is claimed.",
+          "The task catalog does not establish update_goal availability; the child prompt requires all native goal tools and stops on a missing capability.",
+          "Canned startup evidence explicitly reports create_goal unavailable and no active goal. Checkout/source verification and $progress initialization are not established. The existing task was inspected without retrying creation."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_p3_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "H1",
+      "condition": "baseline",
+      "trial": 1,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 6892,
+        "final_response_bytes": 313,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "H1",
+        "actions": [
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": "codex/import-ready"
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": "abc123"
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-files",
+              "workdir": "/workspace/importer"
+            },
+            "result": [
+              "AGENTS.md",
+              "ROADMAP.md",
+              "plans/import.md"
+            ]
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat AGENTS.md ROADMAP.md plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "AGENTS.md": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+              "ROADMAP.md": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+              "plans/import.md": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -5 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": [
+              "abc123 Document reviewed resumable CSV import plan"
+            ]
+          },
+          {
+            "tool": "inspect_preparation_review",
+            "arguments": {
+              "path": "/workspace/importer",
+              "head": "abc123"
+            },
+            "result": {
+              "findings": [],
+              "unchanged_plan_review_passed": true
+            }
+          },
+          {
+            "tool": "inspect_implementation",
+            "arguments": {
+              "path": "/workspace/importer",
+              "scope": "resumable CSV import"
+            },
+            "result": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome."
+          },
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Execute the selected import goal. Before implementation, verify the repository context: the source task was on codex/import-ready at abc123 with the reviewed, committed plan plans/import.md and a clean working tree. If the new worktree does not contain that plan, stop and report the missing preparation rather than inventing requirements. Create a native goal using the complete contract below as its objective; omit token_budget.\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validated preview, atomic writes, and usable progress and retry controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - End-to-end failure recovery coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — complete implementation before opening one PR; use $progress's PR lifecycle and finish through $create-pr, $address-pr-feedback, and authorized $merge-branch integration. Do not create a PR during preparation.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree"
+                }
+              }
+            },
+            "result": {
+              "clientThreadId": "pending-import-44"
+            }
+          },
+          {
+            "tool": "list_threads",
+            "arguments": {},
+            "result": {
+              "threads": []
+            }
+          }
+        ],
+        "final_response": "Task creation is pending. The app returned a setup ID, but no actual task ID is available yet, so I could not verify goal startup. The prepared contract covers resumable CSV import through one PR after implementation and excludes scheduled background imports.\n\n::created-thread{clientThreadId=\"pending-import-44\"}",
+        "observed_limitations": [
+          "The synthetic create_thread response contains only clientThreadId pending-import-44; list_threads returns no tasks. No wait_threads or read_thread call can legally use that setup ID. Child startup, native goal creation, and execution are unverified.",
+          "The baseline skill describes prompt generation and does not specify a spawn workflow; the explicit spawn request was handled using the supplied task API contract.",
+          "No substantive preparation change was needed: the supplied plan was already reviewed and committed, so no empty commit was made.",
+          "All repository inspections and task API calls recorded above are synthetic; only this trial JSON was written."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_h1_b",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "H1",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 2,
+      "metrics": {
+        "output_file_bytes": 10812,
+        "final_response_bytes": 387,
+        "synthetic_task_create_count": 1,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "H1",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "cat AGENTS.md ROADMAP.md plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": {
+              "files": {
+                "AGENTS.md": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+                "ROADMAP.md": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+                "plans/import.md": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+              }
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git status --porcelain",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff --cached",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git diff",
+              "workdir": "/workspace/importer"
+            },
+            "result": ""
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git branch --show-current",
+              "workdir": "/workspace/importer"
+            },
+            "result": "codex/import-ready"
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse HEAD",
+              "workdir": "/workspace/importer"
+            },
+            "result": "abc123"
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git log -5 --oneline",
+              "workdir": "/workspace/importer"
+            },
+            "result": [
+              "abc123 Document reviewed resumable CSV import plan"
+            ]
+          },
+          {
+            "tool": "$progress",
+            "arguments": {
+              "mode": "planning",
+              "plan": "plans/import.md",
+              "selected_outcome": "Resumable CSV import"
+            },
+            "result": {
+              "evidence": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n",
+              "changes": [],
+              "observation": "The provided complete plan is sufficient and already committed. Routine implementation choices are delegated; no planning repair is necessary."
+            }
+          },
+          {
+            "tool": "inspect_repository_evidence",
+            "arguments": {
+              "path": "/workspace/importer",
+              "evidence": [
+                "implementation",
+                "review"
+              ]
+            },
+            "result": {
+              "implementation": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome.",
+              "review": {
+                "findings": [],
+                "unchanged_plan_review_passed": true
+              }
+            }
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git ls-tree -r --name-only abc123",
+              "workdir": "/workspace/importer"
+            },
+            "result": [
+              "AGENTS.md",
+              "ROADMAP.md",
+              "plans/import.md"
+            ]
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:AGENTS.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:ROADMAP.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports."
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git show abc123:plans/import.md",
+              "workdir": "/workspace/importer"
+            },
+            "result": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+          },
+          {
+            "tool": "exec_command",
+            "arguments": {
+              "cmd": "git rev-parse codex/import-ready",
+              "workdir": "/workspace/importer"
+            },
+            "result": "abc123"
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Deliver resumable CSV import",
+              "prompt": "The user requests creating and executing a real native goal in this new task. Use the following complete closed contract.\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation and preview, atomic application, duplicate-free retries, and accessible progress and retry controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic persistence and idempotent resume — plans/import.md\n  - UI progress and retry — plans/import.md\n  - Failure recovery E2E — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; complete implementation before opening exactly one PR through $create-pr, request initial CodeRabbit review, resolve feedback through $address-pr-feedback, and finish review and merge through $merge-branch. Do not open a PR during preparation.\n\nStartup evidence: prepared commit abc123 on codex/import-ready in /workspace/importer. Required tracked sources are AGENTS.md, ROADMAP.md, and plans/import.md. The plan is already reviewed and committed; preparation required no changes or empty commit. Existing storage/schema interfaces are settled; choose routine implementation details.\n\nBefore implementation, read applicable repository instructions and verify the prepared commit and cited sources in this checkout. Verify abc123 remains an ancestor and its required source content and prerequisites remain retained after any delivery-base selection. Do not switch to a default branch that drops the plan or prerequisites. If a required skill, source, or native tool is missing, report the failure and stop before implementation.\n\nCall get_goal first. If no unfinished goal exists, call create_goal with the contract's outcome and full completion boundary as objective. Omit token_budget because no budget was requested. Reuse a matching existing native goal on retry; never replace a different unfinished goal. Initialize or recover the supplied contract with $progress goal mode before implementation, execute only its scope, and call update_goal with status complete only once all completion and delivery conditions hold. Use blocked only when the native tool's recurrence requirement is met.\n\nPromptly report checkout and source verification, durable contract initialization, and the actual native goal creation or matching recovery result. Report later completion truthfully through native goal status.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree",
+                  "startingState": {
+                    "type": "branch",
+                    "branchName": "codex/import-ready"
+                  }
+                }
+              }
+            },
+            "result": {
+              "clientThreadId": "pending-import-44"
+            }
+          },
+          {
+            "tool": "list_threads",
+            "arguments": {},
+            "result": {
+              "threads": []
+            }
+          }
+        ],
+        "final_response": "Task setup is pending for /workspace/importer from prepared commit abc123 on codex/import-ready. The existing reviewed plan needed no changes or new commit. Configured model and reasoning defaults were requested; the response has not confirmed settings or native goal startup. No ready task was returned by the bounded startup check.\n\n::created-thread{clientThreadId=\"pending-import-44\"}",
+        "observed_limitations": [
+          "The canned create_thread response contains only clientThreadId pending-import-44, and list_threads returns no ready task. Checkout verification, durable goal initialization, and native goal creation cannot yet be confirmed. No wait_threads or read_thread call was made with the pending setup identifier.",
+          "All repository inspections and task APIs above are synthetic records grounded in supplied fixture evidence. No actual repository changes, task APIs, native goals, network, push, or installation were performed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_h1_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "F1",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 515,
+        "final_response_bytes": 267,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "F1",
+        "actions": [],
+        "final_response": "`nova` is not a supported model alias. Use `astra` (GPT-6 Astra, medium), `luna` (GPT-5.6 Luna, max), or omit the model to use configured defaults. No preparation changes, commit, task, or native goal were created. The selected resumable CSV import scope is retained.",
+        "observed_limitations": [
+          "The requested model alias nova is unknown. The candidate spawn workflow requires rejection before mutation; no synthetic task API calls were needed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_f1_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "F2",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 525,
+        "final_response_bytes": 182,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "F2",
+        "actions": [],
+        "final_response": "Luna does not support ultra in the supplied task tool; it supports medium, high, or max. Preparation and task creation have not started. Which supported reasoning level should I use?",
+        "observed_limitations": [
+          "The requested gpt-5.6-luna/ultra combination is unsupported by the supplied tool catalog. The spawn workflow requires rejecting it before mutation without silently substituting a model or lowering reasoning. No synthetic API calls were needed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_f2_c",
+      "fresh_context": "fork_turns:none"
+    },
+    {
+      "case": "F3",
+      "condition": "candidate",
+      "trial": 1,
+      "input_revision": 1,
+      "metrics": {
+        "output_file_bytes": 2606,
+        "final_response_bytes": 2000,
+        "synthetic_task_create_count": 0,
+        "elapsed_seconds": null,
+        "elapsed_note": "Not captured uniformly; no latency comparison."
+      },
+      "raw": {
+        "case": "F3",
+        "actions": [],
+        "final_response": "No task or native goal was started. The trial provides no task APIs or preparation/Git execution surface, so I could not resolve the saved project, inspect the dirty checkout, review or commit preparation, or verify a prepared handoff. The supplied abc123 is the reported HEAD, not a verified preparation commit. Requested settings are gpt-5.6-luna with max reasoning; they have not been applied or confirmed.\n\nThe supplied plan supports the selected scope below for manual use after repository verification and preparation:\n\n```text\nGoal contract\n- Outcome: Deliver resumable CSV import with validation, atomic writes, duplicate-free retries, and accessible progress and retry controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - End-to-end failure recovery coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery. Choose routine implementation details using the settled storage/schema interfaces.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; after all implementation is complete, create exactly one PR through $create-pr and finish review and delivery through $address-pr-feedback and $merge-branch. Do not create a PR during preparation.\n```",
+        "observed_limitations": [
+          "tool_catalog is empty and responses contains no canned evidence; no synthetic API call has an available supported schema.",
+          "The case supplies repository and plan snapshots but no authorized disposable Git repository for preparation. No repository inspection, planning edits, review, or scoped preparation commit could be performed.",
+          "No saved project, prepared commit, task creation, checkout verification, durable goal initialization, or native goal startup could be confirmed."
+        ]
+      },
+      "grade": {
+        "pass": true,
+        "critical_failures": [],
+        "objective_failures": [],
+        "grading": "Frozen assertions; exact API fields mechanically inspected, final-response boundaries and child instructions reviewed."
+      },
+      "worker": "/root/evaluate_next_goal/trial_f3_c",
+      "fresh_context": "fork_turns:none"
+    }
+  ],
+  "diagnostic_records": [
+    {
+      "source": "diagnostic-v1-baseline-P2-1.json",
+      "scored": false,
+      "reason": "P2 v1 omitted dirty-content evidence and complete child capability catalog; corrected identical inputs and reran both conditions.",
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Start a native goal by calling create_goal with objective \"Implement the approved resumable CSV import contract\" and no token budget. Verify plans/import.md in this checkout before implementation and report the native goal creation result and source verification. Follow applicable AGENTS.md instructions and preserve unrelated work.\n\nGoal contract\n- Outcome: Deliver resumable CSV import with validation, preview, atomic persistence, idempotent retry, and accessible progress.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - UI progress and retry — plans/import.md\n  - Failure recovery E2E — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.\n- Delivery: PR delivery — use $progress's PR lifecycle; create one PR after implementation is complete, never during preparation; finish through $create-pr and $address-pr-feedback, with review and merge under the authorized delivery lifecycle.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree"
+                }
+              },
+              "model": "gpt-5.6-luna"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 60000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the selected import goal in a new task using Luna. Native goal creation and plans/import.md verification are confirmed. It will open one PR after implementation is complete.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All task API actions are synthetic; no real task or native goal was created.",
+          "Repository evidence is limited to the supplied case; recent Git history, implementation freshness, and specific uncommitted changes were not available for inspection.",
+          "The canned evidence establishes startup only; implementation and PR delivery remain pending."
+        ]
+      }
+    },
+    {
+      "source": "diagnostic-v1-baseline-P2-2.json",
+      "scored": false,
+      "reason": "P2 v1 omitted dirty-content evidence and complete child capability catalog; corrected identical inputs and reran both conditions.",
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          },
+          {
+            "tool": "create_thread",
+            "arguments": {
+              "title": "Implement resumable CSV import",
+              "prompt": "Goal contract\n- Outcome: Deliver resumable CSV import with validation, atomic writes, idempotent retries, and accessible progress controls.\n- Goal state: goals/resumable-csv-import.md\n- Included results and sources (semantic results define scope; paths supply detail):\n  - CSV validation and preview — plans/import.md\n  - Atomic import and idempotent resume — plans/import.md\n  - Progress and retry UI — plans/import.md\n  - Failure recovery E2E coverage — plans/import.md\n- Complete when: Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.\n- Excluded: Scheduled background imports.\n- Authority: Execute only included results and necessary supporting work; resolve remaining decisions within that closed outcome using best judgment; record anything else and ask before scope expansion or external actions not covered by this contract and Delivery.\n- Resume: Create a native goal for this contract without a token budget. Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails. Verify plans/import.md and current implementation before starting.\n- Delivery: PR delivery — use $progress's PR lifecycle; create one PR after implementation completion, never during preparation, through $create-pr and $address-pr-feedback, then follow the authorized merge lifecycle.",
+              "target": {
+                "type": "project",
+                "projectId": "importer-id",
+                "environment": {
+                  "type": "worktree"
+                }
+              },
+              "model": "gpt-5.6-luna"
+            },
+            "result": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            }
+          },
+          {
+            "tool": "wait_threads",
+            "arguments": {
+              "targets": [
+                {
+                  "threadId": "task-import-42",
+                  "hostId": "local"
+                }
+              ],
+              "timeoutMs": 1000
+            },
+            "result": {
+              "status": "running",
+              "cursor": "cursor-1",
+              "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+            }
+          },
+          {
+            "tool": "read_thread",
+            "arguments": {
+              "threadId": "task-import-42",
+              "hostId": "local"
+            },
+            "result": {
+              "toolCalls": [
+                {
+                  "name": "create_goal",
+                  "arguments": {
+                    "objective": "Implement the approved resumable CSV import contract"
+                  },
+                  "result": {
+                    "status": "active",
+                    "id": "goal-7"
+                  }
+                }
+              ],
+              "filesVerified": [
+                "plans/import.md"
+              ]
+            }
+          }
+        ],
+        "final_response": "Started the resumable CSV import task on Luna in a worktree. Its native goal is active, and plans/import.md was verified. Implementation is running; one PR is reserved for completion.\n\n::created-thread{threadId=\"task-import-42\"}",
+        "observed_limitations": [
+          "All task API calls and observations are synthetic; no actual task or native goal was created.",
+          "The supplied case provides no implementation files, recent history, or dirty-file details, so current implementation readiness and preservation of uncommitted content could not be independently inspected.",
+          "The canned evidence establishes startup and an active native goal only; implementation, tests, review, and delivery remain pending."
+        ]
+      }
+    },
+    {
+      "source": "diagnostic-v1-candidate-P2-1.json",
+      "scored": false,
+      "reason": "P2 v1 omitted dirty-content evidence and complete child capability catalog; corrected identical inputs and reran both conditions.",
+      "raw": {
+        "case": "P2",
+        "actions": [
+          {
+            "tool": "list_projects",
+            "arguments": {},
+            "result": [
+              {
+                "projectId": "importer-id",
+                "path": "/workspace/importer",
+                "isGitRepository": true
+              },
+              {
+                "projectId": "elsewhere",
+                "path": "/workspace/unrelated",
+                "isGitRepository": true
+              }
+            ]
+          }
+        ],
+        "final_response": "The selected goal is resumable CSV import through parser validation and preview, atomic persistence with idempotent resume, UI progress and retry, and failure-recovery E2E coverage. Scheduled background imports remain excluded, and the requested delivery is one PR after implementation completes.\n\nThe saved target is importer-id (/workspace/importer). The requested settings are gpt-5.6-luna with max reasoning. No task or native goal was started: preparation cannot be verified from the supplied simulation. The working tree is dirty, but no scoped status/diff, review, commit, or committed-source evidence is available, and this case authorizes no disposable repository in which to obtain it. I cannot establish that codex/import-ready at abc123 contains every required handoff source and prerequisite while preserving unrelated work. The synthetic tool catalog also does not establish the child's required update_goal capability.\n\nLaunch remains blocked until those preparation and capability requirements can be verified. No preparation commit is claimed.",
+        "observed_limitations": [
+          "P2 names a synthetic repository only. Unlike P1, it supplies no disposable local repository; the protocol forbids edits or Git actions against the user repository and provides no synthetic filesystem/Git/preparation APIs.",
+          "The supplied branch, head, dirty flag, and plan text do not establish staged/unstaged ownership, bounded preparation review, or that all handoff sources and implementation prerequisites are readable from the prepared commit. No unstated Git or review response was fabricated.",
+          "The spawn workflow requires native update_goal in the child, but P2 tool_catalog lists create_goal and get_goal only. Its availability cannot be verified under this synthetic catalog.",
+          "The canned create_thread, wait_threads, and read_thread responses were not consumed because preparation and required child capability checks had not passed. No actual task API, native goal, network, install, or user repository mutation occurred."
+        ]
+      }
+    }
+  ],
+  "git_verification": {
+    "baseline": [
+      {
+        "command": "git status --short",
+        "returncode": 0,
+        "stdout": "A  notes/personal.md\n",
+        "stderr": ""
+      },
+      {
+        "command": "git log -2 --format=%H%n%B",
+        "returncode": 0,
+        "stdout": "7c0cd48e7c6661215def8b6c2bdb6a87e4e33505\nSeed synthetic import planning fixture\n\n",
+        "stderr": ""
+      },
+      {
+        "command": "git diff --cached --name-only",
+        "returncode": 0,
+        "stdout": "notes/personal.md\n",
+        "stderr": ""
+      },
+      {
+        "command": "git diff --cached -- notes/personal.md",
+        "returncode": 0,
+        "stdout": "diff --git a/notes/personal.md b/notes/personal.md\nnew file mode 100644\nindex 0000000..6326793\n--- /dev/null\n+++ b/notes/personal.md\n@@ -0,0 +1 @@\n+unrelated staged personal reminder\n",
+        "stderr": ""
+      },
+      {
+        "command": "git show --stat HEAD",
+        "returncode": 0,
+        "stdout": "commit 7c0cd48e7c6661215def8b6c2bdb6a87e4e33505\nAuthor: Skill Evaluation <skill-eval@example.invalid>\nDate:   Wed Sep 9 17:44:30 2026 +0900\n\n    Seed synthetic import planning fixture\n\n AGENTS.md       | 1 +\n ROADMAP.md      | 1 +\n plans/import.md | 2 ++\n 3 files changed, 4 insertions(+)\n",
+        "stderr": ""
+      },
+      {
+        "command": "git show HEAD:plans/import.md",
+        "returncode": 0,
+        "stdout": "# CSV import\nDraft: support resumable CSV import.\n",
+        "stderr": ""
+      },
+      {
+        "command": "git ls-tree -r --name-only HEAD",
+        "returncode": 0,
+        "stdout": "AGENTS.md\nROADMAP.md\nplans/import.md\n",
+        "stderr": ""
+      }
+    ],
+    "candidate": [
+      {
+        "command": "git status --short",
+        "returncode": 0,
+        "stdout": "A  notes/personal.md\n",
+        "stderr": ""
+      },
+      {
+        "command": "git log -2 --format=%H%n%B",
+        "returncode": 0,
+        "stdout": "4d0fda11d54a45a45d6a392939b1c7bdc2b9fb6e\nPlan resumable CSV import through verified failure recovery\n\nDefine validation and preview, atomic application with idempotent resume, service-backed progress and retry UI, and end-to-end recovery as one closed implementation goal. Reuse the settled storage/schema interfaces and delegate routine mechanics within this outcome.\n\nRecord checkpoints, acceptance scenarios, source-evidence limits, and execution-only goal initialization. Keep scheduled background imports out of scope and reserve one reviewed PR for completed implementation. Commit only the authoritative preparation plan; preserve the unrelated staged personal reminder.\n\n7c0cd48e7c6661215def8b6c2bdb6a87e4e33505\nSeed synthetic import planning fixture\n\n",
+        "stderr": ""
+      },
+      {
+        "command": "git diff --cached --name-only",
+        "returncode": 0,
+        "stdout": "notes/personal.md\n",
+        "stderr": ""
+      },
+      {
+        "command": "git diff --cached -- notes/personal.md",
+        "returncode": 0,
+        "stdout": "diff --git a/notes/personal.md b/notes/personal.md\nnew file mode 100644\nindex 0000000..6326793\n--- /dev/null\n+++ b/notes/personal.md\n@@ -0,0 +1 @@\n+unrelated staged personal reminder\n",
+        "stderr": ""
+      },
+      {
+        "command": "git diff HEAD~1 HEAD --stat",
+        "returncode": 0,
+        "stdout": " plans/import.md | 37 +++++++++++++++++++++++++++++++++++--\n 1 file changed, 35 insertions(+), 2 deletions(-)\n",
+        "stderr": ""
+      },
+      {
+        "command": "git show HEAD:plans/import.md",
+        "returncode": 0,
+        "stdout": "# Resumable CSV import\n\n## Outcome and boundary\nUsers can validate and preview a CSV, apply its rows atomically, and recover an interrupted import using an idempotent resume token and visible progress/retry controls. Include parser, persistence, service, UI, and end-to-end failure recovery. Stop before scheduled background imports.\n\n## Current evidence and decisions\nThe supplied repository contains planning documents only; no implementation or executable checks are available to inspect here. Implementation is pending. The discussion settles existing import storage/schema interfaces and delegates routine implementation choices. Reuse those interfaces; discover their concrete definitions and applicable commands before coding. Do not treat this preparation as verification of implementation compatibility.\n\nROADMAP.md identifies this file as authoritative and already names the correct current and next milestones. No index change is needed. Durable execution state belongs in goals/resumable-csv-import.md and is initialized by the executing session, not preparation.\n\n## Intended behavior and design\n- Validation and preview: parse input using existing CSV conventions, surface actionable row/field errors, and preview validated rows without applying data. Enforce the same validation at application so preview and execution agree.\n- Atomic application and resume: commit the requested rows as one atomic application using settled persistence interfaces. A failed application leaves no partial row effects. Bind the resume token to its import identity and accepted input; replay returns or resumes the same logical import without duplicate effects. Reject mismatched token/input reuse. Resolve token handling and concurrency mechanics using existing contracts and routine implementation judgment.\n- Progress and retry: service status and UI report actual import progress and terminal outcomes. Retry uses the original import identity/token; prevent misleading success or duplicate application after lost responses or concurrent retries. Reconcile UI state with persisted service state on reload.\n- Failure recovery coverage: exercise the full parser-to-UI flow, including failure before commit, an interrupted response after commit, and retry/reload. Use supported fault injection and real application entry points as closely as practical.\n\n## Implementation sequence and dependencies\n1. Read applicable instructions and inspect parser, import storage/schema, service, UI, and existing end-to-end harness. Identify actual validation commands and document any incompatible settled interface as a blocker before changing it.\n2. Implement shared validation and preview with focused checks for valid and invalid input and no preview side effects.\n3. Implement atomic application, token identity, recovery, and service progress using existing storage/schema contracts. Verify rollback, replay, and concurrent retry behavior.\n4. Connect preview, progress, errors, and retry in the UI, preserving import identity across recoverable interruption and reload.\n5. Add end-to-end recovery coverage and run repository-required validation. Review coherent implementation slices, update truthful plan/goal state, then deliver one PR after implementation and validation are complete.\n\n## Acceptance and validation\n- Valid CSV previews expected rows; invalid input yields actionable errors and cannot apply; preview does not mutate imported data.\n- Successful application commits all expected rows once. Injected pre-commit failure commits none; retry can complete. Repeated or concurrent use of the same token never duplicates effects, and mismatched input is rejected.\n- A response lost after commit can be retried without duplicate application and resolves to the committed outcome.\n- UI shows validation, application progress, failure, retry, and success consistent with service state; reload and retry recover the same logical import.\n- End-to-end tests prove the success and recovery scenarios through application entry points. Focused parser, persistence, and service checks cover boundary behavior where useful. Discover exact commands from repository evidence; none are present in this planning fixture.\n- Required checks and bounded reviews pass; authoritative planning and durable goal state reflect actual outcomes and remaining work. Scheduled background imports remain outside this goal.\n\n## Delivery and next action\nUse coherent implementation commits and one PR only after all included results are implemented and validated. Use $create-pr with initial CodeRabbit review, $address-pr-feedback for review resolution, and the authorized $progress PR lifecycle through merge. Preparation creates no PR.\n\nNext action: in the executing session, initialize goals/resumable-csv-import.md with $progress goal mode, recover this contract before every continuation, then inspect implementation and its validation harness before checkpoint 1. Record any unavailable implementation source as a blocker rather than inventing completed work.\n",
+        "stderr": ""
+      },
+      {
+        "command": "git ls-tree -r --name-only HEAD",
+        "returncode": 0,
+        "stdout": "AGENTS.md\nROADMAP.md\nplans/import.md\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "trigger_results": {
+    "evaluation": "explicit-only trigger classification",
+    "metadata_shown": "Skill name, SKILL.md frontmatter description, agents/openai.yaml policy.allow_implicit_invocation; no runtime body or interface text.",
+    "isolation": "Fresh fork_turns:none child worker per individual case and condition; expected labels withheld.",
+    "condition_order": {
+      "T1": [
+        "baseline",
+        "candidate"
+      ],
+      "T2": [
+        "candidate",
+        "baseline"
+      ],
+      "T3": [
+        "baseline",
+        "candidate"
+      ],
+      "T4": [
+        "candidate",
+        "baseline"
+      ],
+      "T5": [
+        "baseline",
+        "candidate"
+      ],
+      "T6": [
+        "candidate",
+        "baseline"
+      ]
+    },
+    "duration_note": "Per-worker wall duration was not returned by collaboration tools and was not instrumented; duration_seconds is null. No timing comparison is supported.",
+    "limits": [
+      "Six frozen prompts, one observation per condition per prompt; no statistical reliability estimate.",
+      "Classifier judgments under isolated instructions, not an end-to-end production skill loader test.",
+      "No native task APIs, native goals, network, runtime behavior trials, or repository edits."
+    ],
+    "summary": {
+      "baseline": {
+        "matches": 6,
+        "total": 6
+      },
+      "candidate": {
+        "matches": 6,
+        "total": 6
+      },
+      "total_matches": 12,
+      "total": 12,
+      "failures": []
+    },
+    "records": [
+      {
+        "case_id": "T1",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t1_baseline",
+        "response": "Activate — `$next-goal` explicitly invokes the skill, satisfying its explicit-only activation policy.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 1,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T1",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t1_candidate",
+        "response": "Activate — `$next-goal` explicitly invokes the named skill, satisfying its explicit-only activation policy.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 2,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T2",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t2_candidate",
+        "response": "Activate — `$next-goal prepare` explicitly invokes the skill and requests its supported plan preparation mode.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 3,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T2",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t2_baseline",
+        "response": "Activate — `$next-goal prepare` explicitly invokes the skill, satisfying its explicit-only activation policy.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 4,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T3",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t3_baseline",
+        "response": "Activate — `$next-goal` explicitly invokes the skill, satisfying its explicit-only activation policy.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 5,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T3",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t3_candidate",
+        "response": "Activate — `$next-goal` explicitly invokes the skill, and `spawn luna` matches its task-spawning capability.",
+        "observed_activate": true,
+        "duration_seconds": null,
+        "trial_order": 6,
+        "expected_activate": true,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T4",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t4_candidate",
+        "response": "Not activate — the request does not explicitly invoke `next-goal`, and implicit invocation is disabled.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 7,
+        "expected_activate": false,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T4",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t4_baseline",
+        "response": "Not activate — the request does not explicitly invoke `next-goal`, and implicit invocation is disabled.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 8,
+        "expected_activate": false,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T5",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t5_baseline",
+        "response": "Not activate — the request asks to explain quoted README text and explicitly excludes running the workflow.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 9,
+        "expected_activate": false,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T5",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t5_candidate",
+        "response": "Not activate — the request asks to explain quoted README text and explicitly excludes running the workflow; it is not an explicit invocation.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 10,
+        "expected_activate": false,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T6",
+        "condition": "candidate",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t6_candidate",
+        "response": "Not activate — the request concerns debugging `child_process.spawn`, and `next-goal` requires explicit invocation.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 11,
+        "expected_activate": false,
+        "matches_expected": true
+      },
+      {
+        "case_id": "T6",
+        "condition": "baseline",
+        "worker_id": "/root/evaluate_next_goal/trigger_trials/t6_baseline",
+        "response": "Not activate — the request asks for debugging help and does not explicitly invoke next-goal.",
+        "observed_activate": false,
+        "duration_seconds": null,
+        "trial_order": 12,
+        "expected_activate": false,
+        "matches_expected": true
+      }
+    ]
+  },
+  "independent_parent_git_verification": "Parent separately inspected actual candidate P1 commit/index and confirmed only plans/import.md committed and original notes/personal.md remained staged."
+}

@@ -18,6 +18,8 @@ _None._
 
 ## Completed
 
+- [Prepare and spawn the next goal](tasks/next-goal-preparation-spawn.md)
+  has implemented and evaluated source.
 - [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
   shipped in `sjskills-v1.0.0` after validation on all supported native targets;
   installed-binary upgrades remain separate.

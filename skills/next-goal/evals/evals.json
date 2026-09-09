@@ -197,6 +197,126 @@
         "evals/fixtures/scope-cascade/plans/whole-codebase-review.md",
         "evals/fixtures/scope-cascade/plans/performance-windows.md"
       ]
+    },
+    {
+      "id": 20,
+      "prompt": "$next-goal. Use the selected import goal; return its prompt.",
+      "expected_output": "Use companion case P0. No repository mutation, commit, goal creation or task creation. Selected outcome remains closed and excludes scheduled imports. Exactly one copy-ready text fence. Prompt includes durable goal state, progress resume invariant and PR delivery.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "$next-goal prepare. Use the import goal we discussed.",
+      "expected_output": "Use companion case P1. Unrelated staged notes remain staged and uncommitted. No implementation or external publication. Draft plan becomes implementable with sequence and acceptance from discussion. Bounded review recorded before commit. Relevant preparation is committed. Final output contains prompt and no goal/task launch.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "$next-goal spawn luna. Use the selected import goal.",
+      "expected_output": "Use companion case P2. Exactly one task creation. Prepared planning state supplied, never silently default branch. Parent does not create native goal. No unsupported started claim or unauthorized token budget. model gpt-5.6-luna, thinking max. list_projects and correct project worktree selected. Child instruction explicitly calls create_goal and validates plan availability. Startup evidence checked before success.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "$next-goal spawn astra high. Use the selected import goal.",
+      "expected_output": "Use companion case P3. Exactly one task creation. No success claim after native startup failure. No parent goal creation. model gpt-6-astra, thinking high. Child startup checked. Failure reported with task identity or accessible task link.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "$next-goal spawn. Use the selected import goal.",
+      "expected_output": "Use companion case H1. Exactly one task creation. Never use clientThreadId as threadId. No false started claim. No model or thinking keys for unqualified spawn. Follow up on existing setup or report pending with queued-task directive.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "$next-goal spawn nova. Use the selected import goal.",
+      "expected_output": "Use companion case F1. Reject unknown alias before mutation/creation.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "$next-goal spawn luna ultra. Use the selected import goal.",
+      "expected_output": "Use companion case F2. Reject unsupported Luna/ultra before mutation/creation.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "$next-goal spawn luna. Use the selected import goal.",
+      "expected_output": "Use companion case F3. Report unavailable tools without fabricating preparation/task/native goal success.",
+      "files": [
+        "evals/prepare-spawn-inputs.json",
+        "evals/prepare-spawn-cases.md"
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "$next-goal",
+      "expected_output": "Trigger-only case T1: activate next-goal.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
+    },
+    {
+      "id": 29,
+      "prompt": "$next-goal prepare",
+      "expected_output": "Trigger-only case T2: activate next-goal.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
+    },
+    {
+      "id": 30,
+      "prompt": "$next-goal spawn luna",
+      "expected_output": "Trigger-only case T3: activate next-goal.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
+    },
+    {
+      "id": 31,
+      "prompt": "Prepare a detailed plan for the import feature, commit it, and give me a prompt for a new goal.",
+      "expected_output": "Trigger-only case T4: do not activate next-goal; explicit-only policy applies.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
+    },
+    {
+      "id": 32,
+      "prompt": "Explain the README text \"$next-goal spawn luna\" without running that workflow.",
+      "expected_output": "Trigger-only case T5: do not activate next-goal; explicit-only policy applies.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
+    },
+    {
+      "id": 33,
+      "prompt": "Why does child_process.spawn fail to find my executable?",
+      "expected_output": "Trigger-only case T6: do not activate next-goal; explicit-only policy applies.",
+      "files": [
+        "evals/prepare-spawn-inputs.json"
+      ]
     }
   ]
 }

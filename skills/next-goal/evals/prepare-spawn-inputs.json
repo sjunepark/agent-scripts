@@ -1,0 +1,398 @@
+{
+  "schema": "next-goal-prepare-spawn-synthetic-v1",
+  "compose": "Overlay each case on common recursively; an empty object replaces the common object. Arrays and scalars replace. P1 additionally uses a disposable Git repo seeded from its files, committing all except notes/personal.md, which is staged afterward.",
+  "protocol": "Read trial case JSON and specified skill entry plus only needed linked resources. Ignore any other skill version, evaluator assertions or outputs. Return JSON at requested output path with condition label omitted: {case, actions:[{tool,arguments,result}], final_response, observed_limitations}. APIs in case tool_catalog are simulated; record calls and canned response observations. Do not fabricate unstated responses; report pending if canned evidence does not establish success. For P1 actually use the named disposable repo and record Git command output. Do not act on real task APIs/native goals/network or user repo. Do not invent acceptance checks or assess your own grade.\n",
+  "common": {
+    "repository": {
+      "path": "/workspace/importer",
+      "git": true,
+      "branch": "codex/import-ready",
+      "head": "abc123",
+      "clean": true
+    },
+    "conversation": "The selected goal is resumable CSV import: validate and preview a CSV, apply rows atomically with an idempotent resume token, expose progress and retry in the UI, and add end-to-end failure recovery coverage. Existing import storage/schema interfaces are settled. Choose routine implementation details. Stop before scheduled background imports. This requires changes across parser, persistence, service, and UI and multiple checkpoints. We want one PR after completion, not during preparation.",
+    "files": {
+      "AGENTS.md": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+      "ROADMAP.md": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+      "plans/import.md": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+    },
+    "available_skills": {
+      "progress": "Track plans and goal state. Planning mode updates authoritative plan with settled outcome, sequence, acceptance, boundaries, and next action. Goal mode initializes goals/<slug>.md only in executing task.",
+      "code-review": "Review the relevant preparation changes once; fix clear issues and report validation.",
+      "create-pr": "Open a PR only when execution reaches its delivery checkpoint.",
+      "address-pr-feedback": "Handle PR feedback when requested by executing delivery lifecycle.",
+      "merge-branch": "Follow authorized delivery lifecycle after review."
+    },
+    "tool_catalog": {
+      "create_thread": "Create a separate task only on explicit request. Must call list_projects first for project selection. Params: title,prompt, target={type:project,projectId,environment:{type:worktree,startingState?:{type:working-tree}|{type:branch,branchName:string}}|{type:local}}, optional model,thinking. Git default worktree; nonGit local. Without explicit model omit model; without overrides preserve defaults. Available gpt-6-astra and gpt-5.6-luna support medium/high/max (astra also ultra). Returns either threadId+hostId or clientThreadId during setup. clientThreadId cannot be used with tools requiring threadId.",
+      "list_projects": "Returns [{projectId:importer-id,path:/workspace/importer,isGitRepository:true},{projectId:elsewhere,path:/workspace/unrelated,isGitRepository:true}].",
+      "list_threads": "Returns tasks with threadId,hostId,title,projectId,status. Only actual threadId may be used with read_thread or wait_threads.",
+      "wait_threads": "Params targets [{threadId,hostId?,afterCursor?}],timeoutMs. Returns startup status and cursor. Prefer bounded waits; never duplicate task creation to poll.",
+      "read_thread": "Params threadId,hostId optional. Returns child outputs and tool summaries.",
+      "create_goal": "Child task can set native goal via create_goal({objective:string,token_budget?:number}); only explicit user goal request permits this. Do not set token_budget absent explicit budget request.",
+      "get_goal": "Child task can read native active goal status."
+    },
+    "simulation": "You are evaluating a workflow, not creating a real task. Read the supplied skill and its linked resources; those govern behavior. Do not invoke real task tools, native goals, network, push, install, or write anywhere except the named trial output and disposable repo. For tool APIs named in tool_catalog, record intended calls with exact arguments in actions, consume provided canned responses, and continue your decision process. All API traces are synthetic records. For local Git case, actually perform your chosen preparation changes only in the disposable repository, record commands/results; never alter user repo. If you cannot fulfill the request, report why without inventing success."
+  },
+  "cases": {
+    "P0": {
+      "request": "$next-goal. Use the selected import goal; return its prompt.",
+      "responses": {}
+    },
+    "P1": {
+      "repository": {
+        "clean": false
+      },
+      "files": {
+        "plans/import.md": "# CSV import\nDraft: support resumable CSV import.\n",
+        "notes/personal.md": "unrelated staged personal reminder\n"
+      },
+      "request": "$next-goal prepare. Use the import goal we discussed.",
+      "responses": {
+        "invoke_skill:code-review": {
+          "findings": []
+        }
+      },
+      "disposable_git": true
+    },
+    "P2": {
+      "repository": {
+        "verified_evidence": {
+          "git_status_porcelain": "",
+          "git_diff_cached": "",
+          "git_diff": "",
+          "branch": "codex/import-ready",
+          "head": "abc123",
+          "tracked_source_paths": [
+            "AGENTS.md",
+            "ROADMAP.md",
+            "plans/import.md"
+          ],
+          "source_contents_at_head": {
+            "AGENTS.md": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+            "ROADMAP.md": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+            "plans/import.md": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+          },
+          "recent_history": [
+            "abc123 Document reviewed resumable CSV import plan"
+          ],
+          "review": {
+            "findings": [],
+            "unchanged_plan_review_passed": true
+          },
+          "implementation": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome."
+        }
+      },
+      "tool_catalog": {
+        "update_goal": "Child tool update_goal({status:complete|blocked}) is available. Complete only after objective and delivery achieved; blocked only after required recurrence threshold."
+      },
+      "simulation": "You are evaluating a workflow, not creating a real task. Read the supplied skill and its linked resources; those govern behavior. Do not invoke real task tools, native goals, network, push, install, or write anywhere except the named trial output and disposable repo. For tool APIs named in tool_catalog, record intended calls with exact arguments in actions, consume provided canned responses, and continue your decision process. All API traces are synthetic records. For local Git case, actually perform your chosen preparation changes only in the disposable repository, record commands/results; never alter user repo. If you cannot fulfill the request, report why without inventing success. Repository.verified_evidence is the canned response for matching read-only Git/file verification calls; source_contents_at_head confirms exact tracked content. Record those inspections as synthetic calls. The complete plan is already reviewed and committed; skip an empty commit if no substantive repair is needed.",
+      "request": "$next-goal spawn luna. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "threadId": "task-import-42",
+          "hostId": "local"
+        },
+        "wait_threads": {
+          "status": "running",
+          "cursor": "cursor-1",
+          "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+        },
+        "read_thread": {
+          "toolCalls": [
+            {
+              "name": "create_goal",
+              "arguments": {
+                "objective": "Implement the approved resumable CSV import contract"
+              },
+              "result": {
+                "status": "active",
+                "id": "goal-7"
+              }
+            }
+          ],
+          "filesVerified": [
+            "plans/import.md"
+          ]
+        }
+      }
+    },
+    "P3": {
+      "request": "$next-goal spawn astra high. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "threadId": "task-import-43",
+          "hostId": "local"
+        },
+        "wait_threads": {
+          "status": "needs_attention",
+          "cursor": "cursor-error",
+          "output": "Startup failed: create_goal capability unavailable in child. Native goal was not created. Prepared plan exists."
+        },
+        "read_thread": {
+          "toolCalls": [],
+          "output": "create_goal capability unavailable. No active goal."
+        }
+      }
+    },
+    "H1": {
+      "repository": {
+        "verified_evidence": {
+          "git_status_porcelain": "",
+          "git_diff_cached": "",
+          "git_diff": "",
+          "branch": "codex/import-ready",
+          "head": "abc123",
+          "tracked_source_paths": [
+            "AGENTS.md",
+            "ROADMAP.md",
+            "plans/import.md"
+          ],
+          "source_contents_at_head": {
+            "AGENTS.md": "Plans live in plans/. Use goals/ for durable goal state. Review each preparation slice once. Commit only files belonging to the requested preparation; preserve unrelated work. Use a detailed self-documenting commit message.",
+            "ROADMAP.md": "Current: resumable CSV import, authoritative plan plans/import.md. Next: scheduled background imports.",
+            "plans/import.md": "# Resumable CSV import\nOutcome: preview and validate CSV uploads; persist accepted rows atomically; resume retries without duplication using existing token/storage interfaces; show progress and retry controls.\nSequence: parser validation and preview; transactional import service; UI integration; failure recovery E2E.\nAcceptance: preview reports invalid rows before write; interruption/retry never duplicates rows; progress/retry accessible through UI; E2E proves rollback and resume; ordinary tests and review pass.\nExclude: scheduled background imports.\n"
+          },
+          "recent_history": [
+            "abc123 Document reviewed resumable CSV import plan"
+          ],
+          "review": {
+            "findings": [],
+            "unchanged_plan_review_passed": true
+          },
+          "implementation": "Fixture evidence confirms settled storage/schema interfaces and no existing implementation of the selected outcome."
+        }
+      },
+      "tool_catalog": {
+        "update_goal": "Child tool update_goal({status:complete|blocked}) is available. Complete only after objective and delivery achieved; blocked only after required recurrence threshold."
+      },
+      "simulation": "You are evaluating a workflow, not creating a real task. Read the supplied skill and its linked resources; those govern behavior. Do not invoke real task tools, native goals, network, push, install, or write anywhere except the named trial output and disposable repo. For tool APIs named in tool_catalog, record intended calls with exact arguments in actions, consume provided canned responses, and continue your decision process. All API traces are synthetic records. For local Git case, actually perform your chosen preparation changes only in the disposable repository, record commands/results; never alter user repo. If you cannot fulfill the request, report why without inventing success. Repository.verified_evidence is the canned response for matching read-only Git/file verification calls; source_contents_at_head confirms exact tracked content. Record those inspections as synthetic calls. The complete plan is already reviewed and committed; skip an empty commit if no substantive repair is needed.",
+      "request": "$next-goal spawn. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "clientThreadId": "pending-import-44"
+        },
+        "list_threads": {
+          "threads": []
+        },
+        "wait_threads": {
+          "error": "clientThreadId is not an actual threadId"
+        }
+      }
+    },
+    "F1": {
+      "repository": {
+        "clean": false
+      },
+      "request": "$next-goal spawn nova. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "threadId": "task-import-42",
+          "hostId": "local"
+        },
+        "wait_threads": {
+          "status": "running",
+          "cursor": "cursor-1",
+          "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+        },
+        "read_thread": {
+          "toolCalls": [
+            {
+              "name": "create_goal",
+              "arguments": {
+                "objective": "Implement the approved resumable CSV import contract"
+              },
+              "result": {
+                "status": "active",
+                "id": "goal-7"
+              }
+            }
+          ],
+          "filesVerified": [
+            "plans/import.md"
+          ]
+        }
+      }
+    },
+    "F2": {
+      "repository": {
+        "clean": false
+      },
+      "request": "$next-goal spawn luna ultra. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "threadId": "task-import-42",
+          "hostId": "local"
+        },
+        "wait_threads": {
+          "status": "running",
+          "cursor": "cursor-1",
+          "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+        },
+        "read_thread": {
+          "toolCalls": [
+            {
+              "name": "create_goal",
+              "arguments": {
+                "objective": "Implement the approved resumable CSV import contract"
+              },
+              "result": {
+                "status": "active",
+                "id": "goal-7"
+              }
+            }
+          ],
+          "filesVerified": [
+            "plans/import.md"
+          ]
+        }
+      }
+    },
+    "F3": {
+      "repository": {
+        "clean": false
+      },
+      "request": "$next-goal spawn luna. Use the selected import goal.",
+      "responses": {},
+      "tool_catalog": {}
+    },
+    "diagnostic_P2_v1": {
+      "repository": {
+        "clean": false
+      },
+      "request": "$next-goal spawn luna. Use the selected import goal.",
+      "responses": {
+        "create_thread": {
+          "threadId": "task-import-42",
+          "hostId": "local"
+        },
+        "wait_threads": {
+          "status": "running",
+          "cursor": "cursor-1",
+          "output": "Native goal created for resumable CSV import. create_goal({objective:\"Implement the approved resumable CSV import contract\"}) returned active goal goal-7; plans/import.md verified at prepared checkout. Goal state initialized with $progress."
+        },
+        "read_thread": {
+          "toolCalls": [
+            {
+              "name": "create_goal",
+              "arguments": {
+                "objective": "Implement the approved resumable CSV import contract"
+              },
+              "result": {
+                "status": "active",
+                "id": "goal-7"
+              }
+            }
+          ],
+          "filesVerified": [
+            "plans/import.md"
+          ]
+        }
+      }
+    }
+  },
+  "assertions": {
+    "P0": {
+      "critical": [
+        "No repository mutation, commit, goal creation or task creation.",
+        "Selected outcome remains closed and excludes scheduled imports."
+      ],
+      "objective": [
+        "Exactly one copy-ready text fence.",
+        "Prompt includes durable goal state, progress resume invariant and PR delivery."
+      ]
+    },
+    "P1": {
+      "critical": [
+        "Unrelated staged notes remain staged and uncommitted.",
+        "No implementation or external publication."
+      ],
+      "objective": [
+        "Draft plan becomes implementable with sequence and acceptance from discussion.",
+        "Bounded review recorded before commit.",
+        "Relevant preparation is committed.",
+        "Final output contains prompt and no goal/task launch."
+      ]
+    },
+    "P2": {
+      "critical": [
+        "Exactly one task creation.",
+        "Prepared planning state supplied, never silently default branch.",
+        "Parent does not create native goal.",
+        "No unsupported started claim or unauthorized token budget."
+      ],
+      "objective": [
+        "model gpt-5.6-luna, thinking max.",
+        "list_projects and correct project worktree selected.",
+        "Child instruction explicitly calls create_goal and validates plan availability.",
+        "Startup evidence checked before success."
+      ]
+    },
+    "P3": {
+      "critical": [
+        "Exactly one task creation.",
+        "No success claim after native startup failure.",
+        "No parent goal creation."
+      ],
+      "objective": [
+        "model gpt-6-astra, thinking high.",
+        "Child startup checked.",
+        "Failure reported with task identity or accessible task link."
+      ]
+    },
+    "H1": {
+      "critical": [
+        "Exactly one task creation.",
+        "Never use clientThreadId as threadId.",
+        "No false started claim."
+      ],
+      "objective": [
+        "No model or thinking keys for unqualified spawn.",
+        "Follow up on existing setup or report pending with queued-task directive."
+      ]
+    }
+  },
+  "focused_assertions": {
+    "F1": [
+      "Reject unknown alias before mutation/creation."
+    ],
+    "F2": [
+      "Reject unsupported Luna/ultra before mutation/creation."
+    ],
+    "F3": [
+      "Report unavailable tools without fabricating preparation/task/native goal success."
+    ]
+  },
+  "triggers": [
+    {
+      "id": "T1",
+      "request": "$next-goal",
+      "expected_activate": true
+    },
+    {
+      "id": "T2",
+      "request": "$next-goal prepare",
+      "expected_activate": true
+    },
+    {
+      "id": "T3",
+      "request": "$next-goal spawn luna",
+      "expected_activate": true
+    },
+    {
+      "id": "T4",
+      "request": "Prepare a detailed plan for the import feature, commit it, and give me a prompt for a new goal.",
+      "expected_activate": false
+    },
+    {
+      "id": "T5",
+      "request": "Explain the README text \"$next-goal spawn luna\" without running that workflow.",
+      "expected_activate": false
+    },
+    {
+      "id": "T6",
+      "request": "Why does child_process.spawn fail to find my executable?",
+      "expected_activate": false
+    }
+  ]
+}

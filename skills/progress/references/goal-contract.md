@@ -11,9 +11,10 @@ planes whose state may change at different times.
 - **Goal contract:** the immutable semantic outcome, included results,
   completion predicate, exclusions, derived-work rule, expansion authority,
   resume invariant, and delivery lifecycle define what one persistent run may
-  execute. `$next-goal` emits this contract as prompt text without writing;
-  `$progress` owns its durable initialization and recovery in the fresh goal
-  session.
+  execute. `$next-goal` selects this contract read-only and returns it as a
+  prompt, or passes it to a new task after explicitly requested preparation and
+  launch. `$progress` owns its durable initialization and recovery in the fresh
+  goal session; preparing plans never initializes the goal in the parent.
 - **Goal progress:** completed included results, current checkpoint, next
   in-scope action, evidence, blockers, and decisions are mutable execution state
   measured against the contract. They never inherit membership from the project

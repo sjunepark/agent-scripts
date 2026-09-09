@@ -47,6 +47,16 @@ Use `$progress` when explicitly invoked to organize, orient to, brief or review,
 continue, or hand off repo-local plans and tasks. Use `$code-review` for a
 bounded review pass that applies only obvious safe fixes.
 
+Use [$next-goal](skills/next-goal/SKILL.md) to select a substantial goal and
+return its prompt. `$next-goal prepare` completes and reviews planning, commits
+the relevant preparation, and returns the prompt. `$next-goal spawn luna`
+also creates a new Codex task from the prepared state and verifies native goal
+startup. `spawn astra` selects Astra/medium; `spawn luna` selects Luna/max;
+an optional reasoning argument overrides the preset, as in `spawn astra high`.
+Bare `spawn` uses the app's configured task defaults. Preparation preserves
+unrelated work; spawning requires the Codex app task tools and native goal
+support in the destination task.
+
 ## Validation
 
 Validate the published skills before committing:
