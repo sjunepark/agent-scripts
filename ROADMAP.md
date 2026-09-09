@@ -6,7 +6,9 @@ _None._
 
 ## Plans
 
-1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
+1. [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
+   has a settled design; implementation and verification have not started.
+2. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
 
