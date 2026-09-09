@@ -220,27 +220,14 @@ for that plan; its former profile and mutation arguments are retired.
 
 ## Global Agent Instructions
 
-Keep repo-maintenance rules in this repository's root `AGENTS.md`. Keep global
-personal defaults in separate harness-specific files even when most guidance
-is shared, so tool-specific behavior does not leak between agents. Point each
-harness at its file:
-
-```text
-~/.codex/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-codex.md
-~/.claude/CLAUDE.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-claude.md
-~/.pi/agent/AGENTS.md -> /Users/sejunpark/IT/agent-scripts/global-agent-instructions/global-pi.md
-```
-
-These files should contain durable personal defaults only. Keep multi-step
-procedures in skills and route to them with a concise harness-specific rule.
-Do not mix personal defaults with this repo's maintenance-specific rules.
+The [global instruction directory](../global-agent-instructions/README.md)
+owns the source-file mapping and editing policy. Point each agent's user-level
+configuration symlink at the corresponding file in this checkout.
 Pointer ownership may vary by machine; use the inspection commands above to
 identify whether chezmoi or explicit local setup owns each one before editing.
 
-Editing these sources updates the content reached by their symlinks. Published
-skill copies follow the separate installation workflow above. Verify the active
-session's loaded instructions and skill metadata before treating a source edit
-as evidence of changed runtime behavior.
+Published skill copies follow the separate installation workflow above; they
+are not updated by editing global instruction sources.
 
 ## Bootstrap Order For A New Machine
 
