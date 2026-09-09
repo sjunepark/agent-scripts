@@ -49,8 +49,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 37 {
-		t.Fatalf("skills = %d, want 37", len(registry.Skills))
+	if len(registry.Skills) != 38 {
+		t.Fatalf("skills = %d, want 38", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {
@@ -74,8 +74,8 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 15 {
-		t.Fatalf("dev+go skills = %d, want 15", len(state.Skills))
+	if len(state.Skills) != 16 {
+		t.Fatalf("dev+go skills = %d, want 16", len(state.Skills))
 	}
 	for _, skill := range state.Skills {
 		if skill.Scope != ScopeProject {
@@ -112,7 +112,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 16 {
+	if len(state.Skills) != 17 {
 		t.Fatalf("canonical desired state = %#v", state)
 	}
 	var direct *DesiredSkill

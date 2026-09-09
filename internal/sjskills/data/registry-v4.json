@@ -26,6 +26,7 @@
         "address-pr-feedback",
         "agents-md-writer",
         "code-review",
+        "consult-mytech",
         "context7-cli",
         "create-pr",
         "delegate",
@@ -81,6 +82,10 @@
     "matt-pocock": {
       "kind": "external",
       "location": "mattpocock/skills"
+    },
+    "mytech": {
+      "kind": "external",
+      "location": "https://github.com/sjunepark/mytech/tree/main/skills/consult-mytech"
     },
     "skill-cleaner-manual": {
       "kind": "external"
@@ -146,6 +151,12 @@
     {
       "name": "codex-cleanup",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "consult-mytech",
+      "source": "mytech",
       "manager": "skills-cli",
       "mode": "copy"
     },
