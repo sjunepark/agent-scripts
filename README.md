@@ -50,7 +50,7 @@ bounded review pass that applies only obvious safe fixes.
 Use [$cleanup-branches](skills/cleanup-branches/SKILL.md) to clean completed
 local and remote Git branches. It decides routine deletions from repository and
 PR evidence, preserves active or retained work, and asks only about consequential
-unresolved cases.
+unresolved cases. It is included in the `dev` project profile.
 
 Use [$address-issues](skills/address-issues/SKILL.md) for a specified GitHub
 issue or a confirmed issue queue, through reviewed PR merge and verified

@@ -74,8 +74,8 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 17 {
-		t.Fatalf("dev+go skills = %d, want 17", len(state.Skills))
+	if len(state.Skills) != 18 {
+		t.Fatalf("dev+go skills = %d, want 18", len(state.Skills))
 	}
 	for _, skill := range state.Skills {
 		if skill.Scope != ScopeProject {
@@ -112,7 +112,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 18 {
+	if len(state.Skills) != 19 {
 		t.Fatalf("canonical desired state = %#v", state)
 	}
 	var direct *DesiredSkill

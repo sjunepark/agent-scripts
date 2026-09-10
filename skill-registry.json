@@ -26,6 +26,7 @@
         "address-issues",
         "address-pr-feedback",
         "agents-md-writer",
+        "cleanup-branches",
         "code-review",
         "consult-mytech",
         "context7-cli",
@@ -156,7 +157,8 @@
     {
       "name": "cleanup-branches",
       "source": "agent-scripts",
-      "manager": "none"
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "clear-rust",
