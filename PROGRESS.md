@@ -1,3 +1,29 @@
+# sjskills maintenance plugin delivery
+
+- User authorized automatic CLI updates and configured skill sync on every
+  supported local host. Existing release support is macOS Intel/ARM and Windows
+  x64; Linux is unsupported.
+- User also authorized automatic adoption of this hook's published `main`
+  updates. Migrated the standalone hook into `plugins/sjskills-maintenance/`;
+  retired its installer. Maintenance still runs in the next agent turn.
+- Added daily plugin-check state, a 15-minute failure cooldown, remote source/ref
+  verification instructions, and target-only reinstall with installed-version
+  verification. Canonical sjskills workflow references are bundled and checked.
+- Plugin schema validation, isolated Codex CLI install/reinstall, and installed
+  Windows hook invocation succeeded. All 21 targeted tests pass. Bounded
+  independent review and scoped documentation alignment are complete.
+- Native validation confirmed reinstall removes the old plugin cache. The hook
+  now preserves content-addressed workflow/helper snapshots in plugin data;
+  regression coverage verifies they survive removal and reject local edits.
+  Explicit Windows command dispatch passes cmd.exe and PowerShell. Test fixture
+  setup uses ordinary reads/writes after reproducing a Node 22.17.1 recursive-copy
+  crash on Unicode Windows paths.
+- Registered the plugin in the personal marketplace. Publication is authorized;
+  install from the published main branch, then enable hook trust through `/hooks`.
+- Real-machine automatic maintenance and macOS native execution remain unverified.
+
+## Previous CLI delivery
+
 # sjskills modified-copy reconciliation
 
 - Published in v1.2.0: project and global sync quarantine locally modified

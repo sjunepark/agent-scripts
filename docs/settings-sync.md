@@ -72,13 +72,17 @@ Keep local Codex plugin source in this repo under `plugins/<plugin-name>/`.
 Keep the repo marketplace at `.agents/plugins/marketplace.json`; it is
 repository metadata, not machine runtime state.
 
-The marketplace currently publishes two independent plugins:
+Repo-managed plugin source includes:
 
 - `chezmoi-sync` checks and reviews chezmoi drift from Codex.
 - `codex-pushover-notify` sends turn-completion notifications and exposes
   Pushover MCP tools. Its credentials remain machine-local; setup and checks
   are documented in
   [`plugins/codex-pushover-notify/README.md`](../plugins/codex-pushover-notify/README.md).
+- `sjskills-maintenance` requests published-main plugin updates, stable CLI
+  updates, and reviewed skill synchronization at session startup. Its
+  [management guide](sjskills-startup-hook.md) owns installation and update
+  behavior; [PROGRESS.md](../PROGRESS.md) tracks pending publication and rollout.
 
 For `chezmoi-sync`:
 

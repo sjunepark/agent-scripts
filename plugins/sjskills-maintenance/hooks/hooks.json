@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"require(require('path').join(process.env.PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT, 'scripts/session-start.cjs')).main()\"",
+            "timeout": 5,
+            "statusMessage": "Preparing automatic sjskills maintenance",
+            "additionalContextLimit": 6000,
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -EncodedCommand JgAgAG4AbwBkAGUAIAAoAEoAbwBpAG4ALQBQAGEAdABoACAAJABlAG4AdgA6AFAATABVAEcASQBOAF8AUgBPAE8AVAAgACcAcwBjAHIAaQBwAHQAcwAvAHMAZQBzAHMAaQBvAG4ALQBzAHQAYQByAHQALgBjAGoAcwAnACkA"
+          }
+        ]
+      }
+    ]
+  }
+}

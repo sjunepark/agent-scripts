@@ -1,0 +1,19 @@
+{
+  "name": "sjskills-maintenance",
+  "version": "0.1.0+codex.20260910121700",
+  "description": "Automatic published-main hook updates, stable sjskills CLI updates, and reviewed skill synchronization at session startup.",
+  "author": {
+    "name": "Local developer"
+  },
+  "interface": {
+    "displayName": "sjskills Maintenance",
+    "shortDescription": "Keep the hook, sjskills CLI, and configured skills current.",
+    "longDescription": "On new and resumed sessions, the agent checks this plugin for published main updates daily, updates the stable sjskills CLI, and reviews and synchronizes configured global and project skills.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Local shell"
+    ],
+    "defaultPrompt": "Check my sjskills maintenance plugin, CLI, and configured skills."
+  }
+}
