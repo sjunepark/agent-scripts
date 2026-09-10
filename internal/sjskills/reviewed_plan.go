@@ -128,6 +128,10 @@ func normalizeReviewedEnvelope(envelope Envelope) Envelope {
 	envelope.Evidence = evidence
 	if envelope.Plan != nil {
 		plan := *envelope.Plan
+		plan.Desired.Skills = append([]DesiredSkill(nil), plan.Desired.Skills...)
+		for i := range plan.Desired.Skills {
+			plan.Desired.Skills[i].Access = plan.Desired.Skills[i].Access.Effective()
+		}
 		plan.Warnings = nil
 		plan.Evidence = nil
 		envelope.Plan = &plan

@@ -1,6 +1,6 @@
 {
   "name": "sjskills-maintenance",
-  "version": "0.1.0+codex.20260910121700",
+  "version": "0.1.0+codex.20260910132001",
   "description": "Automatic published-main hook updates, stable sjskills CLI updates, and reviewed skill synchronization at session startup.",
   "author": {
     "name": "Local developer"

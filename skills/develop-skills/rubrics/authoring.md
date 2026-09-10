@@ -1,8 +1,13 @@
 # Authoring Review Rubric
 
-Use this rubric after drafting and again after behavior evaluation. Record each
-answer as `Pass`, `Fail`, or `N/A`, and cite the file, line, or evaluation result
-that supports it. `N/A` passes only when its rationale is explicit.
+Inspect this rubric after drafting. After behavior evaluation, revisit criteria
+affected by the results or subsequent edits; reuse unchanged findings.
+
+For a narrow revision, record changed criteria, failures, material tradeoffs,
+and consequential exclusions, with supporting file, line, or evaluation evidence.
+Summarize the remaining inspection without a full criterion-by-criterion table.
+For a whole-skill audit, record each answer as `Pass`, `Fail`, or `N/A` with its
+evidence; explain each `N/A`. Reporting less does not waive applicable checks.
 
 ## Severity and decision
 

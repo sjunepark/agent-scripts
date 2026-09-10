@@ -521,3 +521,35 @@ func TestStatusManualWorkflowAndProtectedPathsHaveNoInventedUpdates(t *testing.T
 		t.Fatalf("workflow status %+v", result)
 	}
 }
+
+func TestAuthenticatedStatusFailureCannotReusePublicEvidence(t *testing.T) {
+	scope, service, now, calls := statusFixture(t, false)
+	if value := service.Check(context.Background(), scope, nil); value.Freshness != AdvisoryFresh {
+		t.Fatal(value)
+	}
+	private := scope
+	private.Plan.Desired = cloneDesiredState(scope.Plan.Desired)
+	for i := range private.Plan.Desired.Skills {
+		private.Plan.Desired.Skills[i].Access = AccessGitHubAuthenticated
+	}
+	service.Refresh = func(context.Context, []DesiredSkill) (StatusSnapshot, error) {
+		calls.Add(1)
+		return StatusSnapshot{}, errors.New("private login failed")
+	}
+	result := service.Check(context.Background(), private, nil)
+	if result.Freshness != AdvisoryUnavailable || result.ObservedAt != nil || calls.Load() != 2 {
+		t.Fatal("reused public evidence", result, calls.Load())
+	}
+	service.Check(context.Background(), private, nil)
+	if calls.Load() != 2 {
+		t.Fatal("auth failure ignored cooldown")
+	}
+	*now = now.Add(statusRetryInterval)
+	service.Check(context.Background(), private, nil)
+	if calls.Load() != 3 {
+		t.Fatal("auth retry did not resume")
+	}
+	if value := service.Check(context.Background(), scope, nil); value.Freshness != AdvisoryFresh || calls.Load() != 3 {
+		t.Fatal("private failure invalidated public evidence", value)
+	}
+}

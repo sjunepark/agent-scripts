@@ -82,7 +82,9 @@ Repo-managed plugin source includes:
 - `sjskills-maintenance` requests published-main plugin updates, stable CLI
   updates, and reviewed skill synchronization at session startup. Its
   [management guide](sjskills-startup-hook.md) owns installation and update
-  behavior; [PROGRESS.md](../PROGRESS.md) tracks pending publication and rollout.
+  behavior; [PROGRESS.md](../PROGRESS.md) tracks publication and rollout. Its
+  bundled sjskills procedure preserves explicit public/authenticated selections
+  and stops a failing private scope without starting authentication setup.
 
 For `chezmoi-sync`:
 

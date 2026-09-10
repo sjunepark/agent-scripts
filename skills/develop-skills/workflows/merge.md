@@ -44,7 +44,8 @@ Build a decision table before drafting:
 | --- | --- | --- | --- | --- | --- |
 | Example concern | A / B | Same, complementary, or conflicting | Citation or result | Keep, adapt, or remove | Entry point, resource, metadata, or none |
 
-Resolve conflicts with an explicit authority order:
+Follow governing instructions and the user's requested scope when resolving
+conflicts. Within that boundary, rank conflicting source recommendations by:
 
 1. current portable specification or required data contract;
 2. repository distribution and validation rules;

@@ -1,3 +1,28 @@
+# Authenticated private-source delivery
+
+PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091 (unsupported GitHub page URLs), and 3979633101 (manual/workflow validation). Fixed with regression coverage; PR checks own follow-up native validation and the merge gate.
+
+- PR #23 combines local skill-authoring work, origin main, and the PR #22
+  recovery history. Public `kicpa` membership is restored; recovered private
+  registrations now belong to `kicpa-private`.
+- Access validation/resolution, controlled Git/gh staging, evidence separation,
+  and compatible public-plan loading are implemented. The
+  [private-source plan](plans/sjskills-private-github-sources.md) owns the design
+  and acceptance evidence. Original recovery stash remains
+  `038118178cce4759e3acebf854f19b36723488fc`.
+- Full Go/race suites, vet, Node tests, release tests, and skill validation
+  passed on macOS. Bounded independent review found no implementation defect;
+  its requested native auth cancellation coverage and token-login acceptance
+  were added and passed. Operator documentation and the plugin bundle agree.
+- Implementation `84ba2e7` passed source checks and hosted native acceptance on
+  macOS Intel/ARM and Windows in
+  [run 34482396368](https://github.com/sjunepark/agent-scripts/actions/runs/34482396368).
+  [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) owns the final merge
+  status and final check results. CodeRabbit skipped its
+  requested review because automatic reviews are disabled.
+- No new release, actual private-skill installation, or real-machine
+  reconciliation is included.
+
 # sjskills maintenance plugin delivery
 
 - User authorized automatic CLI updates and configured skill sync on every

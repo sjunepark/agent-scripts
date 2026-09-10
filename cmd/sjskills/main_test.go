@@ -49,6 +49,15 @@ func TestMain(m *testing.M) {
 	if err := buildFake.Run(); err != nil {
 		panic(fmt.Sprintf("build fake bunx: %v", err))
 	}
+	fakeGitHub := filepath.Join(directory, "fakegithub")
+	if runtime.GOOS == "windows" {
+		fakeGitHub += ".exe"
+	}
+	buildGitHub := exec.Command("go", "build", "-o", fakeGitHub, "./testdata/fakegithub")
+	buildGitHub.Stdout, buildGitHub.Stderr = os.Stdout, os.Stderr
+	if err := buildGitHub.Run(); err != nil {
+		panic(fmt.Sprintf("build fake github tools: %v", err))
+	}
 	code := m.Run()
 	_ = os.RemoveAll(directory)
 	os.Exit(code)

@@ -12,9 +12,18 @@ selection resolved by `sjskills plan --global`; global machine profiles and
 hostname inference do not exist.
 
 `profiles` contains composable project selections such as `dev`, `go`,
-`rust`, and `kicpa`. A project's committed `sjskills.toml` selects those
-profiles and may add direct third-party declarations. Profile membership does
-not make a skill global.
+`rust`, `kicpa`, and `kicpa-private`. A project's committed `sjskills.toml`
+selects those profiles and may add direct third-party declarations. Profile
+membership does not make a skill global. Required profiles remain public;
+additional profiles have portable names, nonempty members, and the same
+selection and collision rules. `sjskills profiles` reports each access policy.
+
+Each profile has `access: public` or `access: github-authenticated`; omission
+means public. `kicpa` retains its public members, while `kicpa-private` selects
+the enrolled private catalog. Select both to combine them. A direct declaration
+can use `access = "github-authenticated"` with the same policy. Unknown, empty,
+and malformed access values are rejected. Access is a fetching requirement,
+not a visibility check; private-source names and URLs in the registry are public.
 
 Every selected skill name must be unique across the global baseline, selected
 project profiles, and direct project declarations. Duplicate names,
@@ -40,10 +49,53 @@ Each `skills` entry records:
 
 A `repository` source names the published GitHub `skills/` catalog.
 An `external` source names a deliberately tracked upstream or a manual
-boundary. Skills CLI-managed sources must be public Git shorthand
+boundary. Skills CLI-managed sources must be Git shorthand
 (`owner/repo[/path]`) or credential-free HTTPS. Local paths, embedded
 credentials, URL query strings, npm specifiers, and other schemes are rejected
 for that manager.
+
+Public selections retain the pinned Skills CLI's remote-fetch path and do not
+invoke a new gh operation. Authenticated selections require Git, GitHub CLI,
+and an existing gh login with repository access. They accept GitHub.com
+shorthand or credential-free `https://github.com` sources, including supported
+`/tree/<ref>[/<subpath>]` forms. A ref may be a branch, tag, or full 40-character
+commit hash. Other GitHub page URLs (such as `/blob/` or `/issues/`), hosts,
+ports, escaped paths, and embedded credentials are rejected before fetching.
+Manual and workflow-managed entries do not fetch or validate a GitHub source.
+
+Authenticated fetching uses bounded HTTPS Git operations in private staging,
+then the pinned Skills CLI's local-source discovery. Named refs use shallow
+clone; full commit pins use shallow fetch and detached checkout, failing if the
+server cannot supply that commit. Redirects, alternative
+protocols, submodules, inherited Git credential helpers/configuration, and
+tracing are disabled. The internal credential helper permits only the selected
+GitHub repository and forwards a bounded credential response directly to Git's
+private pipe. No credential or local staging path becomes installed source
+identity, reviewed evidence, or diagnostic output. Git/gh descendants share the
+existing process containment and cleanup boundary.
+
+The original gh configuration is located through `GH_CONFIG_DIR`,
+`XDG_CONFIG_HOME/gh`, Windows `APPDATA/GitHub CLI`, or `HOME/.config/gh` in that
+order. Configuration version 1 is required: gh can migrate older configuration
+even during credential lookup, so sjskills refuses it before invoking gh.
+Complete login or migration yourself with `gh auth status` (or `gh auth login`
+when needed), then retry. Existing `GH_TOKEN` or `GITHUB_TOKEN` authentication
+uses isolated version-only configuration; tokens remain transient and are not
+written into it. sjskills never starts interactive login, switches accounts,
+or copies credentials into staging.
+
+Missing tooling/configuration is reported directly. Fetch failure asks the
+operator to check login, repository access, ref, and network without exposing
+helper output or guessing whether a not-found response means denied access.
+Any selected-source failure prevents reconciliation for that scope; no anonymous
+retry, optional skipping, or partial successful snapshot is allowed.
+
+Older public manifests and reviewed global plans remain usable; explicit and
+omitted public access have the same meaning. Older executables may reject the
+new fields/profiles: use a build supporting authenticated access for private
+selections and the same executable for plan/apply. Source installation support
+in this checkout does not imply a published binary release; delivery evidence
+is tracked in the [private-source plan](../plans/sjskills-private-github-sources.md).
 
 `manual` entries remain externally owned. `workflow` entries are provisioned
 by the named project workflow. `none` entries are catalog-only: they are
@@ -57,8 +109,8 @@ additional configuration.
 
 `sjskills` invokes the exactly pinned Skills CLI only inside isolated
 temporary homes, verifies one staged tree per desired skill, and owns final
-placement itself. Skills with the same source and `fullDepth` option share one
-fetch; every requested tree must still be present and verified. Materializer
+placement itself. Skills with the same source, effective access, and
+`fullDepth` option share one fetch; every requested tree must still be present and verified. Materializer
 process groups on Unix and jobs on Windows stop descendants before staging
 cleanup, including after a parent exits. Byte equality and Skills CLI lock
 metadata do not grant ownership. A desired placement is updated only when trusted
@@ -136,12 +188,13 @@ workflow tools. Protected locations retain their existing ownership boundaries.
 
 Disposable complete expected-hash snapshots live under the platform user-cache
 directory in `sjskills/status/`. Identity includes the sorted Skills CLI-managed
-selection's names, exact source strings, copy mode, full-depth options, and the
-Skills CLI, tree-hash, and cache format versions. Matching selections share
+selection's names, exact source strings, effective access, copy mode, full-depth
+options, and the Skills CLI, tree-hash, and cache format versions. Matching selections share
 evidence across roots and scopes. Placement targets, profile names, and unrelated
 registry metadata do not trigger another fetch; local classification always uses
-the current scope, registry, files, and provenance. Older scope-keyed cache entries
-are not reused, so the first check after this format change refreshes upstream.
+the current scope, registry, files, and provenance. Older cache keys without
+access are not reused; the first check after upgrading refreshes upstream. Changing access requires new fetch/review evidence but does
+not change same-repository installed ownership.
 
 Snapshots refresh after 24 hours, with a shared 30-second foreground budget and
 at most two concurrent skill-scope refreshes alongside one independent CLI

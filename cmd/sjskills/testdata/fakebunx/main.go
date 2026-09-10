@@ -62,6 +62,17 @@ func main() {
 			panic(err)
 		}
 		content := fmt.Sprintf("# %s%s\n", skill, os.Getenv("SJSKILLS_FAKE_CONTENT"))
+		local := args[2]
+		if local == "fixture/private/skills" && os.Getenv("SJSKILLS_GIT_FIXTURE") != "" {
+			local = filepath.Join(os.Getenv("SJSKILLS_GIT_FIXTURE"), "skills")
+		}
+		if filepath.IsAbs(local) {
+			data, err := os.ReadFile(filepath.Join(local, skill, "SKILL.md"))
+			if err != nil {
+				os.Exit(7)
+			}
+			content = string(data)
+		}
 		if err := os.WriteFile(filepath.Join(target, "SKILL.md"), []byte(content), 0o644); err != nil {
 			panic(err)
 		}

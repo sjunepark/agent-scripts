@@ -53,6 +53,23 @@ function skillsCliSourceProblem(location) {
   return null;
 }
 
+function githubSourceProblem(source) {
+  if (skillsCliSourceProblem(source)) return true;
+  let path = source;
+  if (source.startsWith("https://")) {
+    // Match the raw authority/path too: URL() silently normalizes ports,
+    // escaped traversal and backslashes that the credential boundary rejects.
+    if (!source.startsWith("https://github.com/") || source.includes("%") || source.includes("\\")) return true;
+    path = source.slice("https://github.com/".length);
+  }
+  path = path.replace(/\/$/, "");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path)) return true;
+  const parts = path.split("/");
+  if (source.startsWith("https://") && parts.length > 2 && (parts.length < 4 || parts[2] !== "tree")) return true;
+  return parts.some((part) => part === "." || part === "..") ||
+    ["", ".", ".."].includes(parts[1].replace(/\.git$/, ""));
+}
+
 function validateSortedSelection(label, values, known, errors) {
   if (!Array.isArray(values) || values.length === 0) {
     errors.push(`${label} must be a non-empty array`);
@@ -200,8 +217,9 @@ function validateSkillRegistry(registry, options = {}) {
   }
 
   const profileNames = Object.keys(registry.profiles);
-  if (!arraysEqual(profileNames, requiredProfiles)) {
-    errors.push(`profiles must define exactly in sorted order: ${requiredProfiles.join(", ")}`);
+  if (!arraysEqual(profileNames, [...profileNames].sort())) errors.push("profiles must be sorted by name");
+  for (const name of requiredProfiles) {
+    if (!Object.hasOwn(registry.profiles, name)) errors.push(`required profile ${name} is missing`);
   }
   validateSortedSelection("global.baseline", registry.global.baseline, known, errors);
   const membership = new Map();
@@ -211,16 +229,27 @@ function validateSkillRegistry(registry, options = {}) {
     membership.set(name, origins);
   };
   for (const name of registry.global.baseline || []) addMembership(name, "global baseline");
-  for (const profileName of requiredProfiles) {
+  for (const profileName of profileNames) {
     const profile = registry.profiles[profileName];
     const label = `profile ${profileName}`;
     if (!isObject(profile)) {
       errors.push(`${label} must be an object`);
       continue;
     }
-    rejectUnknownFields(profile, new Set(["skills"]), label, errors);
+    rejectUnknownFields(profile, new Set(["access", "skills"]), label, errors);
+    if (!portableName(profileName)) errors.push(`${label} has an invalid name`);
+    const access = profile.access === undefined ? "public" : profile.access;
+    if (!["public", "github-authenticated"].includes(access)) errors.push(`${label} access must be public or github-authenticated`);
+    if (requiredProfiles.includes(profileName) && access !== "public") errors.push(`${label} must remain public`);
     validateSortedSelection(`${label} skills`, profile.skills, known, errors);
-    for (const name of profile.skills || []) addMembership(name, label);
+    for (const name of Array.isArray(profile.skills) ? profile.skills : []) {
+      addMembership(name, label);
+      const skill = known.get(name);
+      if (access === "github-authenticated" && skill?.manager === "skills-cli" &&
+          githubSourceProblem(registry.sources[skill.source]?.location)) {
+        errors.push(`${label} ${name} requires a credential-free GitHub.com repository`);
+      }
+    }
   }
   for (const [name, origins] of membership) {
     if (origins.length > 1) {

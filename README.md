@@ -145,7 +145,14 @@ sjskills apply
 ```
 
 `sjskills.toml` may combine named profiles with direct third-party
-declarations. In a project that adopts this ownership model, ignore
+declarations. `sjskills profiles` reports their access requirements. `kicpa`
+stays public; add `kicpa-private` for the enrolled private catalog. A direct
+entry can set `access = "github-authenticated"` to use an existing gh login
+for a GitHub.com source. See the [access contract](docs/skill-registry.md#skill-and-source-records)
+for dependencies, supported configuration, and failure handling. Use a build
+that supports these fields; this source change does not publish a new release.
+
+In a project that adopts this ownership model, ignore
 `.sjskills/`, `.agents/skills/`, and `.claude/skills/`; do not add those
 patterns until any preexisting committed content has been reviewed and
 migrated. Review every plan before apply. Sync removes undeclared skills from

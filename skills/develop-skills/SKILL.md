@@ -60,7 +60,9 @@ considered complete.
 6. **Validate in layers.** Check structure and links, compare changed decisions
    with baseline behavior in fresh isolated runs, and test changed trigger
    boundaries separately. Set the required checks and stopping conditions from
-   the change's risk. Judge artifacts and decisions, not confident prose.
+   the change's risk. Keep review records proportional to that scope and identify
+   the model and environment behind observed results. Judge artifacts and
+   decisions, not confident prose.
 7. **Iterate from evidence.** Diagnose each failure as a scope, trigger,
    instruction, resource, environment, or evaluation problem. Make the smallest
    change that addresses the observed cause and rerun the affected cases.

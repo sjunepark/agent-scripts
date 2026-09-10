@@ -84,6 +84,30 @@
       "prompt": "Use $develop-skills to investigate why our explicitly invoked UI skill still activates on unrelated tasks. The repository metadata disables implicit invocation, but the installed metadata omits the policy and the current session catalog shows an older description. Diagnose only; do not change source or installed files.",
       "expected_output": "A read-only diagnosis compares source, installed copy, and active session catalog as separate instruction surfaces. It identifies the observed metadata and description mismatch without claiming that a source edit updates an active session. It reports the precise mismatch and required rollout/reload verification, retains activation intent, and does not invoke an install, synchronization, publication, or cleanup workflow.",
       "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "Continue the develop-skills refresh workflow at its final delivery step. Earlier I explicitly authorized committing only the reviewed develop-skills changes after checks pass. Both maintained sources have been read, the local changes and all applicable checks are complete, and Git evidence verifies that the intended diff contains only those changes. There are no unrelated staged entries. Publication, synchronization, and installation were not requested. State the next actions and any user input needed. This is a decision-only simulation: do not run Git or external actions.",
+      "expected_output": "Continue the already authorized scoped commit without another permission question. Do not publish, synchronize, or install. Do not rerun completed checks without new evidence. Describe intended actions without claiming they executed.",
+      "files": [
+        "evals/evaluation-2026-09-10.json"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Use the develop-skills merge workflow to decide one source conflict for a Codex-native goal skill. My explicit requirement is to preserve native goal creation and status tools; do not replace them with Markdown-only tracking. Source A describes a portable profile whose data contract requires Markdown-only goal tracking. Source B requires the native goal tools. Source provenance and both contracts are verified; the destination supports the native tools. We are merging useful guidance, not promising compatibility with Source A's profile. Return the conflict decision, destination prerequisite, and compatibility claim. This is a decision-only simulation; do not create files or tasks.",
+      "expected_output": "Preserve the user-requested native goal capability, declare its intrinsic tool prerequisite, and reject compatibility with Source A's incompatible profile. Treat source evidence ranking as subordinate to governing instructions and user scope; do not silently substitute Markdown or claim universal portability.",
+      "files": [
+        "evals/evaluation-2026-09-10.json"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Complete the review and evaluation record for a narrow one-line revision to a declared GitHub release skill. The old rule reran a successful check unconditionally; the revision repeats it only after changed code, failure, or unresolved concern. Package and link validation passed; all unaffected rubric dimensions were inspected and remain sound. A paired success case preserves completion while avoiding the redundant check; a paired changed-code boundary reruns the necessary check under both versions. All frozen assertions passed. Discovery is unchanged. Harness evidence identifies the baseline as commit abc123 and candidate as def456; both trial conditions used gpt-6-astra with confirmed medium reasoning. Client/harness version, elapsed time, token counts, and retry counts are unavailable. All tool outcomes were simulated; no release was performed. Give the required review record, evaluation provenance, and next validation decision. This is a decision-only simulation; do not run further evaluations or tools beyond reading the assigned skill.",
+      "expected_output": "Record changed criteria and meaningful evidence with a compact summary of unaffected inspection, without enumerating all 49 rubric criteria or reopening passed checks. Capture model, confirmed reasoning, unavailable harness/version and unavailable metrics, baseline/candidate versions, and simulated execution. Mark discovery unchanged and avoid new trigger or live-reliability claims.",
+      "files": [
+        "evals/evaluation-2026-09-10.json"
+      ]
     }
   ]
 }

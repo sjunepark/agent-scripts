@@ -193,7 +193,7 @@ func (a *application) profiles() sjskills.Envelope {
 	}
 	sort.Strings(profiles)
 	for _, name := range profiles {
-		envelope.Profiles = append(envelope.Profiles, sjskills.ProfileInfo{Name: name, Count: len(registry.Profiles[name].Skills)})
+		envelope.Profiles = append(envelope.Profiles, sjskills.ProfileInfo{Name: name, Access: registry.Profiles[name].Access.Effective(), Count: len(registry.Profiles[name].Skills)})
 	}
 	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "registry", Detail: "embedded version 4"})
 	return envelope
@@ -1044,6 +1044,9 @@ func renderManifest(manifest sjskills.Manifest) string {
 	for _, direct := range manifest.Direct {
 		builder.WriteString("\n[[direct]]\n")
 		fmt.Fprintf(&builder, "name = %q\nsource = %q\n", direct.Name, direct.Source)
+		if direct.Access.Effective() == sjskills.AccessGitHubAuthenticated {
+			fmt.Fprintf(&builder, "access = %q\n", direct.Access)
+		}
 		if direct.FullDepth {
 			builder.WriteString("full_depth = true\n")
 		}
@@ -1110,7 +1113,7 @@ func renderHuman(stdout, stderr io.Writer, envelope sjskills.Envelope) {
 		}
 	case sjskills.CommandOperationProfiles:
 		for _, profile := range envelope.Profiles {
-			fmt.Fprintf(stdout, "%s (%d skills)\n", profile.Name, profile.Count)
+			fmt.Fprintf(stdout, "%s (%d skills, %s)\n", profile.Name, profile.Count, profile.Access.Effective())
 		}
 	case sjskills.CommandOperationPlan, sjskills.CommandOperationApply:
 		if envelope.Plan != nil {
@@ -1267,6 +1270,12 @@ func isExactVersionRequest(args []string) bool {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == sjskills.GitHubCredentialCommand {
+		if err := sjskills.RunGitHubCredential(context.Background(), os.Args[2:], os.Stdin, os.Stdout, os.Environ()); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
 	directory, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "sjskills: get working directory: %v\n", err)

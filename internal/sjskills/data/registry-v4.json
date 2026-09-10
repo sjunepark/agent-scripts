@@ -22,6 +22,7 @@
   },
   "profiles": {
     "dev": {
+      "access": "public",
       "skills": [
         "address-issues",
         "address-pr-feedback",
@@ -42,12 +43,14 @@
       ]
     },
     "go": {
+      "access": "public",
       "skills": [
         "modern-go",
         "write-go-docs"
       ]
     },
     "kicpa": {
+      "access": "public",
       "skills": [
         "darty",
         "kasb",
@@ -56,7 +59,20 @@
         "windows-cleanup"
       ]
     },
+    "kicpa-private": {
+      "access": "github-authenticated",
+      "skills": [
+        "cagr-research",
+        "crowe-design",
+        "organize-engagement-files",
+        "render-markdown-pdf",
+        "sync-rfi",
+        "tf-basic-data-prep",
+        "wacc-peer-screening"
+      ]
+    },
     "rust": {
+      "access": "public",
       "skills": [
         "clear-rust",
         "modern-rust"
@@ -87,6 +103,10 @@
     "kasb": {
       "kind": "external",
       "location": "https://github.com/cpaikr/kasb/tree/main/skills/kasb"
+    },
+    "kicpa": {
+      "kind": "external",
+      "location": "https://github.com/sjunepark/kicpa/tree/main/skills"
     },
     "kisnet-ytm": {
       "kind": "external",
@@ -154,6 +174,12 @@
       "mode": "copy"
     },
     {
+      "name": "cagr-research",
+      "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
       "name": "clarify",
       "source": "agent-scripts",
       "manager": "skills-cli",
@@ -204,6 +230,12 @@
     {
       "name": "create-pr",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "crowe-design",
+      "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -317,6 +349,12 @@
       "mode": "copy"
     },
     {
+      "name": "organize-engagement-files",
+      "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
       "name": "pdf-to-markdown",
       "source": "agent-scripts",
       "manager": "skills-cli",
@@ -331,6 +369,12 @@
     {
       "name": "release-please-release",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "render-markdown-pdf",
+      "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -358,8 +402,20 @@
       "mode": "copy"
     },
     {
+      "name": "sync-rfi",
+      "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
       "name": "teach",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "tf-basic-data-prep",
+      "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -372,6 +428,12 @@
     {
       "name": "update-base-branch",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "wacc-peer-screening",
+      "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
     },
