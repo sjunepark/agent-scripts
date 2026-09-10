@@ -32,9 +32,11 @@ Repository evidence was inspected at `076a487`:
 - [Status](../internal/sjskills/status.go) shares upstream evidence by fetch
   inputs. [Provenance](../internal/sjskills/provenance.go) records source and
   content ownership; temporary staging paths must never become source identity.
-- No actual private repository URL or skill list has been supplied. A real
-  `kicpa-private` catalog entry cannot yet be populated. This is an enrollment
-  prerequisite, not a blocker to implementing and testing the capability.
+- Cleanup on 2026-09-10 recovered seven registrations from the private
+  `sjunepark/kicpa` catalog on `codex/integrate-private-kicpa-skills`. That draft
+  currently extends `kicpa` and is not ready to merge: move the registrations
+  into the selected `kicpa-private` design after authenticated fetching is
+  implemented and verified. Recovery did not validate private materialization.
 
 ## Next action
 

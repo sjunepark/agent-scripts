@@ -1,3 +1,15 @@
+# Recovered private KICPA registry draft
+
+- Preserved seven unpublished registrations on `codex/integrate-private-kicpa-skills`
+  and combined them with current main (50 registry entries, including Darty).
+- Not ready to merge or publish: the draft adds private access requirements to
+  `kicpa`, contrary to the selected separate private-profile design. Follow the
+  [private-source plan](plans/sjskills-private-github-sources.md) before rollout.
+- Targeted Go contract tests and 12 Node registry/wrapper tests pass. Bounded
+  review and documentation alignment completed; private fetching remains unverified.
+- Full original checkout recovery remains in Git stash commit
+  `038118178cce4759e3acebf854f19b36723488fc`, including superseded hook drafts.
+
 # sjskills maintenance plugin delivery
 
 - User authorized automatic CLI updates and configured skill sync on every

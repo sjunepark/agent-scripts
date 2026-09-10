@@ -49,8 +49,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 43 {
-		t.Fatalf("skills = %d, want 43", len(registry.Skills))
+	if len(registry.Skills) != 50 {
+		t.Fatalf("skills = %d, want 50", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {
@@ -155,10 +155,15 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 5 || state.Skills[0].Name != "darty" || state.Skills[1].Name != "kasb" || state.Skills[2].Name != "kisnet-ytm" || state.Skills[3].Name != "krx-cli" || state.Skills[4].Name != "windows-cleanup" {
+	wantNames := []string{"cagr-research", "crowe-design", "darty", "kasb", "kisnet-ytm", "krx-cli", "organize-engagement-files", "render-markdown-pdf", "sync-rfi", "tf-basic-data-prep", "wacc-peer-screening", "windows-cleanup"}
+	var gotNames []string
+	for _, skill := range state.Skills {
+		gotNames = append(gotNames, skill.Name)
+	}
+	if !slices.Equal(gotNames, wantNames) {
 		t.Fatalf("kicpa = %#v", state.Skills)
 	}
-	if darty := state.Skills[0]; darty.Source != "https://github.com/cpaikr/darty/tree/main/skill/darty" || darty.Manager != ManagerSkillsCLI || darty.Mode != ModeCopy {
+	if darty := state.Skills[2]; darty.Source != "https://github.com/cpaikr/darty/tree/main/skill/darty" || darty.Manager != ManagerSkillsCLI || darty.Mode != ModeCopy {
 		t.Fatalf("darty source and installation policy = %#v", darty)
 	}
 	for _, skill := range state.Skills {
