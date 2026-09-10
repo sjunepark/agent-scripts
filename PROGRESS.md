@@ -1,3 +1,21 @@
+# sjskills modified-copy reconciliation
+
+- Implemented locally: project and global sync quarantine locally modified
+  managed desired copies before verified replacement. Unknown ownership, source
+  mismatch, untrusted provenance, unsafe paths, and changes after review remain
+  conflicts. The [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation)
+  owns the policy and restoration semantics.
+- Go suite, isolated CLI flows for both scopes, rollback and subprocess crash
+  recovery, registry checks, skill validation, and local skill discovery passed.
+  Bounded independent code review found no actionable issues; affected docs are
+  aligned. Vet, release source checks, and Windows x64 test compilation passed;
+  native Windows execution remains unverified. Skill trials are recorded in
+  `skills/sjskills/evals/evaluation-2026-09-10.json`.
+- Publication and local CLI installation are now requested. Preparing v1.2.0,
+  then running the tagged native release matrix before publishing verified
+  artifacts and installing the local CLI. Live skill reconciliation is not part
+  of this request.
+
 # sjskills CLI version status delivery
 
 - Feature implementation, tests, bounded independent review, and documentation

@@ -348,7 +348,7 @@ source = "example/modified-skill"
 	}{
 		{sjskills.TargetAgents, "collision", "blocked", "desired-path-unmanaged"},
 		{sjskills.TargetAgents, "fixture-skill", "unchanged", "verified-exact"},
-		{sjskills.TargetAgents, "modified-skill", "blocked", "local-modification"},
+		{sjskills.TargetAgents, "modified-skill", "update", "local-modification"},
 		{sjskills.TargetClaude, "collision", "install", "expected-entry-absent"},
 		{sjskills.TargetClaude, "fixture-skill", "update", "verified-update"},
 		{sjskills.TargetClaude, "modified-skill", "install", "expected-entry-absent"},

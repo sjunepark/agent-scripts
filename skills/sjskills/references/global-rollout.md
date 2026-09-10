@@ -40,8 +40,9 @@ Create a complete JSON plan:
 Compute SHA-256 values for the executable and `plan.json`. Review every
 operation, warning, current-state fact, expected-content hash, and
 materialization result, including quarantine of undeclared skills regardless of
-ownership or local edits. Stop on blocked placements, untrusted provenance,
-unmanaged or modified desired copies, unsafe filesystem boundaries,
+ownership or local edits and `local-modification` updates that quarantine edited
+managed desired copies before replacement. Stop on blocked placements, untrusted
+provenance, unmanaged desired copies, source mismatches, unsafe filesystem boundaries,
 unverifiable extras, or placement operations outside the two managed skill
 roots. Honor preservation limits in the user's request even if strict sync
 would otherwise quarantine those entries.

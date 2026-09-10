@@ -15,6 +15,12 @@ Strict sync covers only the selected global or project `.agents/skills` and
 including unknown and locally modified copies. Built-in skills, plugin caches,
 and legacy Pi copies are outside this boundary.
 
+Previously managed desired copies with local edits are also preserved in
+quarantine, then replaced with verified published content. Plans report these
+as updates with reason `local-modification`. This requires trusted provenance
+for the same source and a verifiable current tree; an unknown desired copy
+still blocks reconciliation. Restoring edited bytes does not grant ownership.
+
 Keep four states distinct:
 
 1. A source repository's local catalog is editable but not yet published.
@@ -122,15 +128,21 @@ only when installation or synchronization was requested.
 ## Use configured authority
 
 The request grants authority; the committed manifest and fixed baseline define
-the desired set. Proceed with verified installs, updates, provenance migration,
-and recoverable quarantine of undeclared copies within that set's managed roots.
+the desired set. Proceed with verified installs, updates (including quarantining
+and replacing locally edited managed copies), provenance migration, and
+recoverable quarantine of undeclared copies within that set's managed roots.
 Summarize the reviewed operations before applying, without requiring another
 user turn. Use `--yes` for an already-authorized apply unless the user requests
 an interactive checkpoint. A flag or plan artifact does not create authority.
 
-"Override and sync" can override a redundant approval step; it does not resolve
-unmanaged or modified desired copies, corrupt provenance, unsafe boundaries, or
-failed materialization. Stop the affected scope on those conflicts and explain
+Honor an explicit request to keep local edits active or preserve particular
+paths: stop the affected scope if its plan would replace or quarantine them.
+Ordinary sync already authorizes preserving local edits in quarantine before
+replacement; no override flag or additional confirmation is needed.
+
+"Override and sync" does not resolve unmanaged desired copies, source mismatch,
+corrupt provenance, unsafe boundaries, or failed materialization.
+Stop the affected scope on those conflicts and explain
 the concrete resolution needed. Do not force-adopt, manually replace roots,
 change profiles, or include another machine to make a plan pass. Complete an
 independent unblocked scope unless the user required an all-or-nothing result.
@@ -149,8 +161,10 @@ independent unblocked scope unless the user required an all-or-nothing result.
    warnings, and blocks.
    Distinguish desired-state drift or conflict from a failed command, network
    request, or materialization; an operational failure is not a valid plan.
-4. Stop before apply when the plan reports an unmanaged or locally modified
-   desired copy, malformed or untrusted provenance, an unsafe filesystem
+4. Review `local-modification` updates as preservation-and-replacement operations,
+   including when the current tree already matches the published tree but
+   differs from its recorded installation. Stop before apply for an unmanaged
+   desired copy, source mismatch, malformed or untrusted provenance, an unsafe filesystem
    boundary, an unverifiable extra, failed materialization, or another conflict.
 5. For authorized project reconciliation, run `sjskills apply --yes` after the
    plan passes review. Honor any explicit request to stop at a preview or keep
@@ -179,8 +193,10 @@ sjskills restore <quarantine-id>
 
 Do not move, delete, or overwrite active destinations to make restore succeed.
 If content or provenance changed, preserve both sides and report the conflict.
-Restore does not grant ownership to unknown or locally modified copies. Run
-`sjskills plan` afterward; a restored undeclared skill is again removal drift.
+Restore does not grant ownership to unknown or locally modified copies. An
+edited backup replaces the new installation's provenance with no ownership
+record. Run `sjskills plan` afterward: restored undeclared skills are removal
+drift; restored edited desired skills are unmanaged conflicts.
 
 ## Global boundary
 

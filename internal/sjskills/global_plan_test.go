@@ -436,7 +436,7 @@ func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertGlobalAction(t, plan, PlanActionBlocked, "base", TargetAgents)
+	assertGlobalAction(t, plan, PlanActionUpdate, "base", TargetAgents)
 	assertGlobalAction(t, plan, PlanActionUpdate, "base", TargetClaude)
 	assertGlobalAction(t, plan, PlanActionQuarantine, "former", TargetAgents)
 

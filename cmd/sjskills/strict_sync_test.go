@@ -96,6 +96,166 @@ func TestExternalStrictSyncRemovesUnownedExtras(t *testing.T) {
 	}
 }
 
+func TestExternalStrictSyncPreservesModifiedDesiredCopies(t *testing.T) {
+	for _, global := range []bool{false, true} {
+		name := "project"
+		if global {
+			name = "global"
+		}
+		t.Run(name, func(t *testing.T) {
+			directory := t.TempDir()
+			if err := os.WriteFile(filepath.Join(directory, "sjskills.toml"), []byte("version = 1\nprofiles = []\n[[direct]]\nname = \"fixture-skill\"\nsource = \"example/fixture-skill\"\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			overrides := isolatedExternalHomes(t)
+			root, skill := directory, "fixture-skill"
+			discovered, err := sjskills.DiscoverProjectRoot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			projectLayout, err := sjskills.LayoutForProject(discovered.Root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			quarantineRoot := projectLayout.QuarantinePath
+			var globalLayout sjskills.GlobalLayout
+			if global {
+				key := "HOME"
+				if runtime.GOOS == "windows" {
+					key = "USERPROFILE"
+				}
+				root, skill = overrides[key], "sjskills"
+				globalLayout, err = sjskills.LayoutForGlobal(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				quarantineRoot = globalLayout.QuarantinePath
+			}
+			run := func(args ...string) (int, string, string) {
+				t.Helper()
+				if global {
+					args = append(args, "--global")
+				}
+				return runCLIWithEnvironment(t, directory, overrides, append([]string{"--json"}, args...)...)
+			}
+			plan := func() string {
+				t.Helper()
+				code, stdout, stderr := run("plan")
+				if code != 0 {
+					t.Fatalf("plan: code=%d stdout=%s stderr=%s", code, stdout, stderr)
+				}
+				return stdout
+			}
+			apply := func(reviewed string) sjskillsEnvelope {
+				t.Helper()
+				args := []string{"apply", "--yes"}
+				if global {
+					approved, digest := writeReviewedPlan(t, []byte(reviewed))
+					args = append(args, "--approved-plan", approved, "--approved-plan-sha256", digest)
+				}
+				code, stdout, stderr := run(args...)
+				if code != 0 {
+					t.Fatalf("apply: code=%d stdout=%s stderr=%s", code, stdout, stderr)
+				}
+				return decodeEnvelope(t, stdout)
+			}
+			apply(plan())
+			desiredPath := filepath.Join(root, ".claude", "skills", skill)
+			extraPath := filepath.Join(root, ".claude", "skills", "local-extra")
+			if err := os.MkdirAll(extraPath, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			for _, path := range []string{desiredPath, extraPath} {
+				if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("# local edits to preserve\n"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			reviewed := plan()
+			actions := map[string]string{}
+			for _, op := range decodeEnvelope(t, reviewed).Plan.Operations {
+				if op.Target == ".claude" {
+					actions[op.Skill] = op.Action
+				}
+			}
+			if actions[skill] != "update" || actions["local-extra"] != "quarantine" {
+				t.Fatalf("modified desired copy must update while extra is quarantined: %s", reviewed)
+			}
+			updated := apply(reviewed)
+			detail := serializedEvidenceDetail(updated.Evidence, "quarantine")
+			id := strings.TrimSuffix(strings.TrimPrefix(detail, "id="), " status=committed")
+			if !validQuarantineID(id) {
+				t.Fatalf("missing committed quarantine: %#v", updated.Evidence)
+			}
+			for _, quarantinedSkill := range []string{skill, "local-extra"} {
+				data, err := os.ReadFile(filepath.Join(quarantineRoot, id, "entries", ".claude", quarantinedSkill, "SKILL.md"))
+				if err != nil || string(data) != "# local edits to preserve\n" {
+					t.Fatalf("quarantined %s bytes=%q err=%v", quarantinedSkill, data, err)
+				}
+			}
+			data, err := os.ReadFile(filepath.Join(desiredPath, "SKILL.md"))
+			if err != nil || string(data) != "# "+skill+"\n" {
+				t.Fatalf("published bytes=%q err=%v", data, err)
+			}
+			if _, err := os.Lstat(extraPath); !os.IsNotExist(err) {
+				t.Fatalf("extra remains active: %v", err)
+			}
+			finalPlan := plan()
+			for _, op := range decodeEnvelope(t, finalPlan).Plan.Operations {
+				if op.Action != "unchanged" && op.Action != "manual" && op.Action != "workflow" {
+					t.Fatalf("final plan contains pending operation: %s", finalPlan)
+				}
+			}
+			before := captureFixtureTree(t, root)
+			if next := apply(finalPlan); serializedEvidenceDetail(next.Evidence, "quarantine") != "" {
+				t.Fatalf("second apply created quarantine: %#v", next.Evidence)
+			}
+			if after := captureFixtureTree(t, root); !reflect.DeepEqual(before, after) {
+				t.Fatal("second apply mutated reconciled scope")
+			}
+			code, stdout, stderr := run("restore", id, "--yes")
+			if code == 0 {
+				t.Fatalf("restore overwrote active destination: %s %s", stdout, stderr)
+			}
+			if after := captureFixtureTree(t, root); !reflect.DeepEqual(before, after) {
+				t.Fatal("refused restore mutated scope")
+			}
+			// Explicit test-only removal makes the named quarantine restorable.
+			if err := os.RemoveAll(desiredPath); err != nil {
+				t.Fatal(err)
+			}
+			code, stdout, stderr = run("restore", id, "--yes")
+			if code != 0 {
+				t.Fatalf("restore: code=%d stdout=%s stderr=%s", code, stdout, stderr)
+			}
+			for _, path := range []string{desiredPath, extraPath} {
+				data, err := os.ReadFile(filepath.Join(path, "SKILL.md"))
+				if err != nil || string(data) != "# local edits to preserve\n" {
+					t.Fatalf("restored bytes=%q err=%v", data, err)
+				}
+			}
+			var records []sjskills.ProvenanceRecord
+			if global {
+				inventory, err := sjskills.InspectGlobal(globalLayout)
+				if err != nil || !inventory.StateTrusted {
+					t.Fatalf("restored global state: err=%v trusted=%v", err, inventory.StateTrusted)
+				}
+				records = inventory.State.Records
+			} else {
+				inventory, err := sjskills.InspectProject(projectLayout)
+				if err != nil || !inventory.StateTrusted {
+					t.Fatalf("restored project state: err=%v trusted=%v", err, inventory.StateTrusted)
+				}
+				records = inventory.State.Records
+			}
+			for _, record := range records {
+				if record.Target == sjskills.TargetClaude && (record.Skill == skill || record.Skill == "local-extra") {
+					t.Fatalf("restoration granted ownership to modified content: %#v", record)
+				}
+			}
+		})
+	}
+}
+
 func TestExternalStrictSyncBlocksUninspectableUnselectedTarget(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires privileges on Windows")

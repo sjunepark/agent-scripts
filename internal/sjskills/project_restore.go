@@ -602,7 +602,7 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 		return nil
 	}
 	oldSource := entry.OldSourceIdentity
-	if entry.Action == ProjectQuarantineEntryActionRemove && oldSource == "" {
+	if oldSource == "" {
 		if exists {
 			return restoreConflict("restored unowned copy unexpectedly has provenance")
 		}
@@ -1006,10 +1006,14 @@ func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntr
 		records[projectPlacementKey(record.Target, record.Skill)] = record
 	}
 	for _, entry := range entries {
-		if entry.entry.Action == ProjectQuarantineEntryActionRemove && entry.entry.OldSourceIdentity == "" {
-			if _, exists := records[projectPlacementKey(entry.entry.Target, entry.entry.Skill)]; exists {
+		if entry.entry.OldSourceIdentity == "" {
+			key := projectPlacementKey(entry.entry.Target, entry.entry.Skill)
+			if _, exists := records[key]; exists && entry.entry.Action == ProjectQuarantineEntryActionRemove {
 				return ProvenanceState{}, restoreConflict("unowned restoration would overwrite provenance")
 			}
+			// An update's verified replacement record must not be assigned to
+			// the edited backup. Restore preflight already verified that record.
+			delete(records, key)
 			continue
 		}
 		if !isCanonicalProjectSourceIdentity(entry.entry.OldSourceIdentity) {

@@ -9,7 +9,7 @@
     {
       "id": 2,
       "prompt": "$sjskills: audit this project's managed skills and explain every blocked or preserved entry. Do not modify the project.",
-      "expected_output": "The skill runs project plan only, distinguishes planned changes from conflicts and operational failures, explains unknown, legacy, unmanaged, locally modified, and otherwise blocked state, and performs no apply, restore, publication, or managed-root mutation."
+      "expected_output": "The skill runs project plan only, distinguishes modified managed desired copies scheduled for quarantine and replacement from unmanaged desired copies and other conflicts, and performs no apply, restore, publication, or managed-root mutation."
     },
     {
       "id": 3,
@@ -24,7 +24,7 @@
     {
       "id": 5,
       "prompt": "Use $sjskills to make the global baseline exact. I have not reviewed a JSON plan or approved any hashes yet.",
-      "expected_output": "The skill accepts the request as authority for the fixed global baseline. It selects one verified executable, creates and reviews a complete JSON plan, verifies the executable and plan digests, and applies with --yes and the required approved-plan flags when no conflicts remain. It does not ask the user to approve hashes or counts. It verifies the final plan and retains execution evidence and quarantine identifiers; changed desired copies, unsafe paths, and explicit inspection limits still prevent mutation."
+      "expected_output": "The skill accepts the request as authority for the fixed global baseline. It selects one verified executable, creates and reviews a complete JSON plan, verifies executable and plan digests, and applies with --yes and approved-plan flags when no conflicts remain. Locally modified managed desired copies are quarantined and replaced. It does not ask for hash approval, verifies the final plan, and retains evidence and quarantine identifiers. Unmanaged desired copies, source mismatch, unsafe paths, and explicit inspection limits still prevent mutation."
     },
     {
       "id": 6,
@@ -44,7 +44,7 @@
     {
       "id": 9,
       "prompt": "Use $sjskills to strictly reconcile this project to its committed manifest. There is an old manually installed skill and a locally edited former managed skill that are no longer selected. A still-selected skill also has local edits.",
-      "expected_output": "The skill reviews the project plan, explains that verifiable unknown and modified undeclared directories are quarantined under strict sync, and stops apply because the modified desired copy is blocked. It does not treat unknown or modified extras as ownership exemptions, and keeps built-in skills, plugin caches, and Pi copies outside the scope. After the desired conflict is resolved, an authorized apply must be followed by a plan with no remaining extras or blocks."
+      "expected_output": "The skill reviews the project plan and applies within the requested scope: verifiable unknown and modified undeclared directories are quarantined; the previously managed same-source desired copy with local edits is quarantined and replaced with verified published content. No redundant approval or manual replacement is needed. It verifies a final plan with no extras or blocks and retains every quarantine identifier. Built-in skills, plugin caches, and Pi copies remain outside scope."
     },
     {
       "id": 10,
@@ -64,7 +64,7 @@
     {
       "id": 13,
       "prompt": "Use $sjskills to override and sync the configured state. A desired skill has local edits and its current tree no longer matches trusted provenance.",
-      "expected_output": "The skill explains that override can remove a redundant confirmation step but cannot satisfy the failed provenance/current-tree check. It stops the affected scope, preserves the modified desired copy, and reports the concrete conflict without force adoption, manual replacement, profile changes, or deleting the active path. An independent unblocked scope may finish within the requested limits."
+      "expected_output": "The skill reviews and applies configured project and global plans within the request limits, treating local-modification updates as quarantine followed by verified replacement when same-source trusted provenance and verifiable bytes exist. It prepares the required global evidence, verifies final plans, and reports preserved backup identifiers. It does not force-adopt unknown desired copies, ignore source mismatch, bypass unsafe paths, or manually replace roots."
     },
     {
       "id": 14,
@@ -90,6 +90,21 @@
       "id": 18,
       "prompt": "Use $sjskills to add the verified team-review skill from your-org/team-skills to this project's existing dev/go manifest. Keep the other declarations. Configure and preview only.",
       "expected_output": "The skill preserves existing profiles and direct declarations, adds the requested direct entry in name order after checking collisions with the selected profiles and fixed global baseline, and reviews the project plan. It does not rerun init, add a central profile or registry entry, perform an ad hoc install, commit, apply, or change global skills."
+    },
+    {
+      "id": 19,
+      "prompt": "Use $sjskills to sync only this project. A selected copy is previously managed but locally modified; keep those local edits active at their current path.",
+      "expected_output": "The skill reviews the project plan and stops before applying the conflicting replacement because of the explicit preservation limit. It does not reinterpret quarantine as keeping the edits active, change the manifest, manually replace the path, or touch global state."
+    },
+    {
+      "id": 20,
+      "prompt": "Use $sjskills to sync. A desired copy has no trusted installation record, although its current hash equals the published version.",
+      "expected_output": "The skill treats the desired copy as unmanaged and stops the affected scope. Byte equality does not establish prior ownership; the agent does not adopt or replace it. An independent unblocked scope can complete."
+    },
+    {
+      "id": 21,
+      "prompt": "Use $sjskills to sync a previously managed desired skill whose current tree equals the published content but differs from the saved provenance hash.",
+      "expected_output": "The skill treats the reviewed local-modification update as an authorized quarantine and verified replacement, preserving actual current bytes and establishing fresh installation provenance. It verifies the final plan and reports the quarantine identifier."
     }
   ]
 }

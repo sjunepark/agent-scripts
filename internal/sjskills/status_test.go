@@ -128,7 +128,7 @@ func TestStatusWarmCacheReinspectsLocalOwnershipAndContent(t *testing.T) {
 			writeGlobalSkill(t, root, skill.Name, "local edit\n")
 			writeGlobalSkill(t, root, "extra", "extra\n")
 			warm := service.Check(context.Background(), scope, nil)
-			requireStatusFinding(t, warm, AdvisoryConflict, skill.Name, TargetAgents, "local-modification")
+			requireStatusFinding(t, warm, AdvisoryUpdate, skill.Name, TargetAgents, "local-modification")
 			requireStatusFinding(t, warm, AdvisoryExtra, "extra", TargetAgents, "not-desired")
 			if calls.Load() != 1 {
 				t.Fatalf("warm materialized %d", calls.Load())

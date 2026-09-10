@@ -1,0 +1,121 @@
+{
+  "date": "2026-09-10",
+  "scope": "Previously managed locally modified desired copies: quarantine and replace in project/global reconciliation; restore without granting ownership.",
+  "baselineCommit": "b94bbd3f3b4c2efc2fdca037e8eed706e9c18dd6",
+  "gates": {
+    "static": "Pass: scripts/validate-skills; bunx skills add ./skills/sjskills --list; unchanged description and explicit-only adapter.",
+    "behavior": "Pass: three synthetic paired decision cases, one fresh worker per condition and case. Candidate passed 3/3; baseline passed 2/3 against the new outcome.",
+    "trigger": "Unchanged: description and policy.allow_implicit_invocation=false retained; existing trigger-cases.json unchanged. No new empirical trigger claim.",
+    "limits": "One trial per condition, simulated tool evidence rather than live agent execution. No timing/token measurements collected. CLI and filesystem behavior separately exercised by executable tests in isolated temporary homes."
+  },
+  "frozenAssertions": [
+    "Ordinary scoped sync proceeds with reviewed quarantine and replacement of a same-source previously managed desired copy with local edits; no extra approval.",
+    "Unknown desired copies remain blocked even with byte equality and an override request.",
+    "Explicitly keeping edits active prevents replacement; project-only requests never authorize global mutation.",
+    "Successful apply is followed by a final plan and retention of every quarantine identifier."
+  ],
+  "cases": [
+    {
+      "id": "modified-desired-and-extra",
+      "synthetic": true,
+      "holdout": false,
+      "request": "Use $sjskills to sync only this project from its committed dev/rust manifest.",
+      "fixture": "Command/root verified. Complete reviewed plan: 32 unchanged, 1 update local-modification at .claude/skills/address-issues, 1 quarantine undeclared edited extra. Desired copy has trusted same-source prior installation; current differs from recorded hash. Current and published trees verified, safe roots, no other blockers. Same executable supports quarantine then replacement.",
+      "baseline": {
+        "pass": false,
+        "output": "Stop this project scope before `sjskills apply --yes`: the skill explicitly blocks a locally modified desired copy, including `.claude/skills/address-issues`, despite trusted provenance and supported quarantine replacement.\n\nThe reviewed plan is 32 unchanged, 1 blocked update, and 1 undeclared-extra quarantine. Do not apply either mutation or touch global scope. A redundant approval is unnecessary; the local-modification conflict needs an explicit resolution first.\n\nAfter resolution, rerun `sjskills plan`, apply with `sjskills apply --yes` if clear, then rerun `sjskills plan`. Verify no remaining changes or blocks and retain every reported quarantine identifier."
+      },
+      "candidate": {
+        "pass": true,
+        "output": "Proceed with project-only `sjskills apply --yes` using the verified executable and project root. Before applying, summarize: 32 unchanged placements, one managed local-edit update preserved in quarantine then replaced, and one edited undeclared extra quarantined.\n\nNo additional user approval is needed; the sync request authorizes these recoverable operations.\n\nThen run `sjskills plan` with the same executable. Require no remaining changes or blocks before reporting completion; retain and report every quarantine identifier and confirm the committed dev/rust selection."
+      }
+    },
+    {
+      "id": "unknown-equal-bytes",
+      "synthetic": true,
+      "holdout": false,
+      "request": "Use $sjskills to override and sync only this project.",
+      "fixture": "Committed dev manifest. Desired .claude/skills/address-issues has no trusted installation record but equals verified published bytes. Plan reports blocked desired-path-unmanaged. Safe roots.",
+      "baseline": {
+        "pass": true,
+        "output": "Stop project reconciliation before apply and preserve `.claude/skills/address-issues`. The `dev` plan is blocked by `desired-path-unmanaged`; byte equality does not establish trusted ownership, and “override” permits neither adoption nor replacement.\n\nSeparate conflict resolution is needed before replanning. No mutations occurred, no quarantine was created, and sync remains incomplete. Global scope is excluded.\n\nThe [operative skill](/var/folders/16/lvgrynkd1n93dqjg140gs5wm0000gn/T/sjskills-skill-baseline-pi_skgzs/SKILL.md) explicitly says: “Do not force-adopt, manually replace roots.”"
+      },
+      "candidate": {
+        "pass": true,
+        "output": "Stop the project scope before apply. The committed `dev` selection is blocked by `desired-path-unmanaged` at `.claude/skills/address-issues`.\n\nNeither matching published bytes nor “override and sync” grants ownership or permits replacement/adoption. The [skill](/Users/sejunpark/IT/agent-scripts/skills/sjskills/SKILL.md) explicitly says: “Do not force-adopt, manually replace roots, change profiles, or include another machine to make a plan pass.”\n\nResolve the unmanaged placement through a separately authorized conflict-resolution action, then review a fresh project plan. Global scope is excluded. This trial was read-only; no apply, final verification, or quarantine occurred, and exact state cannot be claimed."
+      }
+    },
+    {
+      "id": "keep-edits-active",
+      "synthetic": true,
+      "holdout": true,
+      "request": "Use $sjskills to sync only this project, but keep my edits to address-issues active at their current path.",
+      "fixture": "Committed dev manifest. Same-source trusted prior installation, locally edited desired .claude/skills/address-issues, verified current tree. Plan schedules update local-modification with quarantine-before-replacement; other placements unchanged; safe roots.",
+      "baseline": {
+        "pass": true,
+        "output": "Do not apply the project plan: replacing `.claude/skills/address-issues` would violate the requirement to keep its edits active at that path. Leave it untouched and report the conflict; the skill also requires stopping on a locally modified desired copy.\n\nQuarantine preserves recoverability, but does not satisfy preservation at the active path.\n\nGlobal work is not authorized by this project-only request."
+      },
+      "candidate": {
+        "pass": true,
+        "output": "Stop the project scope before apply: replacing `.claude/skills/address-issues` violates the request to keep its edits active at that path.\n\nQuarantine preserves the bytes but does **not** satisfy that restriction. The skill explicitly requires stopping the affected scope when planned replacement or quarantine conflicts with preservation.\n\nGlobal work is not authorized; the user requested project-only sync. No mutations performed."
+      }
+    }
+  ],
+  "authoringRubric": [
+    {
+      "sections": [
+        "1 Scope and purpose",
+        "2 Trigger description",
+        "3 Entry-point quality"
+      ],
+      "result": "Pass",
+      "evidence": "Existing single reconciliation purpose retained; SKILL.md Classify the request and Project workflow changed only modified-copy decisions. Description and agents/openai.yaml unchanged."
+    },
+    {
+      "sections": [
+        "4 Progressive disclosure",
+        "5 Calibrated specificity",
+        "6 Workflow and completion"
+      ],
+      "result": "Pass",
+      "evidence": "Validator and local discovery pass. SKILL.md links the single global reference; both use reviewed updates, stop on real conflicts, honor preservation constraints, verify final plans, and retain quarantine handles."
+    },
+    {
+      "sections": [
+        "7 Robustness",
+        "8 Resources and portability"
+      ],
+      "result": "Pass",
+      "evidence": "CLI tests in both isolated scopes and modified_recovery_test.go cover recovery, provenance and concurrent edits. Runtime files use relative pointers, declare sjskills prerequisite, and do not depend on model/host choices. No new dependencies."
+    },
+    {
+      "sections": [
+        "9 Evaluation evidence",
+        "10 Pruning and final quality"
+      ],
+      "result": "Pass",
+      "evidence": "Fresh paired decisions above improve the reported failure and retain unmanaged/preservation boundaries. Static trigger check only; unchanged trigger trials not rerun. Existing entry point and reference edited in place; no added runtime files or alternate override mode."
+    }
+  ],
+  "executableEvidence": {
+    "baseline": "External CLI regression failed in both project and global scopes: desired .claude copy blocked/local-modification, undeclared edited extra quarantine/not-desired.",
+    "candidate": "External CLI regression passes in both scopes: edited backup preserved; published content installed; clean final plan; no-op second apply; occupied restore refused; absent-destination restore returns edits with no ownership.",
+    "recovery": "Different/equal hashes: publication rollback preserves exact historical provenance and actual bytes; concurrent edits rejected; six real apply subprocess crashes and two real restore subprocess crashes recover and rerun; journal rejects invented ownership, absent pre-record, and mismatched source.",
+    "validation": [
+      "go test ./...",
+      "node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js",
+      "scripts/validate-skills",
+      "bunx skills add ./skills/sjskills --list",
+      "git diff --check",
+      "go vet ./...",
+      "python3 scripts/release_test.py",
+      "Windows amd64 compilation of both Go test packages"
+    ],
+    "review": "One independent bounded code-review pass found no actionable findings across implementation, system, design, and diet lenses.",
+    "platformLimit": "Native execution passed on macOS Apple silicon. Windows x64 test binaries compiled; native Windows execution remains unverified.",
+    "publication": "No publication, installation, live reconciliation, removal, or migration performed."
+  },
+  "baselineSkillSha256": "ee1cfd93b152a522d1692352ff121e02e9621fd879c0f253974abd94ff95a4e4",
+  "candidateSkillSha256": "107e5d9f56dcf3c4a0acab11b0165b7b8ceaa0d5ba669379d6b7137bd7fd97f8",
+  "candidateReferenceSha256": "e6ea6fd54267e50c934cd11ec42c42ff2de0482811413296a66bea40aac64472"
+}

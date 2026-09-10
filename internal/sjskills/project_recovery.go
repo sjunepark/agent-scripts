@@ -91,11 +91,8 @@ func newApplyJournal(preimage *applyStatePreimage, session *ProjectApplySession,
 		if oldHash, ok := treeHashFromPlanEvidence(operation.Current); ok && operation.Action != PlanActionInstall {
 			entry.TreeHashAlgorithm = oldHash.Algorithm
 			entry.OldTreeHash = oldHash.Digest
-			entry.OldSourceIdentity = preRecords[key].SourceIdentity
-			if operation.Action == PlanActionQuarantine {
-				record, exists := preRecords[key]
-				entry.OldSourceIdentity = removalSourceIdentity(record, exists, oldHash)
-			}
+			record, exists := preRecords[key]
+			entry.OldSourceIdentity = removalSourceIdentity(record, exists, oldHash)
 		}
 		if operation.Action != PlanActionQuarantine {
 			newHash, ok := session.Expected[operation.Skill]
@@ -301,9 +298,9 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 			}
 		case PlanActionUpdate:
 			requiresQuarantine = true
-			if !validTreeDigest(entry.OldTreeHash) || !validTreeDigest(entry.NewTreeHash) || entry.OldTreeHash == entry.NewTreeHash ||
-				!isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) || !isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) ||
-				entry.OldSourceIdentity != entry.NewSourceIdentity {
+			if !validTreeDigest(entry.OldTreeHash) || !validTreeDigest(entry.NewTreeHash) ||
+				!isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) ||
+				(entry.OldSourceIdentity != "" && (entry.OldSourceIdentity != entry.NewSourceIdentity || entry.OldTreeHash == entry.NewTreeHash)) {
 				return false
 			}
 		case PlanActionQuarantine:
@@ -367,7 +364,6 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 		changed[key] = struct{}{}
 		pre, preExists := preRecords[key]
 		candidate, candidateExists := candidateRecords[key]
-		oldMatches := preExists && recoveryRecordMatches(pre, entry, false, scope)
 		newMatches := candidateExists && recoveryRecordMatches(candidate, entry, true, scope)
 		if journal.Kind == projectTransactionKindApply {
 			switch entry.Action {
@@ -376,7 +372,10 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 					return false
 				}
 			case PlanActionUpdate:
-				if !oldMatches || !newMatches {
+				// Require an existing installation from the desired source; the
+				// observed backup hash may differ from its last verified record.
+				if !preExists || pre.Scope != scope || pre.SourceIdentity != entry.NewSourceIdentity || !newMatches ||
+					entry.OldSourceIdentity != removalSourceIdentity(pre, true, TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.OldTreeHash}) {
 					return false
 				}
 			case PlanActionQuarantine:
@@ -1007,6 +1006,21 @@ func (tx *applyTransaction) recoverApplyEntry(journal projectTransactionJournal,
 			return recoveryErr
 		}
 		if destinationExists && destinationHash == newHash {
+			if entry.Action == PlanActionUpdate && entry.OldTreeHash == entry.NewTreeHash {
+				quarantined := filepath.Join(tx.layout.QuarantinePath, journal.QuarantineID, filepath.FromSlash(projectQuarantinedPlacement(entry.Target, entry.Skill)))
+				_, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined)
+				if quarantineErr != nil {
+					return quarantineErr
+				}
+				// Before the backup move (or after recovery restored it), equal
+				// bytes at the destination are the original, not a publication.
+				if !quarantineExists {
+					if recoveryExists && recoveryHash != newHash {
+						return applyConflict("interrupted recovery content changed")
+					}
+					return nil
+				}
+			}
 			if recoveryExists {
 				return applyConflict("interrupted recovery destination is occupied")
 			}

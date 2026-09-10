@@ -61,15 +61,29 @@ placement itself. Skills with the same source and `fullDepth` option share one
 fetch; every requested tree must still be present and verified. Materializer
 process groups on Unix and jobs on Windows stop descendants before staging
 cleanup, including after a parent exits. Byte equality and Skills CLI lock
-metadata do not grant ownership. A desired placement is updated only when trusted reconciler
-provenance still matches its source and current tree hash.
+metadata do not grant ownership. A desired placement is updated only when trusted
+reconciler provenance identifies a previous installation from the desired source
+and the current tree can be verified.
 
 Both scopes strictly reconcile their `.agents/skills` and `.claude/skills`
 roots to the selected desired set. Every verifiable undeclared directory moves
 into recoverable quarantine, including unknown, former-profile, and locally
-modified copies. Removal is bound to the observed current tree hash. Restore
-retains ownership only when prior provenance matched those bytes; restoring an
-unknown or modified copy does not grant ownership.
+modified copies. Previously managed desired copies with local edits use the same
+preservation policy: quarantine the actual current tree, install verified
+published content, and record fresh provenance. Plans and status classify these
+as updates with reason `local-modification`, including when edited bytes already
+equal the published tree but differ from the recorded installation. No force
+flag is needed. Every move remains bound to the reviewed current hash, and
+changes after review still stop apply.
+
+Quarantine retains ownership only when prior provenance matched the preserved
+bytes. Modified backups carry an empty old source identity; restore removes the
+replacement's provenance rather than granting ownership to those edits. A
+restored edited desired copy is therefore an unmanaged conflict on the next
+plan; a restored undeclared copy is removal drift. Restore still requires absent
+destinations. Use a binary supporting modified-copy updates to restore their
+quarantines; older binaries reject that recovery metadata. Existing quarantine
+and journal formats remain readable by the updated binary.
 
 On Windows, identity checks around publication, quarantine, and recovery use
 handle-based file information captured before a move or content check. Long
@@ -79,8 +93,8 @@ rename can incorrectly report a conflict or resolve a reused path. Identity
 checks remain separate from content hashes; identical bytes do not establish
 ownership of a replacement directory.
 
-An unknown or locally modified copy at a desired path, malformed provenance,
-an unsafe root, or an unverifiable extra blocks apply. Extras are not silently
+An unknown copy at a desired path, source mismatch, malformed or untrusted
+provenance, an unsafe root, or an unverifiable extra blocks apply. Extras are not silently
 preserved as exact state. Declared manual and workflow entries retain their
 external provisioning boundaries. Built-in skills, plugin caches, legacy Pi
 copies, and legacy provenance outside the managed roots remain outside strict

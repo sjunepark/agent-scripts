@@ -129,7 +129,7 @@ func TestClassifyProjectCoversOwnershipMatrix(t *testing.T) {
 	}{
 		{TargetAgents, "exact", ProjectStateExact, PlanActionUnchanged, ProjectStateReasonVerifiedExact},
 		{TargetAgents, "outdated", ProjectStateOutdated, PlanActionUpdate, ProjectStateReasonVerifiedUpdate},
-		{TargetAgents, "modified", ProjectStateModified, PlanActionBlocked, ProjectStateReasonLocalModification},
+		{TargetAgents, "modified", ProjectStateModified, PlanActionUpdate, ProjectStateReasonLocalModification},
 		{TargetAgents, "missing", ProjectStateMissing, PlanActionInstall, ProjectStateReasonExpectedEntryAbsent},
 		{TargetAgents, "unmanaged", ProjectStateUnmanaged, PlanActionBlocked, ProjectStateReasonDesiredPathUnmanaged},
 		{TargetAgents, "malformed", ProjectStateMalformed, PlanActionBlocked, ProjectStateReasonCurrentEntryUnverifiable},

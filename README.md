@@ -150,8 +150,9 @@ declarations. In a project that adopts this ownership model, ignore
 patterns until any preexisting committed content has been reviewed and
 migrated. Review every plan before apply. Sync removes undeclared skills from
 these roots into recoverable quarantine, including unknown and locally modified
-copies. Unmanaged or modified desired copies and unverifiable entries block
-apply. See the
+copies. Previously managed desired copies with local edits are quarantined and
+replaced with verified published content. Unmanaged desired copies, source
+mismatches, and unverifiable entries still block apply. See the
 [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation).
 
 Run `sjskills` (or `sjskills status`) for CLI version, project, and global status.

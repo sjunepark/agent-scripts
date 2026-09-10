@@ -36,7 +36,7 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 		}
 		if operation.Action == PlanActionUpdate && (!managed ||
 			record.Scope != session.Desired.Scope || record.Skill != operation.Skill || record.Target != operation.Target ||
-			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || !treeHashMatchesRecord(oldHash, record)) {
+			!isCanonicalProjectSourceIdentity(record.SourceIdentity)) {
 			return applyConflict("reviewed quarantine provenance identity changed")
 		}
 
@@ -58,7 +58,8 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 			newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)
 			if !wanted || skill.Manager != ManagerSkillsCLI || skill.Mode != ModeCopy || !newHashOK || !sourceOK ||
 				operation.Manager != ManagerSkillsCLI || operation.Source != skill.Source ||
-				record.SourceIdentity != newSource || newHash != expectedHash || newHash.Algorithm != oldHash.Algorithm || newHash.Digest == oldHash.Digest {
+				record.SourceIdentity != newSource || !expectedHashOK || newHash != expectedHash || newHash.Algorithm != oldHash.Algorithm ||
+				(entry.OldSourceIdentity != "" && newHash.Digest == oldHash.Digest) {
 				return applyConflict("reviewed update provenance identity changed")
 			}
 			entry.Action = ProjectQuarantineEntryActionUpdate
@@ -234,6 +235,7 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 		newSource, sourceOK := canonicalProjectSourceIdentity(skill.Source)
 		newHash, hashOK := session.Expected[skill.Name]
 		if !wanted || skill.Manager != ManagerSkillsCLI || skill.Mode != ModeCopy || !sourceOK || !hashOK ||
+			!recordOK || record.Scope != session.Desired.Scope || record.SourceIdentity != newSource ||
 			operation.SourceID != skill.SourceID || operation.Source != skill.Source ||
 			newSource != entry.NewSourceIdentity || newHash.Digest != entry.NewTreeHash || newHash.Algorithm != entry.TreeHashAlgorithm {
 			return applyConflict("update provenance identity changed before move")

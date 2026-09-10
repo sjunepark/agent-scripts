@@ -6,14 +6,14 @@ Status: complete — original release record
 
 `sjskills` established the reconciliation engine for one minimal machine-global
 skill baseline and reproducible project selections. This records the original
-release, including its preservation policy. The strict-sync correction
-supersedes that policy: see the current
+release, including its preservation policy. Strict sync and quarantine-backed
+replacement of modified managed copies supersede that policy: see the current
 [reconciliation contract](../docs/skill-registry.md#ownership-and-reconciliation)
 and [delivery status](../PROGRESS.md).
 
-The implementation is merged. The separate
-[global rollout plan](sjskills-global-rollout.md) remains proposed and does not
-authorize mutation on any real machine.
+The original implementation is merged. The separate
+[global rollout record](sjskills-global-rollout.md) describes delivered evidence
+binding and request authority; per-machine execution requires a sync request.
 
 ## Original product contract
 

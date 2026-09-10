@@ -259,7 +259,7 @@ func classifyCopyPlacement(state *ProjectState, skill DesiredSkill, root Project
 		return
 	}
 	state.Kind = ProjectStateModified
-	state.Action = PlanActionBlocked
+	state.Action = PlanActionUpdate
 	state.Reason = ProjectStateReasonLocalModification
 }
 

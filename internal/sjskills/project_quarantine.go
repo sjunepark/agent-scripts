@@ -246,11 +246,12 @@ func validProjectQuarantineEntry(entry ProjectQuarantineManifestEntry) bool {
 	}
 	switch entry.Action {
 	case ProjectQuarantineEntryActionUpdate:
-		return isCanonicalProjectSourceIdentity(entry.OldSourceIdentity) &&
-			isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) &&
-			entry.NewSourceIdentity == entry.OldSourceIdentity &&
+		// Local edits are recoverable bytes, but have no verified old source.
+		// They may already equal the published tree despite stale provenance.
+		return isCanonicalProjectSourceIdentity(entry.NewSourceIdentity) &&
 			lowercaseDigestPattern.MatchString(entry.NewTreeHash) &&
-			entry.NewTreeHash != entry.OldTreeHash
+			(entry.OldSourceIdentity == "" ||
+				(entry.OldSourceIdentity == entry.NewSourceIdentity && entry.NewTreeHash != entry.OldTreeHash))
 	case ProjectQuarantineEntryActionRemove:
 		// Empty replacement fields are intentionally omitted by encoding/json so
 		// a remove entry cannot be mistaken for an update by restore.
