@@ -9,9 +9,10 @@ Public selections and the fixed global baseline retain their fetching policy.
 The [registry contract](../docs/skill-registry.md) owns access semantics,
 compatibility, operator setup, and error handling.
 
-Implementation, bounded independent review, and local acceptance are complete.
-Supported native CI and PR merge remain pending. No release, actual private-skill
-installation, real-machine reconciliation, or authentication setup is included.
+Implementation, bounded independent review, local acceptance, and supported
+native CI are complete for `84ba2e7`. [PR #23](https://github.com/sjunepark/agent-scripts/pull/23)
+owns the final merge status. No release, actual private-skill installation,
+real-machine reconciliation, or authentication setup is included.
 The seven already-authorized recovered registrations are in `kicpa-private`;
 `kicpa` retains its public members. Additional enrollment is outside this change.
 
@@ -77,7 +78,7 @@ credentials. No private repository or real user login is needed by CI.
 | Descendant cleanup | Blocking native gh fixture is stopped by cancellation and timeout through Git → helper → gh before staging cleanup; generic process-tree tests retain staging when termination is unverified |
 | Source and evidence | Original remote source in plans/provenance; access separates batch/cache/review identity; warm/cold/cooldown tests preserve public evidence when private refresh fails |
 | Credentials remain transient | Sentinel absent from CLI diagnostics and project files; token login uses version-only temporary configuration and leaves original legacy config unchanged; helper output is bounded and never included in diagnostics |
-| Platform compatibility | Full Go/race suites and supporting checks passed locally on macOS; hosted macOS Intel/ARM and Windows acceptance pending |
+| Platform compatibility | Full Go/race suites and supporting checks passed locally; hosted macOS Intel/ARM and Windows acceptance passed in run 34482396368 |
 
 The independent review found no concrete implementation defect or exploitable
 credential leak. Its requested full-chain cancellation/timeout coverage and
@@ -85,16 +86,19 @@ token-login coverage were added and passed. Fixtures never fall through to
 real remote GitHub, gh credentials, or Skills CLI during automated tests.
 A live private-GitHub smoke test is supplementary and was not performed.
 
-## Remaining delivery
+## Delivery record
 
-1. Push the reviewed implementation and updated PR description.
-2. Pass [Checks](../.github/workflows/checks.yml), including
-   [native artifact consumers](../.github/workflows/release-artifacts.yml), and
-   address actionable PR feedback without manually retriggering review bots.
-3. Mark PR #23 ready and merge while preserving individual commits. PR #22's
-   original source tip is included, so the final merge also includes its work.
-4. Record final CI and merge evidence. Leave release publication and machine
-   onboarding for a separate request.
+- Implementation: `84ba2e7`, retaining local authoring work and the original PR
+  #22 recovery tip through merge ancestry.
+- [Hosted acceptance](https://github.com/sjunepark/agent-scripts/actions/runs/34482396368)
+  passed source checks, artifact builds, all supported native consumers, and the
+  required aggregate gate. The final PR checks also cover documentation updates.
+- CodeRabbit's requested initial review was skipped because automatic reviews
+  are disabled. The bounded independent review and its acceptance follow-ups
+  are complete; no external review findings remain.
+- [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) is the authoritative
+  publication/merge record. No implementation or acceptance work remains.
+- Release publication and machine onboarding require a separate request.
 
 GitHub Enterprise/other hosts, privately hosted profile definitions,
 interactive account management, visibility enforcement, optional-skill skipping,

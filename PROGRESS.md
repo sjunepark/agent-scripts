@@ -12,9 +12,14 @@
   passed on macOS. Bounded independent review found no implementation defect;
   its requested native auth cancellation coverage and token-login acceptance
   were added and passed. Operator documentation and the plugin bundle agree.
-- Next: finish acceptance checks and documentation, push PR #23, pass supported
-  native CI, then mark ready and merge. No new release, actual private-skill
-  installation, or real-machine reconciliation is included.
+- Implementation `84ba2e7` passed source checks and hosted native acceptance on
+  macOS Intel/ARM and Windows in
+  [run 34482396368](https://github.com/sjunepark/agent-scripts/actions/runs/34482396368).
+  [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) owns the final merge
+  status; no implementation or acceptance work remains. CodeRabbit skipped its
+  requested review because automatic reviews are disabled.
+- No new release, actual private-skill installation, or real-machine
+  reconciliation is included.
 
 # sjskills maintenance plugin delivery
 
