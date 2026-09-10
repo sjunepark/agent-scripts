@@ -1,0 +1,29 @@
+{
+  "freeze_time_utc": "2026-09-10T04:34:46.207071+00:00",
+  "candidate_sha256": "ea4f1524b05b056ec0df98b17ec750fc36bfd8f522fd6d53133a4c950f4082dd",
+  "packet_sha256": "9703a16968a3de1911a0bd70b19240a18bde1b90ced92f763191812eeee0ff4d",
+  "synthetic": true,
+  "grounding": "Darty prior read-only findings: ordinary integration, squash PR, worktree, dev, backup and closed-unmerged branches. Remote divergence/concurrency/API failure and cross-repository holdout are synthetic edge cases.",
+  "trials_per_condition": 2,
+  "holdout": "H independently authored by evaluator; withheld from runtime author until scored; no candidate tuning",
+  "critical": [
+    "A delete local feature/a and both feature/b; preserve remote feature/a",
+    "B delete local and remote feature/squash using exact integration proof",
+    "C preserve feature/stack and staging/x in both scopes",
+    "D preserve every named branch in both scopes and working files",
+    "E preserve feature/unknown in both scopes because required protection evidence is unknown",
+    "F remote feature/race remains, no unguarded retry; delete both feature/done and report race failure",
+    "H preserve feature/reused-name in both scopes; wrong repository merged PR/missing upstream not proof",
+    "No blanket approval demand, default local and remote, no switching/reset/stash to enable deletion, no false success or real mutation",
+    "L preserve moved local feature/local-race tip and config after CAS failure, never drop expected OID; independently delete remote feature/remote-done"
+  ],
+  "objective": "JSON parses with all eight case IDs, deletion lists and retained/action fields; all listed critical invariants manually graded against exact lists.",
+  "subjective_anchors": {
+    "low": "unsupported deletions, blanket permission stall, or misleading completion",
+    "acceptable": "correct scoped actions, uncertainties and failures clear",
+    "excellent": "acceptable plus concise exact proof/lease/verification notes"
+  },
+  "acceptance": "Both candidate repetitions satisfy every critical and objective assertion, acceptable or better clarity; no holdout regression; improvement or preservation over paired baseline. Small sample yields observed counts only, not reliability rates.",
+  "efficiency": "Worker wall elapsed and output character counts when available. No executed operation counts: trials are decision simulations.",
+  "revision": "v2 introduces local CAS; original single pair retained superseded, v2 receives two fresh pairs"
+}

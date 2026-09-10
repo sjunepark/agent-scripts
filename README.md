@@ -47,6 +47,11 @@ Use `$progress` when explicitly invoked to organize, orient to, brief or review,
 continue, or hand off repo-local plans and tasks. Use `$code-review` for a
 bounded review pass that applies only obvious safe fixes.
 
+Use [$cleanup-branches](skills/cleanup-branches/SKILL.md) to clean completed
+local and remote Git branches. It decides routine deletions from repository and
+PR evidence, preserves active or retained work, and asks only about consequential
+unresolved cases.
+
 Use [$address-issues](skills/address-issues/SKILL.md) for a specified GitHub
 issue or a confirmed issue queue, through reviewed PR merge and verified
 resolution. Multiple mode requires Codex app task tools and runs one

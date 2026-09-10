@@ -154,6 +154,11 @@
       "mode": "copy"
     },
     {
+      "name": "cleanup-branches",
+      "source": "agent-scripts",
+      "manager": "none"
+    },
+    {
       "name": "clear-rust",
       "source": "agent-scripts",
       "manager": "skills-cli",

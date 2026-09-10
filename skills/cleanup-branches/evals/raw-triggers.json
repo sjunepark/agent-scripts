@@ -1,0 +1,44 @@
+[
+  {
+    "id": "P1",
+    "output": {
+      "activate": true,
+      "reason": "The user explicitly invoked $cleanup-branches."
+    }
+  },
+  {
+    "id": "N1",
+    "output": {
+      "activate": false,
+      "reason": "The user did not explicitly invoke cleanup-branches, and implicit invocation is disabled."
+    }
+  },
+  {
+    "id": "P2",
+    "output": {
+      "activate": true,
+      "reason": "The user explicitly names cleanup-branches and requests its use."
+    }
+  },
+  {
+    "id": "N2",
+    "output": {
+      "activate": false,
+      "reason": "The request concerns a decision tree diagram, not Git branches, and does not explicitly invoke the skill."
+    }
+  },
+  {
+    "id": "P3",
+    "output": {
+      "activate": true,
+      "reason": "The user explicitly invokes cleanup-branches and limits it to inspection."
+    }
+  },
+  {
+    "id": "N3",
+    "output": {
+      "activate": false,
+      "reason": "The user asks for a Git explanation and does not explicitly invoke cleanup-branches."
+    }
+  }
+]

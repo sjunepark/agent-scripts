@@ -1,0 +1,6 @@
+interface:
+  display_name: "Cleanup Branches"
+  short_description: "Clean completed local and remote Git branches"
+  default_prompt: "Use $cleanup-branches to clean completed local and remote branches, deciding routine cases from repository and PR evidence."
+policy:
+  allow_implicit_invocation: false

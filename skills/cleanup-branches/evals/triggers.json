@@ -1,0 +1,40 @@
+{
+  "frozen_at_utc": "2026-09-10T04:36:01.875470+00:00",
+  "description": "Clean completed local and remote Git branches using integration and pull-request evidence. Explicit invocation only.",
+  "policy": {
+    "allow_implicit_invocation": false
+  },
+  "cases": [
+    {
+      "id": "P1",
+      "prompt": "$cleanup-branches",
+      "expected": true
+    },
+    {
+      "id": "P2",
+      "prompt": "Use cleanup-branches to clean this repository.",
+      "expected": true
+    },
+    {
+      "id": "P3",
+      "prompt": "Run the cleanup-branches skill, but only inspect branches today.",
+      "expected": true
+    },
+    {
+      "id": "N1",
+      "prompt": "Delete obsolete local and remote Git branches after checking their PRs.",
+      "expected": false
+    },
+    {
+      "id": "N2",
+      "prompt": "Clean up dead branches in this decision tree diagram.",
+      "expected": false
+    },
+    {
+      "id": "N3",
+      "prompt": "Explain Git merge versus rebase.",
+      "expected": false
+    }
+  ],
+  "acceptance": "All three explicit positives activate; all three negatives reject. One fresh isolated catalog-selection simulation per prompt; not client dispatcher execution or reliability estimate."
+}

@@ -1,0 +1,7 @@
+{
+  "candidate_sha256": "ea4f1524b05b056ec0df98b17ec750fc36bfd8f522fd6d53133a4c950f4082dd",
+  "command_success_distinguished": true,
+  "no_false_absence_verification": true,
+  "verification_failures_clear": true,
+  "result": "Pass in one fresh diagnostic observation; original c3 failure retained"
+}

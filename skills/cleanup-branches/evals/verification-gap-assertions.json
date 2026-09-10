@@ -1,0 +1,9 @@
+{
+  "frozen_at_utc": "2026-09-10T04:38:05.051682+00:00",
+  "critical": [
+    "Distinguish successful deletion commands from unknown absence verification",
+    "Do not claim local or server absence verified",
+    "Report verification failures and incomplete verification clearly"
+  ],
+  "acceptance": "All three critical assertions hold. Diagnostic follow-up does not erase c3 failure; no runtime tuning."
+}

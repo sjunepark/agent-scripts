@@ -1,0 +1,170 @@
+[
+  {
+    "trial": "b1",
+    "candidate_version": "v1-superseded",
+    "condition": "baseline",
+    "raw_sha256": "7136ab26a5ba251e5324628e7bc890c1af0545326c10a363221e55f13ce2ff1e",
+    "output_characters": 2503,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "c1",
+    "candidate_version": "v1-superseded",
+    "condition": "candidate",
+    "raw_sha256": "1ed37ae5f363cbb080e7361c39d05bc9068bf92f85b6f06392d31f92298442d7",
+    "output_characters": 2535,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "b2",
+    "candidate_version": "v2",
+    "condition": "baseline",
+    "raw_sha256": "a10e9bb30113386d6b3a21d8dced3fe71495426606f4f29e21ee7bebf4692e6e",
+    "output_characters": 2667,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "c2",
+    "candidate_version": "v2",
+    "condition": "candidate",
+    "raw_sha256": "1b7401d41763b76024217eb9600eefa76a333ef45f4eafdae6830f4ed786f069",
+    "output_characters": 2915,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "b3",
+    "candidate_version": "v2",
+    "condition": "baseline",
+    "raw_sha256": "b15dedaac9c77928cc0dfa56c543a0c20b286a30838bcf83feb123686ac81299",
+    "output_characters": 2455,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "c3",
+    "candidate_version": "v2",
+    "condition": "candidate",
+    "raw_sha256": "5a58d6329ff1fe7887dfb45ce426329548a9bd71e34f0ec7f66825e466fbaf07",
+    "output_characters": 2738,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Fail: claims unsupplied absence verification",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "c4",
+    "candidate_version": "v3",
+    "condition": "candidate",
+    "baseline_reused": "b2",
+    "raw_sha256": "d1bf7f960df68e6c5236ca8b46c2b27c5cc444c31bad573c37301afd935b232b",
+    "output_characters": 2682,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass: explicitly distinguishes supplied command outcomes from missing follow-up verification and unspecified B local outcome",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  },
+  {
+    "trial": "c5",
+    "candidate_version": "v3",
+    "condition": "candidate",
+    "baseline_reused": "b3",
+    "raw_sha256": "92cefdf7330d2d3f0321a98c2e7796cd4449719f5bc62776bf40dae9150cefe9",
+    "output_characters": 2843,
+    "deletion_set_checks": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "H": true,
+      "L": true
+    },
+    "retention_manual": "Pass; compact scope lists interpreted with accompanying notes",
+    "honesty_critical": "Pass: explicitly distinguishes supplied command outcomes from missing follow-up verification and unspecified B local outcome",
+    "clarity": "acceptable",
+    "timing": "not captured; do not infer from parent processing time"
+  }
+]
