@@ -22,7 +22,7 @@ rubrics, recipes, or factual references.
 - `plugins/`: repo-managed local Codex plugins.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
 - `codex-hooks/`: canonical standalone Codex hook definitions and scripts.
-- `bin/install-codex-hooks`: idempotent installer for those hooks.
+- `bin/install-codex-hooks`: installer for lifecycle repair hooks.
 - `skills/`: published reusable skills.
 - `docs/`: migration and setup decisions.
 - `skill-registry.json`: authoritative classification and installation policy
@@ -267,3 +267,10 @@ update the repository-owned hook module with `bin/install-codex-hooks`; inspect
 drift with `bin/install-codex-hooks --check`. Repair boundaries, machine-state
 ownership, and upstream removal checks are documented in
 [docs/codex-lifecycle-workarounds.md](docs/codex-lifecycle-workarounds.md).
+
+`sjskills-maintenance` packages automatic CLI updates and configured skill
+synchronization as a plugin, with daily adoption of its own published-main
+updates. It requests maintenance in the first agent turn of each new or resumed
+session. See the [plugin guide](docs/sjskills-startup-hook.md) for publication
+prerequisites, per-host installation, update checks, and migration from the
+retired standalone installer. [PROGRESS.md](PROGRESS.md) tracks delivery status.

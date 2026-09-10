@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const repo = path.resolve(__dirname, "..");
+const files = ["SKILL.md", "references/global-rollout.md"];
+const args = process.argv.slice(2);
+if (args.length > 1 || (args.length && args[0] !== "--check")) {
+  console.error("Usage: node scripts/sync-sjskills-plugin [--check]");
+  process.exit(1);
+}
+for (const relative of files) {
+  const source = path.join(repo, "skills/sjskills", relative);
+  const destination = path.join(repo, "plugins/sjskills-maintenance/references/sjskills", relative);
+  const expected = fs.readFileSync(source);
+  if (fs.existsSync(destination) && fs.readFileSync(destination).equals(expected)) continue;
+  if (args[0] === "--check") {
+    console.error(`drift: ${path.relative(repo, destination)}; run node scripts/sync-sjskills-plugin`);
+    process.exitCode = 1;
+  } else {
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.writeFileSync(destination, expected);
+  }
+}

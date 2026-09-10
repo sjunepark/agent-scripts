@@ -40,10 +40,26 @@ Each `skills` entry records:
 
 A `repository` source names the published GitHub `skills/` catalog.
 An `external` source names a deliberately tracked upstream or a manual
-boundary. Skills CLI-managed sources must be public Git shorthand
+boundary. Skills CLI-managed sources must be Git shorthand
 (`owner/repo[/path]`) or credential-free HTTPS. Local paths, embedded
 credentials, URL query strings, npm specifiers, and other schemes are rejected
 for that manager.
+
+This integration draft retains PR #22's private registrations; it is not ready
+for main or release. Authenticated fetching and the selected separate
+`kicpa-private` profile remain unimplemented; the
+[private-source plan](../plans/sjskills-private-github-sources.md) owns that work.
+
+Private repositories use the same source records; URL validation does not check
+repository visibility. The `kicpa` profile includes skills from the private
+`sjunepark/kicpa` catalog, so materializing that profile requires repository
+access. Authentication must work non-interactively in the isolated staging
+environment. Ordinary inherited environment variables, including Git
+credential-helper configuration, are preserved, but home and XDG configuration
+paths are replaced. Login or helper configuration stored only under the original
+home is therefore not automatically available. `sjskills` does not provision
+credentials. Keep secrets out of registry URLs; the recovered registrations do
+not establish verified private installation support.
 
 `manual` entries remain externally owned. `workflow` entries are provisioned
 by the named project workflow. `none` entries are catalog-only: they are

@@ -1,3 +1,52 @@
+# Combined local integration draft
+
+- `codex/combine-local-origin-pr22` combines local `main` at `f689e91`,
+  `origin/main` at `143a340`, and draft PR #22 at `e1529ff`, preserving their
+  individual commits. Both local and remote `dev` are already ancestors of
+  `origin/main`. The common merge base is `e6c7e487`.
+- Local skill-authoring changes are preserved exactly; incoming plugin and
+  registry changes merged without conflicts. Local `main` and remote branches
+  remain unchanged; this integration is local only.
+- Not ready for main or release: the draft adds private access requirements to
+  `kicpa`, contrary to the selected separate private-profile design. Follow the
+  [private-source plan](plans/sjskills-private-github-sources.md) before rollout.
+- Full Go tests, `go vet`, Node registry/wrapper/hook tests, release tests, and
+  skill validation pass on macOS. Bounded independent merge review found no
+  integration issues; private fetching and cross-platform acceptance remain
+  unverified. Complete the private-source plan before promoting this branch.
+- Full original checkout recovery remains in Git stash commit
+  `038118178cce4759e3acebf854f19b36723488fc`, including superseded hook drafts.
+
+# sjskills maintenance plugin delivery
+
+- User authorized automatic CLI updates and configured skill sync on every
+  supported local host. Existing release support is macOS Intel/ARM and Windows
+  x64; Linux is unsupported.
+- User also authorized automatic adoption of this hook's published `main`
+  updates. Migrated the standalone hook into `plugins/sjskills-maintenance/`;
+  retired its installer. Maintenance still runs in the next agent turn.
+- Added daily plugin-check state, a 15-minute failure cooldown, remote source/ref
+  verification instructions, and target-only reinstall with installed-version
+  verification. Canonical sjskills workflow references are bundled and checked.
+- Plugin schema validation, isolated Codex CLI install/reinstall, and installed
+  Windows hook invocation succeeded. All 21 targeted tests pass. Bounded
+  independent review and scoped documentation alignment are complete.
+- Native validation confirmed reinstall removes the old plugin cache. The hook
+  now preserves content-addressed workflow/helper snapshots in plugin data;
+  regression coverage verifies they survive removal and reject local edits.
+  Explicit Windows command dispatch passes cmd.exe and PowerShell. Test fixture
+  setup uses ordinary reads/writes after reproducing a Node 22.17.1 recursive-copy
+  crash on Unicode Windows paths.
+- Published implementation and catalog to `main` in `e0c60b4`. Registered the
+  remote-backed personal marketplace on Windows and installed/enabled plugin
+  version `0.1.0+codex.20260910121700`. Installed content matches publication;
+  the installed Windows hook emits its maintenance context successfully.
+- Hook trust still requires review through `/hooks`. Other hosts require their
+  own installation. Full session-driven maintenance and native macOS execution
+  remain unverified.
+
+## Previous CLI delivery
+
 # sjskills modified-copy reconciliation
 
 - Published in v1.2.0: project and global sync quarantine locally modified
