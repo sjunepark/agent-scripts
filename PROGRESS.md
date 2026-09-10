@@ -18,9 +18,13 @@
   Explicit Windows command dispatch passes cmd.exe and PowerShell. Test fixture
   setup uses ordinary reads/writes after reproducing a Node 22.17.1 recursive-copy
   crash on Unicode Windows paths.
-- Registered the plugin in the personal marketplace. Publication is authorized;
-  install from the published main branch, then enable hook trust through `/hooks`.
-- Real-machine automatic maintenance and macOS native execution remain unverified.
+- Published implementation and catalog to `main` in `e0c60b4`. Registered the
+  remote-backed personal marketplace on Windows and installed/enabled plugin
+  version `0.1.0+codex.20260910121700`. Installed content matches publication;
+  the installed Windows hook emits its maintenance context successfully.
+- Hook trust still requires review through `/hooks`. Other hosts require their
+  own installation. Full session-driven maintenance and native macOS execution
+  remain unverified.
 
 ## Previous CLI delivery
 
