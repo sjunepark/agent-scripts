@@ -49,8 +49,8 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 	if registry.Version != RegistryVersion {
 		t.Fatalf("version = %d", registry.Version)
 	}
-	if len(registry.Skills) != 42 {
-		t.Fatalf("skills = %d, want 42", len(registry.Skills))
+	if len(registry.Skills) != 43 {
+		t.Fatalf("skills = %d, want 43", len(registry.Skills))
 	}
 	global, err := ResolveGlobal(registry)
 	if err != nil {
@@ -155,8 +155,11 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(state.Skills) != 4 || state.Skills[0].Name != "kasb" || state.Skills[1].Name != "kisnet-ytm" || state.Skills[2].Name != "krx-cli" || state.Skills[3].Name != "windows-cleanup" {
+	if len(state.Skills) != 5 || state.Skills[0].Name != "darty" || state.Skills[1].Name != "kasb" || state.Skills[2].Name != "kisnet-ytm" || state.Skills[3].Name != "krx-cli" || state.Skills[4].Name != "windows-cleanup" {
 		t.Fatalf("kicpa = %#v", state.Skills)
+	}
+	if darty := state.Skills[0]; darty.Source != "https://github.com/cpaikr/darty/tree/main/skill/darty" || darty.Manager != ManagerSkillsCLI || darty.Mode != ModeCopy {
+		t.Fatalf("darty source and installation policy = %#v", darty)
 	}
 	for _, skill := range state.Skills {
 		wantTargets := []Target{TargetAgents, TargetClaude}

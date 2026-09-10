@@ -49,6 +49,7 @@
     },
     "kicpa": {
       "skills": [
+        "darty",
         "kasb",
         "kisnet-ytm",
         "krx-cli",
@@ -74,6 +75,10 @@
     },
     "context7-mcp-manual": {
       "kind": "external"
+    },
+    "darty": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/darty/tree/main/skill/darty"
     },
     "impeccable": {
       "kind": "external",
@@ -199,6 +204,12 @@
     {
       "name": "create-pr",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "darty",
+      "source": "darty",
       "manager": "skills-cli",
       "mode": "copy"
     },
