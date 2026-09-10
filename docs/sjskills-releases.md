@@ -1,6 +1,6 @@
 # sjskills releases
 
-[sjskills v1.2.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.2.0)
+[sjskills v1.3.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.3.0)
 is published as an immutable release. Its archives passed native tests and
 installer checks on macOS Intel, macOS Apple silicon, and Windows x64. The
 [delivery record](../plans/sjskills-release.md) records publication evidence and

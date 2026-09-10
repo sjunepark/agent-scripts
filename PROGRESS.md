@@ -20,8 +20,9 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
   [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) owns the final merge
   status and final check results. CodeRabbit skipped its
   requested review because automatic reviews are disabled.
-- No new release, actual private-skill installation, or real-machine
-  reconciliation is included.
+- Published as immutable v1.3.0 after tagged source and all supported native
+  release checks passed. The [release record](plans/sjskills-release.md) owns
+  publication evidence. Installed binaries and managed skills were not changed.
 
 # sjskills maintenance plugin delivery
 

@@ -10,9 +10,11 @@ The [registry contract](../docs/skill-registry.md) owns access semantics,
 compatibility, operator setup, and error handling.
 
 Implementation, bounded independent review, local acceptance, and supported
-native CI are complete for `84ba2e7`; review fixes have local regression coverage. [PR #23](https://github.com/sjunepark/agent-scripts/pull/23)
-owns the final merge status. No release, actual private-skill installation,
-real-machine reconciliation, or authentication setup is included.
+native CI are complete. [PR #23](https://github.com/sjunepark/agent-scripts/pull/23)
+merged as `2e1b779`; its final checks passed on every supported native target.
+The functionality is published in [v1.3.0](sjskills-release.md).
+Actual private-skill installation, real-machine reconciliation, and authentication
+setup remain outside this delivery.
 The seven already-authorized recovered registrations are in `kicpa-private`;
 `kicpa` retains its public members. Additional enrollment is outside this change.
 
@@ -100,7 +102,8 @@ A live private-GitHub smoke test is supplementary and was not performed.
   and skipped managers are fixed with regression coverage.
 - [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) is the authoritative
   publication/merge record. Its checks own follow-up native validation and the merge gate.
-- Release publication and machine onboarding require a separate request.
+- Release publication is complete in v1.3.0; the [release record](sjskills-release.md)
+  owns publication evidence. Machine onboarding remains outside this delivery.
 
 GitHub Enterprise/other hosts, privately hosted profile definitions,
 interactive account management, visibility enforcement, optional-skill skipping,

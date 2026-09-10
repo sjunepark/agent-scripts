@@ -1,11 +1,24 @@
 # sjskills standalone release delivery
 
-Status: `sjskills-v1.2.0` published as an immutable release on 2026-09-10 and
-installed on the local macOS Apple silicon host.
+Status: `sjskills-v1.3.0` published as an immutable release on 2026-09-11 (KST).
 Hosted verification is working; unattended hosted publication still needs a
 suitable GitHub identity.
 
 ## Published releases
+
+- [sjskills-v1.3.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.3.0)
+  points to `f4e48e22252651229f6fc3da5ce40f60d5518361` and is immutable.
+  It releases authenticated GitHub skill selections from merged PR #23.
+- The [v1.3.0 release run](https://github.com/sjunepark/agent-scripts/actions/runs/34492463375)
+  passed native reconciliation and installer checks on macOS amd64, macOS arm64,
+  and Windows amd64. [Tagged source checks](https://github.com/sjunepark/agent-scripts/actions/runs/34492467041)
+  also passed.
+- Publication used the exact CI artifacts. Tag/commit, archive contents, and
+  all six server-side asset digests were verified before publication and the
+  immutable published state was verified afterward. The authenticated session
+  retained release ID `386384350` through publication to avoid draft lookup by tag.
+- This release operation did not update installed binaries or reconcile managed
+  skills.
 
 - [sjskills-v1.2.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.2.0)
   points to `4aad1dcbd0b787598cff6ab9f7f1df838de85ad8` and is immutable.
