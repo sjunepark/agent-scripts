@@ -155,7 +155,7 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantNames := []string{"cagr-research", "crowe-design", "darty", "kasb", "kisnet-ytm", "krx-cli", "organize-engagement-files", "render-markdown-pdf", "sync-rfi", "tf-basic-data-prep", "wacc-peer-screening", "windows-cleanup"}
+	wantNames := []string{"darty", "kasb", "kisnet-ytm", "krx-cli", "windows-cleanup"}
 	var gotNames []string
 	for _, skill := range state.Skills {
 		gotNames = append(gotNames, skill.Name)
@@ -163,7 +163,7 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	if !slices.Equal(gotNames, wantNames) {
 		t.Fatalf("kicpa = %#v", state.Skills)
 	}
-	if darty := state.Skills[2]; darty.Source != "https://github.com/cpaikr/darty/tree/main/skill/darty" || darty.Manager != ManagerSkillsCLI || darty.Mode != ModeCopy {
+	if darty := state.Skills[0]; darty.Source != "https://github.com/cpaikr/darty/tree/main/skill/darty" || darty.Manager != ManagerSkillsCLI || darty.Mode != ModeCopy {
 		t.Fatalf("darty source and installation policy = %#v", darty)
 	}
 	for _, skill := range state.Skills {

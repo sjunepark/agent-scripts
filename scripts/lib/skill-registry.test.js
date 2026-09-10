@@ -143,3 +143,24 @@ test("skills-cli sources must be public git shorthands or credential-free HTTPS"
   assert.equal(skillsCliSourceProblem("https://token@example.com/repo"), "unsupported");
   assert.equal(skillsCliSourceProblem("https://example.com/repo?token=secret"), "unsupported");
 });
+
+test("access profiles remain explicit, composable, and GitHub-only", () => {
+  const registry = liveRegistry();
+  assert.equal(registry.profiles.kicpa.access, "public");
+  assert.equal(registry.profiles["kicpa-private"].access, "github-authenticated");
+  assert.equal(registry.profiles.kicpa.skills.length, 5);
+  assert.equal(registry.profiles["kicpa-private"].skills.length, 7);
+  for (const value of [null, "", "private", true, 1, [], {}]) {
+    assertErrorIncludes(validationErrors((r) => r.profiles["kicpa-private"].access = value), "access must be");
+  }
+  assertErrorIncludes(validationErrors((r) => r.profiles.kicpa.access = "github-authenticated"), "must remain public");
+  for (const source of ["https://example.com/o/r", "https://github.com:443/o/r", "https://github.com/o/r/%2e%2e", "https://github.com/o/r/../a", "https://github.com/o/r/a%2Fb", "owner/.git"]) {
+    assertErrorIncludes(validationErrors((r) => r.sources.kicpa.location = source), "requires a credential-free GitHub.com");
+  }
+  delete registry.profiles.kicpa.access;
+  assert.deepEqual(validateSkillRegistry(registry), []);
+  registry.profiles["other-private"] = registry.profiles["kicpa-private"];
+  delete registry.profiles["kicpa-private"];
+  registry.profiles = Object.fromEntries(Object.entries(registry.profiles).sort(([a],[b]) => a.localeCompare(b)));
+  assert.deepEqual(validateSkillRegistry(registry), []);
+});

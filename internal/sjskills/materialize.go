@@ -53,10 +53,9 @@ type ProcessResult struct {
 	ExitCode int
 }
 
-// Runner is the only process dependency of Materializer.  command is always
-// "bunx" for the production adapter; the versioned Skills CLI is the first
-// argument.  env is a complete environment, preserving ordinary inherited
-// values while replacing every home/config signal used by the CLI.
+// Runner bounds Skills CLI and authenticated Git processes. The Git process
+// owns its credential-helper descendants. env is complete: Skills CLI uses
+// isolated home/config paths; private Git also restricts authentication policy.
 type Runner interface {
 	Run(context.Context, string, []string, []string) (ProcessResult, error)
 }
@@ -86,7 +85,10 @@ type MaterializerLimits struct {
 // MaterializerConfig contains only process, environment, staging, and bound
 // dependencies.  It intentionally has no inventory/apply/rollout knobs.
 type MaterializerConfig struct {
-	Runner Runner
+	// HelperExecutable overrides the current sjskills executable only for
+	// controlled process tests embedding this adapter in another executable.
+	HelperExecutable string
+	Runner           Runner
 
 	// TempRootFactory supplies a candidate directory. It is removed after the
 	// session only once it passes the fresh-empty ownership check. Tests inject
@@ -114,12 +116,13 @@ type MaterializerConfig struct {
 // snapshots are never reused across plans because moving remote sources must
 // be revalidated for each plan.
 type Materializer struct {
-	runner   Runner
-	tempRoot TempRootFactory
-	baseEnv  []string
-	lookPath LookPathFunc
-	platform string
-	limits   MaterializerLimits
+	helperExecutable string
+	runner           Runner
+	tempRoot         TempRootFactory
+	baseEnv          []string
+	lookPath         LookPathFunc
+	platform         string
+	limits           MaterializerLimits
 }
 
 // NewMaterializer constructs an isolated Skills CLI adapter.  No process,
@@ -185,12 +188,13 @@ func NewMaterializer(config MaterializerConfig) *Materializer {
 	}
 
 	return &Materializer{
-		runner:   runner,
-		tempRoot: tempRoot,
-		baseEnv:  baseEnv,
-		lookPath: lookPath,
-		platform: platform,
-		limits:   limits,
+		helperExecutable: config.HelperExecutable,
+		runner:           runner,
+		tempRoot:         tempRoot,
+		baseEnv:          baseEnv,
+		lookPath:         lookPath,
+		platform:         platform,
+		limits:           limits,
 	}
 }
 
@@ -323,7 +327,32 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 			_ = plan.Cleanup()
 			return nil, m.errorAt(root, safeSkillName(skill.Name), "build Skills CLI command", err)
 		}
-		result, runErr := m.run(ctx, root, args)
+		if skill.Access == AccessGitHubAuthenticated {
+			local, fetchErr := m.authenticatedSource(ctx, root, skill.Source)
+			if fetchErr != nil {
+				if errors.Is(fetchErr, errProcessTreeActive) {
+					return nil, errProcessTreeActive
+				}
+				_ = plan.Cleanup()
+				return nil, m.errorAt(root, safeSkillName(skill.Name), "fetch authenticated source", fetchErr)
+			}
+			// Only this internally verified staging path may bypass remote input
+			// validation; DesiredSkill and provenance retain the original URL.
+			args[2] = local
+		}
+		var result ProcessResult
+		var runErr error
+		if skill.Access == AccessGitHubAuthenticated {
+			result, runErr = m.runCommand(ctx, SkillsCLICommand, args, credentialEnvironment(m.baseEnv, root, m.platform))
+		} else {
+			result, runErr = m.run(ctx, root, args)
+		}
+		if skill.Access == AccessGitHubAuthenticated && (runErr != nil || result.ExitCode != 0) {
+			if !errors.Is(runErr, errProcessTreeActive) {
+				_ = plan.Cleanup()
+			}
+			return nil, privateProcessError("private skill discovery failed; verify the selected skill exists in the source", runErr)
+		}
 		if runErr != nil {
 			if !errors.Is(runErr, errProcessTreeActive) {
 				_ = plan.Cleanup()
@@ -369,11 +398,12 @@ func materializationBatches(skills []DesiredSkill) [][]DesiredSkill {
 	type key struct {
 		source    string
 		fullDepth bool
+		access    Access
 	}
 	positions := map[key]int{}
 	batches := [][]DesiredSkill{}
 	for _, skill := range skills {
-		k := key{skill.Source, skill.FullDepth}
+		k := key{skill.Source, skill.FullDepth, skill.Access.Effective()}
 		index, ok := positions[k]
 		if !ok {
 			index = len(batches)
@@ -390,6 +420,15 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 	skipped := make([]DesiredSkill, 0)
 	seen := make(map[string]DesiredSkill, len(skills))
 	for _, skill := range skills {
+		skill.Access = skill.Access.Effective()
+		if !skill.Access.valid() {
+			return nil, nil, materializationError("classify", "invalid access policy", nil)
+		}
+		if skill.Access == AccessGitHubAuthenticated {
+			if _, err := githubRepository(skill.Source); err != nil {
+				return nil, nil, materializationError("classify", "invalid authenticated source", err)
+			}
+		}
 		if skill.Name == "" || !isPortableName(skill.Name) {
 			return nil, nil, materializationError("classify", "skill name is not portable", nil)
 		}
@@ -413,7 +452,7 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 				return nil, nil, materializationError(safeSkillName(skill.Name), "skills-cli installation must use copy mode", nil)
 			}
 			if previous, ok := seen[skill.Name]; ok {
-				if previous.Manager != ManagerSkillsCLI || previous.Source != skill.Source || previous.FullDepth != skill.FullDepth {
+				if previous.Manager != ManagerSkillsCLI || previous.Source != skill.Source || previous.FullDepth != skill.FullDepth || previous.Access.Effective() != skill.Access.Effective() {
 					return nil, nil, materializationError("classify", "skill identity has contradictory source or options", nil)
 				}
 				// The exact identity was already scheduled. Targets differ at
@@ -433,7 +472,7 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 }
 
 func sameDesiredSkill(left, right DesiredSkill) bool {
-	if left.Name != right.Name || left.SourceID != right.SourceID || left.Source != right.Source ||
+	if left.Access.Effective() != right.Access.Effective() || left.Name != right.Name || left.SourceID != right.SourceID || left.Source != right.Source ||
 		left.Scope != right.Scope || left.Origin != right.Origin || left.Manager != right.Manager ||
 		left.Mode != right.Mode || left.Workflow != right.Workflow || left.FullDepth != right.FullDepth ||
 		len(left.Targets) != len(right.Targets) {
@@ -495,13 +534,16 @@ func validateStagingRoot(root string) error {
 }
 
 func (m *Materializer) run(ctx context.Context, root string, args []string) (ProcessResult, error) {
+	return m.runCommand(ctx, SkillsCLICommand, args, isolatedEnvironment(m.baseEnv, root, m.platform))
+}
+
+func (m *Materializer) runCommand(ctx context.Context, command string, args, env []string) (ProcessResult, error) {
 	if err := ensureContext(ctx); err != nil {
 		return ProcessResult{}, err
 	}
 	commandCtx, cancel := context.WithTimeout(ctx, m.limits.CommandTimeout)
 	defer cancel()
-	env := isolatedEnvironment(m.baseEnv, root, m.platform)
-	result, err := m.runner.Run(commandCtx, SkillsCLICommand, append([]string(nil), args...), env)
+	result, err := m.runner.Run(commandCtx, command, append([]string(nil), args...), env)
 	stdoutExceeded := int64(len(result.Stdout)) > m.limits.MaxStdoutBytes
 	stderrExceeded := int64(len(result.Stderr)) > m.limits.MaxStderrBytes
 	if stdoutExceeded {

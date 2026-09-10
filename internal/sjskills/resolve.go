@@ -85,7 +85,9 @@ func ResolveProject(registry Registry, manifest Manifest) (DesiredState, error) 
 				return DesiredState{}, collisionError(origin, name, previous)
 			}
 			selected[name] = origin
-			state.Skills = append(state.Skills, resolveCentralSkill(registry, declarations[name], ScopeProject, origin))
+			skill := resolveCentralSkill(registry, declarations[name], ScopeProject, origin)
+			skill.Access = registry.Profiles[profileName].Access.Effective()
+			state.Skills = append(state.Skills, skill)
 		}
 	}
 	for _, direct := range manifest.Direct {
@@ -111,6 +113,7 @@ func declarationByName(registry Registry, name string) SkillDeclaration {
 func resolveCentralSkill(registry Registry, declaration SkillDeclaration, scope Scope, origin string) DesiredSkill {
 	source := registry.Sources[declaration.Source]
 	return DesiredSkill{
+		Access:    AccessPublic,
 		Name:      declaration.Name,
 		SourceID:  declaration.Source,
 		Source:    source.Location,
@@ -126,6 +129,7 @@ func resolveCentralSkill(registry Registry, declaration SkillDeclaration, scope 
 
 func resolveDirectSkill(registry Registry, direct DirectSkill) DesiredSkill {
 	return DesiredSkill{
+		Access:    direct.Access.Effective(),
 		Name:      direct.Name,
 		Source:    direct.Source,
 		Scope:     ScopeProject,

@@ -85,6 +85,7 @@ type GlobalRegistry struct {
 }
 
 type Profile struct {
+	Access Access   `json:"access,omitempty"`
 	Skills []string `json:"skills"`
 }
 
@@ -111,8 +112,9 @@ type SkillDeclaration struct {
 // DirectSkill is a project-local third-party declaration. Version 1 fixes its
 // ownership to Skills CLI, its placement to copy mode, and its targets to the
 // registry defaults; the manifest carries only a portable name, installable
-// source, and optional full-depth hint.
+// source, access policy, and optional full-depth hint.
 type DirectSkill struct {
+	Access    Access `toml:"access,omitempty" json:"access,omitempty"`
 	Name      string `toml:"name" json:"name"`
 	Source    string `toml:"source" json:"source"`
 	FullDepth bool   `toml:"full_depth" json:"fullDepth,omitempty"`
@@ -130,6 +132,7 @@ type Manifest struct {
 // manager boundaries explicitly so later adapters cannot claim a manual or
 // workflow entry was installed.
 type DesiredSkill struct {
+	Access    Access      `json:"access,omitempty"`
 	Name      string      `json:"name"`
 	SourceID  string      `json:"sourceId,omitempty"`
 	Source    string      `json:"source"`
@@ -361,8 +364,9 @@ type StatusResult struct {
 }
 
 type ProfileInfo struct {
-	Name  string `json:"name"`
-	Count int    `json:"count"`
+	Access Access `json:"access"`
+	Name   string `json:"name"`
+	Count  int    `json:"count"`
 }
 
 func (e Envelope) ExitStatus() ExitStatus {

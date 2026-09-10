@@ -22,6 +22,7 @@
   },
   "profiles": {
     "dev": {
+      "access": "public",
       "skills": [
         "address-issues",
         "address-pr-feedback",
@@ -42,28 +43,36 @@
       ]
     },
     "go": {
+      "access": "public",
       "skills": [
         "modern-go",
         "write-go-docs"
       ]
     },
     "kicpa": {
+      "access": "public",
       "skills": [
-        "cagr-research",
-        "crowe-design",
         "darty",
         "kasb",
         "kisnet-ytm",
         "krx-cli",
+        "windows-cleanup"
+      ]
+    },
+    "kicpa-private": {
+      "access": "github-authenticated",
+      "skills": [
+        "cagr-research",
+        "crowe-design",
         "organize-engagement-files",
         "render-markdown-pdf",
         "sync-rfi",
         "tf-basic-data-prep",
-        "wacc-peer-screening",
-        "windows-cleanup"
+        "wacc-peer-screening"
       ]
     },
     "rust": {
+      "access": "public",
       "skills": [
         "clear-rust",
         "modern-rust"

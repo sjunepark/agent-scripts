@@ -168,13 +168,23 @@ func ResolveStatusScope(directory string, registry Registry, global bool) (Statu
 func (s StatusScope) Matches(other StatusScope) bool { return s.identity() == other.identity() }
 
 func (s StatusScope) identity() string {
+	registry := s.Registry
+	registry.Profiles = make(map[string]Profile, len(s.Registry.Profiles))
+	for name, profile := range s.Registry.Profiles {
+		profile.Access = profile.Access.Effective()
+		registry.Profiles[name] = profile
+	}
+	desired := cloneDesiredState(s.Plan.Desired)
+	for i := range desired.Skills {
+		desired.Skills[i].Access = desired.Skills[i].Access.Effective()
+	}
 	data, _ := json.Marshal(struct {
 		Root      string
 		Registry  Registry
 		Desired   DesiredState
 		CLI, Hash string
 		Format    int
-	}{s.Root, s.Registry, s.Plan.Desired, SkillsCLIVersion, TreeHashAlgorithmSHA256V2, statusCacheVersion})
+	}{s.Root, registry, desired, SkillsCLIVersion, TreeHashAlgorithmSHA256V2, statusCacheVersion})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
 }
@@ -186,11 +196,12 @@ func (s StatusScope) cacheKey() string {
 		Name, Source string
 		Mode         InstallMode
 		FullDepth    bool
+		Access       Access
 	}
 	inputs := make([]input, 0, len(s.Plan.Desired.Skills))
 	for _, skill := range s.Plan.Desired.Skills {
 		if skill.Manager == ManagerSkillsCLI {
-			inputs = append(inputs, input{skill.Name, skill.Source, skill.Mode, skill.FullDepth})
+			inputs = append(inputs, input{skill.Name, skill.Source, skill.Mode, skill.FullDepth, skill.Access.Effective()})
 		}
 	}
 	sort.Slice(inputs, func(i, j int) bool { return inputs[i].Name < inputs[j].Name })

@@ -63,7 +63,7 @@ func ValidateRegistry(registry Registry) error {
 	for _, skill := range registry.Skills {
 		known[skill.Name] = skill
 	}
-	validateBaselineAndProfiles(registry.Global, registry.Profiles, known, &issues)
+	validateBaselineAndProfiles(registry.Global, registry.Profiles, known, registry.Sources, &issues)
 
 	usedSources := make(map[string]bool, len(registry.Sources))
 	for _, skill := range registry.Skills {
@@ -228,29 +228,32 @@ func validateTargets(path string, targets []Target, issues *[]Issue) {
 	}
 }
 
-func validateBaselineAndProfiles(global GlobalRegistry, profiles map[string]Profile, known map[string]SkillDeclaration, issues *[]Issue) {
+func validateBaselineAndProfiles(global GlobalRegistry, profiles map[string]Profile, known map[string]SkillDeclaration, sources map[string]Source, issues *[]Issue) {
 	if len(global.Baseline) == 0 {
 		addIssue(issues, IssueEmptySelection, "registry.global.baseline", "must define at least one skill")
 	}
 	validateNamesList("registry.global.baseline", global.Baseline, issues)
-	if len(profiles) != len(requiredProfiles) {
-		addIssue(issues, IssueMissingReference, "registry.profiles", "must define exactly: %s", strings.Join(requiredProfiles, ", "))
-	}
 	for _, required := range requiredProfiles {
 		profile, ok := profiles[required]
 		if !ok {
 			addIssue(issues, IssueMissingReference, "registry.profiles."+required, "required profile is missing")
-			continue
+		} else if profile.Access.Effective() != AccessPublic {
+			addIssue(issues, IssueInvalidSource, "registry.profiles."+required+".access", "required profile must remain public")
+		}
+	}
+	for _, name := range sortedStringKeys(profiles) {
+		profile := profiles[name]
+		path := "registry.profiles." + name
+		if !isPortableName(name) {
+			addIssue(issues, IssueInvalidName, path, "must be a portable profile name")
+		}
+		if !profile.Access.valid() {
+			addIssue(issues, IssueInvalidSource, path+".access", "must be public or github-authenticated")
 		}
 		if len(profile.Skills) == 0 {
-			addIssue(issues, IssueEmptySelection, "registry.profiles."+required+".skills", "must define at least one skill")
+			addIssue(issues, IssueEmptySelection, path+".skills", "must define at least one skill")
 		}
-		validateNamesList("registry.profiles."+required+".skills", profile.Skills, issues)
-	}
-	for name := range profiles {
-		if !contains(requiredProfiles, name) {
-			addIssue(issues, IssueMissingReference, "registry.profiles."+name, "unsupported profile")
-		}
+		validateNamesList(path+".skills", profile.Skills, issues)
 	}
 
 	membership := make(map[string][]string)
@@ -262,9 +265,12 @@ func validateBaselineAndProfiles(global GlobalRegistry, profiles map[string]Prof
 			addIssue(issues, IssueInvalidManager, "registry.global.baseline."+name, "manager none cannot be selected")
 		}
 	}
-	for _, profileName := range requiredProfiles {
+	for _, profileName := range sortedStringKeys(profiles) {
 		for _, name := range profiles[profileName].Skills {
 			membership[name] = append(membership[name], "profile "+profileName)
+			if skill, ok := known[name]; ok && skill.Manager == ManagerSkillsCLI {
+				validateAccess("registry.profiles."+profileName+".skills."+name, profiles[profileName].Access, sources[skill.Source].Location, issues)
+			}
 			if _, ok := known[name]; !ok {
 				addIssue(issues, IssueMissingReference, "registry.profiles."+profileName+".skills."+name, "references unknown skill")
 			} else if known[name].Manager == ManagerNone {
@@ -309,6 +315,7 @@ func ValidateManifestShape(manifest Manifest) error {
 		} else if problem := SkillsCLIPathProblem(direct.Source); problem != "" {
 			addIssue(&issues, IssueInvalidSource, path+".source", "direct skill source must be a git shorthand or credential-free https source: %s", problem)
 		}
+		validateAccess(path, direct.Access, direct.Source, &issues)
 		// Direct entries intentionally have no manager, mode, target, or
 		// workflow fields. Strict TOML decoding rejects those fields before
 		// this semantic validation runs; v1 always resolves them to the

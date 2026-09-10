@@ -96,6 +96,23 @@ names, but cannot define new profiles in its manifest. It can independently add
 skills from other repositories with `[[direct]]`, without changing the central
 registry or publishing those skills in `agent-scripts`.
 
+Inspect the access policy in `sjskills profiles` before selecting a profile.
+`kicpa` is public; `kicpa-private` uses the enrolled private GitHub catalog.
+Select both only when requested. Authenticated profiles and direct entries use
+`access = "github-authenticated"`; omission means public. Use a CLI build that
+supports access metadata; older executables can reject it. Declared source
+names and URLs are public metadata, never a place for credentials.
+
+Authenticated fetching requires Git, gh, and an existing login with repository
+access. It accepts only GitHub.com shorthand or credential-free HTTPS sources.
+The CLI uses controlled Git staging and the original gh configuration without
+copying credentials. It refuses legacy/unsupported gh configuration before gh
+can migrate it. On that error, report the requested `gh auth status` setup step;
+do not start login, change accounts, or modify authentication configuration
+without user authorization. Existing `GH_TOKEN`/`GITHUB_TOKEN` login also works.
+A private fetch failure blocks its selected scope; do not omit that selection,
+retry anonymously, or use status cache evidence to bypass it.
+
 For example, using a placeholder source and skill name:
 
 ```toml

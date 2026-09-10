@@ -1,22 +1,20 @@
-# Combined local integration draft
+# Authenticated private-source delivery
 
-- `codex/combine-local-origin-pr22` combines local `main` at `f689e91`,
-  `origin/main` at `143a340`, and draft PR #22 at `e1529ff`, preserving their
-  individual commits. Both local and remote `dev` are already ancestors of
-  `origin/main`. The common merge base is `e6c7e487`.
-- Local skill-authoring changes are preserved exactly; incoming plugin and
-  registry changes merged without conflicts. Publish this combined branch as a
-  draft PR targeting `main`; keep it unmerged until the private-source plan is
-  complete. Preserve local `main` and the original PR #22 recovery branch.
-- Not ready for main or release: the draft adds private access requirements to
-  `kicpa`, contrary to the selected separate private-profile design. Follow the
-  [private-source plan](plans/sjskills-private-github-sources.md) before rollout.
-- Full Go tests, `go vet`, Node registry/wrapper/hook tests, release tests, and
-  skill validation pass on macOS. Bounded independent merge review found no
-  integration issues; private fetching and cross-platform acceptance remain
-  unverified. Complete the private-source plan before promoting this branch.
-- Full original checkout recovery remains in Git stash commit
-  `038118178cce4759e3acebf854f19b36723488fc`, including superseded hook drafts.
+- PR #23 combines local skill-authoring work, origin main, and the PR #22
+  recovery history. Public `kicpa` membership is restored; recovered private
+  registrations now belong to `kicpa-private`.
+- Access validation/resolution, controlled Git/gh staging, evidence separation,
+  and compatible public-plan loading are implemented. The
+  [private-source plan](plans/sjskills-private-github-sources.md) owns the design
+  and acceptance evidence. Original recovery stash remains
+  `038118178cce4759e3acebf854f19b36723488fc`.
+- Full Go/race suites, vet, Node tests, release tests, and skill validation
+  passed on macOS. Bounded independent review found no implementation defect;
+  its requested native auth cancellation coverage and token-login acceptance
+  were added and passed. Operator documentation and the plugin bundle agree.
+- Next: finish acceptance checks and documentation, push PR #23, pass supported
+  native CI, then mark ready and merge. No new release, actual private-skill
+  installation, or real-machine reconciliation is included.
 
 # sjskills maintenance plugin delivery
 

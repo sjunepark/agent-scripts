@@ -33,6 +33,10 @@ func ParseRegistry(data []byte) (Registry, error) {
 	if err := ValidateRegistry(registry); err != nil {
 		return Registry{}, err
 	}
+	for name, profile := range registry.Profiles {
+		profile.Access = profile.Access.Effective()
+		registry.Profiles[name] = profile
+	}
 	return registry, nil
 }
 
@@ -65,6 +69,9 @@ func ParseManifest(data []byte) (Manifest, error) {
 	}
 	if err := ValidateManifestShape(manifest); err != nil {
 		return Manifest{}, err
+	}
+	for i := range manifest.Direct {
+		manifest.Direct[i].Access = manifest.Direct[i].Access.Effective()
 	}
 	return manifest, nil
 }
