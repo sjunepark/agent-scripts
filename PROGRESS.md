@@ -1,6 +1,6 @@
 # sjskills modified-copy reconciliation
 
-- Implemented locally: project and global sync quarantine locally modified
+- Published in v1.2.0: project and global sync quarantine locally modified
   managed desired copies before verified replacement. Unknown ownership, source
   mismatch, untrusted provenance, unsafe paths, and changes after review remain
   conflicts. The [reconciliation contract](docs/skill-registry.md#ownership-and-reconciliation)
@@ -8,13 +8,13 @@
 - Go suite, isolated CLI flows for both scopes, rollback and subprocess crash
   recovery, registry checks, skill validation, and local skill discovery passed.
   Bounded independent code review found no actionable issues; affected docs are
-  aligned. Vet, release source checks, and Windows x64 test compilation passed;
-  native Windows execution remains unverified. Skill trials are recorded in
+  aligned. Hosted native reconciliation and installer tests passed on both
+  macOS targets and Windows x64. Skill trials are recorded in
   `skills/sjskills/evals/evaluation-2026-09-10.json`.
-- Publication and local CLI installation are now requested. Preparing v1.2.0,
-  then running the tagged native release matrix before publishing verified
-  artifacts and installing the local CLI. Live skill reconciliation is not part
-  of this request.
+- Committed and pushed as `4aad1dc`; the immutable release and local v1.2.0
+  installation are verified in the [delivery record](plans/sjskills-release.md).
+  Requested publication and CLI update are complete. Live skill reconciliation
+  was not requested or performed.
 
 # sjskills CLI version status delivery
 
@@ -29,9 +29,9 @@
   authenticated administrator session. The workflow token's administration-read
   limitation and draft-lookup follow-up are recorded in the
   [release delivery record](plans/sjskills-release.md).
-- Installed binaries and managed skill state remain unchanged; the published
-  binary is available for future explicit installation. No requested feature or
-  publication work remains.
+- That release did not change installed binaries or managed skill state.
+  No v1.1.0 feature or publication work remains; the later CLI update is recorded
+  above.
 
 # Address issues skill
 
@@ -44,8 +44,7 @@
 - On 2026-09-10, synced this project's dev+go selection from the published source:
   both address-issues copies installed and verified; all 33 project placements
   and all 16 fixed-global placements are exact. No quarantines or blockers.
-- Sync used one verified temporary binary built before the v1.1.0 release. The
-  installed CLI was not replaced and still embeds the pre-1.1.0 registry;
-  future syncs need an explicit install of the updated release to retain the
-  skill.
+- That sync used one verified temporary binary built before the v1.1.0 release
+  and did not replace the installed CLI. The later v1.2.0 installation above
+  includes the updated registry.
 - Publication and requested skill reconciliation are complete.
