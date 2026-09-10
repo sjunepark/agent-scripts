@@ -34,6 +34,13 @@ stream/exit semantics.
 
 ## Install and update
 
+The `sjskills update` self-update command is deferred. The release installers
+remain the supported way to update the CLI, with advisory notices for newer
+releases. Self-update is feasible, but replacing a running executable across
+macOS and Windows adds platform-specific replacement, recovery, and testing
+work. Revisit this decision when recurring friction with installer-based updates
+justifies that maintenance burden. Skill updates remain part of `plan`/`apply`.
+
 Select a numeric version from the repository's
 [releases](https://github.com/sjunepark/agent-scripts/releases). Download the
 installer from that exact release and run it with the same version.
