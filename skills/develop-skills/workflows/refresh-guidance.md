@@ -5,9 +5,9 @@ Use this workflow only when the user explicitly asks to refresh or reconcile
 part of ordinary skill creation, revision, merge, audit, or evaluation. Do not
 open the sources merely because another skill is being changed.
 
-This workflow authorizes maintenance of `develop-skills` only. It does not
-authorize changes to other skills, registry or installation state, commits,
-publication, or reinstallation.
+This workflow alone authorizes maintenance of `develop-skills` only. Apply
+existing user authorization for any additional operations; do not infer it from
+the refresh request.
 
 ## Read the maintained sources
 
@@ -93,6 +93,7 @@ Then perform the checks proportional to the change:
 Report the source retrieval date, material source changes, accepted and rejected
 decisions with reasons, files changed, validation and evaluation evidence, and
 remaining uncertainty. If no edit was warranted, report the no-op and its
-evidence. Stop at validated local changes; commit, publish, synchronize, or
-install only under a separate explicit request and the repository's publishing
-procedure.
+evidence. Commit, publish, synchronize, or install only when covered by existing
+user authorization and the repository's publishing procedure. Complete covered
+operations without requesting the same permission again; otherwise finish at
+validated local changes.

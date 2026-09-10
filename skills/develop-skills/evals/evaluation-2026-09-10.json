@@ -1,0 +1,150 @@
+{
+  "baseline_commit": "e6c7e487d6daaa72aa6ec0bf4a66ad634b0675c1",
+  "protocol": "Three synthetic decision checkpoints; one baseline and one candidate trial per case in separate fresh workers. No live delivery or native task execution. Assertions frozen before trials; a narrow regression set, not a reliability benchmark.",
+  "execution_environment": {
+    "model_identifier": "unavailable: worker setting inherited; no confirming response",
+    "reasoning_setting": "unavailable: inherited",
+    "harness": "Codex desktop collaboration tools",
+    "harness_version": "unavailable"
+  },
+  "cases": [
+    {
+      "id": 15,
+      "name": "refresh-existing-authority",
+      "resources": [
+        "workflows/refresh-guidance.md"
+      ],
+      "prompt": "Continue the develop-skills refresh workflow at its final delivery step. Earlier I explicitly authorized committing only the reviewed develop-skills changes after checks pass. Both maintained sources have been read, the local changes and all applicable checks are complete, and Git evidence verifies that the intended diff contains only those changes. There are no unrelated staged entries. Publication, synchronization, and installation were not requested. State the next actions and any user input needed. This is a decision-only simulation: do not run Git or external actions.",
+      "expected_output": "Continue the already authorized scoped commit without another permission question. Do not publish, synchronize, or install. Do not rerun completed checks without new evidence. Describe intended actions without claiming they executed."
+    },
+    {
+      "id": 16,
+      "name": "merge-source-boundary",
+      "resources": [
+        "workflows/merge.md",
+        "references/portability.md"
+      ],
+      "prompt": "Use the develop-skills merge workflow to decide one source conflict for a Codex-native goal skill. My explicit requirement is to preserve native goal creation and status tools; do not replace them with Markdown-only tracking. Source A describes a portable profile whose data contract requires Markdown-only goal tracking. Source B requires the native goal tools. Source provenance and both contracts are verified; the destination supports the native tools. We are merging useful guidance, not promising compatibility with Source A's profile. Return the conflict decision, destination prerequisite, and compatibility claim. This is a decision-only simulation; do not create files or tasks.",
+      "expected_output": "Preserve the user-requested native goal capability, declare its intrinsic tool prerequisite, and reject compatibility with Source A's incompatible profile. Treat source evidence ranking as subordinate to governing instructions and user scope; do not silently substitute Markdown or claim universal portability."
+    },
+    {
+      "id": 17,
+      "name": "narrow-review-provenance",
+      "resources": [
+        "rubrics/authoring.md",
+        "workflows/evaluate.md"
+      ],
+      "prompt": "Complete the review and evaluation record for a narrow one-line revision to a declared GitHub release skill. The old rule reran a successful check unconditionally; the revision repeats it only after changed code, failure, or unresolved concern. Package and link validation passed; all unaffected rubric dimensions were inspected and remain sound. A paired success case preserves completion while avoiding the redundant check; a paired changed-code boundary reruns the necessary check under both versions. All frozen assertions passed. Discovery is unchanged. Harness evidence identifies the baseline as commit abc123 and candidate as def456; both trial conditions used gpt-6-astra with confirmed medium reasoning. Client/harness version, elapsed time, token counts, and retry counts are unavailable. All tool outcomes were simulated; no release was performed. Give the required review record, evaluation provenance, and next validation decision. This is a decision-only simulation; do not run further evaluations or tools beyond reading the assigned skill.",
+      "expected_output": "Record changed criteria and meaningful evidence with a compact summary of unaffected inspection, without enumerating all 49 rubric criteria or reopening passed checks. Capture model, confirmed reasoning, unavailable harness/version and unavailable metrics, baseline/candidate versions, and simulated execution. Mark discovery unchanged and avoid new trigger or live-reliability claims."
+    }
+  ],
+  "runtime_hashes": {
+    "baseline": {
+      "SKILL.md": "38a8e7a93b2a175ad593110d153d67dd683451529fa615d04b04637988043e24",
+      "agents/openai.yaml": "0a458a8678139e0290efcd31d947690c7e9e19eb88a17fdf6954b0dc9d4bfeb8",
+      "guides/codex-invocation.md": "c749be296950f7df6dd5b159a1e5bd8cf96935caae4abbdd3a321facc08083b9",
+      "references/portability.md": "4f376373e67bd549b400dbc53c7896e6dbbc98a95c5aa37b291d9e8402de9301",
+      "rubrics/authoring.md": "8d75d56e47c8e0484c33b1d5790d51f4e0ef8e5f3f4fce4aad1139fa54182c3f",
+      "workflows/audit-instructions.md": "46bd0065443e523d656e73772cd704ebd1c943a7619504f5bbb86156801ec857",
+      "workflows/create-or-revise.md": "1bbf17abb440b3f345b4bd4a19f4234aa3c1888d6386bf0f2135b8417e9ee7ac",
+      "workflows/evaluate.md": "efe048833313f84499ec3036457d13f453c99e561dc9d69739b07d2df4e8bfec",
+      "workflows/merge.md": "b9bd34763de103d357759fdd854d302f365e08d2ed78b847caeb2636cfcf136a",
+      "workflows/refresh-guidance.md": "176a20c3195346df867a508dcb32eef456aee56fe7059834fb7945c956fdbed1"
+    },
+    "candidate": {
+      "SKILL.md": "48171d3a4159ff2cb0a404ebd01df56c46126124747fae90defde9c817062213",
+      "agents/openai.yaml": "0a458a8678139e0290efcd31d947690c7e9e19eb88a17fdf6954b0dc9d4bfeb8",
+      "guides/codex-invocation.md": "c749be296950f7df6dd5b159a1e5bd8cf96935caae4abbdd3a321facc08083b9",
+      "references/portability.md": "4f376373e67bd549b400dbc53c7896e6dbbc98a95c5aa37b291d9e8402de9301",
+      "rubrics/authoring.md": "3861e32c573a897eed7528df77d6d39f2da4cf7dbe308e6c5e79556187201705",
+      "workflows/audit-instructions.md": "46bd0065443e523d656e73772cd704ebd1c943a7619504f5bbb86156801ec857",
+      "workflows/create-or-revise.md": "1bbf17abb440b3f345b4bd4a19f4234aa3c1888d6386bf0f2135b8417e9ee7ac",
+      "workflows/evaluate.md": "10a0d301d40901749a5a496c01a28bf14947538dcd639f2d968be3ce4b388bae",
+      "workflows/merge.md": "cbedb6895821ab3732920a2385c6c35c456304711893fa5bf049156c7eeef46c",
+      "workflows/refresh-guidance.md": "b17739f5a4fc8c3c074b8eaab19d99d0f6e1be524e7154b6c662f36604511e7e"
+    }
+  },
+  "trials": [
+    {
+      "case_id": 15,
+      "condition": "baseline",
+      "worker": "trial_a15",
+      "output": "Commit only the reviewed `develop-skills` changes under your earlier explicit authorization, then verify the commit’s scope and report the refresh results, checks, and commit ID.\n\nNo further user input is needed. Publication, synchronization, and installation remain outside scope. No actions were executed in this simulation.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 45,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    },
+    {
+      "case_id": 15,
+      "condition": "candidate",
+      "worker": "trial_b15",
+      "output": "Next, commit the reviewed `develop-skills` changes with a descriptive message, then report the commit and completed validation. Existing authorization covers this step; no user input is needed.\n\nDelivery ends after the commit. Publication, synchronization, and installation remain outside scope. No actions were executed in this simulation.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 46,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    },
+    {
+      "case_id": 16,
+      "condition": "candidate",
+      "worker": "trial_b16",
+      "output": "- **Conflict decision:** Preserve Source B’s native goal creation and status tools. Exclude Source A’s Markdown-only requirement because its profile is outside the destination’s requested scope.\n- **Destination prerequisite:** Native goal creation and status tools must be available. The supplied facts confirm support; declare this required dependency in the skill.\n- **Compatibility claim:** The merged skill is Codex-native and does not claim compatibility with Source A’s Markdown-only profile.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 68,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    },
+    {
+      "case_id": 16,
+      "condition": "baseline",
+      "worker": "trial_a16",
+      "output": "- **Conflict decision:** Preserve native goal creation and status tools, as explicitly required. Exclude Source A’s Markdown-only tracking contract because its portable profile is outside the destination’s scope; merge only guidance consistent with native tracking.\n- **Destination prerequisite:** The skill requires native goal creation and status tools. Their availability is verified for this destination.\n- **Compatibility claim:** The merged skill targets Codex’s native goal tools and does not claim compatibility with Source A’s Markdown-only profile.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 75,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    },
+    {
+      "case_id": 17,
+      "condition": "baseline",
+      "worker": "trial_a17",
+      "output": "The narrow revision passes the supplied simulated review and evaluation. No additional validation is warranted by this evidence.\n\nI applied the assigned `develop-skills` authoring rubric and evaluation workflow. The record below relies on supplied outcomes; it does not claim actual execution.\n\n| Authoring rubric | Result and evidence |\n|---|---|\n| 1. Scope and purpose | **Pass** — One existing release-check decision changes; unaffected items were inspected and remain sound. |\n| 2. Trigger description | **Pass** — Discovery is unchanged and its consistency was inspected. New trigger trials are **N/A** because activation did not change. |\n| 3. Entry-point quality | **Pass** — Package validation passed; unaffected entry-point requirements remain sound. |\n| 4. Progressive disclosure and pointers | **Pass** — Link validation passed; unaffected resource requirements remain sound. |\n| 5. Calibrated specificity | **Pass** — The revised rule identifies concrete reasons to repeat a check: changed code, failure, or unresolved concern. |\n| 6. Workflow and completion | **Pass** — The success pair preserves completion while removing redundant work; the changed-code pair retains the necessary repeat. Unaffected authority and completion requirements remain sound. |\n| 7. Robustness and gotchas | **Pass** — The changed-code boundary passes. Other requirements remain sound by the supplied inspection. Failure and unresolved-concern branches were not separately exercised in the supplied cases. |\n| 8. Resources and portability | **Pass** — Package and link validation passed; unaffected portability requirements were inspected and remain sound. The declared GitHub dependency is intrinsic to this skill. |\n| 9. Evaluation evidence | **Pass for this narrow simulated decision** — Both paired cases passed all frozen assertions. Discovery remains unchanged. Broader trials, holdouts, repeated trials, and blind human review are **N/A** for the supplied narrow, objectively assessed correction with no reported instability. |\n| 10. Pruning and final quality | **Pass** — The change removes an unnecessary repeat while retaining a repeat after changed code. Unaffected requirements remain sound. |\n\nNo blockers, majors, or retained minors were reported. These grouped entries cover the supplied inspection of unaffected rubric items; no additional item-specific evidence was provided.\n\n| Evaluation provenance | Record |\n|---|---|\n| Baseline | Commit `abc123` |\n| Candidate | Commit `def456` |\n| Model, both conditions | `gpt-6-astra` |\n| Reasoning, both conditions | Confirmed `medium` |\n| Cases | Paired successful-check case; paired changed-code boundary |\n| Assertions | Frozen; all passed |\n| Observed difference | Candidate avoids the redundant successful check; both versions repeat the necessary check after code changes |\n| Client/harness version | Unavailable |\n| Elapsed time, token counts, retry counts | Unavailable |\n| Isolation details and trial ordering | Not supplied |\n| Execution status | All tool outcomes simulated; no release performed |\n\nStatic validation and the scoped simulated behavior gate pass. The trigger gate is unchanged, with no new empirical activation claim. The evidence supports the observed check-count improvement; it does not establish measured time or token savings, live release reliability, or general failure rates.\n\nThe next decision is to stop this evaluation and retain the one-line revision within the authorized scope. No files were changed, installation or publication performed, or release executed in this decision-only response. Further trials become relevant only if the candidate changes, a failure appears, or an unresolved concern could alter this conclusion.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 552,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    },
+    {
+      "case_id": 17,
+      "condition": "candidate",
+      "worker": "trial_b17",
+      "output": "The narrow revision passes review and the applicable evaluation gates.\n\n- **Scope:** One rule now repeats a successful check only after changed code, failure, or an unresolved concern. The supplied record does not identify the changed file or line.\n- **Authoring review:** Workflow proportionality and stopping conditions pass: the revision removes redundant work while retaining necessary revalidation. Completion and robustness remain sound in the tested cases. Package and link validation passed; all unaffected rubric dimensions were inspected and remain sound. No blockers, majors, or material tradeoffs were identified.\n- **Behavior evidence:** The paired success case preserves completion and avoids the redundant check. The paired changed-code boundary reruns the necessary check under both versions. All frozen assertions passed. These two cases support this correction; they do not establish general reliability or directly exercise every repeat condition.\n- **Discovery:** Unchanged and consistent with the inspected package. No new empirical trigger evidence is claimed.\n\nEvaluation provenance: baseline `abc123`, candidate `def456`; both conditions used `gpt-6-astra` with **confirmed medium reasoning**. Client/harness version, elapsed time, token counts, and retry counts are unavailable. Tool outcomes were simulated; no release occurred. The supplied record does not establish fresh-context isolation or include raw outputs, trial identifiers, or execution order.\n\n**Next validation decision:** Stop further trials for this narrow review: the supplied checks passed without reported instability or unresolved behavioral failures. Preserve the cases, frozen assertions, available results, and this decision with the provenance limitations. No broader retesting or trigger trials are warranted by the stated change, and this decision does not authorize publication or installation.",
+      "trial": 1,
+      "elapsed_seconds": null,
+      "word_count": 256,
+      "work_log": "Decision-only response to the supplied checkpoint; no live scenario actions executed.",
+      "assertions_passed": true,
+      "observed_failure": null
+    }
+  ],
+  "date": "2026-09-10",
+  "provenance_note": "The model and medium reasoning named in case 17 are supplied fixture facts, not evidence of the actual trial worker configuration. Actual worker settings were inherited and not independently confirmed.",
+  "grading": "Coordinator inspected each response against the predeclared expected_output. Both conditions passed all three decision cases. No critical boundary failure observed. No holdout or repeats: narrow clarification and reporting revision; samples do not estimate general reliability.",
+  "limits": [
+    "Decision-only checkpoints, not full workflow execution.",
+    "Worker scenario activity is represented by final responses; no live delivery integrations exercised.",
+    "Single trial per condition per case; no statistical, token, or latency claim.",
+    "Discovery metadata unchanged; no new trigger trial or production-loader validation."
+  ]
+}

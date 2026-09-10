@@ -40,6 +40,11 @@ for a changed candidate, a failure, unstable results, or an unresolved concern.
 5. Give baseline and candidate runs the same request, artifacts, available tools, constraints, and resource limits.
 6. Start every trial in a fresh, isolated context. Do not carry explanations, outputs, or evaluator feedback between trials.
 7. Record the candidate and baseline versions, case identifier, condition, trial number, output, observable work log, elapsed time, and failures. Record input/output size, operations, and retries when available.
+8. Record each trial's model identifier, reasoning setting, and harness or client
+   version. Mark unavailable values explicitly; distinguish requested settings
+   from confirmed settings. Identify simulated tools and live execution. Keep
+   these conditions matched for a skill comparison, or report differences as
+   confounds. Do not infer model-specific reliability from unidentified runs.
 
 Use synthetic cases only to cover gaps that real examples cannot exercise. Mark them as synthetic.
 
