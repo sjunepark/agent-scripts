@@ -5,8 +5,9 @@
   individual commits. Both local and remote `dev` are already ancestors of
   `origin/main`. The common merge base is `e6c7e487`.
 - Local skill-authoring changes are preserved exactly; incoming plugin and
-  registry changes merged without conflicts. Local `main` and remote branches
-  remain unchanged; this integration is local only.
+  registry changes merged without conflicts. Publish this combined branch as a
+  draft PR targeting `main`; keep it unmerged until the private-source plan is
+  complete. Preserve local `main` and the original PR #22 recovery branch.
 - Not ready for main or release: the draft adds private access requirements to
   `kicpa`, contrary to the selected separate private-profile design. Follow the
   [private-source plan](plans/sjskills-private-github-sources.md) before rollout.
