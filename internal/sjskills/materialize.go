@@ -424,11 +424,7 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 		if !skill.Access.valid() {
 			return nil, nil, materializationError("classify", "invalid access policy", nil)
 		}
-		if skill.Access == AccessGitHubAuthenticated {
-			if _, err := githubRepository(skill.Source); err != nil {
-				return nil, nil, materializationError("classify", "invalid authenticated source", err)
-			}
-		}
+
 		if skill.Name == "" || !isPortableName(skill.Name) {
 			return nil, nil, materializationError("classify", "skill name is not portable", nil)
 		}
@@ -448,6 +444,11 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 				skipped = append(skipped, skill)
 			}
 		case ManagerSkillsCLI:
+			if skill.Access == AccessGitHubAuthenticated {
+				if _, err := githubRepository(skill.Source); err != nil {
+					return nil, nil, materializationError("classify", "invalid authenticated source", err)
+				}
+			}
 			if skill.Mode != ModeCopy {
 				return nil, nil, materializationError(safeSkillName(skill.Name), "skills-cli installation must use copy mode", nil)
 			}

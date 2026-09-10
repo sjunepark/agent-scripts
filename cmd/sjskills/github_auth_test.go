@@ -15,6 +15,17 @@ import (
 	"github.com/sjunepark/agent-scripts/internal/sjskills"
 )
 
+func githubFixtureGitEnvironment(root string) []string {
+	env := []string{}
+	for _, entry := range os.Environ() {
+		key, _, _ := strings.Cut(entry, "=")
+		if !strings.HasPrefix(strings.ToUpper(key), "GIT_") {
+			env = append(env, entry)
+		}
+	}
+	return append(env, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+filepath.Join(root, "no-gitconfig"), "GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid", "GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid")
+}
+
 func githubFixture(t *testing.T) (string, map[string]string) {
 	t.Helper()
 	root := t.TempDir()
@@ -50,7 +61,7 @@ func githubFixture(t *testing.T) (string, map[string]string) {
 	command := func(args ...string) {
 		t.Helper()
 		c := exec.Command(realGit, args...)
-		c.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+filepath.Join(root, "no-gitconfig"), "GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid", "GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid")
+		c.Env = githubFixtureGitEnvironment(root)
 		if out, e := c.CombinedOutput(); e != nil {
 			t.Fatalf("fixture git: %v %s", e, out)
 		}
@@ -318,5 +329,46 @@ func TestExternalTokenAuthenticationNeedsNoOriginalConfig(t *testing.T) {
 				t.Fatal("token login migrated original configuration")
 			}
 		})
+	}
+}
+
+func TestExternalAuthenticatedCommitPin(t *testing.T) {
+	project, env := githubFixture(t)
+	repo := env["SJSKILLS_GIT_FIXTURE"]
+	c := exec.Command(env["SJSKILLS_REAL_GIT"], "-C", repo, "rev-parse", "HEAD")
+	c.Env = githubFixtureGitEnvironment(filepath.Dir(repo))
+	pin, err := c.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.ReadFile(filepath.Join(repo, "skills", "private-fixture", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "skills", "private-fixture", "SKILL.md"), []byte("newer unpinned content"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	c = exec.Command(env["SJSKILLS_REAL_GIT"], "-C", repo, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "core.hooksPath="+filepath.Join(repo, "no-hooks"), "commit", "-am", "newer commit")
+	c.Env = githubFixtureGitEnvironment(filepath.Dir(repo))
+	if out, err := c.CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	writeAuthenticatedManifest(t, project, true)
+	manifest := filepath.Join(project, "sjskills.toml")
+	data, err := os.ReadFile(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := "https://github.com/fixture/private/tree/" + strings.TrimSpace(string(pin)) + "/skills"
+	if err := os.WriteFile(manifest, []byte(strings.ReplaceAll(string(data), "fixture/private/skills", source)), 0600); err != nil {
+		t.Fatal(err)
+	}
+	code, out, stderr := runCLIWithEnvironment(t, project, env, "--json", "apply", "--yes")
+	if code != 0 || stderr != "" {
+		t.Fatalf("code=%d out=%s stderr=%s", code, out, stderr)
+	}
+	installed, err := os.ReadFile(filepath.Join(project, ".agents", "skills", "private-fixture", "SKILL.md"))
+	if err != nil || string(installed) != string(original) {
+		t.Fatalf("pin mismatch: %q err=%v", installed, err)
 	}
 }

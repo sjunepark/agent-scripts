@@ -65,6 +65,7 @@ function githubSourceProblem(source) {
   path = path.replace(/\/$/, "");
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path)) return true;
   const parts = path.split("/");
+  if (source.startsWith("https://") && parts.length > 2 && (parts.length < 4 || parts[2] !== "tree")) return true;
   return parts.some((part) => part === "." || part === "..") ||
     ["", ".", ".."].includes(parts[1].replace(/\.git$/, ""));
 }

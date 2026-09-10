@@ -92,7 +92,7 @@ func TestAuthenticatedSourcesAreBoundedToGitHub(t *testing.T) {
 			t.Fatalf("%s: %s %v", source, repo, err)
 		}
 	}
-	for _, source := range []string{"https://example.com/o/r", "https://github.com:443/o/r", "https://github.com.evil/o/r", "https://u:secret@github.com/o/r", "https://github.com/o/r?token=secret", "https://github.com/o/r#main", "https://github.com/o/r/%2e%2e/a", "https://github.com/o/r/../a", "https://github.com/o/r/a%2Fb", "https://github.com/o/r\\a", "./o/r", "owner/..", "owner/.git"} {
+	for _, source := range []string{"https://example.com/o/r", "https://github.com:443/o/r", "https://github.com.evil/o/r", "https://u:secret@github.com/o/r", "https://github.com/o/r?token=secret", "https://github.com/o/r#main", "https://github.com/o/r/%2e%2e/a", "https://github.com/o/r/../a", "https://github.com/o/r/a%2Fb", "https://github.com/o/r\\a", "./o/r", "owner/..", "owner/.git", "https://github.com/o/r/blob/main/skills", "https://github.com/o/r/tree", "https://github.com/o/r/issues"} {
 		if _, err := githubRepository(source); err == nil {
 			t.Fatalf("accepted %q", source)
 		}
@@ -173,5 +173,14 @@ func TestAccessStatusSnapshotsNormalizePublic(t *testing.T) {
 	other.Plan.Desired.Skills[0].Access = AccessGitHubAuthenticated
 	if scope.Matches(other) {
 		t.Fatal("authenticated policy reused command snapshot")
+	}
+}
+
+func TestAuthenticatedNonInstallableSkillsAreSkipped(t *testing.T) {
+	for _, manager := range []Manager{ManagerManual, ManagerWorkflow} {
+		installed, skipped, err := classifyMaterializationSkills([]DesiredSkill{{Name: "manual-fixture", Manager: manager, Access: AccessGitHubAuthenticated}})
+		if err != nil || len(installed) != 0 || len(skipped) != 1 {
+			t.Fatalf("%s: installed=%v skipped=%v err=%v", manager, installed, skipped, err)
+		}
 	}
 }

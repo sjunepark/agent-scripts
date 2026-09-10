@@ -1,5 +1,7 @@
 # Authenticated private-source delivery
 
+PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091 (unsupported GitHub page URLs), and 3979633101 (manual/workflow validation). Fixed with regression coverage; PR checks own follow-up native validation and the merge gate.
+
 - PR #23 combines local skill-authoring work, origin main, and the PR #22
   recovery history. Public `kicpa` membership is restored; recovered private
   registrations now belong to `kicpa-private`.
@@ -16,7 +18,7 @@
   macOS Intel/ARM and Windows in
   [run 34482396368](https://github.com/sjunepark/agent-scripts/actions/runs/34482396368).
   [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) owns the final merge
-  status; no implementation or acceptance work remains. CodeRabbit skipped its
+  status and final check results. CodeRabbit skipped its
   requested review because automatic reviews are disabled.
 - No new release, actual private-skill installation, or real-machine
   reconciliation is included.

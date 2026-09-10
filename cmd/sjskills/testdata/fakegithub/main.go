@@ -63,7 +63,7 @@ func main() {
 		args := os.Args[1:]
 		index := -1
 		for i, a := range args {
-			if a == "clone" {
+			if a == "clone" || a == "init" || a == "fetch" || a == "checkout" {
 				index = i
 				break
 			}
@@ -77,12 +77,21 @@ func main() {
 				fail()
 			}
 		}
-		remote := args[len(args)-2]
-		if remote != "https://github.com/fixture/private.git" {
-			fail()
-		}
+		operation := args[index]
 		realGit := os.Getenv("SJSKILLS_REAL_GIT")
 		if !filepath.IsAbs(realGit) {
+			fail()
+		}
+		if operation == "init" || operation == "checkout" {
+			cmd := exec.Command(realGit, args...)
+			cmd.Env = os.Environ()
+			if err := cmd.Run(); err != nil {
+				fail()
+			}
+			return
+		}
+		remote := args[len(args)-2]
+		if remote != "https://github.com/fixture/private.git" {
 			fail()
 		}
 		runCredential := func(host, path string) ([]byte, error) {
@@ -103,8 +112,8 @@ func main() {
 			fmt.Fprintln(os.Stderr, token)
 			fail()
 		}
-		cloneArgs := append([]string{}, args[:index]...)
-		cloneArgs = append(cloneArgs, "clone", "--no-recurse-submodules", "--", os.Getenv("SJSKILLS_GIT_FIXTURE"), args[len(args)-1])
+		cloneArgs := append([]string{}, args...)
+		cloneArgs[len(cloneArgs)-2] = os.Getenv("SJSKILLS_GIT_FIXTURE")
 		cmd := exec.Command(realGit, cloneArgs...)
 		env := []string{}
 		for _, e := range os.Environ() {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 )
 
 const GitHubCredentialCommand = "__github-credential"
+
+var fullGitCommit = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
 
 // ghConfigDirectory resolves only the original gh configuration location. The
 // materializer never copies a user's home, Git configuration, or credentials.
@@ -154,15 +157,31 @@ func (m *Materializer) authenticatedSource(ctx context.Context, root, source str
 	}
 	env = append(env, "SJSKILLS_GH_EXECUTABLE="+gh, "SJSKILLS_GH_CONFIG_DIR="+config, "SJSKILLS_GH_REPOSITORY="+repo)
 	helperCommand := "!" + gitShellQuote(helper) + " " + GitHubCredentialCommand
-	args := []string{"-c", "credential.helper=", "-c", "credential.helper=" + helperCommand, "-c", "credential.useHttpPath=true", "-c", "http.followRedirects=false", "-c", "submodule.recurse=false", "-c", "core.hooksPath=" + filepath.Join(root, ".empty-hooks"), "clone", "--depth=1", "--single-branch", "--no-recurse-submodules"}
-	if ref != "" {
-		args = append(args, "--branch", ref)
+	options := []string{"-c", "credential.helper=", "-c", "credential.helper=" + helperCommand, "-c", "credential.useHttpPath=true", "-c", "http.followRedirects=false", "-c", "submodule.recurse=false", "-c", "core.hooksPath=" + filepath.Join(root, ".empty-hooks")}
+	remote := "https://github.com/" + repo + ".git"
+	commands := [][]string{}
+	if fullGitCommit.MatchString(ref) {
+		// clone --branch accepts names only. Fetch a full commit explicitly;
+		// never fall back to the default branch if the server rejects the pin.
+		commands = append(commands,
+			[]string{"init", "--template=", "--", clone},
+			[]string{"-C", clone, "fetch", "--depth=1", "--no-tags", "--no-recurse-submodules", "--", remote, ref},
+			[]string{"-C", clone, "checkout", "--detach", "--force", "FETCH_HEAD", "--"})
+	} else {
+		args := []string{"clone", "--depth=1", "--single-branch", "--no-recurse-submodules"}
+		if ref != "" {
+			args = append(args, "--branch", ref)
+		}
+		commands = append(commands, append(args, "--", remote, clone))
 	}
-	args = append(args, "--", "https://github.com/"+repo+".git", clone)
-	result, err := m.runCommand(ctx, git, args, env)
-	if err != nil || result.ExitCode != 0 {
-		return "", privateProcessError("authenticated Git fetch failed; verify gh login, repository access, ref, and network", err)
+	for _, command := range commands {
+		args := append(append([]string{}, options...), command...)
+		result, err := m.runCommand(ctx, git, args, env)
+		if err != nil || result.ExitCode != 0 {
+			return "", privateProcessError("authenticated Git fetch failed; verify gh login, repository access, ref, and network", err)
+		}
 	}
+
 	local := filepath.Join(clone, filepath.FromSlash(subpath))
 	if err := validateSymlinkParents(clone, local); err != nil {
 		return "", errors.New("authenticated source subpath is missing or unsafe")

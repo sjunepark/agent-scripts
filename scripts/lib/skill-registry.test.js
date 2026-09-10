@@ -154,7 +154,7 @@ test("access profiles remain explicit, composable, and GitHub-only", () => {
     assertErrorIncludes(validationErrors((r) => r.profiles["kicpa-private"].access = value), "access must be");
   }
   assertErrorIncludes(validationErrors((r) => r.profiles.kicpa.access = "github-authenticated"), "must remain public");
-  for (const source of ["https://example.com/o/r", "https://github.com:443/o/r", "https://github.com/o/r/%2e%2e", "https://github.com/o/r/../a", "https://github.com/o/r/a%2Fb", "owner/.git"]) {
+  for (const source of ["https://example.com/o/r", "https://github.com:443/o/r", "https://github.com/o/r/%2e%2e", "https://github.com/o/r/../a", "https://github.com/o/r/a%2Fb", "owner/.git", "https://github.com/o/r/blob/main/skills", "https://github.com/o/r/tree", "https://github.com/o/r/issues"]) {
     assertErrorIncludes(validationErrors((r) => r.sources.kicpa.location = source), "requires a credential-free GitHub.com");
   }
   delete registry.profiles.kicpa.access;

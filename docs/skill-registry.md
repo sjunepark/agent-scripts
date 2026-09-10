@@ -58,11 +58,15 @@ Public selections retain the pinned Skills CLI's remote-fetch path and do not
 invoke a new gh operation. Authenticated selections require Git, GitHub CLI,
 and an existing gh login with repository access. They accept GitHub.com
 shorthand or credential-free `https://github.com` sources, including supported
-`/tree/<ref>/<subpath>` forms. Other hosts, ports, escaped paths, and embedded
-credentials are rejected before fetching.
+`/tree/<ref>[/<subpath>]` forms. A ref may be a branch, tag, or full 40-character
+commit hash. Other GitHub page URLs (such as `/blob/` or `/issues/`), hosts,
+ports, escaped paths, and embedded credentials are rejected before fetching.
+Manual and workflow-managed entries do not fetch or validate a GitHub source.
 
-Authenticated fetching uses one bounded HTTPS Git clone in private staging,
-then the pinned Skills CLI's local-source discovery. Redirects, alternative
+Authenticated fetching uses bounded HTTPS Git operations in private staging,
+then the pinned Skills CLI's local-source discovery. Named refs use shallow
+clone; full commit pins use shallow fetch and detached checkout, failing if the
+server cannot supply that commit. Redirects, alternative
 protocols, submodules, inherited Git credential helpers/configuration, and
 tracing are disabled. The internal credential helper permits only the selected
 GitHub repository and forwards a bounded credential response directly to Git's

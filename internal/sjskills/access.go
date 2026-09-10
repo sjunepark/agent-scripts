@@ -68,6 +68,9 @@ func githubRepository(source string) (string, error) {
 			return "", fmt.Errorf("authenticated source must not contain traversal")
 		}
 	}
+	if strings.HasPrefix(source, "https://") && len(parts) > 2 && (len(parts) < 4 || parts[2] != "tree") {
+		return "", fmt.Errorf("authenticated GitHub URL must identify a repository or /tree/<ref> path")
+	}
 	repo := strings.TrimSuffix(parts[1], ".git")
 	if repo == "" || repo == "." || repo == ".." {
 		return "", fmt.Errorf("authenticated source must identify a repository")

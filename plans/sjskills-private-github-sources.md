@@ -10,7 +10,7 @@ The [registry contract](../docs/skill-registry.md) owns access semantics,
 compatibility, operator setup, and error handling.
 
 Implementation, bounded independent review, local acceptance, and supported
-native CI are complete for `84ba2e7`. [PR #23](https://github.com/sjunepark/agent-scripts/pull/23)
+native CI are complete for `84ba2e7`; review fixes have local regression coverage. [PR #23](https://github.com/sjunepark/agent-scripts/pull/23)
 owns the final merge status. No release, actual private-skill installation,
 real-machine reconciliation, or authentication setup is included.
 The seven already-authorized recovered registrations are in `kicpa-private`;
@@ -24,7 +24,7 @@ The seven already-authorized recovered registrations are in `kicpa-private`;
   hosts are rejected. Required public profiles stay public, while additional
   nonempty profiles obey the same collision/reference rules.
 - [Authenticated staging](../internal/sjskills/github_auth.go) uses a controlled
-  HTTPS Git clone and an exact-repository gh credential bridge. The existing
+  HTTPS Git operations and an exact-repository gh credential bridge. The existing
   pinned Skills CLI discovers from that internal local checkout. Public fetches
   do not enter this path. The original remote identity survives staging,
   ownership, quarantine, and restore.
@@ -43,7 +43,7 @@ The seven already-authorized recovered registrations are in `kicpa-private`;
   and retries authentication through gh and SSH. Its local-source path performs
   discovery without invoking either tool. Controlled real-CLI experiments
   verified both boundaries with a local fixture and a sentinel credential.
-- Selected one bounded HTTPS Git clone with an exact-repository credential
+- Selected bounded HTTPS Git operations with an exact-repository credential
   helper, followed by the existing CLI's internal local-path handoff. Disable
   redirects, other protocols, submodules, inherited Git helpers/configuration,
   and tracing. Preserve the remote identity for provenance and evidence.
@@ -76,6 +76,7 @@ credentials. No private repository or real user login is needed by CI.
 | Ordinary sync works | Mixed CLI plan/install, upstream commit/update, repeated no-op apply, access-only ownership continuity, quarantine/removal and restore across both project targets |
 | Failed access is safe | Missing tools, legacy configuration, denied login, oversized output, unavailable skill, cancellation and timeout fixtures; failed apply preserves installed contents |
 | Descendant cleanup | Blocking native gh fixture is stopped by cancellation and timeout through Git → helper → gh before staging cleanup; generic process-tree tests retain staging when termination is unverified |
+| Review regressions | Real Git CLI installation preserves an older full commit pin; Go/JS reject unsupported GitHub page URLs; manual/workflow entries skip fetch validation |
 | Source and evidence | Original remote source in plans/provenance; access separates batch/cache/review identity; warm/cold/cooldown tests preserve public evidence when private refresh fails |
 | Credentials remain transient | Sentinel absent from CLI diagnostics and project files; token login uses version-only temporary configuration and leaves original legacy config unchanged; helper output is bounded and never included in diagnostics |
 | Platform compatibility | Full Go/race suites and supporting checks passed locally; hosted macOS Intel/ARM and Windows acceptance passed in run 34482396368 |
@@ -95,9 +96,10 @@ A live private-GitHub smoke test is supplementary and was not performed.
   required aggregate gate. The final PR checks also cover documentation updates.
 - CodeRabbit's requested initial review was skipped because automatic reviews
   are disabled. The bounded independent review and its acceptance follow-ups
-  are complete; no external review findings remain.
+  are complete. Codex review findings for full commit pins, unsupported page URLs,
+  and skipped managers are fixed with regression coverage.
 - [PR #23](https://github.com/sjunepark/agent-scripts/pull/23) is the authoritative
-  publication/merge record. No implementation or acceptance work remains.
+  publication/merge record. Its checks own follow-up native validation and the merge gate.
 - Release publication and machine onboarding require a separate request.
 
 GitHub Enterprise/other hosts, privately hosted profile definitions,
