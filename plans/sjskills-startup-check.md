@@ -9,17 +9,18 @@ one short diagnostic with a next step. The hook never assigns maintenance work t
 the agent and never updates, installs, synchronizes, quarantines, or restores.
 
 The user selected **only check and report** on 2026-09-15. This replaces the
-previous automatic-maintenance target. The [closed goal](../goals/sjskills-startup-check.md) now authorizes stages A–D
-and PR delivery. Real-host activation and reconciliation remain excluded.
+previous automatic-maintenance target. Stages A–D were delivered through the
+[closed goal](../goals/sjskills-startup-check.md) and PR lifecycle. Real-host
+activation remains stage E work requiring separate authority; configured
+reconciliation remains excluded.
 
 ## Current state
 
 - Stages A–B are implemented: native checks, strict partial-result reporting,
   read-only plugin observation, and removal of the injected maintenance path.
 - Stage C: Windows shell, subprocess, cache, provenance, transport, and released
-  CLI compatibility checks pass. Hosted native acceptance passed on all three targets in
-  [run 34926085048](https://github.com/sjunepark/agent-scripts/actions/runs/34926085048);
-  review follow-up validation is pending.
+  CLI compatibility checks pass. Final hosted native acceptance passed on all three targets in
+  [run 34927077118](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118).
 - Stage D: manifest/cachebuster and operator documentation describe check-only
   behavior. Isolated install/reinstall passed: healthy packaged Windows hook exited 0
   with zero stdout bytes in 5,321 ms. Scoped documentation harmonization and
@@ -41,8 +42,10 @@ and PR delivery. Real-host activation and reconciliation remain excluded.
 
 ## Next action
 
-Finish review follow-ups on [PR #24](https://github.com/sjunepark/agent-scripts/pull/24),
-validate the final head, and merge to the goal integration branch.
+Stages A–D are complete. [PR #24](https://github.com/sjunepark/agent-scripts/pull/24)
+merged as `751d93f` to `codex/sjskills-startup-integration`. Stage E remains
+unstarted and requires separate authority, including any promotion to `main`
+and host activation.
 
 ## Selected design
 
@@ -170,13 +173,13 @@ result without an agent turn, installer, `apply`, `restore`, or plugin update.
 
 - [x] Run `node --test scripts/sjskills-hook.test.js` with temporary homes,
   caches, credentials, and controlled network responses.
-- [ ] Exercise the registered Windows command through PowerShell and cmd.exe,
+- [x] Exercise the registered Windows command through PowerShell and cmd.exe,
   and the macOS shell command on Intel and Apple silicon. Preserve Linux CI
   testing of supported-platform logic and the unsupported-target response.
-- [ ] Run a compatible real native CLI against isolated configured and
+- [x] Run a compatible real native CLI against isolated configured and
   unconfigured projects. Capture cold/warm timings, nonzero exits, cancellation,
   process cleanup, network/auth failures, and parallel startup results.
-- [ ] Inspect before/after filesystem and command logs to prove managed roots,
+- [x] Inspect before/after filesystem and command logs to prove managed roots,
   executables, installs, credentials, and trust remain unchanged.
 - [x] Run one bounded code review; fix actionable in-scope defects and run the
   relevant checks. If Go changes prove necessary, also use the Go skill and run

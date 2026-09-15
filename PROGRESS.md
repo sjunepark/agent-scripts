@@ -26,17 +26,10 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
 
 # sjskills startup-check delivery
 
-- The [startup-check plan](plans/sjskills-startup-check.md) owns the selected
-  check-only target, native acceptance evidence, and remaining delivery.
-- Stages A–B replace prompt-driven maintenance with direct status execution.
-  Windows tests, immutable v1.3.0 compatibility, isolated package reinstall,
-  source validation, and documentation alignment pass. Hosted native acceptance
-  and PR delivery remain pending.
-- The [closed goal](goals/sjskills-startup-check.md) authorizes stages A–D and PR
-  delivery to its integration branch. Real-host installation, trust review,
-  activation, automatic updates, and configured reconciliation are excluded.
-- Older installations may still inject the previous maintenance workflow.
-  Existing plugin-data snapshots and update state are deliberately retained.
+- Stages A–D are delivered through [PR #24](https://github.com/sjunepark/agent-scripts/pull/24), merged as `751d93f` to `codex/sjskills-startup-integration`. The [completed goal](goals/sjskills-startup-check.md) owns the closed delivery boundary.
+- [Final CI](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118) passed on Windows x64 and both macOS targets. Released-CLI compatibility, isolated package reinstall, bounded review, and documentation alignment passed.
+- The [startup-check plan](plans/sjskills-startup-check.md) retains timing evidence and unstarted stage E. Promotion to main and real-host installation, trust, and activation remain separate. No configured reconciliation or automatic maintenance was performed.
+- Older installations may still inject the previous workflow. Existing plugin-data snapshots and update state remain intact.
 
 ## Previous CLI delivery
 

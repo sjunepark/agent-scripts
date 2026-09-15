@@ -2,14 +2,17 @@
 
 ## Current
 
-[Check sjskills automatically without assigning work to the agent](plans/sjskills-startup-check.md)
-is implementing stages A–D under the [closed goal](goals/sjskills-startup-check.md).
+_None._
 
 ## Plans
 
 1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
+
+2. [Publish and activate the check-only sjskills hook](plans/sjskills-startup-check.md)
+   has completed stages A–D on its integration branch. Stage E remains
+   unstarted and requires separate authorization.
 
 ## Tasks
 

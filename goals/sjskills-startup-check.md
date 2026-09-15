@@ -1,6 +1,6 @@
 # Goal: Check sjskills automatically without routine agent work
 
-Status: active
+Status: complete
 Planning scope: ROADMAP.md
 
 ## Original contract
@@ -26,27 +26,24 @@ _None._
 
 ### Completed included results
 
-- Stages A–B: reproduced old context injection; implemented direct checks and concise partial-result reporting.
-- Stage D: replaced package metadata/runtime, removed maintenance bundle, validated isolated install/reinstall, and harmonized affected docs.
+- Stages A–B: direct native checks, fresh-evidence validation, concise partial-result reporting, and removal of agent maintenance injection.
+- Stage C: local regressions, immutable released-CLI compatibility, and final native CI on Windows x64 and macOS Intel/Apple silicon; review findings handled.
+- Stage D: refreshed package, isolated install/reinstall, and aligned operator/planning documentation.
+- Delivery: PR #24 merged to the preflighted integration branch.
 
 ### Current in-scope result
 
-Stage C: hosted native acceptance and PR delivery.
+None — all included results delivered.
 
 ### Next in-scope action
 
-Finish follow-up validation and review handling on PR #24, then merge to the integration branch.
+None — goal complete
 
 ### Evidence and blockers
 
-- Clean starting checkout equals prepared commit `ce8b5047ce489f02ff5c1dfe79f0fc1926676205`; ancestor verification passed. All cited sources and required workflow skills are present.
-- Native platform goal created and active in task `01a0a315-a2c5-7bb3-b740-5211ab1babb0`.
-- PR integration branch: `codex/sjskills-startup-integration`, preserving the prepared commit. Repository permission is ADMIN; branch creation/push succeeded. Initialization and terminal metadata use this non-production integration branch.
-- Candidate: one connected implementation PR for stages A–D. Classification: included. Contract basis: the three named results. Action: proceed after initialization is committed and pushed.
-- Real-host installation, activation, plugin/CLI updates, and configured reconciliation remain excluded. Use isolated test homes only.
-
-- Source validation: hook tests, registry tests, release tests, skill validation, plugin validation, and go vet pass on Windows. Immutable released v1.3.0 status output was exercised in isolated homes. Bounded review fixes have regression coverage.
-- Candidate: manual native CI dispatch for the implementation head. Classification: necessary. Contract basis: stage C supported-target acceptance. Action: proceed; no real-host activation.
-
-- PR #24: https://github.com/sjunepark/agent-scripts/pull/24. Initial Codex and CodeRabbit reviews completed; Windows fallback/policy, Linux zombie assertion, and acceptance wording are fixed. Automatic lock reclamation was rejected because age does not establish ownership and the contract forbids stealing locks.
-- Initial hosted native acceptance passed on all supported targets: https://github.com/sjunepark/agent-scripts/actions/runs/34926085048. Final follow-up head validation remains pending.
+- Prepared commit `ce8b5047ce489f02ff5c1dfe79f0fc1926676205` remains an ancestor of the delivered integration branch. Native goal was created in task `01a0a315-a2c5-7bb3-b740-5211ab1babb0`.
+- [PR #24](https://github.com/sjunepark/agent-scripts/pull/24) merged as `751d93fcf21bdceb358913a26f3b478acb0b3c6e` into `codex/sjskills-startup-integration`, preserving commits `b6fe3dd`, `f6f13bf`, and `3cfaf91`.
+- [Final native acceptance](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118) passed source, artifact, hook, and consumer checks for head `3cfaf91` on all supported targets. Local registry/release tests, skill/plugin validation, go vet, and Markdown link/queue checks passed.
+- Codex and CodeRabbit reviews completed; all five threads are resolved. CodeRabbit withdrew automatic stale-lock reclamation after confirming the no-stolen-lock contract. Follow-up diffs were reviewed and tested without manual review retriggers.
+- Package version `0.1.0+codex.20260915035156` passed isolated Codex install/reinstall and silent healthy invocation. Native Windows v1.3.0 compatibility retained known findings during actual upstream failures. The plan records timing evidence.
+- No blockers remain within this goal. Stage E real-host installation, trust, activation, and configured reconciliation remain unstarted. No default-branch promotion or ongoing installation update was performed.
