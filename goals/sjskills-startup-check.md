@@ -35,7 +35,7 @@ Stage C: hosted native acceptance and PR delivery.
 
 ### Next in-scope action
 
-Create the implementation PR, run native acceptance, handle feedback, and merge to the integration branch.
+Finish follow-up validation and review handling on PR #24, then merge to the integration branch.
 
 ### Evidence and blockers
 
@@ -47,3 +47,6 @@ Create the implementation PR, run native acceptance, handle feedback, and merge 
 
 - Source validation: hook tests, registry tests, release tests, skill validation, plugin validation, and go vet pass on Windows. Immutable released v1.3.0 status output was exercised in isolated homes. Bounded review fixes have regression coverage.
 - Candidate: manual native CI dispatch for the implementation head. Classification: necessary. Contract basis: stage C supported-target acceptance. Action: proceed; no real-host activation.
+
+- PR #24: https://github.com/sjunepark/agent-scripts/pull/24. Initial Codex and CodeRabbit reviews completed; Windows fallback/policy, Linux zombie assertion, and acceptance wording are fixed. Automatic lock reclamation was rejected because age does not establish ownership and the contract forbids stealing locks.
+- Initial hosted native acceptance passed on all supported targets: https://github.com/sjunepark/agent-scripts/actions/runs/34926085048. Final follow-up head validation remains pending.

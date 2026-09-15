@@ -17,7 +17,9 @@ and PR delivery. Real-host activation and reconciliation remain excluded.
 - Stages A–B are implemented: native checks, strict partial-result reporting,
   read-only plugin observation, and removal of the injected maintenance path.
 - Stage C: Windows shell, subprocess, cache, provenance, transport, and released
-  CLI compatibility checks pass. Hosted native acceptance remains pending.
+  CLI compatibility checks pass. Hosted native acceptance passed on all three targets in
+  [run 34926085048](https://github.com/sjunepark/agent-scripts/actions/runs/34926085048);
+  review follow-up validation is pending.
 - Stage D: manifest/cachebuster and operator documentation describe check-only
   behavior. Isolated install/reinstall passed: healthy packaged Windows hook exited 0
   with zero stdout bytes in 5,321 ms. Scoped documentation harmonization and
@@ -39,8 +41,8 @@ and PR delivery. Real-host activation and reconciliation remain excluded.
 
 ## Next action
 
-Deliver the implementation PR, run hosted native acceptance, address feedback,
-and merge to the goal integration branch.
+Finish review follow-ups on [PR #24](https://github.com/sjunepark/agent-scripts/pull/24),
+validate the final head, and merge to the goal integration branch.
 
 ## Selected design
 
@@ -248,6 +250,6 @@ hook rather than silently reverting to automatic maintenance.
   still reference snapshots; deleting those is a separate cleanup task.
 - A fresh session is required to verify removal of already-injected instructions.
   Reinstalling code cannot retract context from an active old conversation.
-- The only unresolved implementation evidence is exact client presentation,
-  released-CLI compatibility, read-only marketplace metadata access, and native
-  timing/cancellation. These are validation tasks, not unanswered product choices.
+- Released-CLI compatibility, read-only marketplace metadata, and native
+  timing/cancellation have source acceptance evidence. Exact client presentation
+  in a fresh trusted session remains stage E rollout acceptance.

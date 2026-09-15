@@ -110,6 +110,8 @@ async function observePlugin(options) {
       fs.mkdirSync(lock, { mode: 0o700 });
       owned = true; writable = true;
     } catch (error) {
+      // Age does not prove ownership or death. Interrupted locks need an
+      // explicit operator decision; startup must never reclaim another run's lock.
       if (error.code === "EEXIST") return unavailable();
       if (!["EACCES", "EPERM", "EROFS"].includes(error.code)) return unavailable();
       // A disposable cache write failure must not discard fresh read results.

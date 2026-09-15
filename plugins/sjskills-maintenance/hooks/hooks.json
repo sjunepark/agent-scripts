@@ -9,7 +9,7 @@
             "command": "node -e \"require(require('path').join(process.env.PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT, 'scripts/session-start.cjs')).main()\"",
             "timeout": 40,
             "statusMessage": "Checking sjskills status",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -EncodedCommand JgAgAG4AbwBkAGUAIAAoAEoAbwBpAG4ALQBQAGEAdABoACAAJABlAG4AdgA6AFAATABVAEcASQBOAF8AUgBPAE8AVAAgACcAcwBjAHIAaQBwAHQAcwAvAHMAZQBzAHMAaQBvAG4ALQBzAHQAYQByAHQALgBjAGoAcwAnACkA"
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -EncodedCommand JABwAGwAdQBnAGkAbgBEAGkAcgBlAGMAdABvAHIAeQAgAD0AIABpAGYAIAAoACQAZQBuAHYAOgBQAEwAVQBHAEkATgBfAFIATwBPAFQAKQAgAHsAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAAfQAgAGUAbABzAGUAIAB7ACAAJABlAG4AdgA6AEMATABBAFUARABFAF8AUABMAFUARwBJAE4AXwBSAE8ATwBUACAAfQA7ACAAJgAgAG4AbwBkAGUAIAAoAEoAbwBpAG4ALQBQAGEAdABoACAAJABwAGwAdQBnAGkAbgBEAGkAcgBlAGMAdABvAHIAeQAgACcAcwBjAHIAaQBwAHQAcwAvAHMAZQBzAHMAaQBvAG4ALQBzAHQAYQByAHQALgBjAGoAcwAnACkA"
           }
         ]
       }

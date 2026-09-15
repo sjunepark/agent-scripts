@@ -86,11 +86,11 @@ test("registered command executes controlled native checks in both native shells
   copy(plugin,installed);fs.mkdirSync(home);fs.mkdirSync(bin);cached(data);fs.writeFileSync(path.join(home,"config.toml"),config);
   for(const name of ["sjskills","codex"])fs.copyFileSync(executable,path.join(bin,name+(process.platform==="win32"?".exe":"")));
   const log=path.join(root,"commands.jsonl"), beforeConfig=fs.readFileSync(path.join(home,"config.toml"));
-  const env={...process.env,PATH:bin+path.delimiter+process.env.PATH,CODEX_HOME:home,HOME:home,USERPROFILE:home,PLUGIN_ROOT:installed,PLUGIN_DATA:data,HOOK_FIXTURE_LOG:log,HOOK_FIXTURE_STATUS:JSON.stringify(healthy(false)),HOOK_FIXTURE_PLUGINS:JSON.stringify({installed:[{pluginId:"sjskills-maintenance@personal",enabled:true,installed:true,version,marketplaceSource:{sourceType:"git",source:"https://github.com/sjunepark/agent-scripts.git"}}]})};
+  const env={...process.env,PSExecutionPolicyPreference:"Restricted",PATH:bin+path.delimiter+process.env.PATH,CODEX_HOME:home,HOME:home,USERPROFILE:home,PLUGIN_ROOT:installed,PLUGIN_DATA:data,HOOK_FIXTURE_LOG:log,HOOK_FIXTURE_STATUS:JSON.stringify(healthy(false)),HOOK_FIXTURE_PLUGINS:JSON.stringify({installed:[{pluginId:"sjskills-maintenance@personal",enabled:true,installed:true,version,marketplaceSource:{sourceType:"git",source:"https://github.com/sjunepark/agent-scripts.git"}}]})};
   const hook=JSON.parse(fs.readFileSync(path.join(installed,"hooks/hooks.json"))).hooks.SessionStart[0].hooks[0];assert.equal(hook.timeout,40);assert.equal(hook.additionalContextLimit,undefined);
   const shells=process.platform==="win32"?[["powershell.exe",["-NoProfile","-NonInteractive","-Command",hook.commandWindows]],[process.env.COMSPEC||"cmd.exe",["/d","/s","/c",hook.commandWindows]]]:[["/bin/sh",["-c",hook.command]]];
-  for(const [shell,args] of shells){const result=spawnSync(shell,args,{env,cwd:root,input:JSON.stringify({...event,cwd:root}),encoding:"utf8",windowsHide:true,timeout:10000});assert.equal(result.status,0,result.stderr);if(process.platform==="linux")assert.match(JSON.parse(result.stdout).systemMessage,/unsupported/);else assert.equal(result.stdout,"");}
-  if(process.platform!=="linux"){const commands=fs.readFileSync(log,"utf8").trim().split("\n").map(JSON.parse);assert.equal(commands.filter(c=>c.args[0]==="--json").length,shells.length);for(const c of commands)assert.ok(JSON.stringify(c.args)==='["--json","status"]'||JSON.stringify(c.args)==='["plugin","list","--marketplace","personal","--available","--json"]');}
+  for(const [shell,args] of shells)for(const fallback of [false,true]){const shellEnv={...env};if(fallback){delete shellEnv.PLUGIN_ROOT;delete shellEnv.PLUGIN_DATA;shellEnv.CLAUDE_PLUGIN_ROOT=installed;shellEnv.CLAUDE_PLUGIN_DATA=data;}const result=spawnSync(shell,args,{env:shellEnv,cwd:root,input:JSON.stringify({...event,cwd:root}),encoding:"utf8",windowsHide:true,timeout:10000});assert.equal(result.status,0,result.stderr);if(process.platform==="linux")assert.match(JSON.parse(result.stdout).systemMessage,/unsupported/);else assert.equal(result.stdout,"");}
+  if(process.platform!=="linux"){const commands=fs.readFileSync(log,"utf8").trim().split("\n").map(JSON.parse);assert.equal(commands.filter(c=>c.args[0]==="--json").length,shells.length*2);for(const c of commands)assert.ok(JSON.stringify(c.args)==='["--json","status"]'||JSON.stringify(c.args)==='["plugin","list","--marketplace","personal","--available","--json"]');}
   assert.deepEqual(fs.readFileSync(path.join(home,"config.toml")),beforeConfig);for(const protectedName of [".agents",".claude","plugins","auth.json"])assert.equal(fs.existsSync(path.join(home,protectedName)),false);assert.deepEqual(fs.readdirSync(data),["plugin-observation.json"]);
 });
 test("native resolution rejects a building wrapper without executing it",t=>{
@@ -101,7 +101,7 @@ test("bounded process output and cancellation clean up owned descendants",async 
   const root=temp(t),pidFile=path.join(root,"pid");
   const code="const c=require('child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',windowsHide:true});require('fs').writeFileSync(process.argv[1],String(c.pid));setInterval(()=>{},1000)";
   const start=Date.now();await assert.rejects(runProcess(process.execPath,["-e",code,pidFile],{cwd:root,signal:AbortSignal.timeout(1500)}));assert.ok(Date.now()-start<5000);
-  const pid=Number(fs.readFileSync(pidFile,"utf8"));assert.throws(()=>process.kill(pid,0),/ESRCH/);
+  const pid=Number(fs.readFileSync(pidFile,"utf8"));await assertStopped(pid);
 });
 test("malformed hook input is bounded and never echoes untrusted content",()=>{
   for(const input of ["secret", "null", "[]", "x".repeat(1024*1024+1)]){const r=spawnSync(process.execPath,[path.join(plugin,"scripts/session-start.cjs")],{input,encoding:"utf8",windowsHide:true,timeout:5000});assert.equal(r.status,0,r.stderr);const value=JSON.parse(r.stdout);assert.match(value.systemMessage,/incomplete/);assert.doesNotMatch(value.systemMessage,/secret/);assert.equal(value.hookSpecificOutput,undefined);}
@@ -153,6 +153,10 @@ test("native parent exit cannot leave a pipe-holding descendant running",async t
   const root=temp(t),file=path.join(root,"orphan-pid"),begin=Date.now();
   await runProcess(executable,["--orphan",process.execPath,file],{cwd:root,signal:AbortSignal.timeout(3000)}).catch(()=>{});
   assert.ok(Date.now()-begin<5500);const pid=Number(fs.readFileSync(file,"utf8"));
+  await assertStopped(pid);
+});
+
+async function assertStopped(pid) {
   let running=true;
   for(let i=0;i<50;i++){
     try{process.kill(pid,0);if(process.platform==="linux"&&fs.readFileSync(`/proc/${pid}/stat`,"utf8").includes(") Z ")){running=false;break;}}
@@ -161,4 +165,4 @@ test("native parent exit cannot leave a pipe-holding descendant running",async t
   }
   if(running)process.kill(pid);
   assert.equal(running,false,"owned descendant survived completion/cancellation");
-});
+}

@@ -37,7 +37,7 @@ function runProcess(executable, args, { cwd, env = process.env, signal, limit = 
     if (signal?.aborted) return reject(new Error("cancelled"));
     const windows = process.platform === "win32";
     const command = windows ? path.join(env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : executable;
-    const arguments_ = windows ? ["-NoProfile", "-NonInteractive", "-File", path.join(__dirname, "windows-process.ps1")] : args;
+    const arguments_ = windows ? ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(__dirname, "windows-process.ps1")] : args;
     const child = spawn(command, arguments_, {
       cwd, env: windows ? { ...env, SJSKILLS_CHECK_PROCESS: JSON.stringify({ executable, arguments: args }) } : env,
       windowsHide: true, detached: !windows,

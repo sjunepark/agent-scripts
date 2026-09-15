@@ -44,7 +44,9 @@ worker or later agent recovery task.
 
 On macOS, children run in an owned process group. On Windows, hidden PowerShell
 supervisors join kill-on-close Job Objects before launching the native programs;
-this prevents a departed parent from leaving descendants behind. Environments
+this prevents a departed parent from leaving descendants behind. The trusted
+shipped supervisor uses an invocation-only execution policy override; it does not
+persist policy settings and administrative restrictions still apply. Environments
 that disallow that supervision report incomplete checks. Node.js and native
 Codex/sjskills executables must be available; status materialization uses the
 CLI's existing prerequisites. Windows supervision adds startup overhead.
@@ -54,7 +56,9 @@ Upstream plugin observations remain fresh for 24 hours; failed requests have a
 backward clock forces a refresh. The CLI still inspects local skills each time.
 The plugin owns only `PLUGIN_DATA/plugin-observation.json` and its exclusive
 `plugin-observation.lock`. It never steals a lock. Unsafe paths fail closed;
-a denied cache write does not invalidate a successful fresh read.
+a denied cache write does not invalidate a successful fresh read. An interrupted
+lock requires explicit operator inspection of `plugin-observation.lock` and any
+active hook processes before removal; elapsed time alone is not ownership proof.
 
 Old `update-check.json`, `update.lock`, and `workflows/` snapshots are neither
 read nor removed. Suspended sessions may still hold their paths; cleanup is a
