@@ -26,15 +26,16 @@ _None._
 
 ### Completed included results
 
-_None._
+- Stages A–B: reproduced old context injection; implemented direct checks and concise partial-result reporting.
+- Stage D: replaced package metadata/runtime, removed maintenance bundle, validated isolated install/reinstall, and harmonized affected docs.
 
 ### Current in-scope result
 
-Stages A–B: direct checks and concise reporting.
+Stage C: hosted native acceptance and PR delivery.
 
 ### Next in-scope action
 
-Reproduce the registered hook in an isolated installation and pin the check-only behavior with failing tests.
+Create the implementation PR, run native acceptance, handle feedback, and merge to the integration branch.
 
 ### Evidence and blockers
 
@@ -43,3 +44,6 @@ Reproduce the registered hook in an isolated installation and pin the check-only
 - PR integration branch: `codex/sjskills-startup-integration`, preserving the prepared commit. Repository permission is ADMIN; branch creation/push succeeded. Initialization and terminal metadata use this non-production integration branch.
 - Candidate: one connected implementation PR for stages A–D. Classification: included. Contract basis: the three named results. Action: proceed after initialization is committed and pushed.
 - Real-host installation, activation, plugin/CLI updates, and configured reconciliation remain excluded. Use isolated test homes only.
+
+- Source validation: hook tests, registry tests, release tests, skill validation, plugin validation, and go vet pass on Windows. Immutable released v1.3.0 status output was exercised in isolated homes. Bounded review fixes have regression coverage.
+- Candidate: manual native CI dispatch for the implementation head. Classification: necessary. Contract basis: stage C supported-target acceptance. Action: proceed; no real-host activation.

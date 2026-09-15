@@ -9,44 +9,38 @@ one short diagnostic with a next step. The hook never assigns maintenance work t
 the agent and never updates, installs, synchronizes, quarantines, or restores.
 
 The user selected **only check and report** on 2026-09-15. This replaces the
-previous automatic-maintenance target. This request authorizes detailed planning;
-implementation, publication, installation, and machine reconciliation have not
-been requested by this planning task.
+previous automatic-maintenance target. The [closed goal](../goals/sjskills-startup-check.md) now authorizes stages A–D
+and PR delivery. Real-host activation and reconciliation remain excluded.
 
 ## Current state
 
-- Planning complete; implementation and runtime acceptance have not started.
-- [Hook registration](../plugins/sjskills-maintenance/hooks/hooks.json) matches
-  startup/resume and gives the Node script five seconds. That timeout currently
-  bounds prompt preparation, not the agent's later maintenance.
-- [Hook implementation](../plugins/sjskills-maintenance/scripts/session-start.cjs)
-  copies workflow snapshots and emits maintenance prose through
-  `hookSpecificOutput.additionalContext`. It does not invoke sjskills.
-- [Maintenance instructions](../plugins/sjskills-maintenance/references/maintenance.md)
-  ask the agent to check/update the plugin, check/update the CLI, and review/apply
-  skill plans. Only plugin update checking has a hook-level daily gate.
-- [Status collection](../cmd/sjskills/status.go) already checks the CLI, fixed
-  global baseline, and nearest configured project concurrently. Its existing
-  JSON envelope exposes findings, configuration, errors, and evidence freshness.
-- [Skill status](../internal/sjskills/status.go) already uses a 24-hour upstream
-  freshness interval, a 15-minute failed-refresh cooldown, and a 30-second
-  foreground budget. Local inventory is inspected anew; cached upstream evidence
-  does not establish local equality. The
-  [performance record](../tasks/sjskills-status-performance.md) reports cold
-  checks taking seconds and warm native checks taking tens of milliseconds.
-- [CLI evidence](../internal/sjskills/cli_status.go) distinguishes equal, ahead,
-  update available, unavailable, and uncomparable versions. Exit zero alone is
-  insufficient to establish a healthy check.
-- On 2026-09-15, the installed Windows hook script and repository script had
-  matching SHA-256 hashes. This establishes the inspected behavior, not a fresh
-  release comparison. Existing tests assert maintenance-context injection.
+- Stages A–B are implemented: native checks, strict partial-result reporting,
+  read-only plugin observation, and removal of the injected maintenance path.
+- Stage C: Windows shell, subprocess, cache, provenance, transport, and released
+  CLI compatibility checks pass. Hosted native acceptance remains pending.
+- Stage D: manifest/cachebuster and operator documentation describe check-only
+  behavior. Isolated install/reinstall passed: healthy packaged Windows hook exited 0
+  with zero stdout bytes in 5,321 ms. Scoped documentation harmonization and
+  repository source checks passed.
+- The old registered installed command was reproduced under a temporary
+  CODEX_HOME: exit 0, 1,147 ms, and 9,463 injected context characters. A
+  no-agent-context assertion failed against that output before replacement.
+- Immutable Windows v1.3.0 archive SHA-256 matched SHA256SUMS. Isolated status
+  confirmed configured/unconfigured JSON compatibility. Cold checks took
+  9,680–11,040 ms; warm checks took 55–91 ms. GitHub HTTP 403 and a project
+  refresh failure remained incomplete while fresh global findings survived.
+- A native parent-exit reproduction proved taskkill could miss a surviving
+  descendant. Windows Job Object supervision now owns that lifecycle; tests
+  cover ordinary cancellation and descendants outliving the native parent.
+- Bounded independent code review found one mixed-validity reporting defect;
+  supported findings now remain visible alongside incomplete verification.
+- Actual host installation, hook trust, and fresh-session activation have not
+  been performed and remain stage E.
 
 ## Next action
 
-When implementation is requested, reproduce the current startup output using the
-registered shell command in a temporary plugin installation, then add failing
-behavior tests for the check-only contract below. Keep this item queued until
-implementation starts.
+Deliver the implementation PR, run hosted native acceptance, address feedback,
+and merge to the goal integration branch.
 
 ## Selected design
 
@@ -138,15 +132,15 @@ problems across unrelated sessions. Successful checks have no narrative.
 
 ### A. Reproduce and pin the behavior contract
 
-- [ ] Capture the current registered hook's stdout, exit code, duration, and
+- [x] Capture the current registered hook's stdout, exit code, duration, and
   injected maintenance context using an isolated home/plugin data directory.
-- [ ] Extend [hook tests](../scripts/sjskills-hook.test.js) with controlled native
+- [x] Extend [hook tests](../scripts/sjskills-hook.test.js) with controlled native
   CLI fixtures and result cases from the acceptance matrix. First demonstrate
   that the old implementation fails the no-agent-work requirement.
-- [ ] Confirm the minimum released CLI JSON fields against an actual compatible
+- [x] Confirm the minimum released CLI JSON fields against an actual compatible
   release. Validate required fields and scope completeness; tolerate harmless
   additive fields. Older/incompatible output gets an actionable diagnostic.
-- [ ] Verify current official hook output, timeout, and failure behavior before
+- [x] Verify current official hook output, timeout, and failure behavior before
   selecting the final response envelope. The existing `systemMessage` use is
   an implementation clue, not proof of how the target client presents it.
 
@@ -155,16 +149,16 @@ without running automatic updates or applying plans to a real home.
 
 ### B. Execute checks directly and remove the agent workflow
 
-- [ ] Implement CLI execution, JSON validation, result classification, and one-line
+- [x] Implement CLI execution, JSON validation, result classification, and one-line
   reporting in the plugin, reusing the existing status engine.
-- [ ] Implement read-only plugin manifest observation with bounded fetching,
+- [x] Implement read-only plugin manifest observation with bounded fetching,
   provenance validation, cache freshness, and explicit unavailable results.
-- [ ] Update hook status text and timeout; remove the context-injection contract.
-- [ ] Remove the maintenance prompt, bundled sjskills workflow copies, snapshot
+- [x] Update hook status text and timeout; remove the context-injection contract.
+- [x] Remove the maintenance prompt, bundled sjskills workflow copies, snapshot
   creation, update-success bookkeeping, and agent update/apply lock handling.
-  Search actual callers before deleting [the bundle generator](../scripts/sync-sjskills-plugin)
+  Search actual callers before deleting the retired `scripts/sync-sjskills-plugin` bundle generator
   and its test/CI/documentation references. Keep the canonical sjskills skill.
-- [ ] Replace tests for instruction delivery with tests for process execution,
+- [x] Replace tests for instruction delivery with tests for process execution,
   checked results, no mutating commands, and no injected agent task.
 
 Exit: a real shell invocation performs the check itself and emits the specified
@@ -172,7 +166,7 @@ result without an agent turn, installer, `apply`, `restore`, or plugin update.
 
 ### C. Validate reliability and native behavior
 
-- [ ] Run `node --test scripts/sjskills-hook.test.js` with temporary homes,
+- [x] Run `node --test scripts/sjskills-hook.test.js` with temporary homes,
   caches, credentials, and controlled network responses.
 - [ ] Exercise the registered Windows command through PowerShell and cmd.exe,
   and the macOS shell command on Intel and Apple silicon. Preserve Linux CI
@@ -182,7 +176,7 @@ result without an agent turn, installer, `apply`, `restore`, or plugin update.
   process cleanup, network/auth failures, and parallel startup results.
 - [ ] Inspect before/after filesystem and command logs to prove managed roots,
   executables, installs, credentials, and trust remain unchanged.
-- [ ] Run one bounded code review; fix actionable in-scope defects and run the
+- [x] Run one bounded code review; fix actionable in-scope defects and run the
   relevant checks. If Go changes prove necessary, also use the Go skill and run
   focused status tests plus required Go checks.
 
@@ -191,15 +185,15 @@ healthy check cannot be confused with stale, partial, or failed verification.
 
 ### D. Package and document the replacement
 
-- [ ] Update manifest descriptions and display text to check/report behavior,
+- [x] Update manifest descriptions and display text to check/report behavior,
   preserving the install identifier `sjskills-maintenance@personal`.
-- [ ] Refresh the plugin cachebuster and validate the manifest. Install/reinstall
+- [x] Refresh the plugin cachebuster and validate the manifest. Install/reinstall
   in an isolated temporary Codex configuration and invoke the packaged hook.
-- [ ] Update [the operator guide](../docs/sjskills-startup-hook.md),
+- [x] Update [the operator guide](../docs/sjskills-startup-hook.md),
   [settings guide](../docs/settings-sync.md), affected CI/test references, and
   progress status. Remove ongoing standing-maintenance claims from runtime
   instructions; retain manual CLI update and explicit sjskills sync workflows.
-- [ ] Run scoped documentation harmonization. Record source validation separately
+- [x] Run scoped documentation harmonization. Record source validation separately
   from publication, hook trust, and actual host activation.
 
 Exit: packaged code and documentation describe one check-only path; no shipped
