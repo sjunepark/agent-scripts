@@ -26,9 +26,13 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
 
 # sjskills maintenance plugin delivery
 
-- User authorized automatic CLI updates and configured skill sync on every
-  supported local host. Existing release support is macOS Intel/ARM and Windows
-  x64; Linux is unsupported.
+- The 2026-09-15 target is check and report only, with no routine agent work.
+  The [startup-check plan](plans/sjskills-startup-check.md) owns the replacement
+  design, acceptance criteria, and remaining delivery. Planning is complete;
+  the existing plugin still injects agent-driven maintenance instructions.
+- The implementation below was delivered under earlier automatic-maintenance
+  authorization. Existing release support is macOS Intel/ARM and Windows x64;
+  Linux is unsupported.
 - User also authorized automatic adoption of this hook's published `main`
   updates. Migrated the standalone hook into `plugins/sjskills-maintenance/`;
   retired its installer. Maintenance still runs in the next agent turn.

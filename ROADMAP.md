@@ -6,8 +6,8 @@ _None._
 
 ## Plans
 
-1. [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
-   has a settled design; implementation and verification have not started.
+1. [Check sjskills automatically without assigning work to the agent](plans/sjskills-startup-check.md)
+   has a detailed check-only plan; implementation and host activation have not started.
 2. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
@@ -18,6 +18,8 @@ _None._
 
 ## Completed
 
+- [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
+  is recorded as shipped in v1.3.0; live private-skill installation remains separate.
 - [Prepare and spawn the next goal](tasks/next-goal-preparation-spawn.md)
   has implemented and evaluated source.
 - [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
