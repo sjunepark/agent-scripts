@@ -46,4 +46,12 @@ None — goal complete
 - [Final native acceptance](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118) passed source, artifact, hook, and consumer checks for head `3cfaf91` on all supported targets. Local registry/release tests, skill/plugin validation, go vet, and Markdown link/queue checks passed.
 - Codex and CodeRabbit reviews completed; all five threads are resolved. CodeRabbit withdrew automatic stale-lock reclamation after confirming the no-stolen-lock contract. Follow-up diffs were reviewed and tested without manual review retriggers.
 - Package version `0.1.0+codex.20260915035156` passed isolated Codex install/reinstall and silent healthy invocation. Native Windows v1.3.0 compatibility retained known findings during actual upstream failures. The plan records timing evidence.
-- No blockers remain within this goal. Stage E real-host installation, trust, activation, and configured reconciliation remain unstarted. No default-branch promotion or ongoing installation update was performed.
+- At this goal's completion, no blockers remained within its contract. Stage E real-host installation, trust, activation, and configured reconciliation were unstarted. No default-branch promotion or ongoing installation update had been performed.
+
+## Later-authorized delivery
+
+On 2026-09-15, after this goal completed, the user requested "merge to main and
+sync current machine." This is a separate delivery authorization; the original
+contract and its completion record above remain unchanged. The
+[startup-check plan](../plans/sjskills-startup-check.md) owns PR #25 promotion,
+current Windows skill-sync evidence, and remaining plugin activation work.

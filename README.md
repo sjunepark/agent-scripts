@@ -275,9 +275,11 @@ drift with `bin/install-codex-hooks --check`. Repair boundaries, machine-state
 ownership, and upstream removal checks are documented in
 [docs/codex-lifecycle-workarounds.md](docs/codex-lifecycle-workarounds.md).
 
-`sjskills-maintenance` packages automatic CLI updates and configured skill
-synchronization as a plugin, with daily adoption of its own published-main
-updates. It requests maintenance in the first agent turn of each new or resumed
-session. See the [plugin guide](docs/sjskills-startup-hook.md) for publication
-prerequisites, per-host installation, update checks, and migration from the
-retired standalone installer. [PROGRESS.md](PROGRESS.md) tracks delivery status.
+`sjskills-maintenance` checks the native CLI, configured skills, and published
+plugin version on startup and resume. Healthy checks stay silent; findings or
+incomplete verification produce one short report. It never assigns maintenance
+to the agent or updates installations. See the [plugin guide](docs/sjskills-startup-hook.md)
+for per-host installation, hook trust, and migration from the retired standalone
+installer. The [startup-check plan](plans/sjskills-startup-check.md) tracks
+publication and activation; older installations retain their previous behavior
+until replaced.

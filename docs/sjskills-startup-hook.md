@@ -31,6 +31,8 @@ separate from source delivery.
 Fresh, complete evidence is required for silence. Exit zero, stale empty
 findings, missing scopes, disabled inspection, and development versions do not
 establish health. Known findings remain visible when another check fails.
+Fresh evidence that no stable release exists is healthy when the running CLI
+version is stable and the result contains no available-release metadata.
 Diagnostics use fixed text and omit skill names, private sources, credentials,
 raw subprocess output, and remote text. Repeated unresolved findings remain
 visible on each applicable invocation.
@@ -42,7 +44,8 @@ stdin and subprocess output to 1 MiB and each metadata response to 128 KiB.
 CLI status and plugin observation run concurrently. There is no background
 worker or later agent recovery task.
 
-On macOS, children run in an owned process group. On Windows, hidden PowerShell
+On macOS, children run in an owned process group that is terminated when the
+native parent exits, including when descendants have closed their output. On Windows, hidden PowerShell
 supervisors join kill-on-close Job Objects before launching the native programs;
 this prevents a departed parent from leaving descendants behind. The trusted
 shipped supervisor uses an invocation-only execution policy override; it does not

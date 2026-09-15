@@ -44,12 +44,16 @@ function runProcess(executable, args, { cwd, env = process.env, signal, limit = 
       stdio: ["ignore", "pipe", "pipe"],
     });
     let size = 0, stdout = [], failure, stopping;
+    const killGroup = () => {
+      if (!child.pid) return;
+      try { process.kill(-child.pid, "SIGKILL"); } catch (error) { if (error.code !== "ESRCH") failure = error; }
+    };
     const stop = () => {
       failure ||= new Error("cancelled or output limit exceeded");
       if (stopping || !child.pid) return;
       stopping = new Promise((done) => {
         if (process.platform !== "win32") {
-          try { process.kill(-child.pid, "SIGKILL"); } catch (error) { if (error.code !== "ESRCH") failure = error; }
+          killGroup();
           done();
         } else {
           const killer = spawn(path.join(env.SystemRoot || "C:\\Windows", "System32", "taskkill.exe"),
@@ -67,6 +71,8 @@ function runProcess(executable, args, { cwd, env = process.env, signal, limit = 
       else if (stream === child.stdout && !failure) stdout.push(chunk);
     });
     child.once("error", (error) => { failure = error; });
+    // Parent exit ends the owned work even when descendants closed their pipes.
+    if (!windows) child.once("exit", killGroup);
     child.once("close", async (code) => {
       signal?.removeEventListener("abort", stop);
       await stopping;

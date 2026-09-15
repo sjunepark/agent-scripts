@@ -5,7 +5,7 @@ const { test, before, after } = require("node:test");
 const { check } = require("../plugins/sjskills-maintenance/scripts/session-start.cjs");
 const { classifyStatus, report, DAY } = require("../plugins/sjskills-maintenance/scripts/status.cjs");
 const { observePlugin, provenance, mainRef, fetchJSON, RETRY } = require("../plugins/sjskills-maintenance/scripts/observation.cjs");
-const { nativeExecutable, runProcess } = require("../plugins/sjskills-maintenance/scripts/process.cjs");
+const { nativeExecutable, runProcess, LIMIT } = require("../plugins/sjskills-maintenance/scripts/process.cjs");
 const repo = path.resolve(__dirname,".."), plugin = path.join(repo,"plugins/sjskills-maintenance");
 const version = JSON.parse(fs.readFileSync(path.join(plugin,".codex-plugin/plugin.json"))).version;
 const now = Date.now(), commit = "a".repeat(40);
@@ -32,6 +32,14 @@ test("fresh complete status is silent, with an inapplicable project and ahead CL
 test("stale, absent, unknown, disabled and malformed evidence cannot be healthy",()=>{
   const mutations=[v=>delete v.cliAdvisory,v=>v.cliAdvisory.comparison="uncomparable",v=>v.cliAdvisory.comparison="future",v=>v.cliAdvisory.runningVersion="dev",v=>v.cliAdvisory.observedAt=new Date(now+1).toISOString(),v=>v.advisories.pop(),v=>v.advisories.push(v.advisories[0]),v=>v.status.projectConfiguration="skipped",v=>v.status.projectConfiguration="unknown",v=>v.advisories[0].freshness="stale",v=>v.advisories[0].findings=null,v=>v.advisories[0].observedAt=new Date(now-DAY).toISOString(),v=>v.advisories[0].error="private auth secret",v=>v.result="unavailable"];
   for(const mutate of mutations){const value=healthy();mutate(value);const r=report([classifyStatus(value,now)]);assert.match(r.systemMessage,/incomplete/);assert.doesNotMatch(r.systemMessage,/secret/);assert.equal(r.hookSpecificOutput,undefined);}
+});
+test("fresh no-release status is healthy only with a stable running version and no release metadata",async()=>{
+  const value=healthy();value.cliAdvisory.comparison="no-release";delete value.cliAdvisory.availableVersion;
+  const options={platform:"darwin",arch:"arm64",now,resolve:()=>process.execPath,observe:async()=>healthyPlugin,run:async()=>({code:0,stdout:JSON.stringify(value)})};
+  assert.equal(await check(event,options),null);
+  for(const mutate of [v=>v.freshness="stale",v=>v.runningVersion="dev",v=>v.availableVersion="1.3.0",v=>v.releaseURL="https://example.com"]){
+    const invalid=structuredClone(value);mutate(invalid.cliAdvisory);assert.match(report([classifyStatus(invalid,now)]).systemMessage,/CLI verification/);
+  }
 });
 test("known findings survive partial failure, additive fields and repeated checks",()=>{
   const value=healthy();value.newField=true;value.cliAdvisory.comparison="update";
@@ -106,6 +114,15 @@ test("bounded process output and cancellation clean up owned descendants",async 
 test("malformed hook input is bounded and never echoes untrusted content",()=>{
   for(const input of ["secret", "null", "[]", "x".repeat(1024*1024+1)]){const r=spawnSync(process.execPath,[path.join(plugin,"scripts/session-start.cjs")],{input,encoding:"utf8",windowsHide:true,timeout:5000});assert.equal(r.status,0,r.stderr);const value=JSON.parse(r.stdout);assert.match(value.systemMessage,/incomplete/);assert.doesNotMatch(value.systemMessage,/secret/);assert.equal(value.hookSpecificOutput,undefined);}
 });
+test("valid oversized startup input is rejected by the input guard",()=>{
+  const input=JSON.stringify({...event,secret:"x".repeat(LIMIT)});
+  const result=spawnSync(process.execPath,[path.join(plugin,"scripts/session-start.cjs")],{input,encoding:"utf8",windowsHide:true,timeout:5000});
+  assert.equal(result.status,0,result.stderr);
+  const value=JSON.parse(result.stdout);
+  assert.match(value.systemMessage,/hook input or deadline/);
+  assert.doesNotMatch(value.systemMessage,/secret/);
+  assert.equal(value.hookSpecificOutput,undefined);
+});
 
 test("read-only provenance rejects disabled, mismatched and custom-source installations",async t=>{
   const root=temp(t);fs.writeFileSync(path.join(root,"config.toml"),config);
@@ -154,6 +171,12 @@ test("native parent exit cannot leave a pipe-holding descendant running",async t
   await runProcess(executable,["--orphan",process.execPath,file],{cwd:root,signal:AbortSignal.timeout(3000)}).catch(()=>{});
   assert.ok(Date.now()-begin<5500);const pid=Number(fs.readFileSync(file,"utf8"));
   await assertStopped(pid);
+});
+test("native parent exit cannot leave a descendant with closed output running",async t=>{
+  const root=temp(t),file=path.join(root,"orphan-pid");
+  const result=await runProcess(executable,["--orphan-closed",process.execPath,file],{cwd:root,signal:AbortSignal.timeout(3000)});
+  assert.equal(result.code,0);
+  await assertStopped(Number(fs.readFileSync(file,"utf8")));
 });
 
 async function assertStopped(pid) {

@@ -10,9 +10,11 @@ import (
 )
 
 func main() {
-	if len(os.Args) == 4 && os.Args[1] == "--orphan" {
+	if len(os.Args) == 4 && (os.Args[1] == "--orphan" || os.Args[1] == "--orphan-closed") {
 		child := exec.Command(os.Args[2], "-e", "setInterval(()=>{},1000)")
-		child.Stdout, child.Stderr = os.Stdout, os.Stderr
+		if os.Args[1] == "--orphan" {
+			child.Stdout, child.Stderr = os.Stdout, os.Stderr
+		}
 		if err := child.Start(); err != nil {
 			panic(err)
 		}

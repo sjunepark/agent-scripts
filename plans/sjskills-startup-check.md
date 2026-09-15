@@ -10,9 +10,10 @@ the agent and never updates, installs, synchronizes, quarantines, or restores.
 
 The user selected **only check and report** on 2026-09-15. This replaces the
 previous automatic-maintenance target. Stages A–D were delivered through the
-[closed goal](../goals/sjskills-startup-check.md) and PR lifecycle. Real-host
-activation remains stage E work requiring separate authority; configured
-reconciliation remains excluded.
+[closed goal](../goals/sjskills-startup-check.md) and PR lifecycle. On the same
+date, the user separately requested "merge to main and sync current machine,"
+authorizing stage E delivery to the current Windows host and explicit configured
+skill reconciliation. The startup hook's check-only boundary is unchanged.
 
 ## Current state
 
@@ -39,13 +40,22 @@ reconciliation remains excluded.
   supported findings now remain visible alongside incomplete verification.
 - Actual host installation, hook trust, and fresh-session activation have not
   been performed and remain stage E.
+- Explicit skill sync on `DESKTOP-V33SCUA` completed with verified sjskills
+  v1.3.0: all 16 global placements were already exact; all 35 project placements
+  for this worktree's committed `dev` and `go` profiles were installed and are
+  exact. Final plans contain no changes or blocked operations; no quarantines
+  were created. Local before/apply/after evidence is retained under
+  `.tmp/machine-sync-20260915/`. The published catalog and registry already
+  matched the integration source, so this sync did not depend on plugin promotion.
 
 ## Next action
 
 Stages A–D are complete. [PR #24](https://github.com/sjunepark/agent-scripts/pull/24)
-merged as `751d93f` to `codex/sjskills-startup-integration`. Stage E remains
-unstarted and requires separate authority, including any promotion to `main`
-and host activation.
+merged as `751d93f` to `codex/sjskills-startup-integration`.
+[PR #25](https://github.com/sjunepark/agent-scripts/pull/25) is under review for
+the authorized promotion to `main`. Finish review and merge, then reinstall
+`sjskills-maintenance@personal` on `DESKTOP-V33SCUA` from the remote marketplace
+and complete hook trust and fresh-session acceptance.
 
 ## Selected design
 
@@ -204,7 +214,7 @@ healthy check cannot be confused with stale, partial, or failed verification.
 Exit: packaged code and documentation describe one check-only path; no shipped
 prompt still requests unattended mutation or routine agent maintenance.
 
-### E. Publish and activate when separately authorized
+### E. Publish and activate on the authorized Windows host
 
 - [ ] Publish reviewed source to the configured remote `main` before updating
   ongoing installations. If the CLI was unchanged, no new CLI release is needed.

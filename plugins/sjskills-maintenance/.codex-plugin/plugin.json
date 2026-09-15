@@ -1,6 +1,6 @@
 {
   "name": "sjskills-maintenance",
-  "version": "0.1.0+codex.20260915035156",
+  "version": "0.1.0+codex.20260915062837",
   "description": "Check CLI, configured skills, and published plugin status at startup without assigning agent work.",
   "author": {
     "name": "Local developer"

@@ -17,8 +17,10 @@ function classifyStatus(value, now = Date.now()) {
   }
   const cli = value?.cliAdvisory;
   if (object(cli) && cli.comparison === "update") findings.push("CLI update available");
-  if (!object(cli) || !["equal", "ahead", "update"].includes(cli.comparison) ||
-      !stable(cli.runningVersion) || !stable(cli.availableVersion) || !fresh(cli, now)) incomplete.push("CLI verification");
+  const releaseEvidence = object(cli) && (cli.comparison === "no-release"
+    ? [undefined, ""].includes(cli.availableVersion) && [undefined, ""].includes(cli.releaseURL)
+    : ["equal", "ahead", "update"].includes(cli.comparison) && stable(cli.availableVersion));
+  if (!releaseEvidence || !stable(cli.runningVersion) || !fresh(cli, now)) incomplete.push("CLI verification");
 
   const configuration = value?.status?.projectConfiguration;
   if (!["configured", "not-configured", "unavailable"].includes(configuration)) incomplete.push("project configuration");

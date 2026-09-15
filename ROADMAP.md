@@ -2,17 +2,16 @@
 
 ## Current
 
-_None._
+1. [Publish and activate the check-only sjskills hook](plans/sjskills-startup-check.md)
+   is authorized for the current Windows machine. PR #25 promotion to main is
+   underway; configured skills are synchronized. Plugin installation, trust,
+   and fresh-session acceptance remain pending.
 
 ## Plans
 
 1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
-
-2. [Publish and activate the check-only sjskills hook](plans/sjskills-startup-check.md)
-   has completed stages A–D on its integration branch. Stage E remains
-   unstarted and requires separate authorization.
 
 ## Tasks
 
