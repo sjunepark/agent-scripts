@@ -2,13 +2,14 @@
 
 ## Current
 
-_None._
+1. [Publish and activate the check-only sjskills hook](plans/sjskills-startup-check.md)
+   is authorized for the current Windows machine. PR #25 promotion to main is
+   underway; configured skills are synchronized. Plugin installation, trust,
+   and fresh-session acceptance remain pending.
 
 ## Plans
 
-1. [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
-   has a settled design; implementation and verification have not started.
-2. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
+1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
 
@@ -18,6 +19,8 @@ _None._
 
 ## Completed
 
+- [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
+  is recorded as shipped in v1.3.0; live private-skill installation remains separate.
 - [Prepare and spawn the next goal](tasks/next-goal-preparation-spawn.md)
   has implemented and evaluated source.
 - [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)

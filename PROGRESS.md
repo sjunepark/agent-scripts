@@ -24,33 +24,12 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
   release checks passed. The [release record](plans/sjskills-release.md) owns
   publication evidence. Installed binaries and managed skills were not changed.
 
-# sjskills maintenance plugin delivery
+# sjskills startup-check delivery
 
-- User authorized automatic CLI updates and configured skill sync on every
-  supported local host. Existing release support is macOS Intel/ARM and Windows
-  x64; Linux is unsupported.
-- User also authorized automatic adoption of this hook's published `main`
-  updates. Migrated the standalone hook into `plugins/sjskills-maintenance/`;
-  retired its installer. Maintenance still runs in the next agent turn.
-- Added daily plugin-check state, a 15-minute failure cooldown, remote source/ref
-  verification instructions, and target-only reinstall with installed-version
-  verification. Canonical sjskills workflow references are bundled and checked.
-- Plugin schema validation, isolated Codex CLI install/reinstall, and installed
-  Windows hook invocation succeeded. All 21 targeted tests pass. Bounded
-  independent review and scoped documentation alignment are complete.
-- Native validation confirmed reinstall removes the old plugin cache. The hook
-  now preserves content-addressed workflow/helper snapshots in plugin data;
-  regression coverage verifies they survive removal and reject local edits.
-  Explicit Windows command dispatch passes cmd.exe and PowerShell. Test fixture
-  setup uses ordinary reads/writes after reproducing a Node 22.17.1 recursive-copy
-  crash on Unicode Windows paths.
-- Published implementation and catalog to `main` in `e0c60b4`. Registered the
-  remote-backed personal marketplace on Windows and installed/enabled plugin
-  version `0.1.0+codex.20260910121700`. Installed content matches publication;
-  the installed Windows hook emits its maintenance context successfully.
-- Hook trust still requires review through `/hooks`. Other hosts require their
-  own installation. Full session-driven maintenance and native macOS execution
-  remain unverified.
+- Stages A–D are delivered through [PR #24](https://github.com/sjunepark/agent-scripts/pull/24), merged as `751d93f` to `codex/sjskills-startup-integration`. The [completed goal](goals/sjskills-startup-check.md) owns the closed delivery boundary.
+- [Final CI](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118) passed on Windows x64 and both macOS targets. Released-CLI compatibility, isolated package reinstall, bounded review, and documentation alignment passed.
+- The user authorized main promotion and current-machine sync on 2026-09-15. [PR #25](https://github.com/sjunepark/agent-scripts/pull/25) is under review for promotion to main. The [startup-check plan](plans/sjskills-startup-check.md) owns stage E publication and activation status and the completed Windows skill-sync evidence.
+- Older installations may still inject the previous workflow. Existing plugin-data snapshots and update state remain intact.
 
 ## Previous CLI delivery
 
