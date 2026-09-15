@@ -3,9 +3,9 @@
 ## Current
 
 1. [Publish and activate the check-only sjskills hook](plans/sjskills-startup-check.md)
-   is authorized for the current Windows machine. PR #25 promotion to main is
-   underway; configured skills are synchronized. Plugin installation, trust,
-   and fresh-session acceptance remain pending.
+   is published to main and installed on the current Windows machine; configured
+   skills are synchronized. User review through `/hooks` and fresh trusted-session
+   acceptance remain pending.
 
 ## Plans
 

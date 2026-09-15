@@ -53,5 +53,6 @@ None — goal complete
 On 2026-09-15, after this goal completed, the user requested "merge to main and
 sync current machine." This is a separate delivery authorization; the original
 contract and its completion record above remain unchanged. The
-[startup-check plan](../plans/sjskills-startup-check.md) owns PR #25 promotion,
-current Windows skill-sync evidence, and remaining plugin activation work.
+[startup-check plan](../plans/sjskills-startup-check.md) owns the completed PR #25
+promotion, Windows plugin installation and skill-sync evidence, and remaining
+hook trust and fresh-session acceptance.

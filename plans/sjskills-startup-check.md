@@ -21,7 +21,7 @@ skill reconciliation. The startup hook's check-only boundary is unchanged.
   read-only plugin observation, and removal of the injected maintenance path.
 - Stage C: Windows shell, subprocess, cache, provenance, transport, and released
   CLI compatibility checks pass. Final hosted native acceptance passed on all three targets in
-  [run 34927077118](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118).
+  [promotion run 34937232876](https://github.com/sjunepark/agent-scripts/actions/runs/34937232876).
 - Stage D: manifest/cachebuster and operator documentation describe check-only
   behavior. Isolated install/reinstall passed: healthy packaged Windows hook exited 0
   with zero stdout bytes in 5,321 ms. Scoped documentation harmonization and
@@ -38,8 +38,19 @@ skill reconciliation. The startup hook's check-only boundary is unchanged.
   cover ordinary cancellation and descendants outliving the native parent.
 - Bounded independent code review found one mixed-validity reporting defect;
   supported findings now remain visible alongside incomplete verification.
-- Actual host installation, hook trust, and fresh-session activation have not
-  been performed and remain stage E.
+- [PR #25](https://github.com/sjunepark/agent-scripts/pull/25) merged to `main`
+  as `15533e8987502d4c67944b3f2dda6e27985493a6` on 2026-09-15, preserving
+  reviewed source `da80471`. The primary checkout was fast-forwarded to it.
+  Local hook regressions and bounded runtime review passed.
+- On `DESKTOP-V33SCUA`, `sjskills-maintenance@personal` is installed and enabled
+  at `0.1.0+codex.20260915062837` after remote marketplace upgrade and reinstall.
+  The marketplace checkout matches the main merge; installed files match source
+  after CRLF normalization. No legacy `~/.codex/hooks.json` duplicate exists.
+- The installed command exited 0 in 11,394 ms, emitting only a `systemMessage`
+  that plugin verification was incomplete, with no agent context. A separate
+  diagnostic confirmed GitHub API HTTP 403 with no rate-limit allowance left;
+  CLI skill-scope checks retained fresh verified results. This manual invocation
+  does not establish hook trust or actual fresh-session presentation.
 - Explicit skill sync on `DESKTOP-V33SCUA` completed with verified sjskills
   v1.3.0: all 16 global placements were already exact; all 35 project placements
   for this worktree's committed `dev` and `go` profiles were installed and are
@@ -50,12 +61,10 @@ skill reconciliation. The startup hook's check-only boundary is unchanged.
 
 ## Next action
 
-Stages A–D are complete. [PR #24](https://github.com/sjunepark/agent-scripts/pull/24)
-merged as `751d93f` to `codex/sjskills-startup-integration`.
-[PR #25](https://github.com/sjunepark/agent-scripts/pull/25) is under review for
-the authorized promotion to `main`. Finish review and merge, then reinstall
-`sjskills-maintenance@personal` on `DESKTOP-V33SCUA` from the remote marketplace
-and complete hook trust and fresh-session acceptance.
+Review the changed `sjskills-maintenance` hook through `/hooks`, then verify
+its presentation in a fresh trusted session. Publication, installation, duplicate
+inspection, and configured skill sync are complete. Trust was not bypassed or
+edited; the current tool surface cannot perform that user review.
 
 ## Selected design
 
@@ -216,9 +225,9 @@ prompt still requests unattended mutation or routine agent maintenance.
 
 ### E. Publish and activate on the authorized Windows host
 
-- [ ] Publish reviewed source to the configured remote `main` before updating
+- [x] Publish reviewed source to the configured remote `main` before updating
   ongoing installations. If the CLI was unchanged, no new CLI release is needed.
-- [ ] Reinstall only this plugin from the remote-backed personal marketplace on
+- [x] Reinstall only this plugin from the remote-backed personal marketplace on
   each explicitly selected host. Do not use the old self-update workflow to
   deliver the replacement or silently enable a disabled hook.
 - [ ] Review changed hook trust through `/hooks` as required; never write trust

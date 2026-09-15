@@ -27,8 +27,8 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
 # sjskills startup-check delivery
 
 - Stages A–D are delivered through [PR #24](https://github.com/sjunepark/agent-scripts/pull/24), merged as `751d93f` to `codex/sjskills-startup-integration`. The [completed goal](goals/sjskills-startup-check.md) owns the closed delivery boundary.
-- [Final CI](https://github.com/sjunepark/agent-scripts/actions/runs/34927077118) passed on Windows x64 and both macOS targets. Released-CLI compatibility, isolated package reinstall, bounded review, and documentation alignment passed.
-- The user authorized main promotion and current-machine sync on 2026-09-15. [PR #25](https://github.com/sjunepark/agent-scripts/pull/25) is under review for promotion to main. The [startup-check plan](plans/sjskills-startup-check.md) owns stage E publication and activation status and the completed Windows skill-sync evidence.
+- [Final promotion CI](https://github.com/sjunepark/agent-scripts/actions/runs/34937232876) passed on Windows x64 and both macOS targets. Local hook tests and bounded runtime review passed.
+- The separately authorized promotion merged through [PR #25](https://github.com/sjunepark/agent-scripts/pull/25) as `15533e8` on 2026-09-15. The current Windows plugin installation and configured skill sync are complete. The [startup-check plan](plans/sjskills-startup-check.md) owns evidence and the remaining `/hooks` trust and fresh-session acceptance.
 - Older installations may still inject the previous workflow. Existing plugin-data snapshots and update state remain intact.
 
 ## Previous CLI delivery
