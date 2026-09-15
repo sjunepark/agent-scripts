@@ -1,99 +1,66 @@
 #!/usr/bin/env node
 "use strict";
-
-const fs = require("node:fs");
 const path = require("node:path");
-const { createHash } = require("node:crypto");
-const { updateStatus, checkDirectory } = require("./update-check.cjs");
+const { nativeExecutable, runProcess, LIMIT } = require("./process.cjs");
+const { classifyStatus, report } = require("./status.cjs");
+const { observePlugin } = require("./observation.cjs");
 
-function snapshotResources(root, dataRoot) {
-  const paths = ["scripts/update-check.cjs", "references/sjskills/SKILL.md", "references/sjskills/references/global-rollout.md"];
-  const files = paths.map((relative) => ({ relative, bytes: fs.readFileSync(path.join(root, relative)) }));
-  const hash = createHash("sha256");
-  for (const { relative, bytes } of files) hash.update(relative).update("\0").update(bytes).update("\0");
-  const snapshot = path.join(dataRoot, "workflows", hash.digest("hex"));
-  // Codex deletes old plugin caches on reinstall. Content-addressed references
-  // in PLUGIN_DATA remain valid for active and suspended sessions.
-  for (const { relative, bytes } of files) {
-    const destination = path.join(snapshot, relative);
-    checkDirectory(path.dirname(destination));
+async function check(input, options = {}) {
+  if (input?.hook_event_name !== "SessionStart" || !["startup", "resume"].includes(input.source)) return null;
+  const platform = options.platform || process.platform, arch = options.arch || process.arch;
+  if (!((platform === "darwin" && ["x64", "arm64"].includes(arch)) || (platform === "win32" && arch === "x64"))) {
+    return { systemMessage: "sjskills: check skipped (unsupported release target)." };
+  }
+  if (typeof input.cwd !== "string" || !path.isAbsolute(input.cwd)) return report([{ findings: [], incomplete: ["session directory"] }]);
+  const env = options.env || process.env, signal = options.signal;
+  const run = options.run || runProcess, resolve = options.resolve || nativeExecutable;
+  const cli = async () => {
     try {
-      const stat = fs.lstatSync(destination);
-      if (!stat.isFile() || stat.isSymbolicLink() || !fs.readFileSync(destination).equals(bytes)) throw new Error("unsafe or modified workflow snapshot");
-      continue;
-    } catch (error) { if (error.code !== "ENOENT") throw error; }
-    fs.mkdirSync(path.dirname(destination), { recursive: true, mode: 0o700 });
-    const temporary = `${destination}.${process.pid}.tmp`;
-    let created = false;
-    try {
-      const fd = fs.openSync(temporary, "wx", 0o600);
-      created = true;
-      try { fs.writeFileSync(fd, bytes); } finally { fs.closeSync(fd); }
-      fs.renameSync(temporary, destination);
-    } finally {
-      if (created) {
-        try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
-      }
-    }
-  }
-  return snapshot;
-}
-
-function sessionContext(input, platform = process.platform, arch = process.arch,
-  root = path.resolve(__dirname, ".."), dataRoot = process.env.PLUGIN_DATA || process.env.CLAUDE_PLUGIN_DATA) {
-  if (input.hook_event_name !== "SessionStart" || !["startup", "resume"].includes(input.source)) return null;
-  const supported = (platform === "darwin" && ["x64", "arm64"].includes(arch)) ||
-    (platform === "win32" && arch === "x64");
-  if (!supported) {
-    return { systemMessage: `sjskills startup maintenance skipped: ${platform}/${arch} is not a supported sjskills release target.` };
-  }
-  const instructions = fs.readFileSync(path.join(root, "references", "maintenance.md"), "utf8");
-  let pluginUpdate;
-  try { pluginUpdate = updateStatus(dataRoot); } catch (error) {
-    pluginUpdate = { due: false, error: error.message };
-  }
-  let resourcesRoot = root;
-  if (!pluginUpdate.error) {
-    try { resourcesRoot = snapshotResources(root, dataRoot); } catch (error) {
-      pluginUpdate = { due: false, error: `workflow snapshot unavailable: ${error.message}` };
-    }
-  }
-  // Paths are data, not shell fragments. The agent uses its ordinary file tools.
-  const resources = JSON.stringify({
-    sessionDirectory: input.cwd,
-    syncSkill: path.join(resourcesRoot, "references", "sjskills", "SKILL.md"),
-    pluginRoot: root,
-    pluginData: dataRoot,
-    updateHelper: path.join(resourcesRoot, "scripts", "update-check.cjs"),
-    pluginUpdate,
-  });
-  return {
-    hookSpecificOutput: {
-      hookEventName: "SessionStart",
-      additionalContext: `${instructions}\n\nLocal resource paths (JSON data):\n${resources}`,
-    },
+      const result = await run(resolve("sjskills", env), ["--json", "status"], { cwd: input.cwd, env, signal });
+      const status = classifyStatus(JSON.parse(result.stdout), options.now);
+      if (result.code !== 0) status.incomplete.push("status process");
+      return status;
+    } catch { return { findings: [], incomplete: ["native CLI status"] }; }
   };
-}
-
-async function run() {
-  let input = "";
-  for await (const chunk of process.stdin) {
-    input += chunk;
-    if (Buffer.byteLength(input) > 1024 * 1024) throw new Error("hook input exceeds 1 MiB");
-  }
-  const payload = JSON.parse(input);
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("invalid hook input");
-  if (typeof payload.cwd !== "string" || !path.isAbsolute(payload.cwd)) throw new Error("missing absolute session directory");
-  const result = sessionContext(payload);
-  if (result) process.stdout.write(`${JSON.stringify(result)}\n`);
+  const plugin = async () => {
+    try {
+      return await (options.observe || observePlugin)({ root: path.resolve(__dirname, ".."),
+        dataRoot: env.PLUGIN_DATA || env.CLAUDE_PLUGIN_DATA, env, signal, now: options.now });
+    } catch { return { plugin: true, findings: [], incomplete: ["plugin verification"] }; }
+  };
+  return report(await Promise.all([cli(), plugin()]));
 }
 
 async function main() {
-  try { await run(); } catch (error) {
-    // Maintenance must not prevent the user's session from starting.
-    process.stdout.write(`${JSON.stringify({ systemMessage: `sjskills startup maintenance unavailable: ${error.message}` })}\n`);
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  const timer = setTimeout(cancel, 35000);
+  process.once("SIGINT", cancel); process.once("SIGTERM", cancel);
+  let output;
+  try {
+    const chunks = []; let size = 0;
+    const input = await new Promise((resolve, reject) => {
+      const abort = () => { process.stdin.destroy(); reject(new Error("input cancelled")); };
+      controller.signal.addEventListener("abort", abort, { once: true });
+      process.stdin.on("data", (chunk) => {
+        size += chunk.length;
+        if (size > LIMIT) abort(); else chunks.push(chunk);
+      });
+      process.stdin.once("error", reject);
+      process.stdin.once("end", () => {
+        controller.signal.removeEventListener("abort", abort);
+        resolve(Buffer.concat(chunks).toString("utf8"));
+      });
+    });
+    const payload = JSON.parse(input);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("invalid input");
+    output = await check(payload, { signal: controller.signal });
+  } catch { output = report([{ findings: [], incomplete: ["hook input or deadline"] }]); }
+  finally {
+    clearTimeout(timer);
+    process.removeListener("SIGINT", cancel); process.removeListener("SIGTERM", cancel);
   }
+  if (output) process.stdout.write(JSON.stringify(output) + "\n");
 }
-
 if (require.main === module) main();
-module.exports = { sessionContext, snapshotResources, main };
+module.exports = { check, main };

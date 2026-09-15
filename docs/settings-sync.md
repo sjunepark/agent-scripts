@@ -79,12 +79,12 @@ Repo-managed plugin source includes:
   Pushover MCP tools. Its credentials remain machine-local; setup and checks
   are documented in
   [`plugins/codex-pushover-notify/README.md`](../plugins/codex-pushover-notify/README.md).
-- `sjskills-maintenance` requests published-main plugin updates, stable CLI
-  updates, and reviewed skill synchronization at session startup. Its
-  [management guide](sjskills-startup-hook.md) owns installation and update
-  behavior; [PROGRESS.md](../PROGRESS.md) tracks publication and rollout. Its
-  bundled sjskills procedure preserves explicit public/authenticated selections
-  and stops a failing private scope without starting authentication setup.
+- `sjskills-maintenance` runs direct check-only CLI, skill, and plugin status
+  inspection at startup. Its [management guide](sjskills-startup-hook.md) owns
+  reporting, prerequisites, and explicit installation/update procedures; the
+  [delivery plan](../plans/sjskills-startup-check.md) separates source validation
+  from publication and host activation. Startup findings grant no maintenance
+  or authentication-setup authority.
 
 For `chezmoi-sync`:
 

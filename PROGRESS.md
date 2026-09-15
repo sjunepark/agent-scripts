@@ -24,37 +24,19 @@ PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091
   release checks passed. The [release record](plans/sjskills-release.md) owns
   publication evidence. Installed binaries and managed skills were not changed.
 
-# sjskills maintenance plugin delivery
+# sjskills startup-check delivery
 
-- The 2026-09-15 target is check and report only, with no routine agent work.
-  The [startup-check plan](plans/sjskills-startup-check.md) owns the replacement
-  design, acceptance criteria, and remaining delivery. Planning is complete;
-  the existing plugin still injects agent-driven maintenance instructions.
-- The implementation below was delivered under earlier automatic-maintenance
-  authorization. Existing release support is macOS Intel/ARM and Windows x64;
-  Linux is unsupported.
-- User also authorized automatic adoption of this hook's published `main`
-  updates. Migrated the standalone hook into `plugins/sjskills-maintenance/`;
-  retired its installer. Maintenance still runs in the next agent turn.
-- Added daily plugin-check state, a 15-minute failure cooldown, remote source/ref
-  verification instructions, and target-only reinstall with installed-version
-  verification. Canonical sjskills workflow references are bundled and checked.
-- Plugin schema validation, isolated Codex CLI install/reinstall, and installed
-  Windows hook invocation succeeded. All 21 targeted tests pass. Bounded
-  independent review and scoped documentation alignment are complete.
-- Native validation confirmed reinstall removes the old plugin cache. The hook
-  now preserves content-addressed workflow/helper snapshots in plugin data;
-  regression coverage verifies they survive removal and reject local edits.
-  Explicit Windows command dispatch passes cmd.exe and PowerShell. Test fixture
-  setup uses ordinary reads/writes after reproducing a Node 22.17.1 recursive-copy
-  crash on Unicode Windows paths.
-- Published implementation and catalog to `main` in `e0c60b4`. Registered the
-  remote-backed personal marketplace on Windows and installed/enabled plugin
-  version `0.1.0+codex.20260910121700`. Installed content matches publication;
-  the installed Windows hook emits its maintenance context successfully.
-- Hook trust still requires review through `/hooks`. Other hosts require their
-  own installation. Full session-driven maintenance and native macOS execution
-  remain unverified.
+- The [startup-check plan](plans/sjskills-startup-check.md) owns the selected
+  check-only target, native acceptance evidence, and remaining delivery.
+- Stages A–B replace prompt-driven maintenance with direct status execution.
+  Windows tests, immutable v1.3.0 compatibility, isolated package reinstall,
+  source validation, and documentation alignment pass. Hosted native acceptance
+  and PR delivery remain pending.
+- The [closed goal](goals/sjskills-startup-check.md) authorizes stages A–D and PR
+  delivery to its integration branch. Real-host installation, trust review,
+  activation, automatic updates, and configured reconciliation are excluded.
+- Older installations may still inject the previous maintenance workflow.
+  Existing plugin-data snapshots and update state are deliberately retained.
 
 ## Previous CLI delivery
 
