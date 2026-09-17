@@ -1,159 +1,47 @@
 # Create or Revise a Skill
 
-Use this workflow to turn observed task friction into one focused, portable
-skill. For a revision, begin with the current skill and preserve behavior that
-still earns its place.
+Start from the requested outcome and representative tasks, artifacts, or failures.
+For a revision, inspect the current entry point and resources governing the
+affected decisions. Preserve useful behavior; investigate surrounding instructions
+or missing capabilities before blaming the skill.
 
-## 1. Collect Task Evidence
+## Choose the contract
 
-Start with a real task, representative artifact, failure report, or repeated
-request. Record:
+Identify the reusable help the skill provides beyond ordinary reasoning: a
+non-obvious decision, domain constraint, fragile operation, or useful resource.
+A one-off answer needs no package. When evidence is missing, use a realistic
+scenario and label its assumptions rather than demanding a discovery interview.
 
-- the outcome the user needed;
-- the inputs and environment available at the start;
-- where an unaided attempt became inconsistent, slow, error-prone, or
-  incomplete;
-- the non-obvious decisions, reusable resources, or validation steps that
-  changed the result; and
-- what a successful artifact or response looked like.
+Define the intended result, scope, prerequisites, and observable completion.
+Keep one coherent capability; add branches only when they change how that
+capability is delivered.
 
-Do not begin by drafting generic advice. If no real example is available,
-construct the smallest realistic scenario and label its assumptions so they can
-later be replaced with evidence.
+Preserve the activation policy required by the entry point. Use concise task
+language in the description; add an exclusion only to prevent likely misrouting.
+For changed discovery, retain representative positive and near-miss requests,
+including uninvoked negatives for manual-only skills. Keep client enforcement in
+adapter metadata.
 
-For a revision, inspect recent uses and failures before editing. Distinguish a
-problem in the skill from a problem in its inputs, surrounding instructions,
-or unavailable capabilities.
+## Write the smallest useful package
 
-## 2. Decide Whether a Skill Is Warranted
+Keep shared constraints and routing in `SKILL.md`. A short skill may be entirely
+self-contained. Split substantial conditional guidance into directly linked,
+purpose-named resources and say when to read them. Add scripts or assets only
+when repeatable mechanics or output requirements justify maintaining them.
 
-Create or retain a skill when the evidence shows a reusable procedure,
-specialized judgment, fragile sequence, recurring tool interaction, or useful
-bundled resource. Prefer ordinary project documentation when the material is
-only reference information for humans. Handle a one-off answer directly rather
-than preserving it as a skill.
+Describe outcomes and decision criteria where judgment works. Use exact commands,
+checks, or ordering where deviation threatens correctness, data, permissions, or
+a fragile operation. Remove duplicated instructions, generic tutorials, stale
+workarounds, and rules that merely restate the task or host behavior.
 
-State one sentence for each of these before continuing:
+Treat the instruction stack as context with a cost: descriptions should make
+selection easy, and using one route should not force unrelated reading. Keep
+shared collaboration defaults at their existing owner.
 
-- **Reusable outcome:** what becomes reliably easier or better.
-- **Distinctive help:** what the skill contributes beyond ordinary reasoning.
-- **Expected reuse:** which future tasks share the same need.
+## Finish the revision
 
-Stop if these statements are vague or describe unrelated outcomes. Gather more
-evidence, narrow the proposal, or split genuinely independent concerns into
-separate skills.
-
-## 3. Frame the Skill Contract
-
-Define the boundary before choosing files:
-
-1. Name the starting state and intended end state.
-2. List required inputs and capabilities.
-3. Identify permitted changes, existing authorization, and actions that still
-   require a decision. Keep the affected boundary separate from independent work.
-4. State material exclusions and nearby tasks that belong elsewhere.
-5. Write observable completion criteria.
-
-Keep one coherent workflow under one skill. A skill may have branches when
-they share the same outcome, vocabulary, and validation boundary; split them
-when they can be selected, executed, and evaluated independently.
-
-## 4. Build the Trigger Set
-
-Preserve the activation policy of an existing skill unless changing it is part
-of the request. For new skills, default to explicit invocation. Treat a requested
-opt-in to implicit discovery as a decision that must satisfy all
-of these conditions:
-
-- the capability is expected to recur broadly within the locations where the
-  skill will be installed;
-- ordinary user wording identifies the capability reliably enough to keep both
-  missed activations and false activations acceptably low;
-- activating without an explicit request is safe and ordinarily useful; and
-- the expected benefit justifies occupying persistent skill-catalog context.
-
-Installation reach and activation policy are separate decisions. A globally
-installed skill may remain manual-only, while a narrowly installed repository
-skill may justify implicit discovery within that repository.
-
-Record the portable activation intent in the description. Keep any
-client-specific enforcement in that client's adapter metadata, following any
-applicable client guidance routed from the skill entry point. Encode the chosen
-value explicitly rather than relying on omission when a client may default
-omitted policy to implicit discovery.
-
-For unchanged discovery, retain existing cases and verify that the description
-and adapter still express the selected intent. For new or changed discovery,
-collect or reuse concrete requests:
-
-- at least three positive examples that vary wording, specificity, and
-  starting context;
-- at least three near-miss examples that share vocabulary but require a
-  different workflow;
-- for a manual-only skill, positives that explicitly invoke it and in-scope but
-  uninvoked requests labeled as near misses; or
-- for an implicitly discoverable skill, implicit positives that describe the
-  work without naming it.
-
-For each example, record why the skill should or should not apply. Adjust the
-scope or retain manual-only activation if reasonable reviewers cannot classify
-the examples consistently.
-
-## 5. Plan the Minimum Package
-
-Assign each needed piece of content to the smallest suitable location:
-
-- Put universal decisions, routing, and completion rules in `SKILL.md`.
-- Put a substantial alternate procedure in a directly linked workflow file.
-- Put lookup material in a directly linked reference file.
-- Use a script only when deterministic execution or repeated mechanics justify
-  maintaining code.
-- Use a template or asset only when the output benefits from an exact reusable
-  starting point.
-
-Name every planned resource and state exactly when the skill will load or use
-it. Remove resources that merely repeat `SKILL.md`, preserve background
-reading, or are not reachable from the entry point. Keep navigation shallow so
-the executor never has to discover a directory by exploration.
-
-## 6. Author the Guidance
-
-Write the smallest instructions that reproduce the successful decisions from
-the task evidence:
-
-1. Use valid portable frontmatter with a stable name and a description that
-   states both what the skill does and when it applies. For a manual-only skill,
-   say `Explicit invocation only` rather than advertising implicit triggers.
-2. Lead with the workflow and defaults. Use imperative steps, explicit branch
-   conditions, and observable stopping criteria.
-3. Match specificity to fragility: leave room for judgment where several
-   approaches work, but give exact checks or sequences where small deviations
-   cause failure.
-4. Prefer positive directions that name the desired action. Reserve strict
-   prohibitions for safety, irreversible effects, or repeatedly observed
-   failure modes.
-5. Place surprising constraints and recovery guidance beside the step they
-   affect.
-6. Include examples only when they resolve ambiguity that the procedure cannot
-   express more directly.
-
-Delete generic background knowledge, exhaustive menus, motivational prose,
-conversation history, and duplicated source documentation. Replace repeated
-explanation with a default, decision rule, checklist, or reusable resource.
-
-For a revision, make the smallest change supported by the failure evidence.
-Avoid preserving obsolete behavior through compatibility branches unless an
-active consumer requires them.
-
-## 7. Hand Off to Evaluation
-
-Return to the entry point and run its evaluation workflow. That workflow owns
-static validation, baseline comparison, risk-based repetition, trigger testing,
-and the pass decision. Define applicable gates before running them; do not
-substitute confident prose for observable evidence.
-
-Revise the candidate only from observed failures, then start a new evaluation
-round under the evaluator's versioning and frozen-criteria rules. Authoring is
-complete when the candidate passes every applicable evaluation gate and any
-remaining limitation is recorded as concrete evidence rather than a
-speculative feature.
+Apply the entry point's authoring review and relevant evaluation checks. Exercise
+changed decisions and important boundaries; do not demand a full experiment for
+a wording-only fix. Address evidenced failures, report unavailable checks, and
+complete any already-authorized transition. Do not claim measured improvement
+from a shorter file or a persuasive explanation alone.

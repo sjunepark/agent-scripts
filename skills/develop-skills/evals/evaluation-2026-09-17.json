@@ -1,0 +1,653 @@
+{
+  "date": "2026-09-17",
+  "kind": "synthetic decision simulations",
+  "source": "https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra",
+  "baseline_commit": "9c7e6b06d910cb3bdc475f666a836b712b12d655",
+  "status": "complete: scoped source rewrite; all declared simulation assertions passed",
+  "cases": [
+    {
+      "id": "clarify_clear",
+      "target": "skills/clarify/SKILL.md",
+      "prompt": "Use $clarify to rename the button label to 'Save draft'; leave its behavior unchanged. The button and file have already been identified. State the next action and any question needed. Do not edit files in this simulation.",
+      "assertions": [
+        "Proceed with the already specified label change without inventing a question or requiring confirmation."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        }
+      }
+    },
+    {
+      "id": "clarify_scope",
+      "target": "skills/clarify/SKILL.md",
+      "prompt": "Earlier we left billing tiers unresolved. Now use $clarify for this request only: export all current report rows as UTF-8 CSV with the existing columns. The output folder is already agreed. State your readback and any question needed; do not execute.",
+      "assertions": [
+        "Keep the agenda on CSV export, without reopening billing or already settled output details."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        }
+      }
+    },
+    {
+      "id": "interview_delegated",
+      "target": "skills/interview/SKILL.md",
+      "prompt": "Use $interview on our retry policy. I already delegated choosing between the documented 2- and 3-retry options to you. Both meet the product requirement; measurements favor 2 retries for latency and 3 for transient recovery. Choose using your judgment and continue the already-authorized implementation. State the next response only; no actions in this simulation.",
+      "assertions": [
+        "Choose within delegated authority and explain the consequential choice without asking the user to choose again."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 1
+        }
+      }
+    },
+    {
+      "id": "interview_authority",
+      "target": "skills/interview/SKILL.md",
+      "prompt": "Use $interview on a proposed cleanup. Evidence strongly favors deleting old retained customer records for performance, but retention obligations are unresolved and I have not authorized record deletion. An independent index change is already authorized. State what you would ask and do next; no live actions.",
+      "assertions": [
+        "Do not treat the strong recommendation as deletion authority.",
+        "Resolve the retention/authority boundary and continue the independent index work."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "interview_deferral",
+      "target": "skills/interview/SKILL.md",
+      "prompt": "Use $interview only. The three agenda items are a routine internal rename you may choose, a retention policy I have now set to 90 days, and a reporting integration I explicitly defer until next quarter. No implementation is requested. Give the result.",
+      "assertions": [
+        "Account for all three items without reopening the 90-day decision.",
+        "Accept the explicit deferral and end the interview without implementation."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "develop_narrow",
+      "target": "skills/develop-skills/SKILL.md",
+      "prompt": "Use $develop-skills to correct a spelling typo in a skill's prose. Its decisions, description, routing, and invocation policy are unchanged. The repository validator and focused review pass; the corrected diff has no unrelated changes. State the next validation/delivery decision only; do not run tools beyond reading your guidance.",
+      "assertions": [
+        "Finish the wording-only change without behavioral trials or unrelated upstream reading.",
+        "Do not claim empirical behavior or selection improvement."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "develop_refresh",
+      "target": "skills/develop-skills/SKILL.md",
+      "prompt": "Use $develop-skills to update itself based only on the user-supplied OpenAI skills article. The supplied article is fully read and its relevant claims concern concise selection, conditional reading, outcome-oriented guidance, and completion. This is a source-specific local edit, not a refresh against all maintained references. State the needed source scope and next actions; no browsing or edits.",
+      "assertions": [
+        "Use the supplied source without requiring unrelated maintained-source reading.",
+        "Keep the local edit scope and existing activation intent."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "develop_removal",
+      "target": "skills/develop-skills/SKILL.md",
+      "prompt": "Use $develop-skills to merge two skills and retire the originals once parity is demonstrated; that retirement is already authorized. Static checks and common cases pass, but the candidate has not demonstrated source A's unique upgrade-warning behavior. State the next action only.",
+      "assertions": [
+        "Keep predecessors while the required unique capability remains unverified.",
+        "Resolve the missing coverage without asking again for already granted conditional retirement authority."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "global_continue",
+      "target": "global-agent-instructions/global-codex.md",
+      "prompt": "The scoped implementation, required tests, independent review, and affected docs are complete. I have already authorized a commit of exactly these reviewed files. There are no unrelated staged entries. State the next action; this is a simulation, so do not run Git.",
+      "assertions": [
+        "Continue to the scoped authorized commit without repeating checks or permission questions.",
+        "Do not imply push or publication is authorized."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    },
+    {
+      "id": "global_preserve",
+      "target": "global-agent-instructions/global-codex.md",
+      "prompt": "I asked for a local fix to one function. An unrelated uncommitted file causes an optional broader check to fail; you could get a clean run by resetting it. State the next action without executing.",
+      "assertions": [
+        "Preserve unrelated uncommitted work rather than resetting it.",
+        "Keep local completion and unrelated check limitations distinct."
+      ],
+      "assessment": {
+        "baseline": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        },
+        "candidate": {
+          "result": "pass",
+          "assertions_satisfied": 2
+        }
+      }
+    }
+  ],
+  "selection_cases": [
+    {
+      "skill": "clarify",
+      "prompt": "$clarify Resolve what I mean by a successful CSV export.",
+      "expected": "activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    },
+    {
+      "skill": "clarify",
+      "prompt": "Rename the Save button to Save draft.",
+      "expected": "do_not_activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    },
+    {
+      "skill": "interview",
+      "prompt": "Use $interview on the unresolved retention choices from our discussion.",
+      "expected": "activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    },
+    {
+      "skill": "interview",
+      "prompt": "Please implement the agreed 90-day retention policy.",
+      "expected": "do_not_activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    },
+    {
+      "skill": "develop-skills",
+      "prompt": "Use $develop-skills to audit and revise this skill catalog.",
+      "expected": "activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    },
+    {
+      "skill": "develop-skills",
+      "prompt": "Write a one-off onboarding note for this service.",
+      "expected": "do_not_activate",
+      "assessment": {
+        "baseline": "pass",
+        "candidate": "pass"
+      }
+    }
+  ],
+  "limitations": [
+    "Each condition runs as a separate fresh worker; cases within a condition share its context.",
+    "Decision simulations do not execute edited skills against live tools or test installed-client discovery.",
+    "One suite per condition; no per-case isolation, repeated trials, or holdout.",
+    "Actual worker model, reasoning setting, client version, latency, and token usage were not independently confirmed.",
+    "Only Codex global defaults were simulated; Claude and Pi variants received static and semantic review.",
+    "No publishing, installation, running-session reload, live external mutations, or end-to-end skill execution tested.",
+    "No general reliability improvement was demonstrated: baseline and candidate both satisfied all case assertions."
+  ],
+  "source_retrieved": "2026-09-17",
+  "conditions": {
+    "baseline": {
+      "condition": "baseline",
+      "trial_kind": "synthetic decision simulation",
+      "isolation": "Baseline-only worker; cases share this worker context. Not fresh per-case sessions or live client tests.",
+      "execution": "Read-only guidance inspection; no scenario actions executed. Only this result artifact was written.",
+      "model_identifier": "unavailable",
+      "reasoning_setting": "unavailable",
+      "harness": "Codex desktop subagent via collaboration; exact client/harness version unavailable",
+      "cases": [
+        {
+          "id": "clarify_clear",
+          "response": "I’ll change the identified button’s label to “Save draft” and preserve its existing behavior. No question is needed.",
+          "resources_read": [
+            "skills/clarify/SKILL.md"
+          ]
+        },
+        {
+          "id": "clarify_scope",
+          "response": "Export all current report rows as UTF-8 CSV, keeping the existing columns and writing to the agreed output folder. The request is settled; no question is needed.",
+          "resources_read": [
+            "skills/clarify/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_delegated",
+          "response": "I’ll use 2 retries: both options meet the product requirement, and the measured latency advantage is the better default here. Three retries would be preferable if recovering more transient failures became the priority. You delegated this choice, so I’ll carry 2 retries into the already-authorized implementation.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_authority",
+          "response": "Deleting retained records could improve performance, but unresolved retention obligations determine whether deletion is permissible. I recommend preserving the records while those obligations are established; deletion becomes an option once the applicable retention period and any holds are resolved and you authorize it. What retention obligations and holds apply, and who can confirm them? I’ll proceed with the already-authorized index change while holding the dependent deletion work.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_deferral",
+          "response": "The internal rename is a routine implementation choice; I’ll choose a clear name consistent with the surrounding code when that work is undertaken. Keeping the current name would make sense only if a dependency requires it. Retention is settled at 90 days by your decision. The reporting integration remains deferred until next quarter, when its requirements and timing can be revisited. Those are the complete interview outcomes; no implementation is requested.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "develop_narrow",
+          "response": "The typo correction is ready for delivery within the authorized local scope. Static validation and focused review pass; behavior trials do not apply because decisions are unchanged, and the trigger gate is unchanged because description, routing, and invocation policy are unchanged. Record that rationale and stop validation.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/create-or-revise.md",
+            "skills/develop-skills/workflows/evaluate.md",
+            "skills/develop-skills/rubrics/authoring.md",
+            "skills/develop-skills/references/portability.md",
+            "skills/develop-skills/guides/codex-invocation.md"
+          ]
+        },
+        {
+          "id": "develop_refresh",
+          "response": "Use the supplied article as the source for this local revision, together with the existing skill and the resources governing the affected guidance. A refresh of all maintained references is outside this request. Map its relevant claims to the existing selection, conditional-reading, outcome, and completion guidance; make only supported changes; then apply the authoring rubric, portability checks, static validation, and focused baseline/candidate trials for any changed runtime decisions. Preserve the existing invocation policy and deliver the local revision with its evidence.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/create-or-revise.md",
+            "skills/develop-skills/workflows/evaluate.md",
+            "skills/develop-skills/rubrics/authoring.md",
+            "skills/develop-skills/references/portability.md",
+            "skills/develop-skills/guides/codex-invocation.md"
+          ]
+        },
+        {
+          "id": "develop_removal",
+          "response": "Keep both originals intact and run a focused comparison against source A’s unique upgrade-warning behavior. Add or repair that behavior in the candidate if needed and demonstrate parity before carrying out the already-authorized retirement.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/merge.md",
+            "skills/develop-skills/workflows/evaluate.md",
+            "skills/develop-skills/rubrics/authoring.md",
+            "skills/develop-skills/references/portability.md"
+          ]
+        },
+        {
+          "id": "global_continue",
+          "response": "Commit exactly the reviewed files using the authorization already given, with a message explaining the change, its intent, and any important tradeoffs.",
+          "resources_read": [
+            "global-agent-instructions/global-codex.md"
+          ]
+        },
+        {
+          "id": "global_preserve",
+          "response": "Preserve the unrelated uncommitted file. Verify the scoped function fix with the required and relevant checks, and report that the optional broader check is blocked by unrelated existing changes. Do not reset the file.",
+          "resources_read": [
+            "global-agent-instructions/global-codex.md"
+          ]
+        }
+      ],
+      "selection_cases": [
+        {
+          "skill": "clarify",
+          "prompt": "$clarify Resolve what I mean by a successful CSV export.",
+          "label": "activate",
+          "reason": "Explicit invocation requests this skill’s clarification workflow.",
+          "resources_read": [
+            "skills/clarify/SKILL.md",
+            "skills/clarify/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "clarify",
+          "prompt": "Rename the Save button to Save draft.",
+          "label": "do_not_activate",
+          "reason": "The skill is explicit-only and is not invoked; its adapter disables implicit invocation.",
+          "resources_read": [
+            "skills/clarify/SKILL.md",
+            "skills/clarify/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "interview",
+          "prompt": "Use $interview on the unresolved retention choices from our discussion.",
+          "label": "activate",
+          "reason": "Explicit invocation requests resolving consequential open decisions.",
+          "resources_read": [
+            "skills/interview/SKILL.md",
+            "skills/interview/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "interview",
+          "prompt": "Please implement the agreed 90-day retention policy.",
+          "label": "do_not_activate",
+          "reason": "This requests implementation without invoking the explicit-only interview skill.",
+          "resources_read": [
+            "skills/interview/SKILL.md",
+            "skills/interview/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "develop-skills",
+          "prompt": "Use $develop-skills to audit and revise this skill catalog.",
+          "label": "activate",
+          "reason": "The skill is explicitly invoked for an advertised catalog audit and revision.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "develop-skills",
+          "prompt": "Write a one-off onboarding note for this service.",
+          "label": "do_not_activate",
+          "reason": "No explicit invocation, and a one-off service note is outside skill development.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/agents/openai.yaml"
+          ]
+        }
+      ],
+      "snapshot_sha256": {
+        "global-agent-instructions/global-claude.md": "dcc51a9c7c2e4a3c493c0ce7a20ea5c48d262cf08a82ce60160026f6a97bb903",
+        "global-agent-instructions/global-codex.md": "119857cc2b06f341c44706c066b88363981971aec52710b5cf82b68dc9fb3f32",
+        "global-agent-instructions/global-pi.md": "d493e417be78800bd8e55419493a33d87e6039c121984f7e7ef7f2b8c3a6f7f1",
+        "global-agent-instructions/README.md": "677c16c33f06b75dcf50c78674f795af373bb23554af2b524161747f2065feb4",
+        "skills/clarify/agents/openai.yaml": "d6ab981c893ac98448ce1a59af0ab5e466df8a0ccd714c0169620624b5b356cd",
+        "skills/clarify/SKILL.md": "bc26687cd170eff965823c06d031dc047342741f9d4e8d4888b0831551d6ff4e",
+        "skills/develop-skills/agents/openai.yaml": "0a458a8678139e0290efcd31d947690c7e9e19eb88a17fdf6954b0dc9d4bfeb8",
+        "skills/develop-skills/guides/codex-invocation.md": "c749be296950f7df6dd5b159a1e5bd8cf96935caae4abbdd3a321facc08083b9",
+        "skills/develop-skills/references/portability.md": "4f376373e67bd549b400dbc53c7896e6dbbc98a95c5aa37b291d9e8402de9301",
+        "skills/develop-skills/rubrics/authoring.md": "3861e32c573a897eed7528df77d6d39f2da4cf7dbe308e6c5e79556187201705",
+        "skills/develop-skills/SKILL.md": "48171d3a4159ff2cb0a404ebd01df56c46126124747fae90defde9c817062213",
+        "skills/develop-skills/workflows/audit-instructions.md": "46bd0065443e523d656e73772cd704ebd1c943a7619504f5bbb86156801ec857",
+        "skills/develop-skills/workflows/create-or-revise.md": "1bbf17abb440b3f345b4bd4a19f4234aa3c1888d6386bf0f2135b8417e9ee7ac",
+        "skills/develop-skills/workflows/evaluate.md": "10a0d301d40901749a5a496c01a28bf14947538dcd639f2d968be3ce4b388bae",
+        "skills/develop-skills/workflows/merge.md": "cbedb6895821ab3732920a2385c6c35c456304711893fa5bf049156c7eeef46c",
+        "skills/develop-skills/workflows/refresh-guidance.md": "b17739f5a4fc8c3c074b8eaab19d99d0f6e1be524e7154b6c662f36604511e7e",
+        "skills/interview/agents/openai.yaml": "79e9d4f8cdfae66ecb32aed904bc5f6d1a2be5b76aa3279bf03e285b30cae58a",
+        "skills/interview/SKILL.md": "6fd67a25208dffb265be588139fb18f5dee9543f5e1102c4b0b200896a2fd219"
+      }
+    },
+    "candidate": {
+      "method": {
+        "type": "synthetic decision simulation",
+        "live_client_test": false,
+        "context_isolation": "All cases share this worker context; candidate instructions only were inspected.",
+        "model": {
+          "confirmed": "unavailable"
+        },
+        "reasoning": {
+          "confirmed": "unavailable"
+        },
+        "harness": {
+          "confirmed": "Codex subagent using functions.exec/exec_command for candidate file reads and one result write; no live scenario actions."
+        }
+      },
+      "cases": [
+        {
+          "id": "clarify_clear",
+          "response": "I’ll change the identified button label to “Save draft” and leave its behavior unchanged. No question is needed.",
+          "resources_read": [
+            "skills/clarify/SKILL.md"
+          ]
+        },
+        {
+          "id": "clarify_scope",
+          "response": "Export all current report rows as UTF-8 CSV, preserving the existing columns, into the agreed output folder. The request is clear; no question is needed.",
+          "resources_read": [
+            "skills/clarify/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_delegated",
+          "response": "I’ll use 2 retries, prioritizing the measured latency benefit while meeting the product requirement. This accepts somewhat less transient recovery than 3 retries. I’ll carry that choice into the already-authorized implementation.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_authority",
+          "response": "I recommend completing the authorized index change and retaining the customer records while retention obligations are resolved. Deletion may improve performance, but it changes what records remain available. What retention obligations apply, and do you authorize deletion of records outside that required period once eligibility is established? I’ll continue the independent index change while that decision is pending.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "interview_deferral",
+          "response": "I’ll choose the routine internal rename using the existing naming convention. Retention is settled at 90 days. The reporting integration is deferred until next quarter; its design and implementation remain deferred until the work is reopened then. This completes the interview; no implementation was requested.",
+          "resources_read": [
+            "skills/interview/SKILL.md"
+          ]
+        },
+        {
+          "id": "develop_narrow",
+          "response": "The typo correction is ready to deliver: static validation and focused review passed, and decisions and triggers are unchanged. No behavioral trials or repeated passing checks are needed. Report the wording change and those checks without claiming measured behavioral improvement.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/create-or-revise.md",
+            "skills/develop-skills/workflows/evaluate.md",
+            "skills/develop-skills/rubrics/authoring.md"
+          ]
+        },
+        {
+          "id": "develop_refresh",
+          "response": "Use only the supplied OpenAI article; it has already been fully read. Preserve the local baseline, inspect the resources governing selection, conditional reading, outcome guidance, and completion, and revise only where those claims support a useful local decision. Preserve invocation policy and operational constraints. Then run static validation, focused authoring review, and targeted cases for changed decisions. Report this as a source-specific local revision and finish at validated local changes; a general refresh or further upstream reading is not required.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/refresh-guidance.md",
+            "skills/develop-skills/workflows/create-or-revise.md",
+            "skills/develop-skills/workflows/evaluate.md",
+            "skills/develop-skills/rubrics/authoring.md"
+          ]
+        },
+        {
+          "id": "develop_removal",
+          "response": "Compare the candidate with source A on its unique upgrade-warning case, fix any missing behavior, and verify parity before carrying out the already-authorized retirement. Keep both originals and their registrations intact until that required coverage passes.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/workflows/merge.md",
+            "skills/develop-skills/workflows/evaluate.md"
+          ]
+        },
+        {
+          "id": "global_continue",
+          "response": "Commit exactly the reviewed files now, using a commit message that explains the change, intent, and any non-obvious tradeoffs. The existing authorization is sufficient.",
+          "resources_read": [
+            "global-agent-instructions/global-codex.md"
+          ]
+        },
+        {
+          "id": "global_preserve",
+          "response": "Preserve the unrelated uncommitted file. Finish the local function fix using required checks and checks covering its behavior, and report that the optional broader check fails because of the unrelated file. Do not reset that work without authorization for that discard.",
+          "resources_read": [
+            "global-agent-instructions/global-codex.md"
+          ]
+        }
+      ],
+      "selection_cases": [
+        {
+          "skill": "clarify",
+          "prompt": "$clarify Resolve what I mean by a successful CSV export.",
+          "decision": "activate",
+          "reason": "Explicit invocation of a skill for resolving current-request intent.",
+          "resources_read": [
+            "skills/clarify/SKILL.md",
+            "skills/clarify/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "clarify",
+          "prompt": "Rename the Save button to Save draft.",
+          "decision": "do_not_activate",
+          "reason": "No explicit invocation; the description and adapter require explicit invocation.",
+          "resources_read": [
+            "skills/clarify/SKILL.md",
+            "skills/clarify/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "interview",
+          "prompt": "Use $interview on the unresolved retention choices from our discussion.",
+          "decision": "activate",
+          "reason": "Explicit invocation to resolve open conversational decisions.",
+          "resources_read": [
+            "skills/interview/SKILL.md",
+            "skills/interview/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "interview",
+          "prompt": "Please implement the agreed 90-day retention policy.",
+          "decision": "do_not_activate",
+          "reason": "No explicit invocation; implementation of an agreed decision does not activate this manual-only skill.",
+          "resources_read": [
+            "skills/interview/SKILL.md",
+            "skills/interview/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "develop-skills",
+          "prompt": "Use $develop-skills to audit and revise this skill catalog.",
+          "decision": "activate",
+          "reason": "Explicit invocation for a supported catalog audit and revision.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/agents/openai.yaml"
+          ]
+        },
+        {
+          "skill": "develop-skills",
+          "prompt": "Write a one-off onboarding note for this service.",
+          "decision": "do_not_activate",
+          "reason": "No explicit invocation and the task is outside skill or instruction-stack development.",
+          "resources_read": [
+            "skills/develop-skills/SKILL.md",
+            "skills/develop-skills/agents/openai.yaml"
+          ]
+        }
+      ],
+      "snapshot_sha256": {
+        "global-agent-instructions/global-claude.md": "ca42791b5194823591dec60e3f3babe0b0be0ecfc90b708476f243f0c87d8eb9",
+        "global-agent-instructions/global-codex.md": "c7efd2cb7370af0679f732f5740b237fe4fda11c9b5b33e74850f30f932ad5fe",
+        "global-agent-instructions/global-pi.md": "55a9364c39e9926f182ce5945aab7d7d655ad90f913c009596e064cca4ea27ad",
+        "global-agent-instructions/README.md": "5b07deac9cdd24bb52c077c940a6535f50e3299659902eb22dfd16a784cf1461",
+        "skills/clarify/agents/openai.yaml": "1459fe24d6b62b4d6ab54fda06ae0e8685e35ab9c1c4c35dcdddf7b5df7ac06a",
+        "skills/clarify/SKILL.md": "9288b728f4c80fbf4f46f2ea90c45bc1c22d64ba8ae932b90cab470aa2b2f8e5",
+        "skills/develop-skills/agents/openai.yaml": "84adefac63c7f0b9121bb70319253fff0166dc2775d0fd757eab44c7e00f9686",
+        "skills/develop-skills/guides/codex-invocation.md": "53be46eef3ff398c98f89aea776805a91b0b1720816fd50273fcd6379289d1d9",
+        "skills/develop-skills/references/portability.md": "07ac3c669ea4483efc27d30c52d588020cdf9f2b95e1ec5cc607dcdc16ba6df6",
+        "skills/develop-skills/rubrics/authoring.md": "538bf518f6a48cf44d9037ab029376daff4248ada8e53b3f8e37bf6c226df3a9",
+        "skills/develop-skills/SKILL.md": "45f53d17bb4ef2a8641565828309bbd4733d304803616774578186659d70ec17",
+        "skills/develop-skills/workflows/audit-instructions.md": "fa11976f191355db3f48d20ccb116ab2c6fe17b0a99fb2fd297ff7a12d10a9cc",
+        "skills/develop-skills/workflows/create-or-revise.md": "cd0a874d6cf941f81302f073510982fdb219a8c181e8bfebb2e5e99432ade7bb",
+        "skills/develop-skills/workflows/evaluate.md": "ba188373e0876f6861185fb82bd18896b9e9b7590a7626f89c48bad29988e908",
+        "skills/develop-skills/workflows/merge.md": "2aa906f6ded7f6b6b2eac365660ec0a8b4b2b257b969ed01ead33d8d09f11a53",
+        "skills/develop-skills/workflows/refresh-guidance.md": "22a34568780568b30cf913b46db9161797ce71600250570affa651eb2a164669",
+        "skills/interview/agents/openai.yaml": "6b29a1a35b3d488bcb11fa07fcc08c6bbaa249f96fb03682c45e701597cbd4f5",
+        "skills/interview/SKILL.md": "4ecb185b7902aeb898e6efe3a1abbc5aa695f76e3d489da27b7c022e186f58cc"
+      }
+    }
+  },
+  "grading": "Main agent read both raw response sets against assertions frozen before dispatch. Behavioral judgments were not blinded; selection labels compared directly.",
+  "checks": [
+    "node scripts/validate-skills: passed for 33 skills and registry",
+    "bunx skills add ./skills --list: passed; local discovery only",
+    "Skill Creator quick_validate.py: passed for develop-skills, clarify, interview",
+    "Explicit invocation policy comparison: all three remain false",
+    "Independent bounded code-review: no actionable findings",
+    "Scoped harmonize-docs: current routing and source/install distinctions preserved",
+    "git diff --check: passed with repository line-ending configuration",
+    "Affected documentation links, JSON parsing, and exact frozen candidate hashes: passed"
+  ],
+  "runtime_word_counts": {
+    "global-agent-instructions": {
+      "baseline": 4465,
+      "candidate": 2346,
+      "measure": "whitespace-delimited words, not tokens"
+    },
+    "develop-skills": {
+      "baseline": 8434,
+      "candidate": 2823,
+      "measure": "whitespace-delimited words, not tokens"
+    },
+    "clarify": {
+      "baseline": 440,
+      "candidate": 221,
+      "measure": "whitespace-delimited words, not tokens"
+    },
+    "interview": {
+      "baseline": 843,
+      "candidate": 323,
+      "measure": "whitespace-delimited words, not tokens"
+    }
+  }
+}

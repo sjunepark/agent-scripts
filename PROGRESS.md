@@ -1,3 +1,16 @@
+# Instruction simplification
+
+- Scope: global agent defaults and the develop-skills, clarify, and interview
+  source packages, guided by the OpenAI article requested on 2026-09-17.
+- Preserve invocation policies and operational boundaries; shorten repeated
+  process and make completion and conditional guidance explicit.
+- Local rewrite, structural validation, independent scenario checks, bounded
+  review, and affected documentation alignment are complete. The
+  [evaluation record](skills/develop-skills/evals/evaluation-2026-09-17.md)
+  owns decisions, evidence, and live-execution limits.
+- Source revision is complete. Publication and skill installation remain
+  outside this request.
+
 # Authenticated private-source delivery
 
 PR #23 review follow-up: confirmed comments 3979633085 (commit pins), 3979633091 (unsupported GitHub page URLs), and 3979633101 (manual/workflow validation). Fixed with regression coverage; PR checks own follow-up native validation and the merge gate.

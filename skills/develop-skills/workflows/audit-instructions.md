@@ -1,76 +1,43 @@
 # Audit Instructions
 
-Use for a model migration, instruction-stack audit, or catalog-wide revision.
-The result is a scoped set of corrections supported by inspected rules and task
-evidence. A skill that already meets the contract may remain unchanged.
+Use for instruction-stack audits, model migrations, or catalog revisions.
+Produce scoped corrections backed by the inspected instructions and task evidence;
+compliant files may remain unchanged.
 
-## Establish scope and baseline
+## Inspect the relevant stack
 
-- Identify the requested operation: report, revise, evaluate, or install. Carry
-  out all operations already authorized without requesting the same permission
-  again. Treat publication and installation as separate when they are absent
-  from the request.
-- Inventory shared instructions, skill entry points, runtime resources, client
-  metadata, and intended installation locations. Exclude fixtures and historical
-  reports from live instructions; inspect them as evidence when relevant.
-- Record the current file contents and pre-existing edits before revising. Keep
-  an immutable baseline for comparisons and preserve unrelated work.
-- When a model change motivates the audit, read the requested model's current
-  official guidance. Distinguish explicit recommendations from local inferences;
-  preserve package formats and invocation policies unless a change is justified.
-- For installation or discovery problems, compare source, installed files, and
-  active catalog metadata. A source edit does not establish that a running
-  session uses it. Do not reinstall merely to complete a source-only audit.
+Establish the requested operation and preserve a pre-edit baseline and unrelated
+work. Account for shared defaults, each in-scope skill's entry point, runtime
+resources, and adapter metadata. Historical reports are evidence, not live rules.
+For discovery or rollout issues, distinguish source, installed copies, and the
+active session; source changes do not prove that a running session uses them.
 
-## Inspect every skill in scope
+Read the official guidance named by the user when a model migration motivates the
+audit. Separate its recommendations from local inference and retain constraints
+needed by other intended models or clients. A more capable model does not change
+the package format, permissions, or invocation policy by itself.
 
-Read its entry point and account for each runtime resource and adapter. Delegate
-independent groups when available, with clear ownership and concise findings;
-keep edits to shared instructions coordinated. For each skill, record either a
-specific change with its evidence or a reason to retain it.
+Delegate independent inspection when it materially improves coverage, with bounded
+scopes and concise evidence. Coordinate edits to shared owners.
 
-Check the decisions most affected by instruction interactions:
+## Find obligations that no longer help
 
-- **Authority:** Does a gate ask again despite an applicable user instruction or
-  earlier approval? Preserve deliberate boundaries for destructive actions,
-  external writes, sensitive access, and unrelated state.
-- **Scope:** Can the skill distinguish research, planning, implementation, and
-  publication? Do prerequisites block only the dependent action? Do examples or
-  preferred tools accidentally replace the user's chosen outcome?
-- **Questions:** Is the missing answer consequential and unavailable from context?
-  Allow routine decisions within scope; retain questions needed for correctness
-  or authorization. When a rule causes a pause, make its source and unresolved
-  decision identifiable.
-- **Delegation:** Are independent tasks bounded and useful? Preserve required
-  isolation and review ownership without forcing parallelism for dependent work.
-- **Validation:** Are required checks tied to changed behavior and completion?
-  Remove unjustified repeated checks; preserve regression evidence and hard
-  operational checks. Define when new evidence warrants another pass.
-- **Output:** Does the format preserve required decisions, artifacts, evidence,
-  and uncertainty without forcing empty sections or repetitive status reports?
-- **Discovery:** Do the description, adapter policy, and trigger cases agree?
-  Preserve existing activation intent; a catalog audit is not a policy migration.
+Look for broad descriptions that attract unrelated work, unconditional reference
+reads, repeated collaboration rules, rigid recipes for judgment calls, redundant
+approval, and checks repeated without new evidence. Identify what each rule buys
+before removing it.
 
-## Correct the smallest owner
+Preserve exact data and permission boundaries, useful local facts, fragile
+sequences, and explicit personal preferences. Replace premature stopping points
+with completion criteria for the authorized outcome. Resolve contradictions at
+their owner instead of appending generic autonomy guidance to every skill.
 
-Put shared collaboration defaults in the applicable instruction file and
-task-specific requirements beside the affected skill step. Do not append a
-generic autonomy or model-tuning section to every skill. Resolve conflicting
-clauses at their owners, including relevant resources and examples.
+## Validate coverage
 
-Keep true invariants exact. Replace an unconditional judgment rule with the
-decision that matters, such as whether committing the intended files is already
-authorized. Do not weaken a boundary merely because it can cause a pause.
+For each target, record material changes or why it was retained. Use structural
+checks and independent cases for changed decisions, including a case that should
+proceed and one that must still wait or stop. Evaluate changed selection separately.
 
-## Validate and report coverage
-
-Use the evaluation workflow from the entry point. Run catalog-wide static checks
-and targeted independent behavior cases for changed decisions, including a
-case that must proceed and a case that must still stop. Reuse a case across
-skills only when it exercises the same changed contract; record that coverage.
-Test trigger behavior separately when discovery instructions or metadata change.
-
-Report reviewed skills, changed and retained decisions, checks, observed results,
-and untested boundaries. Distinguish a simulated decision from live tool execution
-and structural validation from measured behavior. Finish the authorized local
-work with remaining rollout steps stated precisely.
+Report inspected scope, resulting behavior, evidence, untested boundaries, and any
+remaining rollout steps. Finish local revisions when authorized without treating
+an unrequested install or publication as a prerequisite.

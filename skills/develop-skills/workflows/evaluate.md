@@ -1,191 +1,81 @@
 # Evaluate a Skill
 
-Use this workflow to determine whether a new, revised, or merged skill is structurally valid, improves task performance, and activates for the right requests. Treat static validation, behavior evaluation, and trigger evaluation as separate gates. Passing one gate does not imply passing another.
+Establish what the change needs to prove, then collect evidence for that claim.
+Structural validity, task behavior, and discovery are separate questions.
 
-## Prepare the Experiment
+## Select the checks
 
-Set the validation scope before running trials:
+- **Wording only:** run static validation and focused review when decisions and
+  triggers remain unchanged.
+- **Changed runtime decisions:** compare the old and new instructions on a
+  realistic affected task and a relevant boundary, using existing cases where
+  they fit.
+- **Changed discovery:** test positive and near-miss requests separately from
+  task quality. Preserve the selected invocation policy.
+- **Broad redesign, new capability, or predecessor retirement:** cover distinct
+  capabilities and failure modes against the baseline. Use holdouts and repeated
+  trials when adoption risk or observed variability makes them informative.
 
-- For a documentation-only change that leaves decisions and triggers unchanged,
-  run static checks and a focused review; explain why behavior trials do not apply.
-- For a runtime instruction change, compare baseline and candidate on the changed
-  decision and a relevant boundary in fresh contexts. Use an existing assertion
-  set when it covers the change. A narrow correction need not retest every mode.
-- For a new capability, broad redesign, consequential migration, or predecessor
-  removal, use representative scored cases, holdouts, and repeated trials below.
-- Run trigger trials when description, routing, or invocation policy changes.
-  For unchanged discovery, verify consistency statically and record the trigger
-  gate as unchanged rather than claiming new empirical selection evidence.
+Set assertions and stopping criteria before scoring. Expand after failures,
+candidate changes, unstable outcomes, or an unresolved risk; passing checks do
+not need repetition for its own sake.
 
-Record which gates apply and why. Complete required checks; expand or repeat only
-for a changed candidate, a failure, unstable results, or an unresolved concern.
+## Structural checks
 
-1. Freeze the candidate version before collecting scored results.
-2. Choose a baseline:
-   - the previous skill version for a revision;
-   - each source skill for a merge; or
-   - the same task without the skill for a new capability.
-3. Build cases from realistic requests and representative artifacts. Include
-   ordinary success and difficult or failure-prone cases for changed behavior.
-   When discovery is new or changed, also include:
-   - explicit positive trigger cases for every skill;
-   - for manual-only skills, in-scope but uninvoked requests expected not to
-     activate;
-   - for implicitly discoverable skills, positive cases that imply the need
-     without naming the skill; and
-   - near-miss negatives that share vocabulary but belong outside the scope.
-   Preserve existing trigger cases when discovery is unchanged.
-4. Reserve at least one case as a holdout when the decision is consequential or
-   the case set is large enough to support one. Do not tune against its result.
-5. Give baseline and candidate runs the same request, artifacts, available tools, constraints, and resource limits.
-6. Start every trial in a fresh, isolated context. Do not carry explanations, outputs, or evaluator feedback between trials.
-7. Record the candidate and baseline versions, case identifier, condition, trial number, output, observable work log, elapsed time, and failures. Record input/output size, operations, and retries when available.
-8. Record each trial's model identifier, reasoning setting, and harness or client
-   version. Mark unavailable values explicitly; distinguish requested settings
-   from confirmed settings. Identify simulated tools and live execution. Keep
-   these conditions matched for a skill comparison, or report differences as
-   confounds. Do not infer model-specific reliability from unidentified runs.
+Run the repository validator when available. Verify metadata and names, direct
+resource pointers and their use conditions, self-contained package paths,
+declared prerequisites, scripts affected by the change, and licensing obligations.
+Fix structural failures before using behavior results to justify adoption.
 
-Use synthetic cases only to cover gaps that real examples cannot exercise. Mark them as synthetic.
+## Behavioral comparisons
 
-## Gate 1: Static Validation
+Use the prior version for revisions, each predecessor for merges, or an unaided
+attempt for a new capability. Preserve the baseline before editing. Give each
+condition the same request, raw artifacts, tools, and limits in separate fresh
+contexts. Avoid supplying the desired answer or authoring rationale to the
+executing worker. An isolated worker or session is appropriate when available;
+if isolation is unavailable, report the limitation.
 
-Run the project's skill validator when one exists, then inspect the package directly. Verify that:
+Judge artifacts and observable decisions. Assertions should cover required
+results, important prohibitions, and the failure that motivated the change.
+Use an observation case to develop assertions only when needed, and do not score
+that same case as independent confirmation. Freeze criteria before scored trials;
+changes to criteria or candidate begin a new round.
 
-- required metadata parses and matches the skill directory;
-- the description states both capability and when to use it;
-- the entry file is concise enough to load reliably;
-- every required resource is named directly, exists, and has a stated use condition;
-- paths are relative and remain inside the skill package;
-- unused, duplicated, or stale resources are absent;
-- scripts and examples are safe, internally consistent, and executable where applicable; and
-- runtime guidance does not depend on an undocumented client, interface, or environment.
+For subjective judgments, use concrete acceptable/unacceptable anchors and blind
+review where it matters. Alternate or randomize condition order and preserve
+failed runs. Keep holdouts out of tuning; if a holdout exposes a defect, fix it
+and use a new unexposed case for a fresh holdout claim.
 
-Stop here if static validation fails. Structural failures make behavior results ambiguous.
+Record the request, assertions, baseline/candidate versions, outputs, observed
+failures, model, reasoning setting, and harness when available. Distinguish
+confirmed settings from requested ones, simulations from live operations, and
+unavailable metrics from measured values. Small samples support case-level
+findings, not general reliability claims.
 
-## Gate 2: Behavior Evaluation
+Accept changed behavior when required assertions pass without a material
+regression on the covered tasks. For a removal decision, every retained source
+capability needs evidence or an explicit decision to drop it. Keep the baseline
+when a proposed complication has no demonstrated benefit.
 
-### 1. Run an observation case
+## Selection checks
 
-When assertions are not yet grounded in a known failure or existing cases, run
-one representative baseline/candidate pair for discovery. Do not score a trial
-used to invent its own acceptance criteria. Otherwise freeze the existing
-criteria and proceed directly to the affected cases.
+Use explicit positives, uninvoked in-scope requests, and likely near misses.
+Uninvoked requests are negatives for manual-only skills and positives when
+implicit discovery is intended. Include ambiguous or unrelated cases when they
+could reveal a real routing error.
 
-### 2. Freeze assertions and grading
+Freeze expected selections before trials. Test in fresh contexts using the
+client's actual discovery path when possible. A prompted classification of a
+description is a simulation, not proof that an installed client selects it.
+Record missed positives and false activations by case type; repeat when outcomes
+vary. If discovery is unchanged, verify consistency without claiming new measured
+trigger evidence.
 
-Write or confirm assertions before scored cases. Use prior failure evidence or
-the observation pair without changing the grading after seeing scored results.
+## Finish
 
-Derive the criteria from the skill contract and observed failure modes. Where
-applicable, cover outcome completeness and correctness, authority and safety
-boundaries, error recovery, appropriate resource selection, and unnecessary
-work or unsupported assumptions.
-
-Separate the criteria into:
-
-- **Critical assertions:** facts or invariants that must hold in every acceptable output.
-- **Objective assertions:** machine-checkable properties such as required files, schema validity, exact values, successful commands, or absence of forbidden content.
-- **Subjective criteria:** qualities such as clarity, judgment, maintainability, or fidelity. Give each criterion anchored descriptions for low, acceptable, and excellent results.
-- **Efficiency measures:** elapsed time, operations, retries, input/output size, and unnecessary work. Use only measures observable under both conditions.
-
-State acceptance thresholds and the relative importance of criteria now. Derive
-them from task criticality, baseline performance, sample size, and measurement
-resolution; do not invent precision that the evidence cannot support. With a
-small sample, report counts and uncertainty instead of precise percentages. Do
-not change criteria after seeing scored results; start a new evaluation round if
-they must change.
-
-### 3. Run paired trials
-
-For every scored case:
-
-1. Run the baseline and candidate from separate fresh contexts.
-2. Randomize or alternate their order to reduce ordering effects.
-3. Repeat conditions when observed variance or the consequence of adoption
-   warrants it; choose the trial count before scoring and report its limits.
-4. Preserve all outputs, including failed and unusually slow trials.
-5. Label outputs with neutral identifiers before subjective review.
-
-Use more trials when results are unstable or the decision is consequential.
-Scale the experiment to the decision. A targeted correction may use a small
-paired regression set; adoption of a new workflow or removal needs representative
-scored cases. Small samples show the observed decisions, not general reliability.
-
-### 4. Grade the evidence
-
-- Evaluate objective assertions mechanically where practical.
-- Evaluate subjective criteria against the frozen anchors, not against general impressions.
-- Use blind human review when quality depends materially on taste, domain judgment, or user trust. Present outputs in randomized order without revealing the condition.
-- Report each critical failure separately; do not hide it inside an average score.
-- Compare paired results per case, then summarize pass rate, score difference, variance, failure frequency, and efficiency difference.
-- Inspect whether gains occur only in cases that closely resemble the authored examples.
-
-### 5. Decide the behavior gate
-
-The candidate passes only when it:
-
-- satisfies every predeclared critical assertion;
-- meets the objective and subjective acceptance thresholds;
-- improves or preserves behavior across the representative case set;
-- introduces no material regression on any holdout; and
-- has acceptable cost and variance for its benefit.
-
-Prefer the simpler baseline when the measured difference is negligible or inconsistent.
-
-## Gate 3: Trigger Evaluation
-
-Evaluate activation independently from task quality. A strong workflow is still
-a poor skill if it violates its selected activation policy.
-
-1. Create a balanced set of prompts:
-   - explicit positives that invoke the skill directly;
-   - in-scope prompts without the skill name, labeled positive only for an
-     implicitly discoverable skill and negative for a manual-only skill;
-   - near-miss negatives with overlapping terms;
-   - unrelated negatives; and
-   - ambiguous cases with an explicitly documented expected outcome.
-2. Freeze the expected activate/do-not-activate label for each prompt.
-3. Present each prompt in a fresh context without extra steering.
-4. Repeat each prompt when selection can vary.
-5. Record activation as a binary outcome and calculate:
-   - positive activation rate;
-   - missed-positive rate;
-   - negative rejection rate; and
-   - false-activation rate.
-6. Inspect errors by case type instead of relying only on aggregate rates.
-
-Set thresholds before scoring. Explicit positives should normally activate
-reliably. A manual-only skill must reject uninvoked prompts even when they match
-its subject. An implicitly discoverable skill must justify its catalog cost by
-reliably accepting intended implicit prompts while rejecting near misses. If
-behavior is already sound, revise only the description or adapter policy and
-rerun this gate; do not distort the workflow to compensate for poor selection.
-
-## Diagnose Failures
-
-| Symptom | Likely cause | Next change |
-| --- | --- | --- |
-| Static checks fail | Invalid structure or broken resource routing | Fix packaging before evaluation |
-| Baseline and candidate both fail | Task, tools, or assertions may be unrealistic | Recheck the case and required capability |
-| Candidate fails a known invariant | Guidance is missing, ambiguous, or too weak | Add the smallest explicit rule or validation step |
-| Candidate succeeds only on copied examples | Guidance is overfit | Replace examples with a general decision rule and test the holdout |
-| Results vary widely | Instructions allow unstable choices or the case is underspecified | Clarify the decision point, then add trials |
-| Candidate improves quality but costs much more | Workflow is redundant or overly detailed | Remove low-value steps and remeasure |
-| Subjective scores conflict | Rubric anchors are vague or reviewer context differs | Tighten anchors and repeat blind review |
-| Positive prompts do not activate | Description omits user language or use conditions | Add concrete capability and trigger phrases |
-| Near-miss negatives activate | Scope boundary is too broad | Add a concise exclusion or narrow the capability statement |
-| Manual-only skill activates implicitly | Adapter policy is absent or inconsistent | Disable implicit invocation in client metadata and retest |
-
-Change one meaningful variable at a time when diagnosing a failure. Start a new round with a new version identifier, fresh contexts, and frozen criteria.
-
-## Stop Criteria
-
-Finish the authorized revision when applicable gates pass and unchanged or
-inapplicable gates have an explicit rationale. Ship or adopt only within the
-requested scope. Revise a failing candidate when evidence supports a correction;
-retain the baseline when repeated rounds show no useful benefit. Gather more
-trials when unresolved variance could change the decision, not merely to repeat
-passing checks.
-
-Preserve the cases, frozen assertions, raw results, and decision summary so later revisions can be compared against the same evidence. Keep holdout cases unexposed until the final evaluation round.
+Fix evidenced defects and rerun affected checks. Report what passed, failed, or
+could not be tested, with concise reusable cases and raw results when trials were
+run. Missing tools need not prevent finishing safe source edits, but unresolved
+critical checks prevent claims of validated adoption or safe predecessor removal.
+Complete publication or installation only within the already-authorized scope.

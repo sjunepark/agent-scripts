@@ -1,35 +1,22 @@
-# Codex invocation policy
+# Codex Invocation Policy
 
-Read this guide when a target skill includes `agents/openai.yaml` for Codex.
+Use when creating or changing `agents/openai.yaml`.
 
-## Default
-
-Preserve an existing skill's invocation policy unless changing it is requested.
-For a new skill, use this repository's manual-only default unless the entry
-point's full implicit-discovery gate passes:
+Preserve an existing policy unless changing it is requested. For new skills,
+apply the explicit-invocation preference and discovery criteria in the entry
+point. Encode the chosen value explicitly:
 
 ```yaml
 policy:
   allow_implicit_invocation: false
 ```
 
-Also state `Explicit invocation only` in the portable description so the intent
-remains visible to hosts that do not enforce the adapter setting.
+Use `true` for an intentional implicit-discovery opt-in. With `false`, Codex does
+not inject the skill into context by default; explicit invocation can still load
+it. State `Explicit invocation only` in a manual-only skill's description so its
+intent is visible to other clients.
 
-In current Codex behavior, `false` keeps the skill out of the model-visible
-catalog, so its name, description, and path do not occupy the initial skills
-context. Explicit `$skill-name` invocation still loads the skill instructions
-into that turn's context.
-
-## Implicit discovery opt-in
-
-Set `allow_implicit_invocation: true` only after evidence supports broad
-recurrence within the installation scope, reliable prompt matching, safe,
-useful activation without explicit intent, and value worth the catalog-context
-cost.
-Keep this decision independent from whether the skill is installed globally or
-only for one repository.
-
-Test explicit invocation in either mode. For manual-only skills, label in-scope
-but uninvoked prompts as negative cases. For implicitly discoverable skills,
-test those prompts as positives alongside ambiguous and near-miss negatives.
+Keep interface metadata optional and consistent with the skill. Test explicit
+invocation in either mode and uninvoked requests against the chosen policy.
+Source metadata, installed metadata, and a running session are separate evidence;
+use client discovery to verify installation behavior.
