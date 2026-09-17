@@ -11,22 +11,22 @@ native goal with Markdown. General goal behavior is described in
 
 ## Resolve Arguments and Target
 
-Read this section before preparation. Treat these aliases as explicit user
-model choices and pass settings to `create_thread`, not just to the prompt:
+Read this section before preparation. Resolve the model argument using this
+table and pass settings to `create_thread`, not just to the prompt:
 
 | Model argument | `model` | Default `thinking` |
 | --- | --- | --- |
 | `astra` | `gpt-6-astra` | `medium` |
 | `luna` | `gpt-5.6-luna` | `max` |
-| omitted | omit | omit |
+| omitted | `gpt-6-astra` | `medium` |
 
 An explicit reasoning argument overrides the preset, e.g. `spawn astra high`.
 Accept an exact model identifier only when the user names it and the destination
-supports it; with no preset or explicit reasoning, omit `thinking`. Reject an
+supports it; for an exact identifier without explicit reasoning, omit `thinking`. Reject an
 unknown alias or unsupported combination before mutation; never silently
 substitute a model or lower reasoning. If destination support can only be
 validated at creation, report a rejection and retain preparation. With neither
-argument, omit both overrides to use the configured defaults.
+argument, use `model: gpt-6-astra` and `thinking: medium`.
 
 Call `list_projects` and resolve the user-named target, otherwise the current
 repository's saved project, accounting for the current worktree's repository.
@@ -55,8 +55,8 @@ to the recorded commit, and that every referenced source is tracked and present
 there. If a dependency exists only in unrelated dirty work, resolve its commit
 authority rather than starting an incomplete checkout.
 
-Call `create_thread` once with the resolved project, environment, explicit
-model/`thinking` settings when supplied, a concise outcome title, and a
+Call `create_thread` once with the resolved project, environment, resolved
+model/`thinking` settings, a concise outcome title, and a
 self-contained prompt containing:
 
 1. The user's request to create and execute a real native goal in this new task.
@@ -107,7 +107,7 @@ failure and completed preparation; offer the contract for manual use when
 useful, but do not silently downgrade successful launch to prompt generation.
 
 For a created task, finish with its actual startup state, project, preparation
-commit, and requested model/reasoning (or configured defaults). Distinguish
+commit, and resolved model/reasoning. Distinguish
 requested settings from settings confirmed by the tool response. Emit the app's
 `created-thread` directive using the returned `threadId`, or `clientThreadId`
 while setup is pending, following the current tool instructions. Prompt-only

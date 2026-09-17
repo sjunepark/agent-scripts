@@ -64,7 +64,7 @@ the relevant preparation, and returns the prompt. `$next-goal spawn luna`
 also creates a new Codex task from the prepared state and verifies native goal
 startup. `spawn astra` selects Astra/medium; `spawn luna` selects Luna/max;
 an optional reasoning argument overrides the preset, as in `spawn astra high`.
-Bare `spawn` uses the app's configured task defaults. Preparation preserves
+Bare `spawn` defaults to Astra/medium. Preparation preserves
 unrelated work; spawning requires the Codex app task tools and native goal
 support in the destination task.
 

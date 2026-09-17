@@ -237,7 +237,7 @@
     {
       "id": 24,
       "prompt": "$next-goal spawn. Use the selected import goal.",
-      "expected_output": "Use companion case H1. Exactly one task creation. Never use clientThreadId as threadId. No false started claim. No model or thinking keys for unqualified spawn. Follow up on existing setup or report pending with queued-task directive.",
+      "expected_output": "Use companion case H1, superseding its historical omitted-model assertion: unqualified spawn uses model gpt-6-astra and thinking medium. Exactly one task creation. Never use clientThreadId as threadId. No false started claim. Follow up on existing setup or report pending with queued-task directive.",
       "files": [
         "evals/prepare-spawn-inputs.json",
         "evals/prepare-spawn-cases.md"
