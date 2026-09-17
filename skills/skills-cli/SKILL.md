@@ -1,6 +1,6 @@
 ---
 name: skills-cli
-description: "Skills CLI (`bunx skills`, skills.sh) for Codex, Claude Code, and Pi: discover, initialize, install, list, update, remove, restore lock files, sync `node_modules`, or troubleshoot project/global scope."
+description: "Discover and manage agent skills with bunx skills (skills.sh), including installation scope and agent targeting."
 ---
 
 # Skills CLI
@@ -18,8 +18,9 @@ publication, reconciliation, or cleanup.
 3. Install with explicit scope, skill selection, and agent targeting.
    - Before installing or reinstalling a published skill, or moving a shared install to agent-specific paths, read [recipes/install-and-migrate.md](recipes/install-and-migrate.md) and use the matching recipe.
    - In this repository, prefer `sjskills` over hand-written commands for both committed project intent and the fixed global baseline. Its private adapter materializes with explicit Codex and Claude Code targets; `sjskills` owns verified placement, state, quarantine, and restore.
-   - Byte equality alone does not grant reconciler ownership. Managed updates
-     and removals proceed only while current content matches trusted state.
+   - Byte equality alone does not grant reconciler ownership. Trusted managed
+     copies with local edits are quarantined before verified replacement; unknown
+     desired copies and unverifiable provenance remain conflicts.
 4. Verify ordinary installs with the matching scope command. For this
    repository's managed state, verify exact placement with `sjskills plan` for
    a project or `sjskills plan --global` for the fixed global baseline;

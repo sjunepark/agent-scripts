@@ -1,6 +1,6 @@
 ---
 name: pdf-to-markdown
-description: "Convert PDF inputs into clean, reusable whole-document Markdown for agents, LLM ingestion, search, or archival text, using Xberg with safe output handling, Korean scan OCR, page markers, validation, and layout escalation. Use when the user asks to create, save, generate, normalize, reconvert, or extract a Markdown or whole-document agent-readable text artifact from a PDF. Do not use for summaries or questions with no converted artifact, PDF editing or rendering, parser research, or targeted extraction into CSV, JSON, images, or other structured formats."
+description: "Convert PDFs into validated whole-document Markdown using Xberg, including Korean scan OCR and layout recovery. Use for saved agent-readable text artifacts; excludes summary-only questions, PDF editing, and targeted structured extraction."
 ---
 
 # PDF to Markdown
@@ -33,17 +33,6 @@ them.
    Xberg for JSON so it can validate every physical page, but publishes only
    Xberg's whole-document Markdown and retains no parser JSON.
 
-   The wrapper's ordinary Xberg extraction uses these core flags:
-
-   ```bash
-   xberg extract /absolute/path/report.pdf \
-     --no-config-discovery \
-     --format json \
-     --content-format markdown \
-     --extract-pages true \
-     --page-markers true
-   ```
-
    When page markers are enabled, the wrapper also supplies a randomized
    private marker through `--config-json`; it later converts only those private
    markers to `<!-- PAGE n -->`. A direct fallback must use an equivalently
@@ -67,21 +56,6 @@ them.
    python3 scripts/convert_pdf.py /absolute/path/report.pdf --korean-ocr
    ```
 
-   The corresponding Xberg flags are:
-
-   ```bash
-   xberg extract /absolute/path/report.pdf \
-     --no-config-discovery \
-     --format json \
-     --content-format markdown \
-     --extract-pages true \
-     --page-markers true \
-     --ocr true \
-     --ocr-backend paddle-ocr \
-     --ocr-language korean \
-     --ocr-scanned-pages
-   ```
-
    The first PaddleOCR use may download models as part of the requested
    conversion. Tell the user before starting when network use or model storage
    is material in the current environment.
@@ -90,8 +64,9 @@ Do not OCR a born-digital PDF merely because its language is Korean. Use
 `--force-ocr` only when the entire document is image-only or its text layer is
 demonstrably broken; combine it with `--korean-ocr` for Korean documents.
 
-If Python is unavailable but Xberg is present, reproduce the wrapper's exact
-flags with a command runner while preserving the same non-overwrite, temporary
+If Python is unavailable but Xberg is present, inspect `scripts/convert_pdf.py`
+and reproduce its command construction and validation with the available runner,
+preserving the same non-overwrite, temporary
 output, nonempty-result, and atomic-finalization guarantees. If those guarantees
 cannot be preserved, stop and report the missing capability.
 

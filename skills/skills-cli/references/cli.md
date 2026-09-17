@@ -38,8 +38,9 @@ For this repository specifically:
 - Treat `skills/` as a catalog. Select the intended global skill with `--skill <name>` rather than installing the whole catalog by default.
 - If you want to sync a just-edited skill using the GitHub `skills/` URL, commit and push first; otherwise the remote install will not contain the local changes.
 - Use `skill-registry.json` for authoritative global-baseline, project-profile, source, target, and manager decisions. Use `sjskills plan` for a project with committed `sjskills.toml` and `sjskills plan --global` for the one fixed machine baseline. Manual and workflow-managed entries stay with their recorded manager.
-- The reconciler accepts only credential-free public HTTPS URLs or GitHub
-  shorthand. It rejects URL credentials, query strings, fragments, local
+- The reconciler accepts credential-free HTTPS URLs or GitHub shorthand.
+  Declared `github-authenticated` sources require supported GitHub sources and
+  an existing authorized gh login; omitted access means public. It rejects URL credentials, query strings, fragments, local
   paths, and `npm:` sources for reconciliation.
 - A stale pre-reconciler copy is not silently adopted or overwritten. Resolve
   an unmanaged desired path explicitly; v1 has no force-adopt or

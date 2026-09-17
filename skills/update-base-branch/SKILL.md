@@ -1,6 +1,6 @@
 ---
 name: update-base-branch
-description: "Switch the current Git worktree from a feature branch to its intended base or integration branch and fast-forward that local branch to its configured remote tip. Use when the user asks to leave current feature work and update, refresh, or move to the latest dev, main, trunk, or worktree-specific primary branch. Do not use to merge or rebase a base branch into a feature branch, rewrite divergent history, or update a different worktree."
+description: "Switch this Git worktree to its base or integration branch and fast-forward to its configured upstream. Not for merging or rebasing the base into a feature branch."
 ---
 
 # Update Base Branch

@@ -1,98 +1,88 @@
 # Integration Mode
 
-## Workflow
+Integrate the requested source behavior into the destination's current structure,
+including intentional removals, and verify the intended Git history shape.
 
-1. Preflight the repository.
-   - Confirm the current destination branch, source branch, and whether the user wants whole-branch integration or partial adoption.
-   - Inspect any merge already in progress. When the user requested its resolution and `MERGE_HEAD` matches the intended source, continue that merge without starting another. Stop for an unrelated or ambiguous operation; do not turn an existing rebase into a merge.
-   - Preserve unrelated uncommitted changes. Proceed only when the requested integration can be separated without overwriting, staging, or committing them; otherwise prepare the assessment and ask how to isolate the work. Resolve an ambiguous source before mutation.
-   - Check state before modifying anything:
+## Establish the integration
 
-     ```bash
-     git status --short --branch
-     git merge-base HEAD <source>
-     git log --oneline --decorate --left-right --cherry-pick HEAD...<source>
-     ```
+Identify the destination, source tip, merge base, whole-branch or partial scope,
+and authorized committed or uncommitted endpoint. Useful initial evidence:
 
-   - Record the merge base for the final report.
+```bash
+git status --short --branch
+git merge-base HEAD <source>
+git log --oneline --decorate --left-right --cherry-pick HEAD...<source>
+```
 
-2. Build a source commit-intent ledger.
-   - Inspect every source commit from the merge base to the source branch, in order:
+Inspect an operation already in progress. Continue a requested merge resolution
+when `MERGE_HEAD` matches the intended source; do not start another merge or turn
+an existing rebase into one. Resolve an unrelated or ambiguous operation before
+mutation. Isolate unrelated uncommitted work without overwriting, staging, or
+committing it; ask only when safe separation cannot be established.
 
-     ```bash
-     git log --reverse --oneline <base>..<source>
-     git show --stat --patch <commit>
-     ```
+Inspect source history and the net diff to account for behavior added, changed,
+and removed, including tests, docs, configuration, and follow-up reversals.
+Use `git log --reverse --oneline <base>..<source>` and individual commit patches
+where the net diff does not establish intent. Keep a concise intent record for
+material adaptations, omissions, and decisions; a row for every mechanical
+commit is unnecessary. Map renamed or split paths when needed so integration
+does not resurrect obsolete files.
 
-   - For each commit, record:
-     - behavior added
-     - behavior removed
-     - files touched
-     - tests or docs updated
-     - diagnostics, temporary code, compatibility shims, or experiments later removed by follow-up commits
-     - disposition: preserve, adapt to current structure, or intentionally reject with reason
-   - Treat deletions as first-class source intent. Removed UI text, helpers, fields, tests, diagnostics, compatibility paths, and summaries must be integrated or explicitly rejected.
+## Preserve history and behavior
 
-3. Choose the integration mode.
-   - When no matching merge is already in progress, default whole-branch integration to `git merge --no-commit --no-ff <source>`. Treat a new or resumed merge as a draft and do not commit until conflicts, residual differences, deletion audits, and validation are complete.
-   - For a new or resumed merge, confirm `MERGE_HEAD` exists and matches the intended source tip. If it does not, stop and resolve the merge-shape problem before editing conflicts.
-   - Use manual transplant only when partial adoption, intentionally linear or non-convergent history, or broad unrelated source history makes it appropriate. Explain why merge-as-draft was not used.
-   - Ask before choosing between plausible product behaviors. Preserve destination architecture and naming where intentional, but preserve every source behavior or explicitly reject it with a reason.
-   - Preserve destination behavior unless the source intentionally changes it. Refactor append-style conflict results into one coherent destination structure.
-   - Do not integrate by cherry-picking, copying patches, squashing, or creating an ordinary independent commit unless the user explicitly requests non-convergent history or says the source branch should not be recorded as merged.
+For a new whole-branch integration, default to
+`git merge --no-commit --no-ff <source>`. Treat the merge as a draft until
+conflicts, residual differences, and validation are resolved. If the source is
+already an ancestor of `HEAD`, verify the requested behavior and report that no
+new merge is needed. Otherwise, for a new or resumed merge, require `MERGE_HEAD`
+to match the intended source tip before editing conflicts or committing.
 
-4. Map renamed or refactored paths.
-   - Create a path map when the destination renamed, split, or reorganized source files.
-   - Apply source behavior into the current structure instead of resurrecting obsolete files.
+Use a manual transplant only for authorized partial adoption or intentionally
+non-convergent history; explain the choice. Broad unrelated source history may
+justify proposing a transplant, but does not itself authorize replacing an
+intended whole-branch merge with cherry-picks, copied patches, squash, or an
+ordinary independent commit.
 
-   ```text
-   source: app/renderer/workflow/ui/canvas/NodeSessionDialog.svelte
-   current: app/renderer/workflow/ui/canvas/CanvasNodeDetailsDialog.svelte
-   reason: current branch extracted a shared dialog frame and renamed the details dialog
-   ```
+Preserve source behavior and intentional deletions in the destination's current
+architecture. Preserve destination behavior unless the source intentionally
+changes it. Resolve duplicate paths and owners introduced by the integration.
+Use evidence and delegated judgment for routine adaptations; ask about unresolved
+product or compatibility choices. Record reasons for intentionally rejected
+source behavior; keeping behavior the source deliberately removed requires the
+user's approval.
 
-5. Integrate deliberately.
-   - Implement each ledger item in its chosen destination.
-   - Keep the destination architecture and naming where intentional.
-   - Avoid compatibility layers, duplicate paths, and appended code unless required by real callers or explicitly requested for a staged transition.
-   - If the source deliberately removed behavior, remove it from the destination structure too unless the user approves keeping it.
+## Verify and finish
 
-6. Audit residual differences against the source branch.
-   - Compare the result to the source branch:
+Compare the result with the source, focusing on meaningful residual differences:
 
-     ```bash
-     git diff --stat <source>
-     git diff --name-status <source>
-     git diff <source> -- <relevant-or-mapped-files>
-     ```
+```bash
+git diff --stat <source>
+git diff --name-status <source>
+git diff <source> -- <relevant-or-mapped-files>
+```
 
-   - Classify every meaningful residual difference as one of:
-     - destination structure intentionally preserved
-     - source behavior integrated under a different path
-     - missed source behavior to fix before completion
-     - intentionally rejected source behavior, with reason
-   - A residual difference is not itself a defect: do not restore obsolete files or demand exact patch equivalence when behavior legitimately landed under the destination structure.
-   - Do not report completion while any meaningful residual difference is unclassified.
+Account for each material difference as preserved destination structure, source
+behavior adapted elsewhere, an intentional rejection, or an omission to fix.
+Check removed names, labels, fields, helpers, tests, and distinctive strings with
+targeted searches where they can reveal missed deletions. Exact patch equality
+is not required when behavior has moved into the destination's structure.
 
-7. Run deletion grep audits.
-   - For every behavior removed by the source branch, grep the destination tree for names, labels, tests, helpers, fields, and distinctive strings that would reveal a missed deletion.
-   - Example:
+Run required checks and validation covering integrated behavior and affected
+contracts. Separate pre-existing failures from integration failures and resolve
+actionable review findings. Do not declare integration complete with unaccounted
+source behavior or meaningful residual differences.
 
-     ```bash
-     rg "item\.summary|messageSummary|chars|blocks ·" app tests
-     ```
+When committing is authorized, stage only integration changes and inspect the
+full index before committing. Unrelated staged work must be isolated with the
+user's authority, not silently unstaged or included. Preserve explicitly
+uncommitted and conflict-resolution-only endpoints; publish only when authorized.
 
-   - Record whether each pattern is absent, still present for an intentional reason, or a missed source deletion that must be fixed before completion.
+For an uncommitted whole-branch merge, report ancestry convergence as pending and
+verify `MERGE_HEAD`. After committing, verify
+`git merge-base --is-ancestor <source> HEAD`. For an authorized transplant, report
+adopted behavior without requiring ancestry.
 
-8. Validate and finish.
-   - Before a merge commit, inspect the full index and require every staged change to belong to the authorized merge scope. Do not unstage unrelated user work to make this gate pass; ask how to isolate it when necessary.
-   - Run required repository checks and tests relevant to the integrated behavior and affected contracts. Broaden validation when those contracts, a failure, or an unresolved concern justify it; do not repeat passing checks without relevant new evidence or changes.
-   - If broad checks fail because of unrelated existing issues, run targeted validation and clearly separate unrelated failures from integration failures.
-
-   - If committing is authorized, stage only integration changes, recheck the full index, and commit after validation. Preserve explicitly uncommitted and conflict-resolution-only endpoints.
-   - Publish only when separately authorized.
-
-9. Report.
-   - Summarize the destination, source, merge base, integration method and rationale, and where source intent landed. Include material path mappings, classified residual differences, and deletion-audit evidence.
-   - For whole-branch merges, verify `MERGE_HEAD` before committing and report convergence as pending; after committing, verify with `git merge-base --is-ancestor <source> HEAD`. For intentional transplants, report adopted ledger items without requiring ancestry.
-   - Report changed files, validation outcomes, and remaining risks or decisions. Include commands and detailed ledger entries when needed to verify or explain the result.
+Report source, destination, merge base, method, material adaptations or rejections,
+deletion and residual-difference evidence, validation, and the resulting commit
+or uncommitted state. Include detailed intent records only where they explain
+the result or an unresolved decision.

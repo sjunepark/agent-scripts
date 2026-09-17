@@ -8,30 +8,12 @@ description: "Plain Rust for any source, test, macro, Cargo crate, or API work: 
 Write **plain Rust**: make behavior, ownership, failure, and control flow easy
 to see.
 
-## Resolve Priorities
+Use these design defaults within the repository's contracts, MSRV, conventions,
+and measured performance requirements. For reviews or diagnosis, assess the code
+without rewriting it unless requested. Preserve already-clear choices.
 
-Apply these priorities in order:
-
-1. Preserve correctness, safety, security, task requirements, public contracts,
-   supported toolchains, and measured performance requirements.
-2. Follow the repository's established Rust patterns and configured tools.
-   Keep unrelated style churn out of focused changes.
-3. Apply the defaults below where more than one design remains valid.
-
-Treat loops and iterators, concrete and generic code, borrowing and cloning,
-enums and traits, and synchronous and asynchronous code as contextual choices.
-Choose the form that makes the current behavior easiest to trace. Preserve an
-already-clear choice unless the task requires changing it.
-
-## Work Plainly
-
-1. Inspect `Cargo.toml`, the pinned toolchain or MSRV, formatter and lint
-   configuration, nearby code, and relevant tests before choosing a design.
-2. Implement the smallest coherent path that satisfies the task. For review or
-   diagnosis, use these defaults to evaluate the code without rewriting it.
-3. Finish only when every new abstraction has a present need, every safety
-   boundary and failure path introduced or affected by the change is accounted
-   for, and relevant checks pass or their blockers are reported.
+Loops and iterators, borrowing and cloning, enums and traits, and sync and async
+are contextual choices: favor the form whose behavior is easiest to trace.
 
 ## Shape Code
 

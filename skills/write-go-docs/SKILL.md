@@ -7,9 +7,7 @@ description: "Go source documentation: write, revise, prune, or audit package an
 
 Treat information gain as the admission test: source documentation earns its place when it reduces uncertainty beyond the name, signature, types, and immediate context. Keep changes inside Go source and Go example tests; route README and architecture work to their own documentation workflows.
 
-## Workflow
-
-### 1. Bound the work and gather evidence
+## Scope and evidence
 
 - Follow the user's requested files, packages, declarations, or diff. Expand to callers, tests, interfaces, implementations, and history only as needed to establish public behavior or durable rationale.
 - Honor audit-only or review-only requests by keeping source unchanged and returning evidence-backed decisions.
@@ -17,13 +15,10 @@ Treat information gain as the admission test: source documentation earns its pla
 - Inspect `go.mod`, nearby documentation style, and configured validation when syntax or lint policy may depend on them.
 - Treat code and tests as evidence of behavior, not proof of unstated intent. Record a focused maintainer question when important rationale remains unresolved.
 
-Continue once the documentation boundary, relevant conventions, enforced checks, and unresolved questions are explicit.
+## Decide what earns documentation
 
-### 2. Apply the information-gain test
-
-For each package, exported declaration, existing doc comment, and non-obvious internal declaration in scope, choose retain, add, revise, remove, or skip.
-
-Use a burden-of-proof rule:
+Review packages, exported declarations, existing comments, and non-obvious internal
+declarations within the requested scope. Apply the following editorial preference:
 
 - Default each candidate to remove or skip. Promote it only when you can name specific information that the declaration does not make obvious.
 - Apply a deletion test to every existing or proposed comment: if its removal loses no non-obvious information, choose remove or skip.
@@ -40,11 +35,7 @@ Document reader-relevant knowledge that the declaration does not already reveal:
 - package responsibilities, cross-package relationships, and durable tradeoffs;
 - non-obvious composition or misuse risks that justify an example.
 
-Continue once every documentation candidate in scope has an evidence-backed decision.
-
-For an audit-only request, skip editing, run applicable read-only validation from step 4, and report the decisions. Otherwise continue.
-
-### 3. Write idiomatic Go documentation
+## Write idiomatic Go documentation
 
 - Place a doc comment immediately before the package clause or declaration it documents. Start package comments with `Package <package-name>`; center a declaration's opening synopsis on its declared name and follow any stricter configured prefix rule.
 - Prefer one package comment that explains purpose and boundaries. Use `doc.go` when substantial package guidance deserves a dedicated file.
@@ -54,13 +45,15 @@ For an audit-only request, skip editing, run applicable read-only validation fro
 - Start a separate deprecation paragraph with `Deprecated:` and name the supported replacement or migration constraint when repository evidence provides one.
 - Add an `Example`, `ExampleFoo`, or `ExampleFoo_Bar` only when executable usage communicates more clearly than prose. Keep its output assertion meaningful.
 
-Continue once each changed artifact is associated with the intended Go symbol, follows Go formatting conventions, and passes the information-gain test.
-
-### 4. Validate and report
+## Validate and finish
 
 - Run `gofmt` on changed Go files.
 - Run the narrowest relevant `go test` command for documentation examples and the repository's configured documentation or lint checks.
-- Inspect association, synopsis, and grouping with `go doc`. Use a local `pkgsite` when available to verify rendered links or headings.
+- Use `go doc` to verify changed associations, synopses, or grouping. When links
+  or headings need rendered verification, use a local `pkgsite` if available.
 - If executable validation is unavailable, inspect comment placement and example naming directly and report the limitation.
 
-Complete when relevant validation passes or its limitation is reported, and the response identifies comments added, revised, or removed; notable omissions; unresolved maintainer questions; and every lint-driven low-information comment.
+For an audit-only request, use read-only checks and report findings without edits.
+For revisions, finish the requested edits and relevant validation. Report material
+changes, intentional omissions, unresolved rationale, lint-driven low-information
+comments, and validation limits when present.

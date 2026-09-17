@@ -1,122 +1,38 @@
 # Diet Lens
 
-Use this lens for **unearned weight**: code that does not earn its maintenance
-cost today.
+Find concepts, states, branches, and maintenance obligations that current
+behavior does not justify. Fewer lines alone is not the goal. For a small change
+without a complexity signal, conclude after a brief check.
 
-Apply it proportionately in every code review. For a small change with no
-complexity signal, make a brief check and conclude without a diet finding; do
-not expand the review merely to search for simplification opportunities.
+## Evaluate the cost
 
-The goal is not fewer lines. The goal is fewer obligations: fewer concepts,
-states, branches, compatibility promises, and surfaces to preserve.
+Separate domain, contract, lifecycle, security, and performance requirements from
+incidental machinery. For a candidate simplification, establish what depends on
+it now, what cost it removes, and the concrete replacement shape.
 
-This is not a general architecture or folder-layout review. It is a
-simplification lens for code that feels heavier than the problem requires: too
-many helpers, wrappers, schema fields, columns, options, generic layers, or
-appended paths that solve the task by adding machinery instead of integrating
-with the existing design.
+Useful signals include pass-through wrappers, generic code with one real path,
+unused fields or options, shared helpers needing flags for diverging cases,
+translation layers that preserve only genericity, and side channels appended
+instead of integrating with the existing design. Check indirect uses before
+calling something unused.
 
-Do not assume code came from an LLM or agent. Judge the code on its merits.
+Compatibility layers, aliases, migration fields, fallbacks, and dual paths need
+a current rollout, external contract, or documented migration window. Identify
+public, persisted, and cross-subsystem consumers before recommending removal.
+Uncertain constraints belong in Bucket II.
 
-## Review Posture
+Prefer deletion of unused machinery, inlining shallow hops, making generic code
+specific, or splitting diverging cases before proposing broad redesign. Avoid
+premature shared abstractions; small duplication can preserve clearer ownership.
+A longer direct implementation can create fewer obligations.
 
-- **YAGNI**: do not keep machinery only for hypothetical future cases.
-- **AHA / rule of three**: avoid hasty abstractions; duplicate twice before
-  extracting the wrong shared layer.
-- **Duplication can be cheaper than the wrong abstraction** when a shared helper
-  now needs flags, modes, or branching to serve diverging cases.
-- **Prefer integration over appending**: solve the problem in the existing
-  design when possible instead of adding side channels, one-off adapters, or
-  parallel flows.
-- **Keep readability-oriented explicitness**: a small helper, wrapper, or
-  object can be worth its cost when it clarifies naming, boundaries, or
-  invariants.
+## Findings
 
-## Judgment Guardrails
+Do not penalize explicit code, single-use helpers with meaningful names, wrappers
+that isolate side effects, or objects that make invariants visible. Require an
+observable cost and a viable simpler shape; a clean conclusion is valid.
 
-- First separate essential complexity from accidental complexity. Essential
-  complexity comes from the domain, external contracts, data lifecycle, failure
-  modes, security, performance, or user workflow. Accidental complexity comes
-  from implementation machinery that current behavior does not require.
-- Before recommending removal, identify what would stop working, what tests or
-  contracts would need to change, and whether the behavior is public, persisted,
-  migrated, or used by another subsystem. If local evidence cannot answer that,
-  put the item in Bucket II.
-- Treat compatibility layers, migration fields, fallbacks, aliases, and
-  dual-read or dual-write paths as justified only when there is a current
-  rollout, external contract, or documented migration window. Otherwise, they
-  are usually Bucket II candidates.
-- Prefer simplification in this order: delete unused or speculative code; inline
-  pass-through wrappers; make generic code specific to the current use; split
-  diverging cases instead of adding flags or modes; redesign only when local
-  simplification would leave the underlying weight intact.
-- A longer direct implementation can be leaner than a shorter abstraction when
-  it creates fewer concepts, jumps, configuration paths, and preserved states.
-
-## Workflow
-
-1. Anchor the lens in the real code.
-   - Read the changed files, nearby interfaces, and affected tests or docs when
-     relevant.
-   - Distinguish code serving current behavior, code mainly serving hypothetical
-     flexibility, and code appended as a workaround instead of integrated
-     cleanly.
-
-2. Ask what each extra piece buys now.
-   - For every helper, wrapper, field, column, option, mode, schema entry, or
-     abstraction layer, ask:
-     - what current behavior depends on this?
-     - what concrete maintenance cost does it remove?
-     - would the code be clearer if this were inlined, deleted, or made more
-       specific?
-     - what replacement shape would remain after simplification: deleted,
-       inlined, made specific, merged into an existing path, or split into
-       explicit paths?
-
-3. Look for weight-gain patterns.
-   - Extra JSON fields, DTO properties, DB columns, or config keys that current
-     behavior barely uses.
-   - Helpers or wrappers that mostly forward calls or rename things without
-     improving boundaries, reuse, or invariants.
-   - Shared helpers that now need booleans, enums, `mode` parameters, or
-     branching to cover multiple cases.
-   - Generic abstractions with only one real path.
-   - Translation or mapping layers added mainly to preserve genericity.
-   - Extension points, hooks, strategy objects, or configuration surfaces with
-     no concrete second use.
-   - Appended code paths, special cases, or side channels that solve one feature
-     without cleaning up the underlying path.
-   - Data models shaped for imagined futures rather than today's behavior.
-   - Callers still need to know internal details the abstraction claimed to
-     hide.
-   - Code that became harder to follow because it optimized for hypothetical
-     later work instead of today's path.
-
-4. Keep the bar high.
-   - Do not call something waste just because it is abstract.
-   - Do not punish code for being explicit.
-   - Do not recommend broad redesign when a narrow simplification is enough.
-   - Do not manufacture findings. A valid conclusion is that the code is already
-     lean enough.
-
-## Weak Signals
-
-Weak signals that often do not justify action by themselves:
-
-- The code is a little repetitive but still clear.
-- A helper is single-use but materially improves the call site or name.
-- A wrapper isolates an awkward dependency or side effect behind a better path.
-- A small object groups related data in a way that makes invariants easier to
-  see.
-- The code is explicit rather than clever.
-
-## Output Contribution
-
-Add diet findings to the parent code-review buckets:
-
-- Bucket I: only high-confidence simplifications that are narrow, local, and
-  safe under the current edit policy. Include what is overweight, why it does
-  not appear to earn its cost today, and the resulting code shape.
-- Bucket II: simplifications with real tradeoffs, unclear constraints, external
-  contracts, rollout concerns, or multiple plausible directions.
-- Keep As-Is: choices that may look heavy but pay for themselves now.
+Use Bucket I only for narrow, evidenced safe changes under the edit policy.
+Tradeoffs, public contracts, migrations, and uncertain uses belong in Bucket II.
+State what becomes simpler and what behavior or compatibility must be retained.
+Keep significant justified complexity as-is, with its reason when useful.

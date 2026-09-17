@@ -5,163 +5,102 @@ description: "Address existing GitHub PR feedback from human or bot reviewers en
 
 # Address PR Feedback
 
-Handle an existing GitHub PR from review intake through local fixes, validation,
-push, and reviewer-facing replies. Treat PR feedback as broader than inline
-threads: review bodies, issue comments, bot summaries, "outside diff" sections,
-and follow-up comments can all contain actionable items.
+Handle existing PR feedback through assessment, fixes, validation, push, and
+reviewer-facing replies. Requires Git and authenticated `gh`; the optional
+collector also requires Python 3. PR feedback includes review bodies, issue
+comments, bot summaries, outside-diff findings, inline threads, and follow-ups.
 
-If the task covers multiple dependent or stacked PRs, read
-[`workflows/stacked-prs.md`](workflows/stacked-prs.md) before mapping,
-retargeting, or changing any PR branch in the stack. Select its feedback-only or
-authorized landing route, then apply the intake, fix, reply, and per-PR
-completion checks below to each current PR. Defer the
-user-facing completion response until the entire selected stack satisfies the
-workflow's completion gate.
+For dependent PRs, read [Stacked PRs](workflows/stacked-prs.md) before mapping or
+changing the chain. Feedback handling alone does not authorize retargeting,
+history rewrites, or merging; use the landing route only when authorized.
 
-## Intake
+## Collect and assess
 
-1. Start from a clean understanding of the PR.
-   - Identify the PR URL/number, repository, base branch, head branch, author,
-     review state, and latest head commit.
-   - If no PR is specified, infer the current branch PR with `gh pr view`.
-   - Do not overwrite unrelated local changes. If the working tree is dirty,
-     separate user changes from PR-fix changes before editing.
+Identify the repository, PR, base/head, author, latest head SHA, and review state.
+If no PR is named, infer the current branch PR with `gh pr view`.
 
-2. Collect the complete PR feedback surface.
-   - Prefer the bundled `scripts/collect_pr_feedback.py` collector:
+Prefer `scripts/collect_pr_feedback.py` for complete feedback and reaction
+collection:
 
-     ```bash
-     python3 <skill-dir>/scripts/collect_pr_feedback.py <pr-url-or-number>
-     ```
+```bash
+python3 <skill-dir>/scripts/collect_pr_feedback.py <pr-url-or-number>
+```
 
-   - Read the generated Markdown report first, then inspect the JSON when
-     thread metadata, reply structure, or comment IDs are needed.
-   - If the collector cannot run, manually gather the same surfaces with `gh`:
-     PR body, PR-body and issue-comment reactions with actor identities, issue
-     comments, review bodies, review comments, commits, files, and review-thread
-     resolution status when available.
-   - Check the report's `Potential Outside-Diff Sources` section, then search
-     the collected artifacts case-insensitively for `outside diff`,
-     `outside the diff`, `Actionable comments`, `Nitpick comments`,
-     `Prompt for all review comments`, and bot names.
+Read its Markdown report and use JSON for IDs, reply structure, or thread metadata.
+If unavailable, gather equivalent surfaces with `gh`: PR body and reactions,
+issue comments and reactions, reviews, inline comments and replies, commits,
+files, and available thread-resolution state. Include reaction actor identities.
+Inspect `Potential Outside-Diff Sources` and any actionable/nitpick or
+"Prompt for all review comments" sections; keyword detection does not replace
+reading the full feedback.
 
-3. Gate action on active Codex and CodeRabbit reviews.
-   - Treat manual review requests as one-time PR-level gates, not per-push
-     gates. Never trigger either service for incremental follow-up pushes made
-     while addressing feedback. If a review starts automatically, wait for it
-     and handle its findings; otherwise continue with the feedback already
-     collected.
-   - Determine each service's state for the latest head commit from the freshly
-     collected reactions, trigger comments, status comments, reviews, and final
-     summaries. Inspect PR checks or status contexts when those artifacts do
-     not make the current state clear.
-   - Count only reactions authored by the Codex connector account
-     (`chatgpt-codex-connector[bot]`) or a verified replacement identity.
-   - Treat 👀 (`eyes`) on the PR body or an `@codex review` comment as accepted
-     or in-progress review evidence.
-   - Treat 👍 (`+1`) as a completed Codex review with no findings, even when
-     Codex posted no review body or inline comment. Record the reaction target,
-     actor, and timestamp as completion evidence and do not retrigger.
-   - Treat a Codex-authored review with findings as completed review evidence.
-   - Treat a CodeRabbit processing or status message that says a review is
-     underway as in-progress evidence; treat its completed review or final
-     summary as completed evidence.
-   - Reactions from other actors and aggregate reaction counts without actor
-     identities do not establish Codex state.
-   - While either service has an active review, wait and rerun the collector at
-     a reasonable interval. Begin assessment, ledger creation, checkout, edits,
-     pushes, and replies only after every observed active review completes and
-     the feedback surface has been refreshed. An active signal consumes the
-     current request; wait instead of triggering the service again.
-   - Keep intake blocked when an active review explicitly fails or stalls beyond
-     a reasonable task wait window; diagnose and report the review failure. If
-     neither service has an active review, proceed with the feedback already
-     available; this gate does not require triggering an absent review.
+Apply the active-review gate below before assessment or edits. Then keep a
+concise ledger of actionable items with source links/IDs, affected code, status,
+handling, and reply target. Include findings without resolvable threads and
+retain all source links when grouping duplicates. Verify proposals against
+current code and PR intent; mark stale, already-fixed, incorrect, or harmful
+suggestions with evidence instead of applying them blindly.
 
-4. Critically assess each finding before planning fixes.
-   - Treat suggested patches from CodeRabbit, other bots, or reviewers as
-     proposals, not instructions; do not apply them blindly.
-   - Decide whether the proper action is no-op with evidence, a narrow fix,
-     added validation, or a larger refactor that addresses an underlying code
-     smell or design flaw.
-   - Challenge review claims against current code, requirements, and PR intent.
-     Mark incorrect, stale, duplicate, or harmful suggestions explicitly in the
-     ledger.
+## Active-review gate
 
-5. Build a concise feedback ledger before editing.
-   - Track every actionable item with source, URL or comment ID, path/line when
-     available, current status, planned handling, and eventual reply target.
-   - Include actionable findings embedded in review bodies or bot summary
-     comments, even when there is no separate GitHub comment to resolve.
-   - Mark duplicate findings together, but keep all source links so replies can
-     acknowledge every place the issue was raised.
-   - Verify each item against current code before changing anything. Skip
-     stale or already-fixed items with a brief reason.
+Manual Codex and CodeRabbit requests are one-time PR-level requests, not
+per-push requirements. Do not retrigger for incremental follow-up pushes.
+If neither service is active, use existing feedback without requiring an absent
+review. Handle reviews that start automatically.
 
-## Local Fix Loop
+Classify state from fresh reactions, trigger/status comments, reviews, summaries,
+and checks when needed, correlating the evidence with the current head:
 
-1. Check out the PR branch with `gh pr checkout <pr-url-or-number>` or the
-   repository's existing branch workflow.
-2. Fetch and confirm the local branch matches the remote head before editing;
-   if the remote has new commits, reconcile and re-check the feedback ledger
-   first.
-3. Fix feedback in small cohesive groups.
-   - Commit as progress is made, one commit per feedback cluster or subsystem.
-   - Keep each commit message specific enough to map back to handled feedback.
-4. After each meaningful fix group, run targeted validation for the touched
-   code. Keep expanding validation only when the blast radius warrants it.
-5. Run a local implementation review pass over the follow-up diff before
-   pushing.
-   - Check correctness, regressions, validation gaps, edge cases, tests,
-     contracts, and avoidable complexity introduced by the fixes.
-   - Apply obvious safe fixes locally and commit them in the relevant group or
-     in a small follow-up cleanup commit.
-   - Leave broader design decisions for the user unless the PR feedback
-     clearly requires them.
-6. Push the branch after local validation passes or after a completed bounded
-   group when the task is long-running and remote visibility matters. Refresh
-   the feedback surface after each push and re-enter the intake review gate if
-   Codex or CodeRabbit starts another review.
+- Only `chatgpt-codex-connector[bot]` or a verified replacement establishes
+  Codex reaction state. Aggregate counts or other actors do not.
+- Codex `eyes` on the PR body or an `@codex review` comment means accepted or
+  in progress. Codex `+1` means completed with no findings, even without a
+  review body; record target, actor, and timestamp. A Codex-authored review
+  with findings also proves completion.
+- A CodeRabbit processing/status message means in progress; its completed
+  review or final summary proves completion.
 
-## Reply Workflow
+Wait for every observed active review and refresh feedback before assessment,
+ledger creation, checkout, edits, pushes, or replies. An active signal consumes
+the request; do not trigger again. Diagnose an explicit failure or a review that
+stalls beyond a reasonable wait window and report intake as blocked.
 
-1. Reply only after the relevant commit is pushed.
-2. For inline review comments, reply to the thread with the GitHub review
-   comment reply endpoint, for example:
+## Fix and publish
 
-   ```bash
-   gh api -X POST repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies \
-     -f body="$(cat /tmp/reply.md)"
-   ```
+Check out the PR branch with `gh pr checkout <pr-url-or-number>` or the repository
+workflow. Preserve unrelated work, fetch, and reconcile new remote commits
+before editing; reassess affected feedback when the head changes.
 
-3. For PR-level comments, review-body findings, bot summary findings, and
-   outside-diff items without a resolvable thread, add one concise PR comment
-   that lists:
-   - commit hash or hashes pushed;
-   - handled items grouped by source;
-   - validation run and any blocked validation;
-   - items intentionally skipped as stale, duplicate, or not applicable.
-4. Do not mention skill names, local automation internals, or implementation
-   process details in PR comments. Write as the PR author/operator explaining
-   what changed and how it was validated.
-5. Prefer concrete replies over vague closure language:
-   - `Addressed in abc1234: dry-run now performs the same conflict check as write mode, with focused CLI coverage.`
-   - `Verified current code already has a separate health-check timeout in def5678, so this thread is stale after the latest push.`
-6. If a finding is rejected, explain the current code evidence and tradeoff
-   briefly. Do not argue with bot style comments; keep the reply factual.
+Fix in cohesive groups with commits that map to the handled feedback. Use the
+scope and delegated judgment to choose a narrow correction or a necessary
+refactor; resolve consequential design decisions that remain unsettled.
+Run targeted and required validation and one local implementation review over
+the follow-up diff, fixing actionable findings.
 
-## Completion Check
+Push after validation, or after a completed bounded group when a long-running
+task needs remote visibility. Refresh feedback after each push; return to the
+active-review gate if Codex or CodeRabbit starts another review.
 
-Before finishing, confirm:
+## Reply and finish
 
-- no Codex or CodeRabbit review remains active, and the feedback surface was
-  refreshed after the latest review completed;
-- all PR-body and issue-comment reactions, issue comments, review bodies, review
-  comments, replies, and outside-diff sections were read;
-- each actionable item is fixed, replied to, explicitly skipped, or left as a
-  user decision;
-- every follow-up commit is pushed;
-- local validation and local review results are captured in the final PR
-  comment or thread replies;
-- the final response to the user includes pushed commit hashes, validation, and
-  any remaining PR feedback that needs human judgment.
+Reply after the relevant commit is pushed. Use the review-comment reply endpoint
+for inline findings, preserving the reply text in a file:
+
+```bash
+gh api -X POST repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies -F body=@/path/to/reply.md
+```
+
+For review-body, PR-level, bot-summary, and outside-diff findings without a thread,
+post one concise PR comment grouping handled items by source, with pushed commits,
+validation, and reasons for skipped or rejected suggestions. Write concrete
+code-based replies as the PR operator; omit local skill and automation details.
+
+Finish when every actionable item is fixed and replied to, explicitly skipped
+with evidence, or identified as an unresolved user decision; all follow-up
+commits are pushed; and validation/review evidence is recorded in replies.
+No Codex or CodeRabbit review may remain active, and feedback must have been
+refreshed after the latest review completed. For a stack, cover every selected
+PR before declaring the selected scope complete.
+
+Report pushed commits, validation, and any unresolved feedback or concrete
+blocker. A blocked review or incomplete push is not completed feedback handling.

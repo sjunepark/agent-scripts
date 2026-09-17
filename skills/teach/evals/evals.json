@@ -46,7 +46,7 @@
     {
       "id": 8,
       "prompt": "Use $teach on my unstaged changes. I barely know this repository, so teach me what area I am looking at before you explain the diff. Give me one concrete before/after example and define the project terms you need.",
-      "expected_output": "A direct Markdown response that inspects local uncommitted changes plus the minimum overview and code needed for a cold-reader baseline, gives a realistic Before/Now/Result story, defines recurring project terms, and teaches one to four behavior-changing ideas without creating an artifact or modifying the repository.",
+      "expected_output": "A direct Markdown response that inspects local uncommitted changes plus the minimum overview and code needed for a cold-reader baseline, gives a realistic Before/Now/Result story, defines recurring project terms, and teaches the few behavior-changing ideas needed for understanding without creating an artifact or modifying the repository.",
       "files": []
     },
     {
@@ -58,7 +58,7 @@
     {
       "id": 10,
       "prompt": "I pasted a PR patch below. Teach it to someone who knows programming but not our architecture or domain. Group related hunks, keep the main story small, and stay descriptive unless something is materially risky.",
-      "expected_output": "A direct explanation grouped by behavior rather than file that reconstructs the smallest useful baseline, defines domain and architecture vocabulary, promotes only one to four changed ideas, and accounts for supporting hunks later without turning the response into a review.",
+      "expected_output": "A direct explanation grouped by behavior rather than file that reconstructs the smallest useful baseline, defines domain and architecture vocabulary, emphasizes the few ideas needed to explain the change, and accounts for supporting hunks later without turning the response into a review.",
       "files": []
     },
     {

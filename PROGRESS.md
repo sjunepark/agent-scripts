@@ -1,3 +1,15 @@
+# Catalog skill revision
+
+- Reviewed all published source skills except clarify and interview: 23 revised,
+  8 deliberately retained; invocation policies, scripts, and installed copies
+  are unchanged.
+- Local revisions, structural checks, paired scenario evaluation, independent
+  bounded review, and affected documentation alignment are complete. The
+  [catalog audit](skills/develop-skills/evals/catalog-audit-2026-09-17.md) owns
+  per-skill decisions, raw evidence, and live-execution limits.
+- Source revision is complete. Publication and configured machine synchronization
+  are authorized; Git and retained sjskills execution evidence own their results.
+
 # Instruction simplification
 
 - Scope: global agent defaults and the develop-skills, clarify, and interview

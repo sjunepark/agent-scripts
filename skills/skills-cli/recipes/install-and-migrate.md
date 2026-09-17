@@ -50,7 +50,8 @@ selected profiles or the global baseline. Review `plan` before an authorized
 Treat `.sjskills/`, `.agents/skills/`, and `.claude/skills/` as generated
 machine-local state only after reviewing any content already committed at
 those paths. Verifiable undeclared directories move into recoverable quarantine,
-including unknown or modified copies. Unmanaged or locally modified desired
+including unknown or modified copies. Trusted managed desired copies with local
+edits are preserved in quarantine before verified replacement. Unmanaged desired
 paths, unsafe filesystem boundaries, and untrusted provenance block apply.
 
 An update or removal moves the prior tree into manifest-backed quarantine with
@@ -95,8 +96,8 @@ undeclared extras; legacy Pi copies remain outside reconciliation.
 
 ## Publish before reconciliation
 
-The repository source points at public GitHub `main`. Commit, push, merge, and
-pull the intended version before applying it. Verify every changed skill tree,
+The repository source points at public GitHub `main`. Publish the intended version at that ref before applying it; follow the
+repository's authorized publication workflow. Verify every changed skill tree,
 including after squash or rebase:
 
 ```bash

@@ -1,6 +1,7 @@
 # macOS storage cleanup catalog
 
-Use this reference during every macOS storage-cleanup task. Resolve paths and
+Read the storage semantics and refusal boundaries, then the entries relevant to
+the requested categories. Resolve paths and
 commands from the installed system, app, or tool; locations and flags can vary by
 version and configuration. Inspection commands must be genuinely read-only.
 

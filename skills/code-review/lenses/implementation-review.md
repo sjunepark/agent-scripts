@@ -1,68 +1,43 @@
-# Implementation Review Gate
+# Implementation Review
 
-## Workflow
+Inspect the diff and nearby behavior, plus any governing issue, roadmap,
+specification, ADR, or migration plan. Check working-tree state when reviewing
+repository changes so fixes preserve unrelated work.
 
-1. Inspect the review target.
-   - Check `git status --short` when reviewing a repository change set.
-   - Inspect relevant diffs and nearby code needed to judge the change.
-   - Read any user-named or directly governing issue, roadmap, specification,
-     ADR, or migration plan. Map its relevant goals, constraints, and non-goals
-     to the implementation under review.
+## Evidence
 
-2. Review for material issues.
-   - Check intent and requirements coverage, unintended scope, correctness,
-     state/lifecycle and concurrency ordering, validation and invariants,
-     type/schema fit, ownership boundaries, integration contracts, error
-     behavior, tests, and user-visible regressions.
-   - Where the target exposes them, check security and privacy, persisted-data
-     and migration safety, compatibility, performance and resource bounds,
-     operational diagnosability, documentation, and accessibility.
-   - Continue once each relevant stated outcome and each material risk exposed
-     by the changed behavior has implementation or validation evidence, a
-     finding, or an explicit residual-risk note.
+Trace relevant outcomes, constraints, and non-goals into the implementation.
+Check correctness, lifecycle and concurrency ordering, invariants, schema/type
+fit, ownership, integration contracts, errors, tests, and user-visible behavior.
+Follow security, persisted-data safety, compatibility, resource bounds,
+diagnostics, docs, or accessibility where the target exposes those risks.
 
-3. Use subagents when useful.
-   - Use the lightest review shape that materially improves confidence: often
-     none, sometimes one focused reviewer, and multiple only for broad or risky
-     changes with distinct review angles.
-   - Good subagent tasks include fresh-context review of correctness,
-     lifecycle/concurrency, integration contracts, validation gaps,
-     security/privacy, performance, UI behavior, or broad reconnaissance across
-     an unfamiliar subsystem.
-   - Keep subagents review-only. Ask for concise findings with evidence,
-     affected paths, trigger scenarios, likely validation, and Bucket I /
-     Bucket II / Keep As-Is recommendations.
-   - Treat subagent output as leads, not verdicts. Verify evidence yourself
-     before recording findings or applying fixes.
-   - Do not use subagents to create autonomous review/fix loops, edit
-     concurrently, or keep reviewing after the bounded pass is complete.
+Every material concern needs evidence, a finding, or an explicit validation
+limit. Absent implementation can itself be a finding against a governing
+requirement; do not invent a changed path.
 
-4. Run the Bucket I clean loop.
-   - Bucket I fixes are narrow, local, in-scope, mechanically verifiable or
-     self-evident, and free of product, design, architecture, rollout,
-     compatibility, churn, or risk judgment.
-   - After Bucket I edits, re-inspect the new diff and affected code paths. If
-     new Bucket I items appear, apply them and recheck again.
-   - When the edit policy forbids edits, record Bucket I items as `proposed`
-     and continue the bounded review without modifying files.
-   - Keep going while useful until every Bucket I item is applied or recorded
-     as `proposed`, only Bucket II decisions remain,
-     validation/scope/context blocks safe continuation, or another pass would
-     become repetitive, broad, or speculative.
-   - Batch related Bucket I work that shares files, modules, ownership
-     boundaries, or state domains when safe.
-   - Do not apply removals of intentional-looking code unless the artifact is
-     trivially dead, such as an unused import or broken doc link.
+## Independent review
 
-5. Preserve human decision boundaries.
-   - Put broader refactors, ambiguous fixes, risky behavior changes, and design
-     choices in Bucket II.
-   - If validation is blocked, unavailable, or failing for an external reason,
-     report it and stop; do not compensate with broader static churn.
+Use the lightest delegation that improves confidence: none for a small obvious
+change, a focused reviewer for shared behavior, and separate reviewers only for
+distinct broad or risky areas. Keep reviewers read-only and ask for concise
+findings with paths, trigger scenarios, evidence, and likely validation.
+Verify their evidence before accepting a finding. Do not start autonomous
+review/fix loops or concurrent edits under the review.
 
-6. Validate.
-   - Run the most relevant existing validation when practical.
-   - Prefer targeted checks for touched areas over broad expensive suites unless
-     the change risk warrants them.
-   - Separate unrelated existing failures from failures introduced by review
-     fixes.
+## Safe fixes and completion
+
+Bucket I is narrow, local, in scope, mechanically verifiable or self-evident, and
+free of unresolved product, design, architecture, rollout, compatibility, churn,
+or risk judgment. Batch related fixes where safe. Preserve intentional-looking
+code; only trivially dead artifacts qualify for automatic removal.
+
+Honor review-only. Otherwise apply safe fixes, inspect their effects, and run
+relevant validation. Broader refactors and ambiguous changes belong in Bucket II;
+reuse an explicit decision already supplied, and ask only for unresolved choices.
+A validation blocker limits what can safely be changed or claimed; report it
+and continue independent review without compensating with unrelated churn.
+
+Finish after findings are applied or proposed and relevant checks are accounted
+for. Repeat checks only for changed behavior, failures, or unresolved risks.
+Separate pre-existing failures from those introduced by review fixes.

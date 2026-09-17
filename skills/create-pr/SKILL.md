@@ -1,11 +1,12 @@
 ---
 name: create-pr
-description: "Create or update GitHub PRs with `gh`: draft titles and bodies, choose draft or ready status, handle stacked branches and bases, and control CodeRabbit or Greptile reviews."
+description: "Create or update GitHub PRs with gh, including stacked PR bases and CodeRabbit or Greptile review controls."
 ---
 
 # Create PR
 
-Create focused PRs that reviewers and review bots can act on without extra clarification.
+Create a reviewable PR from the intended diff and validation evidence. Requires
+Git and authenticated GitHub CLI access.
 
 ## Workflow
 
@@ -22,7 +23,8 @@ Create focused PRs that reviewers and review bots can act on without extra clari
 2. Draft the PR from evidence.
    - Use the repo's PR template when present, but remove irrelevant prompts.
    - Keep the title specific and merge-history friendly.
-   - Include only sections with real content. Useful sections are `Summary`, `Validation`, `Review notes`, `Risk`, and `AI review`.
+   - Explain the concrete problem, resulting behavior, validation, and material
+     risks. Use sections only when they help the reviewer.
    - Mention skipped validation plainly. Do not imply tests passed because the code looks plausible.
    - Use issue-closing keywords only when the user clearly wants the linked issue closed on merge.
 
@@ -56,19 +58,10 @@ evidence shows that Greptile reviews PRs, read
 [review-bots/greptile.md](review-bots/greptile.md) before allowing, suppressing,
 or manually triggering it.
 
-### Bot-Control Prompt
-
-Ask only when the user requests a choice or a material review decision remains unresolved by existing instructions. Prepare the PR draft and applicable controls first:
-
-```text
-AI review handling for this PR?
-- default: apply `coderabbit-review` and let remaining CodeRabbit/Greptile config decide
-- disable: suppress automatic reviews where PR-level controls allow it
-- manual: create the PR without automatic review, then trigger selected bots by comment when requested
-- run: allow automatic review and optionally post manual trigger comments after creation
-```
-
-Translate the answer into concrete PR actions.
+Resolve a material review-policy gap only when existing instructions do not
+settle it, after preparing the PR and applicable controls. Honor requests for
+suppression or manual-only review through the relevant guide; do not turn the
+default policy into a mandatory choice prompt.
 
 ## Post-Create
 

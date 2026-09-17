@@ -7,7 +7,9 @@ description: "Integrate Git branches deliberately: plan or dry-run merges, trans
 
 Integrate branch intent, not just patches. Prefer Git's merge machinery as a draft, then edit, refactor, audit, validate, and report the deliberate result.
 
-Use clear branch terms throughout the task: the current `HEAD` branch is the destination branch, and `<source>` is the branch being integrated into it. If the user says "target branch" ambiguously, confirm whether they mean the source branch to merge or the destination branch to receive the work.
+Use clear branch terms: the destination receives the work and `<source>` supplies
+it. Establish both from the request and repository state before mutation; ask
+only when ambiguity remains about which branch should receive which work.
 
 ## Choose One Mode
 

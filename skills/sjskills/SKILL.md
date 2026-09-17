@@ -1,6 +1,6 @@
 ---
 name: sjskills
-description: "Operate sjskills to configure project profiles and direct skills, inspect or sync project manifests and the fixed global baseline, or restore named quarantines. Explicit invocation only."
+description: "Configure, inspect, or reconcile sjskills-managed project and global skills; restore named quarantines. Explicit invocation only."
 ---
 
 # sjskills
@@ -34,26 +34,11 @@ Prefer `sjskills` on `PATH`. In the tool's source repository, use
 `bin/sjskills` when the command is not installed. Do not install the command or
 change `PATH` unless the user asks.
 
-Use `sjskills` or `sjskills status` for CLI version and two-scope skill status.
-The CLI comparison uses the latest stable published sjskills release, names
-unavailable or absent release evidence, and links to updates without installing
-them. Version equality does not establish checkout freshness. The report names the
-resolved project root, offers setup guidance for a missing manifest, and reports
-configuration failures without recommending replacement. It never initializes
-or synchronizes. Status exits 0 even when inspection is unavailable; inspect the
-findings and freshness rather than treating success as exact state. Cold checks
-may take 30 seconds plus cleanup. Stale evidence remains explicitly labeled.
-
-Explicit reports use stdout; other successful commands retain incidental stderr
-notices; fresh skill scopes without findings and CLI comparisons without updates
-or problems remain silent.
-`--json` keeps full skill findings in `advisories` and version evidence in
-`cliAdvisory`; status also includes setup metadata under `status`. None grants
-apply authority or substitutes for a reviewed plan. Use the same compatible
-executable for plan and apply; older loaders may reject the new advisory field.
-Use `--no-status-check` to skip discovery, inspection, fetching, and cache writes;
-status then reports checks disabled, while other commands retain their primary
-verification.
+Read [status inspection](references/status.md) for status commands, freshness,
+advisories, and JSON interpretation. Read
+[project selections](references/project-selection.md) when creating or changing
+profiles or direct declarations, or resolving authenticated-source requirements.
+Neither status nor configuration alone authorizes reconciliation.
 
 ## Classify the request
 
@@ -69,7 +54,7 @@ verification.
   invocation without an action defaults to status inspection.
 - **Configure a project:** Create or edit `sjskills.toml` when the user asks to
   adopt managed project skills or change the selection. Use selected profiles,
-  direct declarations, or both as described below. Preserve unrelated entries;
+  direct declarations, or both using the project-selection reference. Preserve unrelated entries;
   configuration alone does not authorize apply or global changes.
 - **Reconcile a project:** Review `plan`, run `apply` only when the user asked
   to install, bootstrap, reconcile, or sync the project, then run `plan` again.
@@ -87,60 +72,6 @@ skills in `[[direct]]` and reconcile through `sjskills`; undeclared ad hoc
 installs in managed roots become quarantine candidates. Use the repository's
 plugin workflow for Codex plugins. Local catalog validation and publication are
 not reconciliation.
-
-## Project selections
-
-Profiles are named collections defined centrally in `agent-scripts`'s
-`skill-registry.json`; `sjskills profiles` lists them. A project selects those
-names, but cannot define new profiles in its manifest. It can independently add
-skills from other repositories with `[[direct]]`, without changing the central
-registry or publishing those skills in `agent-scripts`.
-
-Inspect the access policy in `sjskills profiles` before selecting a profile.
-`kicpa` is public; `kicpa-private` uses the enrolled private GitHub catalog.
-Select both only when requested. Authenticated profiles and direct entries use
-`access = "github-authenticated"`; omission means public. Use a CLI build that
-supports access metadata; older executables can reject it. Declared source
-names and URLs are public metadata, never a place for credentials.
-
-Authenticated fetching requires Git, gh, and an existing login with repository
-access. It accepts only GitHub.com shorthand or credential-free HTTPS sources.
-The CLI uses controlled Git staging and the original gh configuration without
-copying credentials. It refuses legacy/unsupported gh configuration before gh
-can migrate it. On that error, report the requested `gh auth status` setup step;
-do not start login, change accounts, or modify authentication configuration
-without user authorization. Existing `GH_TOKEN`/`GITHUB_TOKEN` login also works.
-A private fetch failure blocks its selected scope; do not omit that selection,
-retry anonymously, or use status cache evidence to bypass it.
-
-For example, using a placeholder source and skill name:
-
-```toml
-version = 1
-profiles = ["dev"]
-
-[[direct]]
-name = "team-review"
-source = "your-org/team-skills"
-```
-
-Use the source's actual skill name, not an alias. Repeat `[[direct]]` for more
-skills, sorting entries by name and profile names alphabetically. Direct names
-must be unique and cannot overlap selected profiles or the fixed global
-baseline. Sources accept Git shorthand (`owner/repo[/path]`) or credential-free
-HTTPS; local paths, embedded credentials, URL queries, npm specifiers, and other
-schemes are unsupported. Set optional `full_depth = true` only when deeper
-source discovery is needed. Direct skills use copy mode and the registry's
-default targets, currently project `.agents/skills` and `.claude/skills`;
-per-entry manager, mode, target, and workflow fields are unsupported.
-
-For a direct-only project, omit `profiles` or use `profiles = []`, and include
-at least one `[[direct]]` entry. Create that manifest directly when adoption is
-requested: `sjskills init` requires a profile and cannot initialize this case.
-For an existing manifest, edit the requested selection in place rather than
-rerunning `init`. Keep the manifest as committed project configuration; commit
-only when authorized. Review `sjskills plan` after configuration, and apply
-only when installation or synchronization was requested.
 
 ## Use configured authority
 
@@ -171,7 +102,7 @@ independent unblocked scope unless the user required an all-or-nothing result.
 2. For a new manifest with profiles, run `sjskills profiles`, use the user's
    selected profiles, and run `sjskills init <profile> ...`; then add requested
    direct declarations. For direct-only adoption or an existing manifest, use
-   the configuration procedure above. Do not infer profiles from installed
+   the project-selection reference. Do not infer profiles from installed
    copies or overwrite an existing manifest with `init`.
 3. Read the manifest and run `sjskills plan`. Summarize installs, updates,
    quarantines, unchanged placements, manual or workflow-managed entries,

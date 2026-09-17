@@ -1,6 +1,7 @@
 # Windows cleanup safety boundaries
 
-Use this reference during every Windows-cleanup task. UI labels can vary by
+Read the inspection and prohibited-operation sections and the action classes
+relevant to the task. Use the lifecycle section for Windows 10. UI labels vary by
 Windows build, edition, locale, and organizational policy; inspect the installed
 system and verify version-sensitive syntax through installed help or current
 Microsoft documentation before execution.

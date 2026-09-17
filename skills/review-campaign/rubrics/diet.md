@@ -8,7 +8,7 @@ Before calling anything unused: grep imports *and* indirect references — templ
 
 ## Check
 
-- **Unearned abstraction.** Interfaces with one implementation and no second in sight, factories that build one thing, layers that only pass through, wrappers adding nothing over the callee. Inline them.
+- **Unearned abstraction.** Interfaces with one implementation and no second in sight, factories that build one thing, layers that only pass through, wrappers adding nothing over the callee. Propose inlining when the maintenance benefit is concrete; code changes still follow the campaign mode and tier rules.
 - **Speculative generality.** Options and parameters never passed, config flags never set, generics with one instantiation, "extensible" registries with one entry and no plan.
 - **Dual paths past their transition.** Compatibility shims, old-and-new implementations both alive, dual-read/dual-write with the migration finished. Name which path stays and what removes the other.
 - **Schema minimalism.** DB columns, JSON fields, contract properties not used by current behavior (trace each to a reader). Applies hardest in db schemas and shared contracts.

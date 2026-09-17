@@ -1,87 +1,44 @@
 # Architecture and Code-Design Lens
 
-Judge whether the review target fits the surrounding system, not only whether
-its lines work. Scope ordinary reviews to affected modules and consumers.
-Follow the system lens's intent map across affected areas; expand beyond those
-consequences only when the user asks for a whole-codebase review.
+Judge the target's fit with surrounding modules and consumers. Follow affected
+contracts without turning a change review into a whole-codebase redesign.
 
-## Workflow
+Use relevant architecture decisions, domain language, callers, dependencies,
+state owners, and tests to establish the affected boundaries. Compare before and
+after for a diff; distinguish introduced effects from existing debt.
 
-1. Build a small context map.
-   - Read applicable architecture docs, ADRs, domain terminology, nearby tests,
-     and repository instructions.
-   - Identify each affected module's responsibility, public interface,
-     upstream callers, downstream dependencies, owned state, and invariants.
-     Treat ordering, errors, configuration, and performance assumptions as part
-     of the interface when callers must know them.
-   - For a diff review, compare the before and after maps and separate effects
-     introduced by the change from pre-existing design debt.
-   - Continue once every changed or new module has a clear place in the map and
-     every changed public contract's consumers have been found.
+## Criteria
 
-2. Review the system shape.
-   - **Responsibility and cohesion**: keep behavior, state, and invariants that
-     change for the same reason together. Split modules that accumulate
-     unrelated reasons to change (**divergent change**); join fragments whose
-     coordination is the real behavior.
-   - **Dependency direction and coupling**: keep dependencies aligned with
-     ownership and layering. Look for cycles, higher-level policy depending on
-     lower-level glue, deep imports, **feature envy**, cross-module reach-ins,
-     and callers that must coordinate another module's internals.
-   - **Interface depth**: prefer a small surface that hides meaningful behavior
-     and knowledge. Apply the deletion test: if removing an abstraction only
-     removes a hop and does not push real complexity into callers, the
-     abstraction is a shallow middle layer. Treat message chains and callers
-     coordinating several steps as leaked topology.
-   - **Seam placement**: put seams where behavior, ownership, lifecycle, or an
-     external dependency genuinely varies. Require concrete variation before
-     adding ports, adapters, plug-in points, or injectable interfaces.
-   - **Locality and change amplification**: keep one domain change from
-     causing **shotgun surgery** across unrelated files or layers. Use history
-     when it can confirm that modules repeatedly change together.
-   - **Contracts and invariants**: give each contract and invariant one owner.
-     Treat validation, schemas, error behavior, or lifecycle rules duplicated
-     across producers and consumers as a split contract.
-   - **Test surface**: test observable behavior through the public interface.
-     Treat deep mocks, internal-state assertions, and test-only public hooks as
-     test friction and evidence that the seam may be misplaced.
-   - **Architecture and domain fit**: use the repository's domain language and
-     honor documented decisions. Call out an ADR conflict explicitly instead
-     of silently re-litigating or ignoring it.
+- **Cohesion:** behavior, state, and invariants that change together have a clear
+  owner. Look for unrelated responsibilities or fragments whose coordination
+  is the actual behavior.
+- **Dependencies:** check cycles, cross-module reach-ins, deep imports, and callers
+  coordinating another module's internals. Honor intended ownership and layering.
+- **Interface depth:** a useful small surface hides meaningful knowledge.
+  Removing a shallow abstraction merely removes a hop; removing a deep one
+  pushes complexity into consumers. Ordering, failures, configuration, and
+  performance assumptions may be part of the contract.
+- **Seams and locality:** require concrete variation for ports or plug-in points.
+  Ground likely changes in requirements, history, or an explicit roadmap; look
+  for a single domain change requiring edits across unrelated layers.
+- **Contract ownership:** validation, schemas, errors, and lifecycle rules should
+  not drift across producers and consumers.
+- **Testability:** deep mocks, internal assertions, and test-only public hooks can
+  reveal misplaced seams; prefer observable behavior through real interfaces.
 
-3. Trace consequences.
-   - Follow at least one representative success path and every material failure
-     or lifecycle path that crosses the affected boundaries.
-   - Check whether the next likely change in this area becomes more local or
-     more scattered. Ground "likely" in current requirements, repeated change
-     history, or an explicit roadmap rather than imagined futures.
-   - For each design finding, name the concrete trigger, affected modules or
-     consumers, current cost, smallest plausible alternative, and tradeoff.
-   - Continue once every design recommendation is supported by a traced path or
-     observable maintenance cost.
+Trace representative paths and material failures across the affected boundaries.
+A finding needs a concrete correctness, maintenance, testability, or change-locality
+cost, affected consumers, the smallest viable alternative, and its tradeoff.
+Taste, file size, and pattern unfamiliarity are insufficient. Preserve useful
+explicitness and duplication that keeps modules independent.
 
-## Judgment Guardrails
+Repository decisions outweigh generic patterns; reopen them when assumptions or
+observed costs changed. Broader design changes belong in Bucket II under the
+entry point's authority policy. Record missing consumers or context as residual
+risk and meaningful justified shapes as keep-as-is.
 
-- Require a concrete maintenance, correctness, testability, or change-locality
-  cost; architectural taste alone is not a finding.
-- Treat repository conventions and ADRs as stronger evidence than a generic
-  pattern, while surfacing decisions whose documented tradeoff no longer holds.
-- Judge depth and cohesion, not file or module size. A large cohesive module can
-  be healthy; many small modules can still form a tightly coupled system.
-- Preserve explicit code and small duplication when they keep modules
-  independent or make invariants visible.
-- Keep architecture and design changes in Bucket II unless the implementation
-  gate independently identifies a narrow, mechanically safe fix.
-- Keep a change-level review bounded. Propose a separate scoped review when the
-  evidence points to a codebase-wide redesign.
-
-## Output Contribution
-
-Add design findings to the parent code-review buckets. For each Bucket II item,
-include the responsibility or contract, traced scenario, smallest viable
-alternative, tradeoff, and decision needed. Use `Keep As-Is` for shapes that
-preserve useful locality, depth, or independence. Record missing callers,
-architecture context, or boundary validation as residual risk.
-
-Adapted for this skill's bounded review and bucket policy from Matt Pocock's
-MIT-licensed [codebase-design](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/codebase-design/SKILL.md), [architecture](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/improve-codebase-architecture/SKILL.md), and [code-review](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/code-review/SKILL.md) guidance.
+Adapted from Matt Pocock's MIT-licensed
+[codebase-design](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/codebase-design/SKILL.md),
+[architecture](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/improve-codebase-architecture/SKILL.md),
+and [code-review](https://github.com/mattpocock/skills/blob/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/code-review/SKILL.md)
+guidance.

@@ -5,7 +5,7 @@ The question is not "is there coverage" but "do the tests earn their keep": crit
 ## Prepare
 
 - Locate the area's tests: colocated test files, owning suites in the repo's test trees, db tests — per the repo profile's stack notes. Read the owning agent-instruction files (AGENTS.md / CLAUDE.md) for suite conventions.
-- List the area's 3–5 highest-stakes behaviors first (money, persisted data, contracts, concurrency, user-visible workflows). Review against that list, not against the file tree.
+- Identify the area's high-stakes behaviors (money, persisted data, contracts, concurrency, user-visible workflows). Review against that list, not against the file tree.
 
 ## Check
 

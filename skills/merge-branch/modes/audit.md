@@ -1,65 +1,28 @@
 # Merge Audit Mode
 
-Use this mode to review a completed or in-progress merge result, merge-review a branch, or check whether source intent was preserved.
+Review whether a completed or in-progress merge preserves the intended behavior
+and history. Keep the audit read-only: recommend fixes without editing, staging,
+committing, or restarting a merge unless integration work is also authorized.
 
-Keep the audit read-only. Recommend fixes, but do not edit the merge result,
-stage changes, commit, or restart the merge unless the user separately
-authorizes integration work.
+Establish destination, source or merge parent, pre-merge state, and whether the
+result is staged, uncommitted, or committed. Use the request, `MERGE_HEAD`,
+`ORIG_HEAD`, merge commits, reflog, and history as evidence. Resolve uncertainty
+that prevents judging intent before issuing a verdict.
 
-## Establish Context
+Compare both sides with the result, including conflict resolutions and manual
+edits. Focus on:
 
-1. Identify the destination branch and working tree state.
-2. Determine whether the merge is uncommitted, staged, or already committed.
-3. Identify the source branch or merge parent from the user request, `MERGE_HEAD`, `ORIG_HEAD`, merge commits, reflog, or branch history.
-4. Compare the destination before the merge, source branch changes, final merge result, and conflict resolutions or manual edits.
-5. If the destination, source, or base cannot be determined confidently, ask for clarification before judging intent.
+- Expected parents and ancestry; a transplant or squash does not prove a
+  requested whole-branch merge.
+- Omitted or weakened behavior, intentional deletions, renamed paths, tests,
+  documentation, configuration, migrations, and assets.
+- Conflicting product or compatibility assumptions, duplicate owners or paths,
+  and interactions across affected public contracts.
 
-## Audit Concerns
+Run required checks and existing validation relevant to the merged area when
+compatible with the read-only scope. Explain unavailable checks and distinguish
+confirmed defects from risks.
 
-- History integrity: missing merge parents, missing or mismatched `MERGE_HEAD`, source tips not reachable after an intended whole-branch merge, or squash/cherry-pick/copied-patch results when a real merge was intended.
-- Lost or partially integrated work: commits whose intent is absent, tests/docs/config/migrations/assets omitted, deletions ignored, stale references after renames, or tests removed/weakened without evidence.
-- Unsafe assumptions: product behavior, API shape, naming, data model, permissions, defaults, feature flags, user flows, or compatibility policy chosen without clear evidence.
-- Append-only integration: duplicate helpers, types, config fields, routes, commands, validation paths, competing sources of truth, or parallel abstractions that should be unified.
-- Missed refactors: places where combining branches created an opportunity for one clearer owner, model, or execution path.
-- Cross-layer side effects: imports, exports, public APIs, CLI commands, routes, hooks, schemas, generated types, fixtures, env/config defaults, auth, privacy, serialization, logging, tests, docs, examples, changelogs, and roadmap/TODO files.
-
-Run required checks and existing validation relevant to the merged area and affected contracts. Broaden or repeat checks for missing evidence, failures, or unresolved concerns. If validation cannot run, explain why and what should run next.
-
-## Output
-
-Use the relevant categories below; omit empty sections and combine related ones.
-Always include the verdict, source/destination evidence, validation, and any next
-action needed:
-
-```markdown
-## Merge-review verdict
-
-Pass | Needs fixes | Blocked on decision
-
-## Merge context
-
-- Destination:
-- Source / merge parent:
-- Base or pre-merge ref:
-- Review scope:
-
-## History and merge-shape issues
-
-## What was preserved
-
-## Possible omissions or regressions
-
-## Questionable assumptions
-
-## Append-only or interaction problems
-
-## Refactor opportunities
-
-## Validation
-
-## Decisions needed, if any
-
-## Recommended next step
-```
-
-Separate confirmed defects from risks. If the merge is sound, explain why it passed.
+Report a verdict with source/destination evidence, consequential findings,
+validation, and any next action. For a sound merge, explain the evidence for
+preserved intent; use additional sections only when the findings need them.

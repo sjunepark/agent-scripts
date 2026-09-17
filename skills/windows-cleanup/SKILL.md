@@ -1,6 +1,6 @@
 ---
 name: windows-cleanup
-description: "Diagnose why a Windows PC feels slower and cautiously reclaim storage or reduce avoidable startup and background load with supported Windows tools. Explicit invocation only; use when the user names $windows-cleanup for Windows 11 or legacy Windows 10 slowdown, low system-drive space, sluggish boot or sign-in, high background activity, or inspection and cleanup of temporary files, startup apps, unused apps, cloud-local files, update components, or drives. Do not use for registry optimization, broad debloating, privacy hardening, active malware incident response, hardware repair, boot recovery, or Windows reset and reinstallation."
+description: "Diagnose Windows slowdown and reclaim storage or reduce startup and background load with supported tools. Explicit invocation only; excludes registry optimization, debloating, incident response, hardware repair, and reset."
 ---
 
 # Windows Cleanup
@@ -11,7 +11,7 @@ authority using supported Windows mechanisms, and verify the result.
 
 When invoked without a narrower symptom or requested action, default to a
 read-only orientation and baseline: identify the Windows version and management
-status, ask when the PC feels slow and what improvement would count as success,
+status, resolve any missing symptom or success criterion,
 then collect the lightweight evidence in **Establish the baseline**. Do not start
 a scan, intensive diagnostic, cleanup, configuration change, or restart. Stop
 after reporting the findings and an itemized plan that awaits confirmation.
@@ -49,21 +49,22 @@ after reporting the findings and an itemized plan that awaits confirmation.
   whether an accessible backup of the key has been verified when the proposed
   work could affect boot, firmware, TPM, partitions, or recovery.
 
-Read [references/safety-boundaries.md](references/safety-boundaries.md) before
-interpreting findings, proposing actions, or executing cleanup. It defines the
-supported inspection surfaces, mutation classes, forbidden operations, and
-version-sensitive Microsoft references.
+Read the inspection and prohibited-operation sections of
+[the safety boundaries](references/safety-boundaries.md), plus the sections for
+proposed action classes. Read the Windows 10 lifecycle section when that platform
+is involved. Verify version-sensitive operations against the installed system.
 
 ## Establish the baseline
 
-1. Ask when the slowdown appears: boot or sign-in, idle, a specific workload,
-   after an update, or under storage pressure. Record when it began and what a
-   successful improvement would look like.
+1. Use the reported symptom and success criterion. Resolve missing details
+   that affect diagnosis, such as boot versus workload slowdown or onset after
+   an update; do not repeat questions already answered.
 2. Identify the Windows version and build, system drive, exact free bytes and
    percentage, recent restart state, and whether the device is managed by an
    organization. Respect policy-managed settings and stop if required authority
    is unavailable.
-3. Capture evidence while the problem is visible when practical:
+3. Capture evidence relevant to the symptom while it is visible when practical.
+   Select from these surfaces; a scoped request need not inspect all of them:
    - Task Manager CPU, memory, disk, and startup impact;
    - Settings storage categories and Cleanup recommendations;
    - Windows Update history and current pending state;
@@ -81,7 +82,7 @@ version-sensitive Microsoft references.
 ## Diagnose before proposing cleanup
 
 Rank evidence-backed causes rather than assuming accumulated files are the
-cause. Distinguish at least:
+cause. Distinguish the relevant possibilities:
 
 - sustained CPU, memory, or disk pressure from storage capacity;
 - startup and background load from interactive workload demand;

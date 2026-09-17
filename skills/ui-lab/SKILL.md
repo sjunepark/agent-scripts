@@ -65,16 +65,14 @@ Favor product states that are valuable to review but expensive to reach live:
 
 Skip states that are genuinely live-only, and leave a short comment explaining why if the omission is non-obvious.
 
-## Build order
+## Integrate and verify
 
-1. Confirm the app's framework, router, build/dev flag, provider setup, and UI test runner.
-2. Find existing test fixtures, domain builders, mock data, and provider/test utilities; reuse them in scenario fixtures instead of inventing parallel mock data.
-3. Add the scenario contract, shared host, manual registry, and duplicate-id validation.
-4. Wire the dev-only lab route without changing the normal app boot path.
-5. Add 1–2 useful scenario groups end to end.
-6. Add the smoke test that mounts all registered scenarios through the host.
-7. Add more scenarios only after the first path is validated.
+Use the app's framework, router, providers, dev/build flag, and test runner.
+Reuse existing fixtures, domain builders, mocks, and provider utilities. Wire
+the lab without changing normal app startup, and establish a working scenario
+through the shared host before extending the registry.
 
-## Validate
-
-Run the repository's normal checks over touched files: type-check, lint, format, production build, and the relevant UI/component/browser tests.
+Complete the requested scenario scope and run relevant repository checks,
+including the production build and scenario smoke test. Verify both that the
+requested states render deterministically and that the lab is absent from
+release artifacts. Report any check that could not establish either condition.

@@ -1,6 +1,6 @@
 ---
 name: macos-storage-cleanup
-description: "Audit and safely reclaim local macOS storage through measured targets and authorized actions. Explicit invocation only; use when the user names $macos-storage-cleanup for low disk space, broad Storage categories, large files, application caches, developer package caches or build artifacts, containers, cloud-local files, device backups, or local snapshots. Do not use for Windows cleanup, Codex-owned task and database cleanup, disk repair, malware response, device reset, secure erasure, or blind deletion of System Data."
+description: "Audit and reclaim macOS storage using measured, authorized cleanup of caches, build artifacts, app data, and local copies. Explicit invocation only; excludes Codex-owned storage, repair, and device reset."
 compatibility: "Requires macOS and read-only filesystem, process, and command inspection; optional cleanup requires the supported owning app or CLI."
 ---
 
@@ -48,10 +48,11 @@ Disk Access, run an intensive whole-filesystem traversal, or change anything.
   the only verified backup. Preserve data and hand off to recovery, hardware,
   security, or backup work.
 
-Read [references/cleanup-catalog.md](references/cleanup-catalog.md) during every
-task before interpreting candidates, proposing actions, or executing cleanup.
-It distinguishes supported inspection and cleanup surfaces, version-sensitive
-commands, regeneration costs, sync effects, and protected data.
+Read the storage semantics and refusal boundaries in
+[the cleanup catalog](references/cleanup-catalog.md), plus entries for the
+categories being inspected or changed. Those entries supply supported operations,
+regeneration costs, sync effects, and protected data; unrelated categories need
+no investigation.
 
 ## Establish a read-only baseline
 
@@ -100,7 +101,8 @@ action over a larger target with ambiguous ownership or recovery.
 
 ## Preview the exact plan
 
-Give every proposed action a stable row identifier and all of these fields:
+Preview each action with the details below. Use row identifiers when several
+candidates need separate decisions:
 
 | Field | Required detail |
 | --- | --- |
