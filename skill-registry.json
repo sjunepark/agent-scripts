@@ -379,12 +379,6 @@
       "mode": "copy"
     },
     {
-      "name": "review-campaign",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "sjskills",
       "source": "agent-scripts",
       "manager": "skills-cli",
@@ -394,12 +388,6 @@
       "name": "skill-cleaner",
       "source": "skill-cleaner-manual",
       "manager": "manual"
-    },
-    {
-      "name": "skills-cli",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
     },
     {
       "name": "sync-rfi",

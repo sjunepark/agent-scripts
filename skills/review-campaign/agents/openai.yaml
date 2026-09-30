@@ -1,6 +1,0 @@
-interface:
-  display_name: "Review Campaign"
-  short_description: "Stateful whole-repo review campaign"
-  default_prompt: "Use $review-campaign to run one unit of the repository's stateful review campaign. Select plan, continue, status, triage, fix, or sync; continue is the default."
-policy:
-  allow_implicit_invocation: false

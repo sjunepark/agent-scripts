@@ -68,7 +68,8 @@ Neither status nor configuration alone authorizes reconciliation.
   Restore still requires a request identifying the quarantine.
 
 Use the ordinary Skills CLI workflow to discover source skill names or perform
-requested ad hoc installs. For a project managed by `sjskills`, record external
+requested ad hoc installs. Never pass `--all` there: it also selects every agent
+and can recreate shared `~/.agents/skills` installs. For a project managed by `sjskills`, record external
 skills in `[[direct]]` and reconcile through `sjskills`; undeclared ad hoc
 installs in managed roots become quarantine candidates. Use the repository's
 plugin workflow for Codex plugins. Local catalog validation and publication are
