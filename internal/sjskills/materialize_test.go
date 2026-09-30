@@ -988,3 +988,68 @@ func TestMaterializeBatchesSourceAndDiscoveryOptionsWithoutPartialSuccess(t *tes
 		t.Fatalf("partial batch accepted: plan=%v err=%v stage=%s", plan, err, stage())
 	}
 }
+
+func TestMaterializeFetchesCommitPinnedPublicSourceWithGit(t *testing.T) {
+	const commit = "0123456789abcdef0123456789abcdef01234567"
+	runner := defaultMaterializeRunner()
+	skillsAdd := runner.invoke
+	runner.invoke = func(ctx context.Context, command string, args []string, env []string) (ProcessResult, error) {
+		if command != "git" {
+			return skillsAdd(ctx, command, args, env)
+		}
+		index := 0
+		for index < len(args) && args[index] == "-c" {
+			index += 2
+		}
+		switch operation := args[index:]; {
+		case operation[0] == "init":
+			return ProcessResult{}, os.MkdirAll(operation[len(operation)-1], 0o700)
+		case operation[0] == "-C" && operation[2] == "fetch":
+			return ProcessResult{}, os.MkdirAll(filepath.Join(operation[1], "skills"), 0o700)
+		case operation[0] == "-C" && operation[2] == "checkout":
+			return ProcessResult{}, nil
+		}
+		return ProcessResult{}, fmt.Errorf("unexpected git args: %q", args)
+	}
+	m, _ := testMaterializer(t, runner, MaterializerLimits{})
+	m.baseEnv = append(m.baseEnv, "GIT_DIR=/caller/repo/.git", "git_work_tree=/caller/repo", "SSH_ASKPASS=/askpass", "GH_TOKEN=token")
+	source := "https://github.com/sjunepark/agent-scripts/tree/" + commit + "/skills"
+	plan, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("demo", source), desiredMaterializeSkill("other", source)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer plan.Cleanup()
+	var git []materializeCall
+	var add materializeCall
+	for _, call := range runner.calls {
+		if call.command == "git" {
+			git = append(git, call)
+		} else if len(call.args) > 1 && call.args[1] == "add" {
+			add = call
+		}
+	}
+	if len(git) != 3 {
+		t.Fatalf("git calls = %d, want one init/fetch/checkout for the shared source", len(git))
+	}
+	fetch := strings.Join(git[1].args, " ")
+	if !strings.Contains(fetch, "fetch --depth=1 --no-tags --no-recurse-submodules -- https://github.com/sjunepark/agent-scripts.git "+commit) {
+		t.Fatalf("fetch = %q", fetch)
+	}
+	for _, call := range git {
+		joined := strings.Join(call.args, " ")
+		if strings.Contains(joined, "credential.helper=!") || !strings.Contains(joined, "-c credential.helper= ") || envValue(call.env, "GIT_TERMINAL_PROMPT") != "0" {
+			t.Fatalf("git call is not anonymous: %q", joined)
+		}
+		// System configuration (core.autocrlf) must match Skills CLI's own
+		// clones, while a caller's repository variables must never leak in.
+		if envHas(call.env, "GIT_CONFIG_NOSYSTEM") || envHas(call.env, "GIT_DIR") || envHas(call.env, "git_work_tree") || envHas(call.env, "SSH_ASKPASS") || envHas(call.env, "GH_TOKEN") || envValue(call.env, "HOME") == "" {
+			t.Fatalf("git environment = %q", call.env)
+		}
+	}
+	if !filepath.IsAbs(add.args[2]) || filepath.Base(add.args[2]) != "skills" {
+		t.Fatalf("skills add source = %q, want the fetched checkout", add.args[2])
+	}
+	if plan.Snapshots()[0].Skill.Source != source {
+		t.Fatal("snapshot lost the pinned source URL")
+	}
+}

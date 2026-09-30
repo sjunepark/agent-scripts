@@ -105,6 +105,51 @@ func gitShellQuote(value string) string {
 	return "'" + strings.ReplaceAll(filepath.ToSlash(value), "'", "'\\''") + "'"
 }
 
+// pinnedPublicGitHubSource reports a public GitHub /tree/<commit>/ source.
+// Skills CLI clones refs with --branch, which rejects commits, so these
+// sources are fetched with Git and installed from the local checkout.
+func pinnedPublicGitHubSource(skill DesiredSkill) bool {
+	if skill.Access == AccessGitHubAuthenticated || !strings.HasPrefix(skill.Source, "https://github.com/") {
+		return false
+	}
+	if _, err := githubRepository(skill.Source); err != nil {
+		return false
+	}
+	ref, _ := githubSourcePath(skill.Source)
+	return fullGitCommit.MatchString(ref)
+}
+
+// publicSource fetches a commit-pinned public GitHub source anonymously. Every
+// credential helper is disabled; only the pinned commit is fetched. Git runs in
+// the environment Skills CLI uses for its own remote clones, keeping system
+// configuration such as core.autocrlf, so installed bytes and expected-content
+// hashes match those of a branch install on the same machine.
+func (m *Materializer) publicSource(ctx context.Context, root, source string) (string, error) {
+	repo, err := githubRepository(source)
+	if err != nil {
+		return "", err
+	}
+	git, err := m.lookPath("git")
+	if err != nil {
+		return "", errors.New("git is unavailable; commit-pinned GitHub skills are fetched with Git")
+	}
+	options := []string{"-c", "credential.helper=", "-c", "http.followRedirects=false", "-c", "submodule.recurse=false", "-c", "core.hooksPath=" + filepath.Join(root, ".empty-hooks")}
+	// Inherited GIT_* variables such as GIT_DIR or GIT_WORK_TREE (set inside Git
+	// hooks) could redirect the forced checkout into a caller's repository, and
+	// askpass or token variables could make the fetch non-anonymous.
+	base := make([]string, 0, len(m.baseEnv))
+	for _, entry := range m.baseEnv {
+		key, _, _ := strings.Cut(entry, "=")
+		upper := strings.ToUpper(key)
+		if !strings.HasPrefix(upper, "GIT_") && !strings.HasPrefix(upper, "GH_") && upper != "SSH_ASKPASS" && upper != "GITHUB_TOKEN" {
+			base = append(base, entry)
+		}
+	}
+	env := append(isolatedEnvironment(base, root, m.platform), "GIT_TERMINAL_PROMPT=0", "GIT_ALLOW_PROTOCOL=https")
+	return m.gitCheckout(ctx, root, git, repo, source, options, env,
+		"public Git fetch failed; verify the network and that the pinned commit exists")
+}
+
 func (m *Materializer) authenticatedSource(ctx context.Context, root, source string) (string, error) {
 	repo, err := githubRepository(source)
 	if err != nil {
@@ -144,13 +189,6 @@ func (m *Materializer) authenticatedSource(ctx context.Context, root, source str
 	if err != nil || !filepath.IsAbs(helper) {
 		return "", errors.New("cannot locate sjskills credential helper")
 	}
-	clone, err := os.MkdirTemp(root, "github-")
-	if err != nil {
-		return "", errors.New("cannot prepare private Git staging")
-	}
-	// Git clone expects an absent or empty destination. Each fetch has a distinct
-	// directory; its lifetime and cleanup belong to the materialization plan.
-	ref, subpath := githubSourcePath(source)
 	env := credentialEnvironment(m.baseEnv, root, m.platform)
 	if token != "" {
 		env = append(env, "GH_TOKEN="+token)
@@ -158,6 +196,20 @@ func (m *Materializer) authenticatedSource(ctx context.Context, root, source str
 	env = append(env, "SJSKILLS_GH_EXECUTABLE="+gh, "SJSKILLS_GH_CONFIG_DIR="+config, "SJSKILLS_GH_REPOSITORY="+repo)
 	helperCommand := "!" + gitShellQuote(helper) + " " + GitHubCredentialCommand
 	options := []string{"-c", "credential.helper=", "-c", "credential.helper=" + helperCommand, "-c", "credential.useHttpPath=true", "-c", "http.followRedirects=false", "-c", "submodule.recurse=false", "-c", "core.hooksPath=" + filepath.Join(root, ".empty-hooks")}
+	return m.gitCheckout(ctx, root, git, repo, source, options, env,
+		"authenticated Git fetch failed; verify gh login, repository access, ref, and network")
+}
+
+// gitCheckout fetches source's ref into a fresh staging directory and returns
+// the verified local subpath. Process output is never used as diagnostics.
+func (m *Materializer) gitCheckout(ctx context.Context, root, git, repo, source string, options, env []string, failure string) (string, error) {
+	clone, err := os.MkdirTemp(root, "github-")
+	if err != nil {
+		return "", errors.New("cannot prepare Git staging")
+	}
+	// Git clone expects an absent or empty destination. Each fetch has a distinct
+	// directory; its lifetime and cleanup belong to the materialization plan.
+	ref, subpath := githubSourcePath(source)
 	remote := "https://github.com/" + repo + ".git"
 	commands := [][]string{}
 	if fullGitCommit.MatchString(ref) {
@@ -178,16 +230,16 @@ func (m *Materializer) authenticatedSource(ctx context.Context, root, source str
 		args := append(append([]string{}, options...), command...)
 		result, err := m.runCommand(ctx, git, args, env)
 		if err != nil || result.ExitCode != 0 {
-			return "", privateProcessError("authenticated Git fetch failed; verify gh login, repository access, ref, and network", err)
+			return "", privateProcessError(failure, err)
 		}
 	}
 
 	local := filepath.Join(clone, filepath.FromSlash(subpath))
 	if err := validateSymlinkParents(clone, local); err != nil {
-		return "", errors.New("authenticated source subpath is missing or unsafe")
+		return "", errors.New("Git source subpath is missing or unsafe")
 	}
 	if err := checkRealDirectory(local); err != nil {
-		return "", errors.New("authenticated source subpath is not a real directory")
+		return "", errors.New("Git source subpath is not a real directory")
 	}
 	return local, nil
 }

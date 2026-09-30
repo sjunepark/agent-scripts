@@ -33,7 +33,8 @@ func TestMain(m *testing.M) {
 	if runtime.GOOS == "windows" {
 		testBinary += ".exe"
 	}
-	build := exec.Command("go", "build", "-o", testBinary, ".")
+	// The sjskillstest tag lets the binary read the fixture registry server.
+	build := exec.Command("go", "build", "-tags", "sjskillstest", "-o", testBinary, ".")
 	build.Stdout = os.Stdout
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
@@ -58,7 +59,26 @@ func TestMain(m *testing.M) {
 	if err := buildGitHub.Run(); err != nil {
 		panic(fmt.Sprintf("build fake github tools: %v", err))
 	}
+	// Commit-pinned agent-scripts sources are fetched with Git; the fake's
+	// public mode supplies a checkout whose skills fake bunx generates.
+	fakeGit := filepath.Join(directory, "git")
+	if runtime.GOOS == "windows" {
+		fakeGit += ".exe"
+	}
+	buildGit := exec.Command("go", "build", "-o", fakeGit, "./testdata/fakegithub")
+	buildGit.Stdout, buildGit.Stderr = os.Stdout, os.Stderr
+	if err := buildGit.Run(); err != nil {
+		panic(fmt.Sprintf("build fake git: %v", err))
+	}
+	registryServer, err := startFixtureRegistryServer()
+	if err != nil {
+		panic(fmt.Sprintf("start fixture registry: %v", err))
+	}
+	if err := os.Setenv("SJSKILLS_TEST_REGISTRY_URL", registryServer.URL); err != nil {
+		panic(err)
+	}
 	code := m.Run()
+	registryServer.Close()
 	_ = os.RemoveAll(directory)
 	os.Exit(code)
 }
@@ -513,7 +533,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 		t.Fatalf("idempotent global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -613,7 +633,7 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 		t.Fatalf("occupied global restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1813,12 +1833,12 @@ func TestRenderHumanShowsReviewableOperationsAndRecoveryCommand(t *testing.T) {
 }
 
 func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(registry.Global.Baseline) == 0 {
-		t.Fatal("embedded registry has no global baseline")
+		t.Fatal("fixture registry has no global baseline")
 	}
 
 	t.Run("materialize failure preserves plan", func(t *testing.T) {
@@ -2084,10 +2104,10 @@ func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
 			calls++
 			return nil, errors.New("unexpected materialization")
 		}}
-		if envelope := app.profiles(); envelope.Result != sjskills.ResultSuccess {
+		if envelope := app.profiles(context.Background()); envelope.Result != sjskills.ResultSuccess {
 			t.Fatalf("profiles=%#v", envelope)
 		}
-		if envelope := app.init([]string{"dev"}); envelope.Result != sjskills.ResultSuccess {
+		if envelope := app.init(context.Background(), []string{"dev"}); envelope.Result != sjskills.ResultSuccess {
 			t.Fatalf("init=%#v", envelope)
 		}
 		if envelope := app.restore(context.Background(), "0123456789abcdef0123456789abcdef", true); envelope.Result != sjskills.ResultConflict {

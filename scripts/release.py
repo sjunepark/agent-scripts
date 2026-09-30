@@ -57,7 +57,9 @@ def build(output, tag=None):
         for target in TARGETS:
             executable = 'sjskills.exe' if target['os'] == 'windows' else 'sjskills'
             binary = Path(directory) / executable
-            env = dict(os.environ, GOOS=target['os'], GOARCH=target['arch'], CGO_ENABLED='0')
+            # GOFLAGS could add build tags such as sjskillstest, whose binaries
+            # read a test registry endpoint; release builds use none.
+            env = dict(os.environ, GOOS=target['os'], GOARCH=target['arch'], CGO_ENABLED='0', GOFLAGS='')
             subprocess.run(['go', 'build', '-trimpath', '-buildvcs=true', '-o', str(binary), './cmd/sjskills'], cwd=ROOT, env=env, check=True)
             metadata = json.dumps({'version': VERSION, 'commit': commit, 'target': f"{target['os']}/{target['arch']}"}, sort_keys=True).encode() + b'\n'
             contents = {executable: binary.read_bytes(), 'release.json': metadata}

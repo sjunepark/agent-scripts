@@ -13,7 +13,11 @@ GitHub Releases are the canonical binary source. `packaging/targets.json` owns
 both the native verification matrix and installer target selection: macOS Intel,
 macOS Apple silicon, and Windows x64. Linux reconciliation is unsupported.
 
-`internal/sjskills/VERSION` is embedded in the executable. Tags use
+`internal/sjskills/VERSION` is embedded in the executable. The skill registry
+is not: `sjskills` reads it from `main` at run time (see
+[publication and loading](skill-registry.md#publication-and-loading)), so
+registry changes need no release. Release only for a registry schema change or
+a CLI change. Tags use
 `sjskills-vX.Y.Z`; archives use `sjskills_X.Y.Z_OS_ARCH.tar.gz` or `.zip`.
 Each archive contains only the executable and `release.json`, which records its
 version, target, and source commit. `SHA256SUMS` covers every archive and both
@@ -22,8 +26,9 @@ GitHub HTTPS channel and immutable release identity.
 
 The installers require no checkout, Go, or GitHub CLI. macOS uses system shell,
 `curl`, `tar`, and `shasum`; Windows uses Windows PowerShell 5.1 or newer and
-.NET. `plan` and `apply` still require Bun (`bunx`) and access to the existing pinned Skills CLI and Git
-sources. Help and version perform no status checks. Profiles and manifest
+.NET. `plan` and `apply` require network access to the published registry,
+Bun (`bunx`) for the pinned Skills CLI, and Git, which fetches agent-scripts
+skills at the registry's commit. Help and version perform no status checks. Profiles and manifest
 initialization retain their primary behavior without Bun; their incidental
 notices may report unavailable upstream evidence. Bare/named `status` also
 succeeds with explicit unavailable skill evidence when no cached evidence or Bun
@@ -107,7 +112,10 @@ exercise help/version, profiles/init, and bare/named/JSON/disabled status from a
 unrelated directory with an empty PATH and isolated home/cache/staging roots,
 and verify reinstallation and failure preservation. Status checks cover both
 unconfigured and configured projects without Bun, plus CLI update comparison
-from seeded release metadata with network access blocked. Linux runs source checks and
+from seeded release metadata with network access blocked. A seeded registry
+cache stands in for the published registry: status uses it, `profiles` and
+`init` fall back to it with a stale warning, and `plan` fails because it never
+uses a cached registry. Linux runs source checks and
 cross-builds, not reconciliation tests. Development PRs targeting `dev` and
 manual source checks run on Linux only.
 Integration PRs to `main`, merge-queue runs targeting `main`, and releases

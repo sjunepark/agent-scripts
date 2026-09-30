@@ -38,8 +38,8 @@ Create a complete JSON plan:
 ```
 
 Compute SHA-256 values for the executable and `plan.json`. Review every
-operation, warning, current-state fact, expected-content hash, and
-materialization result, including quarantine of undeclared skills regardless of
+operation, warning, current-state fact, the `registry` commit and digest,
+expected-content hash, and materialization result, including quarantine of undeclared skills regardless of
 ownership or local edits and `local-modification` updates that quarantine edited
 managed desired copies before replacement. Stop on blocked placements, untrusted
 provenance, unmanaged desired copies, source mismatches, unsafe filesystem boundaries,
@@ -50,8 +50,10 @@ would otherwise quarantine those entries.
 ## Apply and verify
 
 Before mutation, verify the executable and artifact still match the reviewed
-hashes. Apply uses the complete reviewed artifact and recomputes the plan before
-mutation; `--yes` only skips the redundant interactive prompt:
+hashes. Apply uses the complete reviewed artifact, reloads the registry at its
+recorded commit even if `main` has moved, and recomputes the plan before
+mutation; `--yes` only skips the redundant interactive prompt. A plan without
+`registry` commit evidence, from an older release, must be recreated:
 
 ```text
 <reviewed-sjskills> apply --global --yes \

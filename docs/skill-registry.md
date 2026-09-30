@@ -5,6 +5,46 @@
 recommended external skills without duplicating a skill declaration across
 global and project policy.
 
+## Publication and loading
+
+`sjskills` embeds the registry's location, not its contents: it reads
+`skill-registry.json` from `sjunepark/agent-scripts` on `main` at run time.
+Registry changes take effect once they reach `main`; a new `sjskills` release
+is needed only for a registry schema or CLI change. There is no flag to read a
+working-tree registry, because reconciliation consumes only published content.
+Validate local edits with the commands under
+[Validation and consumers](#validation-and-consumers).
+
+Each invocation resolves `main` to one commit through Git's anonymous smart-HTTP
+ref advertisement, which needs no credentials or GitHub API quota, and reads the
+registry at that commit from `raw.githubusercontent.com`. Sources declared at
+`https://github.com/sjunepark/agent-scripts/tree/main/...` are pinned to the
+same commit, so registry and contents cannot drift. Other sources, including
+other refs of this repository, keep their declared locations. Provenance
+identity ignores the ref, so pinning does not change ownership of installed
+copies. The registry is loaded once per invocation and shared by planning,
+status, and notices.
+
+Plans record `registry` evidence as
+`sjunepark/agent-scripts@<commit> sha256:<digest>`. Global apply reloads the
+registry at the reviewed commit instead of resolving `main`, so a push after
+review cannot change the reviewed desired state; the recorded digest then
+participates in the reviewed-plan comparison. A reviewed commit that no longer
+exists is a conflict requiring a new plan. Plans from releases that embedded the
+registry lack this evidence and must be reviewed again.
+
+`plan` and `apply` always resolve and fetch afresh. `status` reuses a
+resolution for 24 hours and otherwise follows the status retry cooldown;
+`profiles` and `init` always try to refresh. When refreshing fails, those three
+commands use the last verified registry, cached by commit under the platform
+user-cache directory in `sjskills/registry/`, and warn with
+`registry-stale`, naming its commit and age. Without a cached registry, status
+reports the registry unavailable and other commands fail. A published registry
+whose `version` differs from the binary's supported version fails closed with a
+message naming the required `sjskills` update; a cached registry never masks it.
+`--no-status-check` neither reads nor writes this cache, so it has no offline
+fallback.
+
 ## Desired sets
 
 `global.baseline` is one fixed, machine-independent set. It is the only
@@ -54,8 +94,14 @@ boundary. Skills CLI-managed sources must be Git shorthand
 credentials, URL query strings, npm specifiers, and other schemes are rejected
 for that manager.
 
-Public selections retain the pinned Skills CLI's remote-fetch path and do not
-invoke a new gh operation. Authenticated selections require Git, GitHub CLI,
+Public selections use the pinned Skills CLI's remote-fetch path and do not
+invoke gh. Skills CLI cannot clone a commit, so public GitHub sources pinned to
+a full commit, including every agent-scripts skill, are fetched anonymously
+with Git and installed through local-source discovery; these selections require
+Git. That fetch disables credential helpers, redirects, and submodules and drops
+inherited `GIT_*`, `GH_*`, askpass, and token variables, while keeping system
+Git configuration such as `core.autocrlf` so installed bytes match Skills CLI's
+own clones on the same machine. Authenticated selections require Git, GitHub CLI,
 and an existing gh login with repository access. They accept GitHub.com
 shorthand or credential-free `https://github.com` sources, including supported
 `/tree/<ref>[/<subpath>]` forms. A ref may be a branch, tag, or full 40-character
@@ -90,8 +136,8 @@ helper output or guessing whether a not-found response means denied access.
 Any selected-source failure prevents reconciliation for that scope; no anonymous
 retry, optional skipping, or partial successful snapshot is allowed.
 
-Older public manifests and reviewed global plans remain usable; explicit and
-omitted public access have the same meaning. Older executables may reject the
+Older public manifests remain usable; explicit and omitted public access have
+the same meaning. Older executables may reject the
 new fields/profiles: use a build supporting authenticated access for private
 selections and the same executable for plan/apply. Source installation support
 in this checkout does not imply a published binary release; delivery evidence
@@ -191,7 +237,8 @@ directory in `sjskills/status/`. Identity includes the sorted Skills CLI-managed
 selection's names, exact source strings, effective access, copy mode, full-depth
 options, and the Skills CLI, tree-hash, and cache format versions. Matching selections share
 evidence across roots and scopes. Placement targets, profile names, and unrelated
-registry metadata do not trigger another fetch; local classification always uses
+registry metadata do not trigger another fetch, but source strings pinned to a
+new registry commit do; local classification always uses
 the current scope, registry, files, and provenance. Older cache keys without
 access are not reused; the first check after upgrading refreshes upstream. Changing access requires new fetch/review evidence but does
 not change same-repository installed ownership.
@@ -270,7 +317,7 @@ apply rejects status envelopes and any `status` field on a plan, including null;
 only `advisories` and `cliAdvisory` retain the limited semantic-comparison exclusion.
 
 `--no-status-check` disables all status discovery, inventory, refresh, and cache
-work. Explicit status then prints “Status checks disabled (--no-status-check).”
+work, including the registry cache. Explicit status then prints “Status checks disabled (--no-status-check).”
 or emits `projectConfiguration: "skipped"` with no root, skill advisories, or CLI
 advisory in JSON.
 For other commands the flag does not disable primary live verification. Root
@@ -289,8 +336,11 @@ go test ./...
 ```
 
 Run the Go suite on Windows as well as Unix when changing reconciliation.
-CLI integration tests build a native fake `bunx` in a temporary directory so
-they do not fall through to a real Skills CLI on Windows. Unix permission-bit
+CLI integration tests build a native fake `bunx` and fake `git` in a temporary
+directory so they do not fall through to a real Skills CLI or network on
+Windows. They build the binary with the `sjskillstest` tag, which alone lets it
+read a local fixture registry server; release builds never set it. Go tests use
+the frozen `internal/sjskills/testdata/registry-v4.json`, not the live registry. Unix permission-bit
 assertions apply only on Unix; Windows uses native ACLs and synthesized mode
 bits. All global mutation tests use isolated temporary homes.
 
@@ -307,8 +357,9 @@ mutation arguments are retired.
 
 Global apply requires `--approved-plan <plan.json>` together with
 `--approved-plan-sha256 <digest>`. The command reads the artifact once, verifies
-its approved digest and strict successful-global-plan shape, then rematerializes
-and recomputes the complete plan. All stable warnings, operations, current and
+its approved digest and strict successful-global-plan shape, reloads the
+registry at the artifact's recorded commit, then rematerializes and recomputes
+the complete plan. All stable warnings, operations, current and
 expected evidence must match before confirmation or mutation. Apply uses that
 same still-live verified materialization session, so a remote ref change cannot
 replace reviewed expected content after the recheck. Missing evidence, artifact

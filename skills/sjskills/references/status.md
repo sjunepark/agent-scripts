@@ -17,6 +17,9 @@ or problems remain silent.
 `cliAdvisory`; status also includes setup metadata under `status`. None grants
 apply authority or substitutes for a reviewed plan. Use the same compatible
 executable for plan and apply; older loaders may reject the new advisory field.
-Use `--no-status-check` to skip discovery, inspection, fetching, and cache writes;
-status then reports checks disabled, while other commands retain their primary
-verification.
+A `registry-stale` warning means the published registry could not be refreshed
+and a cached one, named by commit and age, was used; treat its findings as
+possibly outdated. Use `--no-status-check` to skip discovery, inspection,
+fetching, and cache writes; status then reports checks disabled, while other
+commands retain their primary verification but lose the cached-registry
+fallback when offline.

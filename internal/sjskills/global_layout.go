@@ -80,7 +80,7 @@ func LayoutForGlobal(home string) (GlobalLayout, error) {
 
 // mutationLayout maps the fixed global boundary onto the shared transaction
 // engine. The project manifest path is intentionally empty: global intent is
-// the embedded registry, while all mutable recovery data stays in the private
+// the published registry, while all mutable recovery data stays in the private
 // derived directory under .agents.
 func (layout GlobalLayout) mutationLayout() DerivedLayout {
 	return DerivedLayout{

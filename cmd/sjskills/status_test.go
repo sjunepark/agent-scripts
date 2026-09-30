@@ -197,7 +197,15 @@ func TestStatusCLIEligibility(t *testing.T) {
 				if runtime.GOOS == "darwin" {
 					cache = filepath.Join(f.home, "Library", "Caches")
 				}
+				// Commands that load the registry may cache it; no status
+				// namespace may be written.
 				entries, _ := os.ReadDir(cache)
+				if len(entries) == 1 && entries[0].Name() == "sjskills" {
+					entries, _ = os.ReadDir(filepath.Join(cache, "sjskills"))
+					if len(entries) == 1 && entries[0].Name() == "registry" {
+						entries = nil
+					}
+				}
 				if len(entries) != 0 {
 					t.Fatalf("ineligible cache writes: %v", entries)
 				}

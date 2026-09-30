@@ -12,11 +12,11 @@ import (
 	"time"
 )
 
-// BenchmarkStatusWarmDevGoAndGlobal models the CLI's two scopes with the real
-// embedded selections, eight 8 KiB files per placement, and trusted provenance.
+// BenchmarkStatusWarmDevGoAndGlobal models the CLI's two scopes with the
+// fixture registry's selections, eight 8 KiB files per placement, and trusted provenance.
 // It measures cache lookup plus fresh local hashing/classification, not network.
 func BenchmarkStatusWarmDevGoAndGlobal(b *testing.B) {
-	registry, err := EmbeddedRegistry()
+	registry, err := ParseRegistry(registryV4JSON)
 	if err != nil {
 		b.Fatal(err)
 	}

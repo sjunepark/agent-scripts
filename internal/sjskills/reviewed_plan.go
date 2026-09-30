@@ -27,6 +27,12 @@ type ReviewedPlan struct {
 // manufacture approval evidence without passing through that loader.
 func (p ReviewedPlan) SHA256() string { return p.sha256 }
 
+// RegistryCommit returns the published registry commit the reviewed plan
+// was built from. Plans from embedded-registry releases record none.
+func (p ReviewedPlan) RegistryCommit() (string, bool) {
+	return RegistryCommitFromEvidence(p.envelope.Evidence)
+}
+
 // LoadReviewedPlan reads the approval artifact once, binds it to the supplied
 // digest, and accepts only a successful global plan emitted by sjskills.
 func LoadReviewedPlan(path, approvedSHA256 string) (ReviewedPlan, error) {

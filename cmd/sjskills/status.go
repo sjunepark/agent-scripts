@@ -23,8 +23,9 @@ type commandStatusSnapshot struct {
 func (a *application) finishPrepared(p *preparedPlan, envelope sjskills.Envelope, stage string) sjskills.Envelope {
 	envelope = p.finish(envelope, stage)
 	if envelope.Result == sjskills.ResultSuccess && p.verified && p.cleaned {
-		registry, err := a.registry()
+		published, err := a.registry(nil, registryLoader.Resolve)
 		if err == nil {
+			registry := published.Registry
 			root := ""
 			if p.project != nil {
 				root = p.project.Layout.Root
@@ -57,6 +58,9 @@ func (a *application) status(ctx context.Context) sjskills.Envelope {
 		envelope.Status = &report.result
 		envelope.Advisories = report.advisories
 		envelope.CLIAdvisory = report.cli
+		if a.registryErr == nil {
+			envelope.Warnings = append(envelope.Warnings, registryWarnings(a.registryValue, time.Now())...)
+		}
 	}
 	if ctx.Err() != nil {
 		envelope.Result = sjskills.ResultUnavailable
@@ -97,7 +101,13 @@ func (a *application) collectStatus(ctx context.Context) statusCollection {
 	ctx, cancel := context.WithTimeout(ctx, sjskills.StatusRefreshBudget)
 	defer cancel()
 	report := statusCollection{result: discoverStatusProject(a.directory)}
-	registry, registryErr := a.registry()
+	published, registryErr := a.registry(ctx, registryLoader.ForStatus)
+	registry := published.Registry
+	registryUnavailable := "skill registry unavailable"
+	var registryIssue *sjskills.Issue
+	if errors.As(registryErr, &registryIssue) && registryIssue.Code == sjskills.IssueRegistryVersion {
+		registryUnavailable = registryIssue.Message
+	}
 	results := make([]*sjskills.Advisory, 2)
 	var group sync.WaitGroup
 	// CLI evidence and both skill scopes share one foreground deadline.
@@ -142,7 +152,7 @@ func (a *application) collectStatus(ctx context.Context) statusCollection {
 				if !global {
 					report.result.ProjectConfiguration = sjskills.ProjectUnavailable
 				}
-				unavailable("skill registry unavailable")
+				unavailable(registryUnavailable)
 				return
 			}
 			scope, resolveErr := sjskills.ResolveStatusScope(directory, registry, global)

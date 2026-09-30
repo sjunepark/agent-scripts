@@ -327,14 +327,18 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 			_ = plan.Cleanup()
 			return nil, m.errorAt(root, safeSkillName(skill.Name), "build Skills CLI command", err)
 		}
-		if skill.Access == AccessGitHubAuthenticated {
-			local, fetchErr := m.authenticatedSource(ctx, root, skill.Source)
+		if skill.Access == AccessGitHubAuthenticated || pinnedPublicGitHubSource(skill) {
+			fetch, operation := m.publicSource, "fetch pinned source"
+			if skill.Access == AccessGitHubAuthenticated {
+				fetch, operation = m.authenticatedSource, "fetch authenticated source"
+			}
+			local, fetchErr := fetch(ctx, root, skill.Source)
 			if fetchErr != nil {
 				if errors.Is(fetchErr, errProcessTreeActive) {
 					return nil, errProcessTreeActive
 				}
 				_ = plan.Cleanup()
-				return nil, m.errorAt(root, safeSkillName(skill.Name), "fetch authenticated source", fetchErr)
+				return nil, m.errorAt(root, safeSkillName(skill.Name), operation, fetchErr)
 			}
 			// Only this internally verified staging path may bypass remote input
 			// validation; DesiredSkill and provenance retain the original URL.

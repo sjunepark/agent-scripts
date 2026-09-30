@@ -269,7 +269,9 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 			case "home":
 				app.homeDirectory = func() (string, error) { return "", errors.New("no home") }
 			case "registry", "registry-missing", "registry-malformed":
-				app.loadRegistry = func() (sjskills.Registry, error) { return sjskills.Registry{}, errors.New("no registry") }
+				app.registries = registryFunc(func() (sjskills.PublishedRegistry, error) {
+					return sjskills.PublishedRegistry{}, errors.New("no registry")
+				})
 				if kind == "registry-missing" {
 					_ = os.Remove(filepath.Join(f.project, "sjskills.toml"))
 				}
@@ -280,7 +282,10 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 				app.noStatusCheck = true
 				app.directory = "invalid"
 				app.homeDirectory = func() (string, error) { t.Fatal("home discovery during opt-out"); return "", nil }
-				app.loadRegistry = func() (sjskills.Registry, error) { t.Fatal("registry during opt-out"); return sjskills.Registry{}, nil }
+				app.registries = registryFunc(func() (sjskills.PublishedRegistry, error) {
+					t.Fatal("registry during opt-out")
+					return sjskills.PublishedRegistry{}, nil
+				})
 			}
 			e := app.status(context.Background())
 			if e.ExitStatus() != sjskills.ExitSuccess {
@@ -397,11 +402,41 @@ func TestDefaultStatusPresentation(t *testing.T) {
 func TestDefaultStatusAlreadyCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	app := &application{loadRegistry: func() (sjskills.Registry, error) { t.Fatal("work after cancellation"); return sjskills.Registry{}, nil }}
+	app := &application{registries: registryFunc(func() (sjskills.PublishedRegistry, error) {
+		t.Fatal("work after cancellation")
+		return sjskills.PublishedRegistry{}, nil
+	})}
 	e := app.status(ctx)
 	var out, errout bytes.Buffer
 	code := emitEnvelope(&out, &errout, false, e)
 	if code != int(sjskills.ExitExecutionFailure) || out.Len() != 0 || !strings.Contains(errout.String(), "cancelled") {
 		t.Fatalf("cancel %d %q %q", code, out.String(), errout.String())
+	}
+}
+
+func TestRegistryLoadsOncePerInvocation(t *testing.T) {
+	f := newStatusCLIFixture(t, "")
+	materializer, _ := testInjectedMaterializer(t)
+	service := sjskills.StatusService{CacheRoot: f.cache, Refresh: func(context.Context, []sjskills.DesiredSkill) (sjskills.StatusSnapshot, error) {
+		return sjskills.StatusSnapshot{}, errors.New("test upstream unavailable")
+	}}
+	loads := 0
+	app := &application{
+		directory:        f.project,
+		homeDirectory:    func() (string, error) { return f.home, nil },
+		statusService:    &service,
+		cliStatusService: f.cliService(),
+		materialize:      materializer.Materialize,
+		registries: registryFunc(func() (sjskills.PublishedRegistry, error) {
+			loads++
+			return fixtureRegistry()
+		}),
+	}
+	if envelope := app.plan(context.Background(), true); envelope.Result != sjskills.ResultSuccess {
+		t.Fatalf("plan %+v", envelope.Error)
+	}
+	app.collectStatus(context.Background())
+	if loads != 1 {
+		t.Fatalf("registry loaded %d times", loads)
 	}
 }

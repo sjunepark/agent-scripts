@@ -127,7 +127,7 @@ func summarizeStatus(plan Plan) []AdvisoryFinding {
 }
 
 // StatusScope is resolved afresh before looking up advisory evidence. Its
-// identity includes every desired/source/install input and the embedded registry.
+// identity includes every desired/source/install input and the loaded registry.
 type StatusScope struct {
 	Root     string
 	Registry Registry

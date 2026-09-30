@@ -66,7 +66,8 @@ func main() {
 		if local == "fixture/private/skills" && os.Getenv("SJSKILLS_GIT_FIXTURE") != "" {
 			local = filepath.Join(os.Getenv("SJSKILLS_GIT_FIXTURE"), "skills")
 		}
-		if filepath.IsAbs(local) {
+		_, publicErr := os.Stat(filepath.Join(local, ".fake-public"))
+		if filepath.IsAbs(local) && publicErr != nil {
 			data, err := os.ReadFile(filepath.Join(local, skill, "SKILL.md"))
 			if err != nil {
 				os.Exit(7)
