@@ -26,6 +26,7 @@ const (
 	registryFile       = "skill-registry.json"
 	registryRefsURL    = "https://github.com/" + registryRepository + ".git/info/refs?service=git-upload-pack"
 	registryRawBase    = "https://raw.githubusercontent.com/" + registryRepository + "/"
+	registryTreeMain   = "https://github.com/" + registryRepository + "/tree/main"
 
 	maxRegistryBytes       = 1 << 20
 	maxRefAdvertisement    = 4 << 20
@@ -35,6 +36,12 @@ const (
 )
 
 var registryCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+var errRegistryCommitMissing = errors.New("registry commit not found")
+var registryEvidencePattern = regexp.MustCompile(`^` + regexp.QuoteMeta(registryRepository) + `@([0-9a-f]{40}) sha256:[0-9a-f]{64}$`)
+
+// registryEndpoints is replaced only by the sjskillstest build tag, so CLI
+// integration tests can serve a fixture registry. Release builds never read it.
+var registryEndpoints = func() (refs, raw string) { return registryRefsURL, registryRawBase }
 
 // PublishedRegistry is a validated registry together with the commit that
 // supplied it and the SHA-256 of its exact published bytes. ResolvedAt is when
@@ -56,8 +63,11 @@ type PublishedRegistry struct {
 // Git executable, or GitHub API quota.
 type RegistrySource struct {
 	CacheRoot string
-	Now       func() time.Time
-	Client    *http.Client
+	// NoCache neither reads nor writes the registry cache, for invocations that
+	// opted out of cache writes. Every load then resolves the branch afresh.
+	NoCache bool
+	Now     func() time.Time
+	Client  *http.Client
 
 	// Tests replace the published endpoints; production uses the fixed location.
 	refsURL string
@@ -75,6 +85,28 @@ type registryLatest struct {
 }
 
 func (e registryLatest) resolved() bool { return e.Commit != "" }
+
+// Evidence identifies the exact registry bytes behind a plan. Reviewed global
+// plans carry it, and apply reloads the registry at its commit.
+func (p PublishedRegistry) Evidence() Evidence {
+	return Evidence{Kind: "registry", Detail: registryRepository + "@" + p.Commit + " sha256:" + p.SHA256}
+}
+
+// RegistryCommitFromEvidence returns the commit recorded by Evidence.
+func RegistryCommitFromEvidence(evidence []Evidence) (string, bool) {
+	commit := ""
+	for _, item := range evidence {
+		if item.Kind != "registry" {
+			continue
+		}
+		match := registryEvidencePattern.FindStringSubmatch(item.Detail)
+		if match == nil || commit != "" {
+			return "", false
+		}
+		commit = match[1]
+	}
+	return commit, commit != ""
+}
 
 func (s RegistrySource) now() time.Time {
 	if s.Now != nil {
@@ -192,16 +224,15 @@ func (s RegistrySource) cachedAt(directory string, latest registryLatest) (Publi
 	return published, nil
 }
 
+// load always fetches: plan and apply need the network anyway, and a cached
+// file has no digest to verify against until a branch observation records one.
+// The fetched bytes then refresh the cache used by status fallbacks.
 func (s RegistrySource) load(ctx context.Context, directory string, cacheErr error, commit string) (PublishedRegistry, error) {
-	path := filepath.Join(directory, commit+".json")
-	if cacheErr == nil {
-		if data, err := readStatusFile(path); err == nil {
-			if published, err := parsePublishedRegistry(commit, data); err == nil {
-				return published, nil
-			}
-		}
-	}
 	data, err := s.fetch(ctx, commit)
+	if errors.Is(err, errRegistryCommitMissing) {
+		return PublishedRegistry{}, &Issue{Code: IssueReconciliationConflict, Path: "registry.commit", Message: fmt.Sprintf(
+			"published registry commit %s is unavailable from %s; review a new plan", commit, registryRepository)}
+	}
 	if err != nil {
 		return PublishedRegistry{}, err
 	}
@@ -223,8 +254,23 @@ func parsePublishedRegistry(commit string, data []byte) (PublishedRegistry, erro
 	if err != nil {
 		return PublishedRegistry{}, err
 	}
+	pinPublishedSources(&registry, commit)
 	sum := sha256.Sum256(data)
 	return PublishedRegistry{Registry: registry, Commit: commit, SHA256: hex.EncodeToString(sum[:])}, nil
+}
+
+// pinPublishedSources makes skill contents come from the registry's own
+// commit. Other sources, including other refs of this repository, keep their
+// declared locations. Provenance identity ignores the ref, so pinning does not
+// change ownership of installed copies.
+func pinPublishedSources(registry *Registry, commit string) {
+	for id, source := range registry.Sources {
+		rest, ok := strings.CutPrefix(source.Location, registryTreeMain)
+		if ok && (rest == "" || strings.HasPrefix(rest, "/")) {
+			source.Location = "https://github.com/" + registryRepository + "/tree/" + commit + rest
+			registry.Sources[id] = source
+		}
+	}
 }
 
 // checkRegistryVersion names the required action for a schema this binary
@@ -244,7 +290,7 @@ func checkRegistryVersion(data []byte) error {
 func (s RegistrySource) resolveCommit(ctx context.Context) (string, error) {
 	url := s.refsURL
 	if url == "" {
-		url = registryRefsURL
+		url, _ = registryEndpoints()
 	}
 	data, contentType, err := s.get(ctx, url, maxRefAdvertisement, "registry branch resolution")
 	if err != nil {
@@ -259,9 +305,13 @@ func (s RegistrySource) resolveCommit(ctx context.Context) (string, error) {
 func (s RegistrySource) fetch(ctx context.Context, commit string) ([]byte, error) {
 	base := s.rawBase
 	if base == "" {
-		base = registryRawBase
+		_, base = registryEndpoints()
 	}
 	data, _, err := s.get(ctx, base+commit+"/"+registryFile, maxRegistryBytes, "registry fetch")
+	var status httpStatusError
+	if errors.As(err, &status) && status.code == http.StatusNotFound {
+		return nil, errRegistryCommitMissing
+	}
 	return data, err
 }
 
@@ -280,13 +330,22 @@ func (s RegistrySource) get(ctx context.Context, url string, limit int64, operat
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("%s returned HTTP %d", operation, response.StatusCode)
+		return nil, "", httpStatusError{operation, response.StatusCode}
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if err != nil || int64(len(data)) > limit {
 		return nil, "", fmt.Errorf("%s response unreadable or oversized", operation)
 	}
 	return data, strings.TrimSpace(strings.Split(response.Header.Get("Content-Type"), ";")[0]), nil
+}
+
+type httpStatusError struct {
+	operation string
+	code      int
+}
+
+func (e httpStatusError) Error() string {
+	return fmt.Sprintf("%s returned HTTP %d", e.operation, e.code)
 }
 
 // parseRefAdvertisement reads Git's pkt-line ref advertisement and returns the
@@ -327,6 +386,9 @@ func parseRefAdvertisement(data []byte, ref string) (string, error) {
 }
 
 func (s RegistrySource) cacheDirectory() (string, error) {
+	if s.NoCache {
+		return "", errors.New("registry cache disabled")
+	}
 	return disposableCacheDirectory(s.CacheRoot, "registry")
 }
 

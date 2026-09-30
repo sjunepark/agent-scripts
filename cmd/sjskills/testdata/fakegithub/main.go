@@ -71,6 +71,10 @@ func main() {
 		if index < 0 || len(args) < 2 || os.Getenv("GIT_ALLOW_PROTOCOL") != "https" || os.Getenv("GIT_CONFIG_COUNT") != "" || os.Getenv("GIT_TRACE") != "" {
 			fail()
 		}
+		if !strings.Contains(strings.Join(args[:index], " "), "credential.helper=!") {
+			publicGit(args, index)
+			return
+		}
 		joined := strings.Join(args[:index], " ")
 		for _, want := range []string{"credential.helper=", "credential.useHttpPath=true", "http.followRedirects=false", "submodule.recurse=false", "core.hooksPath="} {
 			if !strings.Contains(joined, want) {
@@ -125,6 +129,39 @@ func main() {
 		if err := cmd.Run(); err != nil {
 			fail()
 		}
+	default:
+		fail()
+	}
+}
+
+// publicGit models an anonymous, commit-pinned fetch of the published
+// agent-scripts source. The checkout holds only a marker; fake bunx generates
+// the skill content it would otherwise download.
+func publicGit(args []string, index int) {
+	joined := strings.Join(args[:index], " ")
+	for _, want := range []string{"credential.helper=", "http.followRedirects=false", "submodule.recurse=false", "core.hooksPath="} {
+		if !strings.Contains(joined, want) {
+			fail()
+		}
+	}
+	switch args[index] {
+	case "init":
+		if err := os.MkdirAll(args[len(args)-1], 0o700); err != nil {
+			fail()
+		}
+	case "fetch":
+		clone, remote, commit := args[index-1], args[len(args)-2], args[len(args)-1]
+		if remote != "https://github.com/sjunepark/agent-scripts.git" || len(commit) != 40 || os.Getenv("SJSKILLS_FAKE_PUBLIC_FETCH_FAIL") == "1" {
+			fail()
+		}
+		skills := filepath.Join(clone, "skills")
+		if err := os.MkdirAll(skills, 0o700); err != nil {
+			fail()
+		}
+		if err := os.WriteFile(filepath.Join(skills, ".fake-public"), []byte(commit), 0o600); err != nil {
+			fail()
+		}
+	case "checkout":
 	default:
 		fail()
 	}

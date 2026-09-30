@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -116,11 +118,12 @@ func TestRegistrySourceResolveFetchesAtResolvedCommitAndCaches(t *testing.T) {
 	if published.Registry.Version != RegistryVersion {
 		t.Fatalf("registry version = %d", published.Registry.Version)
 	}
-	// The commit cache avoids refetching content; the branch is always resolved.
+	// Plan and apply never trust an unverifiable cached file: both the branch
+	// and the registry bytes are fetched again.
 	if _, err := source.Resolve(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if server.refs.Load() != 2 || server.raw.Load() != 1 {
+	if server.refs.Load() != 2 || server.raw.Load() != 2 {
 		t.Fatalf("refs=%d raw=%d", server.refs.Load(), server.raw.Load())
 	}
 }
@@ -281,9 +284,82 @@ func TestRegistrySourceIgnoresTamperedCommitCache(t *testing.T) {
 	if err := writeRegistryCacheFile(directory, testCommitA+".json", []byte(tampered)); err != nil {
 		t.Fatal(err)
 	}
+	// Resolve ignores and repairs a tampered commit file.
+	if published, err := source.Resolve(context.Background()); err != nil || published.Registry.Description == "Tampered." {
+		t.Fatalf("resolve used tampered cache: %+v err=%v", published.Registry.Description, err)
+	}
+	if err := writeRegistryCacheFile(directory, testCommitA+".json", []byte(tampered)); err != nil {
+		t.Fatal(err)
+	}
 	server.offline.Store(true)
 	// A digest mismatch makes the cached registry unusable rather than trusted.
 	if _, err := source.ForStatus(context.Background()); err == nil {
 		t.Fatal("status used a tampered cached registry")
+	}
+}
+
+func TestPublishedRegistryPinsOwnSourcesAndRecordsEvidence(t *testing.T) {
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+	source := server.source(t, t.TempDir(), &now)
+	published, err := source.Resolve(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := published.Registry.Sources["agent-scripts"].Location; got != "https://github.com/sjunepark/agent-scripts/tree/"+testCommitA+"/skills" {
+		t.Fatalf("agent-scripts location = %q", got)
+	}
+	if got := published.Registry.Sources["darty"].Location; got != "https://github.com/cpaikr/darty/tree/main/skill/darty" {
+		t.Fatalf("external location changed: %q", got)
+	}
+	registry := Registry{Sources: map[string]Source{"other-ref": {Location: registryTreeMain + "tenance/skills"}}}
+	pinPublishedSources(&registry, testCommitA)
+	if registry.Sources["other-ref"].Location != registryTreeMain+"tenance/skills" {
+		t.Fatal("pinned a different branch whose name shares the prefix")
+	}
+
+	evidence := published.Evidence()
+	if commit, ok := RegistryCommitFromEvidence([]Evidence{{Kind: "resolution"}, evidence}); !ok || commit != testCommitA {
+		t.Fatalf("commit=%q ok=%v", commit, ok)
+	}
+	for name, items := range map[string][]Evidence{
+		"legacy":    {{Kind: "registry", Detail: "embedded version 4"}},
+		"duplicate": {evidence, evidence},
+		"missing":   {{Kind: "resolution"}},
+		"other":     {{Kind: "registry", Detail: "example/other@" + testCommitA + " sha256:" + published.SHA256}},
+	} {
+		if _, ok := RegistryCommitFromEvidence(items); ok {
+			t.Fatalf("%s: accepted", name)
+		}
+	}
+}
+
+func TestRegistrySourceNoCacheWritesNothing(t *testing.T) {
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+	cacheRoot := filepath.Join(t.TempDir(), "cache")
+	source := server.source(t, cacheRoot, &now)
+	source.NoCache = true
+	for _, load := range []func(context.Context) (PublishedRegistry, error){source.Resolve, source.ForStatus, source.ForSelection} {
+		if _, err := load(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := os.Stat(cacheRoot); !os.IsNotExist(err) {
+		t.Fatalf("cache written: %v", err)
+	}
+	if server.raw.Load() != 3 {
+		t.Fatalf("raw fetches = %d, want one per load without a cache", server.raw.Load())
+	}
+}
+
+func TestRegistrySourceMissingReviewedCommitConflicts(t *testing.T) {
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+	source := server.source(t, t.TempDir(), &now)
+	_, err := source.At(context.Background(), testCommitB)
+	var issue *Issue
+	if !errors.As(err, &issue) || issue.Code != IssueReconciliationConflict || !strings.Contains(issue.Message, "review a new plan") {
+		t.Fatalf("err = %v", err)
 	}
 }

@@ -269,7 +269,9 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 			case "home":
 				app.homeDirectory = func() (string, error) { return "", errors.New("no home") }
 			case "registry", "registry-missing", "registry-malformed":
-				app.loadRegistry = func() (sjskills.Registry, error) { return sjskills.Registry{}, errors.New("no registry") }
+				app.registries = registryFunc(func() (sjskills.PublishedRegistry, error) {
+					return sjskills.PublishedRegistry{}, errors.New("no registry")
+				})
 				if kind == "registry-missing" {
 					_ = os.Remove(filepath.Join(f.project, "sjskills.toml"))
 				}
@@ -280,7 +282,10 @@ func TestDefaultStatusDiscoveryFailuresAndOptOut(t *testing.T) {
 				app.noStatusCheck = true
 				app.directory = "invalid"
 				app.homeDirectory = func() (string, error) { t.Fatal("home discovery during opt-out"); return "", nil }
-				app.loadRegistry = func() (sjskills.Registry, error) { t.Fatal("registry during opt-out"); return sjskills.Registry{}, nil }
+				app.registries = registryFunc(func() (sjskills.PublishedRegistry, error) {
+					t.Fatal("registry during opt-out")
+					return sjskills.PublishedRegistry{}, nil
+				})
 			}
 			e := app.status(context.Background())
 			if e.ExitStatus() != sjskills.ExitSuccess {
@@ -397,7 +402,10 @@ func TestDefaultStatusPresentation(t *testing.T) {
 func TestDefaultStatusAlreadyCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	app := &application{loadRegistry: func() (sjskills.Registry, error) { t.Fatal("work after cancellation"); return sjskills.Registry{}, nil }}
+	app := &application{registries: registryFunc(func() (sjskills.PublishedRegistry, error) {
+		t.Fatal("work after cancellation")
+		return sjskills.PublishedRegistry{}, nil
+	})}
 	e := app.status(ctx)
 	var out, errout bytes.Buffer
 	code := emitEnvelope(&out, &errout, false, e)
@@ -419,10 +427,10 @@ func TestRegistryLoadsOncePerInvocation(t *testing.T) {
 		statusService:    &service,
 		cliStatusService: f.cliService(),
 		materialize:      materializer.Materialize,
-		loadRegistry: func() (sjskills.Registry, error) {
+		registries: registryFunc(func() (sjskills.PublishedRegistry, error) {
 			loads++
-			return sjskills.EmbeddedRegistry()
-		},
+			return fixtureRegistry()
+		}),
 	}
 	if envelope := app.plan(context.Background(), true); envelope.Result != sjskills.ResultSuccess {
 		t.Fatalf("plan %+v", envelope.Error)

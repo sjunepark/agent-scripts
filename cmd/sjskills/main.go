@@ -68,12 +68,12 @@ type commandContext struct {
 }
 
 func (c *initCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.init(c.Profiles)
+	ctx.application.envelope = ctx.application.init(ctx.context, c.Profiles)
 	return nil
 }
 
 func (c *profilesCommand) Run(ctx *commandContext) error {
-	ctx.application.envelope = ctx.application.profiles()
+	ctx.application.envelope = ctx.application.profiles(ctx.context)
 	return nil
 }
 
@@ -93,11 +93,11 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 }
 
 type application struct {
-	loadRegistry        func() (sjskills.Registry, error)
+	registries          registryLoader
 	registryLoaded      bool
-	registryValue       sjskills.Registry
+	registryValue       sjskills.PublishedRegistry
 	registryErr         error
-	noStatusCheck      bool
+	noStatusCheck       bool
 	statusSnapshot      *commandStatusSnapshot
 	cliStatusService    *sjskills.CLIStatusService
 	statusService       *sjskills.StatusService
@@ -147,18 +147,69 @@ func productionMaterialize(ctx context.Context, skills []sjskills.DesiredSkill) 
 	return sjskills.NewMaterializer(sjskills.MaterializerConfig{}).Materialize(ctx, skills)
 }
 
+// registryLoader is implemented by sjskills.RegistrySource. Each command
+// chooses its freshness policy; see the RegistrySource methods.
+type registryLoader interface {
+	Resolve(context.Context) (sjskills.PublishedRegistry, error)
+	At(context.Context, string) (sjskills.PublishedRegistry, error)
+	ForStatus(context.Context) (sjskills.PublishedRegistry, error)
+	ForSelection(context.Context) (sjskills.PublishedRegistry, error)
+}
+
+// defaultRegistries serves applications constructed directly by tests.
+// Production always injects a RegistrySource in executeWithInput.
+var defaultRegistries registryLoader
+
 // registry loads the registry at most once per invocation, so preparation,
 // the status snapshot, and incidental notices all read the same desired state.
-func (a *application) registry() (sjskills.Registry, error) {
+// The first caller's load policy wins.
+func (a *application) registry(ctx context.Context, load func(registryLoader, context.Context) (sjskills.PublishedRegistry, error)) (sjskills.PublishedRegistry, error) {
 	if !a.registryLoaded {
-		if a.loadRegistry != nil {
-			a.registryValue, a.registryErr = a.loadRegistry()
+		registries := a.registries
+		if registries == nil {
+			registries = defaultRegistries
+		}
+		if registries == nil {
+			a.registryErr = errors.New("skill registry source is not configured")
 		} else {
-			a.registryValue, a.registryErr = sjskills.EmbeddedRegistry()
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			a.registryValue, a.registryErr = load(registries, ctx)
 		}
 		a.registryLoaded = true
 	}
 	return a.registryValue, a.registryErr
+}
+
+func registryAt(commit string) func(registryLoader, context.Context) (sjskills.PublishedRegistry, error) {
+	return func(registries registryLoader, ctx context.Context) (sjskills.PublishedRegistry, error) {
+		return registries.At(ctx, commit)
+	}
+}
+
+// registryFailure keeps an invalid or unsupported published registry distinct
+// from a registry that could not be reached.
+func (a *application) registryFailure(operation sjskills.CommandOperation, err error) sjskills.Envelope {
+	var issue *sjskills.Issue
+	var validation *sjskills.ValidationErrors
+	if errors.As(err, &issue) && issue.Code == sjskills.IssueReconciliationConflict {
+		return a.conflict(operation, err)
+	}
+	if errors.As(err, &issue) || errors.As(err, &validation) {
+		return a.invalid(operation, err)
+	}
+	return a.unavailable(operation, err)
+}
+
+// registryWarnings labels a cached registry used after a failed refresh.
+func registryWarnings(published sjskills.PublishedRegistry, now time.Time) []sjskills.Warning {
+	if !published.Stale {
+		return nil
+	}
+	return []sjskills.Warning{{Code: "registry-stale", Message: fmt.Sprintf(
+		"using cached skill registry at %s resolved %s ago; refresh failed: %s",
+		published.Commit[:12], statusAge(now.Sub(published.ResolvedAt)), published.StaleReason)}}
 }
 
 func (a *application) base(operation sjskills.CommandOperation) sjskills.Envelope {
@@ -191,12 +242,13 @@ func (a *application) conflict(operation sjskills.CommandOperation, err error) s
 	return envelope
 }
 
-func (a *application) profiles() sjskills.Envelope {
+func (a *application) profiles(ctx context.Context) sjskills.Envelope {
 	envelope := a.base(sjskills.CommandOperationProfiles)
-	registry, err := a.registry()
+	published, err := a.registry(ctx, registryLoader.ForSelection)
 	if err != nil {
-		return a.invalid(sjskills.CommandOperationProfiles, err)
+		return a.registryFailure(sjskills.CommandOperationProfiles, err)
 	}
+	registry := published.Registry
 	profiles := make([]string, 0, len(registry.Profiles))
 	for name := range registry.Profiles {
 		profiles = append(profiles, name)
@@ -205,16 +257,18 @@ func (a *application) profiles() sjskills.Envelope {
 	for _, name := range profiles {
 		envelope.Profiles = append(envelope.Profiles, sjskills.ProfileInfo{Name: name, Access: registry.Profiles[name].Access.Effective(), Count: len(registry.Profiles[name].Skills)})
 	}
-	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "registry", Detail: "embedded version 4"})
+	envelope.Evidence = append(envelope.Evidence, published.Evidence())
+	envelope.Warnings = append(envelope.Warnings, registryWarnings(published, time.Now())...)
 	return envelope
 }
 
-func (a *application) init(profileNames []string) sjskills.Envelope {
+func (a *application) init(ctx context.Context, profileNames []string) sjskills.Envelope {
 	envelope := a.base(sjskills.CommandOperationInit)
-	registry, err := a.registry()
+	published, err := a.registry(ctx, registryLoader.ForSelection)
 	if err != nil {
-		return a.invalid(sjskills.CommandOperationInit, err)
+		return a.registryFailure(sjskills.CommandOperationInit, err)
 	}
+	registry := published.Registry
 	if len(profileNames) == 0 {
 		return a.invalid(sjskills.CommandOperationInit, &sjskills.Issue{Code: sjskills.IssueEmptySelection, Path: "init.profile", Message: "at least one profile is required"})
 	}
@@ -257,11 +311,13 @@ func (a *application) init(profileNames []string) sjskills.Envelope {
 		return a.unavailable(sjskills.CommandOperationInit, fmt.Errorf("close manifest: %w", closeErr))
 	}
 	envelope.Path = manifestPath
-	envelope.Evidence = append(envelope.Evidence, sjskills.Evidence{Kind: "manifest", Detail: fmt.Sprintf("created %s", manifestPath)})
+	envelope.Evidence = append(envelope.Evidence, published.Evidence(), sjskills.Evidence{Kind: "manifest", Detail: fmt.Sprintf("created %s", manifestPath)})
+	envelope.Warnings = append(envelope.Warnings, registryWarnings(published, time.Now())...)
 	return envelope
 }
 
 type preparedPlan struct {
+	registry     sjskills.Evidence
 	observedAt   time.Time
 	envelope     sjskills.Envelope
 	plan         sjskills.Plan
@@ -276,19 +332,26 @@ type preparedPlan struct {
 }
 
 func (a *application) plan(ctx context.Context, global bool) sjskills.Envelope {
-	prepared, envelope := a.prepare(ctx, global, sjskills.CommandOperationPlan)
+	prepared, envelope := a.prepare(ctx, global, sjskills.CommandOperationPlan, "")
 	if prepared == nil {
 		return envelope
 	}
 	return a.finishPrepared(prepared, envelope, "cleanup")
 }
 
-func (a *application) prepare(ctx context.Context, global bool, operation sjskills.CommandOperation) (*preparedPlan, sjskills.Envelope) {
+// prepare resolves the published registry afresh, or loads it at
+// registryCommit when a reviewed plan recorded one.
+func (a *application) prepare(ctx context.Context, global bool, operation sjskills.CommandOperation, registryCommit string) (*preparedPlan, sjskills.Envelope) {
 	envelope := a.base(operation)
-	registry, err := a.registry()
-	if err != nil {
-		return nil, a.invalid(operation, err)
+	load := registryLoader.Resolve
+	if registryCommit != "" {
+		load = registryAt(registryCommit)
 	}
+	published, err := a.registry(ctx, load)
+	if err != nil {
+		return nil, a.registryFailure(operation, err)
+	}
+	registry := published.Registry
 	request := sjskills.ResolveRequest{Registry: registry, Global: global}
 	var project *sjskills.ProjectRoot
 	if !global {
@@ -311,7 +374,7 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 	if err != nil {
 		return nil, a.invalid(operation, err)
 	}
-	prepared := &preparedPlan{envelope: envelope, plan: plan, expected: map[string]sjskills.TreeHash{}}
+	prepared := &preparedPlan{registry: published.Evidence(), envelope: envelope, plan: plan, expected: map[string]sjskills.TreeHash{}}
 	prepared.syncPlan(plan)
 
 	materialize := a.materialize
@@ -458,6 +521,7 @@ func (a *application) applyApproved(ctx context.Context, global, yes bool, appro
 		return a.invalid(sjskills.CommandOperationApply, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "apply.approvedPlan", Message: "approved plan evidence is available only for global apply"})
 	}
 	var reviewed sjskills.ReviewedPlan
+	registryCommit := ""
 	if global {
 		if approvedPlanPath == "" || approvedPlanSHA256 == "" {
 			return a.invalid(sjskills.CommandOperationApply, &sjskills.Issue{Code: sjskills.IssueMalformedInput, Path: "apply.approvedPlan", Message: "global apply requires --approved-plan and --approved-plan-sha256"})
@@ -478,8 +542,16 @@ func (a *application) applyApproved(ctx context.Context, global, yes bool, appro
 			}
 			return a.unavailable(sjskills.CommandOperationApply, errors.New("approved plan artifact could not be read"))
 		}
+		// Apply the registry the operator reviewed, even if main moved since.
+		var ok bool
+		if registryCommit, ok = reviewed.RegistryCommit(); !ok {
+			envelope := a.base(sjskills.CommandOperationApply)
+			envelope.Result = sjskills.ResultConflict
+			envelope.Error = &sjskills.Issue{Code: sjskills.IssueReconciliationConflict, Path: "apply.approvedPlan", Message: "approved plan does not record a published registry commit; review a new plan"}
+			return envelope
+		}
 	}
-	prepared, envelope := a.prepare(ctx, global, sjskills.CommandOperationApply)
+	prepared, envelope := a.prepare(ctx, global, sjskills.CommandOperationApply, registryCommit)
 	if prepared == nil {
 		return envelope
 	}
@@ -666,7 +738,7 @@ func (p *preparedPlan) syncPlan(plan sjskills.Plan) {
 	p.plan = plan
 	p.envelope.Plan = &p.plan
 	p.envelope.Warnings = append([]sjskills.Warning{}, plan.Warnings...)
-	p.envelope.Evidence = append([]sjskills.Evidence{{Kind: "registry", Detail: "embedded version 4"}}, plan.Evidence...)
+	p.envelope.Evidence = append([]sjskills.Evidence{p.registry}, plan.Evidence...)
 	for _, snapshot := range p.snapshots {
 		p.envelope.Evidence = append(p.envelope.Evidence, sjskills.Evidence{
 			Kind:   "expected-content",
@@ -1238,6 +1310,7 @@ func executeWithInput(ctx context.Context, args []string, stdin io.Reader, stdou
 		input:         stdin,
 		promptOutput:  stderr,
 		materialize:   productionMaterialize,
+		registries:    sjskills.RegistrySource{NoCache: commands.NoStatusCheck},
 	}
 	if err := parsed.Run(&commandContext{application: app, context: ctx}); err != nil {
 		if jsonMode {

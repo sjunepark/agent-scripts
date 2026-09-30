@@ -10,24 +10,25 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. Steps 1 and 2 are complete: `RegistrySource`
-(`internal/sjskills/registry_source.go`) resolves, fetches, validates, and
-caches the published registry, and the CLI loads its registry once per
-invocation. Production still reads the embedded registry until step 3.
+Proposed on 2026-09-30. Steps 1-3 are complete on `dev`, unreleased. The CLI
+reads the published registry through `RegistrySource`
+(`internal/sjskills/registry_source.go`), pins agent-scripts sources to the
+registry's commit, records commit and digest evidence, and binds global apply
+to the reviewed commit. The embedded registry data remains only as the Go test
+fixture and for the Node equality test until step 4.
 
-The executable embeds `internal/sjskills/data/registry-v4.json`
-(`internal/sjskills/registry.go`) and reads no other registry, while skill
-contents come from `.../tree/main/skills` at run time. The two can drift
-unnoticed: the CLI release notice compares version numbers only, and nothing
-records which commit supplied the contents. `PROGRESS.md` records that syncing
-a registry change on 2026-09-10 needed a temporary binary until v1.2.0 shipped it.
+Before this plan, the executable embedded
+`internal/sjskills/data/registry-v4.json` while skill contents came from
+`.../tree/main/skills` at run time, so the two could drift unnoticed.
+`PROGRESS.md` records that syncing a registry change on 2026-09-10 needed a
+temporary binary until v1.2.0 shipped it.
 
 ## Decisions
 
 - **Source of truth.** The binary embeds the registry's location (repository,
   branch `main`, path `skill-registry.json`), not its contents. Remove the
   embedded registry data and the Node test that keeps it equal to the root
-  file. Tests use fixtures through the existing `loadRegistry` seam.
+  file. Tests use fixtures through the CLI's `registryLoader` seam.
 - **One commit per invocation.** Resolve `main` to a commit once, fetch the
   registry at that commit, and pin the agent-scripts source for every skill to
   `.../tree/<commit>/skills`. Load the registry once per command and share it
@@ -76,8 +77,25 @@ a registry change on 2026-09-10 needed a temporary binary until v1.2.0 shipped i
    process on the status path. The registry comes from the raw URL at the
    resolved commit; a published version other than 4 fails closed with an
    update message and never falls back to a cached registry.
-3. Pin agent-scripts sources to the resolved commit and add registry
-   commit/digest evidence; make global apply reuse the reviewed commit.
+3. ~~Pin agent-scripts sources to the resolved commit and add registry
+   commit/digest evidence; make global apply reuse the reviewed commit.~~
+   Done 2026-09-30. Evidence reads
+   `sjunepark/agent-scripts@<commit> sha256:<digest>`; a reviewed plan without
+   it (from an embedded-registry release) must be re-reviewed. Public
+   `/tree/<commit>` GitHub sources are fetched with Git in Skills CLI's own
+   isolated environment, which keeps system configuration such as
+   `core.autocrlf`: a first attempt that disabled system configuration checked
+   out LF files on Windows and reported every CRLF-installed skill as an update.
+   A live read-only `plan --global` now matches the previous binary's
+   expected-content hashes exactly. The fetch strips inherited `GIT_*`, `GH_*`,
+   askpass, and token variables so hooks cannot redirect it into a caller's
+   repository. `Resolve` and `At` always fetch the registry bytes; a reviewed
+   commit that no longer exists is a conflict requiring a new plan.
+   `--no-status-check` skips the registry cache entirely, so it has no offline
+   fallback; step 5 documents this. Authenticated sources still disable system
+   Git configuration (LF checkouts on Windows), a pre-existing difference from
+   public sources. CLI integration tests build with the `sjskillstest` tag, which alone
+   lets the binary read a fixture registry server; release builds never set it.
 4. Remove the embedded registry data and equality test; move Go tests to
    fixtures.
 5. Update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
@@ -127,9 +145,7 @@ release step authorizes.
 
 ## Next action
 
-Implement step 3: switch production loading to `RegistrySource` (`Resolve`
-for plan/apply, `At` for reviewed global apply, `ForStatus`/`ForSelection`
-with stale labels elsewhere), pin agent-scripts sources to the resolved
-commit, and replace the `embedded version 4` evidence with commit and digest.
-Binary-level CLI tests route HTTPS through an unreachable proxy, so they will
-need a fake registry endpoint.
+Implement step 4: move `internal/sjskills/data/registry-v4.json` to a Go test
+fixture (`cmd/sjskills/registry_fixture_test.go` and the internal tests read it
+today), remove `EmbeddedRegistry` and the Node equality test, and keep
+`scripts/validate-skills` validating the root registry.
