@@ -13,8 +13,8 @@
    is proposed and requires separate evidence-bound authorization for each
    machine. Exact-content approval binding is delivered.
 2. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
-   is proposed so registry changes stop requiring an sjskills release; the
-   Skills CLI commit-pinning spike is next.
+   is proposed so registry changes stop requiring an sjskills release. The
+   spike chose a Git commit fetch; registry resolution and caching are next.
 
 ## Tasks
 

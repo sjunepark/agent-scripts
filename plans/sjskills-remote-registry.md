@@ -10,7 +10,7 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. Not started.
+Proposed on 2026-09-30. The step 1 spike is complete; implementation has not started.
 
 The executable embeds `internal/sjskills/data/registry-v4.json`
 (`internal/sjskills/registry.go`) and reads no other registry, while skill
@@ -61,10 +61,11 @@ a registry change on 2026-09-10 needed a temporary binary until v1.2.0 shipped i
 
 ## Sequence
 
-1. Spike: confirm Skills CLI 1.5.23 installs a public `.../tree/<sha>/skills`
-   source correctly (only the authenticated path handles commits today). If it
-   does not, materialize the agent-scripts source through the existing
-   commit-fetch path and record that choice here.
+1. ~~Spike: confirm Skills CLI 1.5.23 installs a commit-pinned public source.~~
+   Done 2026-09-30; see [Spike result](#spike-result). Materialize the
+   agent-scripts source by fetching the commit with Git and passing the local
+   `skills/` path to Skills CLI, generalizing the authenticated path's
+   commit fetch to anonymous public sources.
 2. Add registry resolution, fetch, validation, and cache with the fixed
    location; load once per invocation.
 3. Pin agent-scripts sources to the resolved commit and add registry
@@ -76,6 +77,26 @@ a registry change on 2026-09-10 needed a temporary binary until v1.2.0 shipped i
    that describe the embedded registry.
 6. Release a new minor version and install it on each machine under the
    existing release process.
+
+## Spike result
+
+Run on Windows on 2026-09-30 with the materializer's isolated environment and
+Skills CLI 1.5.23, installing `next-goal` from `bbae6d1`, whose tree differs
+from `main`:
+
+- `.../tree/<40-hex commit>/skills` fails: Skills CLI clones with
+  `--branch <ref>`, and Git reports the remote branch not found. A nonexistent
+  commit fails the same way. `.../tree/main/skills` installs correctly.
+- Anonymous `git init`, `fetch --depth=1 --no-tags <url> <commit>`, and
+  `checkout --detach FETCH_HEAD`, then `skills add <checkout>/skills`, installs
+  a tree identical to `git archive bbae6d1 skills/next-goal`.
+- Anonymous `git ls-remote <url> refs/heads/main` resolves `main` without API
+  rate limits, and `raw.githubusercontent.com/<owner>/<repo>/<commit>/skill-registry.json`
+  returns the registry at that commit, matching `git show`.
+
+Consequence: public agent-scripts materialization gains a Git prerequisite that
+today applies only to authenticated sources. Resolution uses `git ls-remote`;
+the registry fetch may use the raw URL or the same shallow checkout.
 
 ## Acceptance and validation
 
@@ -98,4 +119,4 @@ release step authorizes.
 
 ## Next action
 
-Run the step 1 spike.
+Implement step 2: registry resolution, fetch, validation, and cache.
