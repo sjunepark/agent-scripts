@@ -10,12 +10,12 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. Steps 1-3 are complete on `dev`, unreleased. The CLI
+Proposed on 2026-09-30. Steps 1-4 are complete on `dev`, unreleased. The CLI
 reads the published registry through `RegistrySource`
 (`internal/sjskills/registry_source.go`), pins agent-scripts sources to the
 registry's commit, records commit and digest evidence, and binds global apply
-to the reviewed commit. The embedded registry data remains only as the Go test
-fixture and for the Node equality test until step 4.
+to the reviewed commit. The binary embeds no registry data; Go tests use the
+frozen fixture `internal/sjskills/testdata/registry-v4.json`.
 
 Before this plan, the executable embedded
 `internal/sjskills/data/registry-v4.json` while skill contents came from
@@ -96,8 +96,10 @@ temporary binary until v1.2.0 shipped it.
    Git configuration (LF checkouts on Windows), a pre-existing difference from
    public sources. CLI integration tests build with the `sjskillstest` tag, which alone
    lets the binary read a fixture registry server; release builds never set it.
-4. Remove the embedded registry data and equality test; move Go tests to
-   fixtures.
+4. ~~Remove the embedded registry data and equality test; move Go tests to
+   fixtures.~~ Done 2026-09-30. The fixture is frozen: tests assert its catalog
+   counts, so catalog changes on `main` no longer touch Go tests. The Node test
+   still validates the root registry against the repository's skills.
 5. Update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
    `skills/sjskills/` (including its global-rollout reference), and comments
    that describe the embedded registry.
@@ -145,7 +147,10 @@ release step authorizes.
 
 ## Next action
 
-Implement step 4: move `internal/sjskills/data/registry-v4.json` to a Go test
-fixture (`cmd/sjskills/registry_fixture_test.go` and the internal tests read it
-today), remove `EmbeddedRegistry` and the Node equality test, and keep
-`scripts/validate-skills` validating the root registry.
+Implement step 5: update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
+`skills/sjskills/` (including its global-rollout reference), and code comments
+that still describe the embedded registry (`internal/sjskills/status.go`,
+`internal/sjskills/global_layout.go`). Document the Git prerequisite for
+agent-scripts skills, registry evidence and re-review of older plans, stale
+registry warnings, and that `--no-status-check` has no offline registry
+fallback.

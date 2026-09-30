@@ -533,7 +533,7 @@ func TestExternalProjectApplyInstallsIdempotently(t *testing.T) {
 		t.Fatalf("idempotent global apply code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +633,7 @@ func TestExternalGlobalUpdateAndRestoreLifecycle(t *testing.T) {
 		t.Fatalf("occupied global restore code=%d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1833,12 +1833,12 @@ func TestRenderHumanShowsReviewableOperationsAndRecoveryCommand(t *testing.T) {
 }
 
 func TestApplicationMaterializationFailuresAndLifecycle(t *testing.T) {
-	registry, err := sjskills.EmbeddedRegistry()
+	registry, err := fixtureRegistryValue()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(registry.Global.Baseline) == 0 {
-		t.Fatal("embedded registry has no global baseline")
+		t.Fatal("fixture registry has no global baseline")
 	}
 
 	t.Run("materialize failure preserves plan", func(t *testing.T) {

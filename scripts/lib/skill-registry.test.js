@@ -33,15 +33,13 @@ function assertErrorIncludes(errors, expected) {
   );
 }
 
-test("live registry is the validated version 4 contract embedded by sjskills", () => {
+test("live registry is the validated version 4 contract published to sjskills", () => {
   const live = liveRegistry();
-  const embedded = readJSON("internal/sjskills/data/registry-v4.json");
   const repositorySkillNames = fs
     .readdirSync(path.join(repositoryRoot, "skills"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
 
-  assert.deepEqual(live, embedded);
   assert.deepEqual(validateSkillRegistry(live, { repositorySkillNames }), []);
 });
 

@@ -9,9 +9,19 @@ import (
 	"testing"
 )
 
+// registryV4JSON is a frozen version 4 registry. Tests assert its catalog
+// counts, so it deliberately does not follow the published skill-registry.json.
+var registryV4JSON = func() []byte {
+	data, err := os.ReadFile(filepath.Join("testdata", "registry-v4.json"))
+	if err != nil {
+		panic(err)
+	}
+	return data
+}()
+
 func fixtureRegistry(t *testing.T) Registry {
 	t.Helper()
-	registry, err := EmbeddedRegistry()
+	registry, err := ParseRegistry(registryV4JSON)
 	if err != nil {
 		t.Fatal(err)
 	}

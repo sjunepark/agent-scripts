@@ -15,7 +15,7 @@ import (
 // fixtureRegistryCommit is the commit the fake published source advertises.
 const fixtureRegistryCommit = "0123456789abcdef0123456789abcdef01234567"
 
-const fixtureRegistryPath = "../../internal/sjskills/data/registry-v4.json"
+const fixtureRegistryPath = "../../internal/sjskills/testdata/registry-v4.json"
 
 // registryFunc adapts one load result to every registry policy for
 // in-process tests; the reviewed commit passed to At is ignored.
@@ -46,6 +46,11 @@ func fixtureRegistry() (sjskills.PublishedRegistry, error) {
 }
 
 func init() { defaultRegistries = registryFunc(fixtureRegistry) }
+
+func fixtureRegistryValue() (sjskills.Registry, error) {
+	published, err := fixtureRegistry()
+	return published.Registry, err
+}
 
 // startFixtureRegistryServer serves the fixture registry as the published
 // source for CLI binaries built with the sjskillstest tag.
