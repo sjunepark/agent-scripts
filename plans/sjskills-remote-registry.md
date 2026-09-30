@@ -10,7 +10,8 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. Steps 1-5 are complete on `dev`, unreleased. The CLI
+Proposed on 2026-09-30. Steps 1-5 merged to `main` in PR #26 and shipped in
+`sjskills-v1.4.0`; step 6 is installed on the Windows development machine. The CLI
 reads the published registry through `RegistrySource`
 (`internal/sjskills/registry_source.go`), pins agent-scripts sources to the
 registry's commit, records commit and digest evidence, and binds global apply
@@ -108,7 +109,8 @@ temporary binary until v1.2.0 shipped it.
    cache, since the installed binary runs offline and embeds no registry; it
    passed on windows/amd64.
 6. Release a new minor version and install it on each machine under the
-   existing release process.
+   existing release process. `sjskills-v1.4.0` was published on 2026-09-30 and
+   installed on the Windows development machine; other machines remain.
 
 ## Spike result
 
@@ -151,9 +153,6 @@ release step authorizes.
 
 ## Next action
 
-Step 6: merge `dev` into `main` through an integration PR so the native
-matrix (macOS Intel, macOS Apple silicon, Windows x64) runs, then release a new
-minor version under `docs/sjskills-releases.md` and install it on each machine.
-Publishing and per-machine installation need the user's go-ahead. Merging also
-publishes the registry the new binary reads, so confirm `skill-registry.json`
-on `main` is intended first.
+Install `sjskills-v1.4.0` on the remaining machines with the release installer,
+then run a configured sync on each. Mark this plan complete once every machine
+runs v1.4.0.

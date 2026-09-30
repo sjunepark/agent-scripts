@@ -11,8 +11,8 @@
 
 1. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
    is proposed so registry changes stop requiring an sjskills release.
-   Implementation and docs are complete on `dev`; the integration PR and
-   release remain.
+   Shipped in `sjskills-v1.4.0` and installed on the Windows machine;
+   installation on the remaining machines remains.
 
 ## Tasks
 
