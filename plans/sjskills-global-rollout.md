@@ -1,7 +1,22 @@
 # Global reconciliation rollout
 
-Status: evidence binding implemented; configured sync uses request authority.
-Per-machine outcomes belong with their retained execution artifacts.
+## Outcome
+
+Global skill reconciliation runs safely on any machine from a configured-sync
+request, bound to agent-reviewed plan evidence, without a separate human
+approval ceremony.
+
+## Current state
+
+Complete. Evidence binding is implemented and configured sync uses request
+authority. On 2026-09-30, two configured global syncs on `DESKTOP-V33SCUA` followed
+this contract with verified sjskills v1.3.0 and ended with exact final global
+plans. Per-machine outcomes belong with their retained execution artifacts, not
+with this plan.
+
+## Next action
+
+None — complete.
 
 ## Delivered contract
 

@@ -9,10 +9,7 @@
 
 ## Plans
 
-1. [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md)
-   is proposed and requires separate evidence-bound authorization for each
-   machine. Exact-content approval binding is delivered.
-2. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
+1. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
    is proposed so registry changes stop requiring an sjskills release. The
    spike chose a Git commit fetch; registry resolution and caching are next.
 
@@ -22,6 +19,9 @@ _None._
 
 ## Completed
 
+- [Roll out the fixed global skill baseline](plans/sjskills-global-rollout.md):
+  evidence-bound configured sync is delivered; per-machine runs keep their own
+  execution evidence.
 - [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
   is recorded as shipped in v1.3.0; live private-skill installation remains separate.
 - [Prepare and spawn the next goal](tasks/next-goal-preparation-spawn.md)
