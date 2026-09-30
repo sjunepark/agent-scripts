@@ -20,14 +20,13 @@ Use `bunx skills list -g` to inspect machine-wide global installs.
 For the harnesses used most often in this repo:
 
 - Claude Code global path: `~/.claude/skills/`
-- Pi global path: `~/.pi/agent/skills/`
 - Default raw Codex global path: `~/.codex/skills/`
 - Universal shared user-scope path: `~/.agents/skills/`
 
 This repository's `sjskills` reconciler deliberately invokes the explicit Codex
 target and defensively scopes the subprocess `CODEX_HOME` to `~/.agents`. That
-pins the current shared destination for Codex/Pi discovery without passing a Pi
-target, even if the caller has customized Codex's environment.
+pins the current shared destination for Codex discovery, even if the caller has
+customized Codex's environment.
 
 If the same skill `name` exists in more than one discovered location, discovery can show multiple entries instead of merging them.
 

@@ -64,7 +64,7 @@ already supplied for the exact current queue.
    PR evidence. Start from its current fetched state; use an existing appropriate
    issue branch/PR when present. Preserve unrelated changes by isolating the
    work when necessary. Use the repository's branch convention, defaulting to
-   `codex/` when none exists.
+   the host's agent prefix (`codex/` or `claude/`) when none exists.
 2. Implement the issue's acceptance criteria and relevant regression coverage.
    Update affected documentation. Keep necessary supporting changes within the
    issue's outcome; surface newly discovered independent work rather than

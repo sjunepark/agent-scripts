@@ -7,14 +7,13 @@ Use the same scope and agent filters used for installation so inspection, update
 ```bash
 bunx skills list
 bunx skills list -g
-bunx skills list -g -a pi
 bunx skills list -g -a claude-code
 ```
 
-## Remove a global skill from Claude Code and Pi
+## Remove a global skill from Claude Code
 
 ```bash
-bunx skills remove find-skills -g -a claude-code -a pi -y
+bunx skills remove find-skills -g -a claude-code -y
 ```
 
 ## Update installed skills

@@ -33,7 +33,6 @@ publication, reconciliation, or cleanup.
 
 - Default to symlink mode; use `--copy` when the user requests it or for a scoped global install of selected repo skills.
 - Use `--skill '*'` only when the user explicitly wants every skill from a source. In the current `skills` CLI, `--all` expands to `--skill '*' --agent '*' -y`, which can unintentionally recreate shared `~/.agents/skills` installs.
-- Never synthesize a Pi target for this repository's fixed global baseline; Pi discovers the selected shared-root copy.
 - Publish changed repository skills before reconciliation. A local edit or unmerged branch is not present at a registry source pinned to `main`.
 - For `sjskills` reconciliation, use the request's configured scope and review the plan before apply. A sync request supplies authority; global apply still requires the agent-reviewed JSON through `--approved-plan` and its digest through `--approved-plan-sha256`. Use `--yes` within existing authority, preserve conflict checks, and never infer sync or restore from inspection or repository validation.
 - Treat installed skills as executable instructions; avoid untrusted sources.
