@@ -94,7 +94,10 @@ func (c *restoreCommand) Run(ctx *commandContext) error {
 
 type application struct {
 	loadRegistry        func() (sjskills.Registry, error)
-	noStatusCheck       bool
+	registryLoaded      bool
+	registryValue       sjskills.Registry
+	registryErr         error
+	noStatusCheck      bool
 	statusSnapshot      *commandStatusSnapshot
 	cliStatusService    *sjskills.CLIStatusService
 	statusService       *sjskills.StatusService
@@ -144,11 +147,18 @@ func productionMaterialize(ctx context.Context, skills []sjskills.DesiredSkill) 
 	return sjskills.NewMaterializer(sjskills.MaterializerConfig{}).Materialize(ctx, skills)
 }
 
+// registry loads the registry at most once per invocation, so preparation,
+// the status snapshot, and incidental notices all read the same desired state.
 func (a *application) registry() (sjskills.Registry, error) {
-	if a.loadRegistry != nil {
-		return a.loadRegistry()
+	if !a.registryLoaded {
+		if a.loadRegistry != nil {
+			a.registryValue, a.registryErr = a.loadRegistry()
+		} else {
+			a.registryValue, a.registryErr = sjskills.EmbeddedRegistry()
+		}
+		a.registryLoaded = true
 	}
-	return sjskills.EmbeddedRegistry()
+	return a.registryValue, a.registryErr
 }
 
 func (a *application) base(operation sjskills.CommandOperation) sjskills.Envelope {

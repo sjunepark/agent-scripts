@@ -405,3 +405,30 @@ func TestDefaultStatusAlreadyCancelled(t *testing.T) {
 		t.Fatalf("cancel %d %q %q", code, out.String(), errout.String())
 	}
 }
+
+func TestRegistryLoadsOncePerInvocation(t *testing.T) {
+	f := newStatusCLIFixture(t, "")
+	materializer, _ := testInjectedMaterializer(t)
+	service := sjskills.StatusService{CacheRoot: f.cache, Refresh: func(context.Context, []sjskills.DesiredSkill) (sjskills.StatusSnapshot, error) {
+		return sjskills.StatusSnapshot{}, errors.New("test upstream unavailable")
+	}}
+	loads := 0
+	app := &application{
+		directory:        f.project,
+		homeDirectory:    func() (string, error) { return f.home, nil },
+		statusService:    &service,
+		cliStatusService: f.cliService(),
+		materialize:      materializer.Materialize,
+		loadRegistry: func() (sjskills.Registry, error) {
+			loads++
+			return sjskills.EmbeddedRegistry()
+		},
+	}
+	if envelope := app.plan(context.Background(), true); envelope.Result != sjskills.ResultSuccess {
+		t.Fatalf("plan %+v", envelope.Error)
+	}
+	app.collectStatus(context.Background())
+	if loads != 1 {
+		t.Fatalf("registry loaded %d times", loads)
+	}
+}

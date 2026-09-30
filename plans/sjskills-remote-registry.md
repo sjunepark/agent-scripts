@@ -10,7 +10,10 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. The step 1 spike is complete; implementation has not started.
+Proposed on 2026-09-30. Steps 1 and 2 are complete: `RegistrySource`
+(`internal/sjskills/registry_source.go`) resolves, fetches, validates, and
+caches the published registry, and the CLI loads its registry once per
+invocation. Production still reads the embedded registry until step 3.
 
 The executable embeds `internal/sjskills/data/registry-v4.json`
 (`internal/sjskills/registry.go`) and reads no other registry, while skill
@@ -66,8 +69,13 @@ a registry change on 2026-09-10 needed a temporary binary until v1.2.0 shipped i
    agent-scripts source by fetching the commit with Git and passing the local
    `skills/` path to Skills CLI, generalizing the authenticated path's
    commit fetch to anonymous public sources.
-2. Add registry resolution, fetch, validation, and cache with the fixed
-   location; load once per invocation.
+2. ~~Add registry resolution, fetch, validation, and cache with the fixed
+   location; load once per invocation.~~ Done 2026-09-30. Resolution reads
+   Git's anonymous smart-HTTP ref advertisement for `refs/heads/main` instead
+   of running `git ls-remote`: same protocol and rate-limit profile, but no
+   process on the status path. The registry comes from the raw URL at the
+   resolved commit; a published version other than 4 fails closed with an
+   update message and never falls back to a cached registry.
 3. Pin agent-scripts sources to the resolved commit and add registry
    commit/digest evidence; make global apply reuse the reviewed commit.
 4. Remove the embedded registry data and equality test; move Go tests to
@@ -95,8 +103,8 @@ from `main`:
   returns the registry at that commit, matching `git show`.
 
 Consequence: public agent-scripts materialization gains a Git prerequisite that
-today applies only to authenticated sources. Resolution uses `git ls-remote`;
-the registry fetch may use the raw URL or the same shallow checkout.
+today applies only to authenticated sources. Resolution may use `git ls-remote`
+or the equivalent smart-HTTP ref advertisement; step 2 chose the latter.
 
 ## Acceptance and validation
 
@@ -119,4 +127,9 @@ release step authorizes.
 
 ## Next action
 
-Implement step 2: registry resolution, fetch, validation, and cache.
+Implement step 3: switch production loading to `RegistrySource` (`Resolve`
+for plan/apply, `At` for reviewed global apply, `ForStatus`/`ForSelection`
+with stale labels elsewhere), pin agent-scripts sources to the resolved
+commit, and replace the `embedded version 4` evidence with commit and digest.
+Binary-level CLI tests route HTTPS through an unreachable proxy, so they will
+need a fake registry endpoint.

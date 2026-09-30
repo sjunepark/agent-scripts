@@ -10,8 +10,9 @@
 ## Plans
 
 1. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
-   is proposed so registry changes stop requiring an sjskills release. The
-   spike chose a Git commit fetch; registry resolution and caching are next.
+   is proposed so registry changes stop requiring an sjskills release.
+   Registry resolution and caching are implemented; switching production
+   loading, commit pinning, and evidence are next.
 
 ## Tasks
 
