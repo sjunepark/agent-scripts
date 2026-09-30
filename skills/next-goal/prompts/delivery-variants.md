@@ -18,6 +18,17 @@ When the user explicitly asks for both variants, return exactly two `text` fence
 - **PR delivery** — require sequential PR creation, review, and merge.
 - **No PR** — require completion without PR creation.
 
+## Goal Host
+
+Render the contract for the host whose `/goal` will run it: Codex for a
+launched `spawn`, otherwise the host named by the user, otherwise the current
+host. The templates below mark skill references as `{skill:name}`. Render each
+as `$name` for Codex and as `the name skill` for Claude Code, which has no `$`
+syntax and does not invoke a typed `/name` inside a goal condition. Claude Code
+limits the condition to 4,000 characters.
+
+## Contract Shape
+
 Assume each new session has none of this conversation. Emit a closed routing envelope whose only job is to carry scope, recovery, and delivery into that session. Let cited repository documents carry requirements, design detail, acceptance criteria, commands, and checklists.
 
 Use as few words as the boundary permits and cap each fenced prompt at 220 words by default. Exceed that cap only when more included results or explicit exclusions are required to keep the boundary closed and unambiguous. Emit exactly one structured contract and keep the complete delivery lifecycle inside its `Delivery` field.
@@ -33,17 +44,17 @@ Goal contract
 - Complete when:
 - Excluded:
 - Authority: <use the applicable exact authority form below>
-- Resume: Initialize this contract with $progress goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.
+- Resume: Initialize this contract with {skill:progress} in goal mode before work; recover it before every resume, continuation, compaction, or handoff; stop if recovery fails.
 - Delivery: <variant-specific lifecycle below>
 ```
 
 Keep the envelope tight:
 
 - Write `Outcome` as one sentence.
-- Name each included result with a short semantic label and the fewest authoritative source paths. Let the sources carry implementation and acceptance detail; applicable instructions and `$progress` supply routing documents.
+- Name each included result with a short semantic label and the fewest authoritative source paths. Let the sources carry implementation and acceptance detail; applicable instructions and the `progress` skill supply routing documents.
 - Default `Complete when` to: `Every included result achieves its cited outcome and applicable completion criteria within its named semantic boundary; repository-required validation and review pass; planning is truthful; Delivery finishes.` Add only a missing cross-cutting terminal condition needed for this goal.
 - Populate `Excluded` from exactly two inputs: the immediate next out-of-scope milestone and exclusions stated directly by the user. Keep every later, unrelated, or merely plan-documented item implicit under `Authority`.
-- Let applicable `AGENTS.md`, `$progress`, and the delivery skills supply standard execution behavior. Add execution text only for a missing permission or invariant required in the fresh session.
+- Let applicable repository instructions, the `progress` skill, and the delivery skills supply standard execution behavior. Add execution text only for a missing permission or invariant required in the fresh session.
 
 When both variants are requested, keep every contract field except `Delivery` textually identical.
 
@@ -70,20 +81,21 @@ When the evidence is close, choose the option that yields the fewest substantial
 
 Use this `Delivery` field:
 
-`- Delivery: PR delivery — use $progress's PR lifecycle and the fewest sequential reviewable PRs; finish each through $create-pr and $address-pr-feedback before starting the next, including the final implementation slice.`
+`- Delivery: PR delivery — use {skill:progress}'s PR lifecycle and the fewest sequential reviewable PRs; finish each through {skill:create-pr} and {skill:address-pr-feedback} before starting the next, including the final implementation slice.`
 
 ## No PR
 
 Use this `Delivery` field:
 
-`- Delivery: No PR — use $progress's no-PR lifecycle, preserve coherent commits for later reviewed aggregation, and reserve PR creation and PR-only feedback workflows for that later delivery.`
+`- Delivery: No PR — use {skill:progress}'s no-PR lifecycle, preserve coherent commits for later reviewed aggregation, and reserve PR creation and PR-only feedback workflows for that later delivery.`
 
 ## Final Check
 
 Verify that the recommendation follows the expected review-surface rule and every emitted envelope:
 
 - is actionable without the conversation;
-- names a durable state path and invokes `$progress` for initialization, recovery, and fail-closed behavior;
+- names a durable state path and invokes the `progress` skill for initialization, recovery, and fail-closed behavior;
+- writes skill references in the goal host's form;
 - uses short semantic result labels while cited documents carry the detail;
 - includes only boundary-relevant exclusions;
 - states each invariant once;

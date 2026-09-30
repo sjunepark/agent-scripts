@@ -31,6 +31,23 @@ one preserves the result. If a missing prerequisite prevents correct completion,
 hold the affected action and report its consequence; continue independent work.
 Do not claim completion after silently skipping required work.
 
+## Host-bound capabilities
+
+Check the skill against every client it installs to, not only the one it was
+written in. Invocation gating controls selection; it does not make required
+tools, model settings, or commands exist in that client.
+
+- When the whole capability depends on one client, narrow its install targets.
+- When only a mode depends on one client, name that host in the mode and the
+  description, check the capability before mutation, and state the fallback.
+- When a named setting has an equivalent elsewhere, map it per client and
+  report settings that could not be confirmed.
+
+Refer to other skills by name in shared runtime text. Invocation syntax differs
+between clients (`$name` in Codex, `/name` in Claude Code), and Claude Code's
+model cannot load a skill that sets `disable-model-invocation`. Use host syntax
+only in text generated for a known host, such as a prompt the user will paste.
+
 ## Third-party material
 
 When merging or reusing text, code, templates, examples, or assets, inspect

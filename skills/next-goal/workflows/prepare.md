@@ -11,7 +11,7 @@ affected step; do not claim a prepared handoff.
    the current discussion, selected project, authoritative planning scope, and
    prior decisions. If the scope is too small or externally blocked, finish
    under the entry point without inventing planning work.
-2. Invoke `$progress` for planning only. Update the existing authoritative plan
+2. Invoke the `progress` skill for planning only. Update the existing authoritative plan
    and index, or create them using its organize workflow when absent. Capture
    the outcome, current evidence, intended behavior and design, dependencies,
    implementation sequence, acceptance and validation, and next action to the
@@ -24,7 +24,7 @@ affected step; do not claim a prepared handoff.
    Finish independent planning while an answer is pending. Never mark an
    unanswered decision settled or start implementation to fill a planning gap.
 4. Run one bounded review of the preparation against the selected outcome and
-   repository evidence, using `$code-review` when available and repository-
+   repository evidence, using the `code-review` skill when available and repository-
    required checks. Apply safe planning fixes, reconcile affected docs when
    required, and validate changed links and acceptance conditions. Reuse a
    sufficient existing plan without cosmetic rewrites or another review when

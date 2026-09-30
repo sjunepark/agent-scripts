@@ -1,14 +1,14 @@
 ---
 name: delegate
-description: "Orchestrate code and file implementation through narrow GPT-5.6 Luna subagent assignments, then independently review and integrate the result. Explicit invocation only."
+description: "Orchestrate code and file implementation through narrow subagent assignments (GPT-5.6 Luna in Codex, Sonnet 5.5 in Claude Code), then independently review and integrate the result. Explicit invocation only."
 disable-model-invocation: true
 ---
 
 # Delegate
 
 The parent owns the complete requested outcome, decomposition, decisions,
-review, validation, and final response. GPT-5.6 Luna workers perform substantive
-implementation in narrow slices. The parent may directly make a clearly correct,
+review, validation, and final response. Worker subagents on the host's designated
+model perform substantive implementation in narrow slices. The parent may directly make a clearly correct,
 localized, low-risk edit when delegation and review would cost more than making
 and validating it.
 
@@ -27,11 +27,14 @@ validation meaningless; this does not justify a broad assignment.
 
 ## Dispatch with complete context
 
-Use one primary implementer per slice with these exact settings:
+Use one primary implementer per slice with the host's settings:
 
-- `model: "gpt-5.6-luna"`
-- `reasoning_effort: "max"`
-- `fork_turns: "none"`
+- **Codex:** `model: "gpt-5.6-luna"`, `reasoning_effort: "max"`,
+  `fork_turns: "none"`.
+- **Claude Code:** Sonnet 5.5 at medium effort, in a fresh context. The Agent
+  tool sets the model per call but not effort, so prefer an available agent
+  type whose definition sets `model: sonnet` and `effort: medium`; otherwise
+  pass `model: "sonnet"` and report that effort was inherited from the session.
 
 The self-contained prompt must reproduce the original user request verbatim and
 include, without paraphrasing, compressing, or omitting, every known requirement,

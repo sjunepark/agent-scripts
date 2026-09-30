@@ -1,7 +1,9 @@
 # Spawn a Codex Goal
 
 Use only for an explicit `spawn` operation or equivalent request to prepare and
-create a new task. Requires Codex app task tools: `list_projects`,
+create a new task. Codex only; Claude Code lacks these task tools, so there
+apply the unavailable-task-tools rule under Resolve Arguments and Target.
+Requires Codex app task tools: `list_projects`,
 `create_thread`, `list_threads`, `read_thread`, and `wait_threads`. The child
 requires native `create_goal`, `get_goal`, and `update_goal`, plus `$progress`.
 Use the available tools' schemas as authority for supported arguments and

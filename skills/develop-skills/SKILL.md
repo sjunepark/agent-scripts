@@ -22,8 +22,9 @@ Read the route needed for the requested operation, not every workflow:
   selection evidence. For edits, use the checks relevant to what changed.
 - [Authoring rubric](rubrics/authoring.md) for reviewing the candidate's scope,
   instruction quality, and completion boundaries.
-- [Portability contract](references/portability.md) when creating a package or
-  changing its structure, metadata, dependencies, or cross-client assumptions.
+- [Portability contract](references/portability.md) when creating a package,
+  changing its structure, metadata, dependencies, or cross-client assumptions,
+  or auditing a skill that installs to several clients.
 - [Codex invocation policy](guides/codex-invocation.md) when creating or changing
   Codex adapter settings.
 - [Claude invocation policy](guides/claude-invocation.md) when a manual-only

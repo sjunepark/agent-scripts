@@ -10,7 +10,7 @@ Discover the substantial next-goal scopes supported by repository evidence. Use 
 
 Revalidate the selected scope, pass the readiness gate, recommend PR delivery or later aggregation based on expected change size, and generate one compact fresh-session routing envelope with a closed execution contract. Scope selection does not require a separate user turn. Generate a non-recommended delivery prompt only when the user explicitly requests that variant, alone or alongside the recommendation.
 
-Keep scope discovery and selection read-only. Preparation is a separately authorized phase described below; after it finishes, revalidate the same boundary from the resulting repository state. When returning a goal prompt, keep prerequisite results in commentary so the final response remains directly copyable into `/goal`. Put `$progress` goal tracking in the contract so the goal-running session initializes durable goal state.
+Keep scope discovery and selection read-only. Preparation is a separately authorized phase described below; after it finishes, revalidate the same boundary from the resulting repository state. When returning a goal prompt, keep prerequisite results in commentary so the final response remains directly copyable into `/goal`. Put `progress` skill goal tracking in the contract so the goal-running session initializes durable goal state. Codex and Claude Code both provide `/goal`; the delivery variants own rendering the contract for the host that will run it.
 
 ## Choose the Operation
 
@@ -20,19 +20,19 @@ These are skill invocation arguments, not shell commands:
 | --- | --- |
 | (none) | Select and return a prompt; no mutation by default. |
 | `prepare` | Select, complete and review the detailed plan, commit relevant preparation, then return a prompt. |
-| `spawn [model] [reasoning]` | Prepare, then create one new Codex task from the prepared state and start a native goal there. |
+| `spawn [model] [reasoning]` | Codex only. Prepare, then create one new Codex task from the prepared state and start a native goal there. |
 
 Honor an explicit prompt-only, preview, no-commit, or wait instruction over these defaults. A mention in a quote, example, or skill-design discussion does not request execution. Model arguments belong only to `spawn`; do not infer spawning from a model name alone. Keep explicit invocation policy unchanged.
 
 For `prepare` and `spawn`, read [Prepare a goal](workflows/prepare.md) before mutation. Preparation authorizes planning and its scoped commit, not implementation or a blanket commit of existing work. Reuse existing user decisions and delegated judgment; ask only for consequential decisions they cannot resolve.
 
-For `spawn`, also read [Spawn a Codex goal](workflows/spawn.md) before preparation for capability, target, and argument checks. This mode explicitly requests a new task starting from the current prepared Git state in the selected project; it never means an ordinary subagent. Model aliases are `astra` (GPT-6 Astra, medium) and `luna` (GPT-5.6 Luna, max); the spawn workflow owns exact tool arguments and optional overrides. With no model, default to `astra medium`; honor explicit model and reasoning overrides.
+For `spawn`, also read [Spawn a Codex goal](workflows/spawn.md) before preparation for capability, target, and argument checks. This mode explicitly requests a new task starting from the current prepared Git state in the selected project; it never means an ordinary subagent. Claude Code cannot create such tasks; there, `spawn` completes preparation and returns the contract with that launch limitation. Model aliases are `astra` (GPT-6 Astra, medium) and `luna` (GPT-5.6 Luna, max); the spawn workflow owns exact tool arguments and optional overrides. With no model, default to `astra medium`; honor explicit model and reasoning overrides.
 
 Run steps 1–3 to resolve the outcome. In `prepare` or `spawn` mode, then perform the preparation workflow and revalidate steps 1–3 before the readiness gate. An independently requested prerequisite edit or commit may finish before initial discovery, as in the existing combined workflow. Keep the selected operation through planning repair and follow-up answers; do not repeat finished preparation or create duplicate tasks.
 
 ## 1. Establish Current State
 
-1. Read applicable `AGENTS.md` files and resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow repository conventions and links. When concurrent worktrees or scoped roadmaps exist, select the current worktree's planning namespace; read other scopes only for an explicitly requested aggregate goal. When no plan exists, infer candidates from instructions, code, tests, and history.
+1. Read applicable `AGENTS.md` or `CLAUDE.md` files and resolve the authoritative active `PLAN`, `TODO`, `ROADMAP`, progress, or handoff documents. Honor user-named documents; otherwise follow repository conventions and links. When concurrent worktrees or scoped roadmaps exist, select the current worktree's planning namespace; read other scopes only for an explicitly requested aggregate goal. When no plan exists, infer candidates from instructions, code, tests, and history.
 2. Inspect git status and recent history, then read only enough implementation and validation evidence to detect stale plan claims, completed work, real prerequisites, and blockers.
 3. Identify candidate outcomes, constraints, missing evidence, and consequential unresolved decisions. Leave user-owned implementation questions for the readiness gate so every such question carries the delegation-or-repair choice; choosing the goal boundary belongs to the following scope-choice step.
 
@@ -81,7 +81,7 @@ Before the readiness gate, reduce the selected scope to this closed routing enve
 - **Excluded work** — exactly the immediate next out-of-scope milestone plus exclusions stated directly by the user. Authority supplies the complete boundary for every later, unrelated, or merely plan-documented item.
 - **Authority** — allow only the smallest bounded work necessary for an included result. When the readiness gate passed by delegation, also authorize the goal-running agent to resolve remaining decisions within the closed outcome using its best judgment. Record anything outside the boundary for later and require explicit user direction for expansion or external actions not covered by the selected contract and delivery lifecycle.
 - **Resume invariant** — at every resumed turn, automatic continuation,
-  compaction recovery, or handoff, invoke `$progress` in goal mode and recover
+  compaction recovery, or handoff, invoke the `progress` skill in goal mode and recover
   the named goal state before selecting or starting more work.
 - **Delivery** — the selected lifecycle and its skill routing, kept inside the contract so recovery preserves it.
 
@@ -99,7 +99,7 @@ Apply that choice within its stated scope. Otherwise explain the specific
 planning gaps and ask them to choose:
 
 1. authorize the goal-running agent to resolve the remaining decisions within the closed outcome using its best judgment; or
-2. repair planning first with `$interview` followed by `$progress`, then rerun goal selection.
+2. repair planning first with the `interview` skill followed by the `progress` skill, then rerun goal selection.
 
 Emit no goal prompt until an applicable user choice resolves the gate.
 Delegation passes the gate only for decisions inside the supported outcome; it
@@ -107,7 +107,7 @@ never adds results, expands scope, or grants external authority. Record that
 delegation in the generated contract's `Authority` field so the goal-running
 agent does not ask again merely because the cited plans left those decisions open.
 
-If the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use `$interview` to settle consequential decisions, then `$progress` to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. Planning repair does not erase an already selected scope; revalidate and retain it unless the new evidence materially changes its boundary, in which case resolve the scope again under step 2. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.
+If the user chooses planning repair, treat that answer as an explicit request for the separate mutating phase: use the `interview` skill to settle consequential decisions, then the `progress` skill to update the authoritative planning documents. Restart current-state resolution from the resulting repository state and keep the renewed selection phase read-only. Planning repair does not erase an already selected scope; revalidate and retain it unless the new evidence materially changes its boundary, in which case resolve the scope again under step 2. When no closed outcome can be supported, explain why delegation is unavailable and ask to repair planning before goal selection.
 
 The gate is complete only when planning is sufficient or the user has explicitly delegated the remaining decisions within a supported closed outcome. Finalize every routing-envelope field after it passes.
 
@@ -117,8 +117,9 @@ The gate is complete only when planning is sufficient or the user has explicitly
 - When the scope **remains unresolved** or the user requested options first, return only the compact choice set, recommendation, and selection question from step 2. Do not read the delivery-variant instructions or emit a goal prompt.
 - Once the scope is selected, the evidence establishes that `/goal` **is warranted**, and the readiness gate passes, read and follow [prompts/delivery-variants.md](prompts/delivery-variants.md).
 - In `spawn` mode, pass one selected delivery contract to the spawn workflow instead of returning the prompt-only response below. Asking for both delivery variants does not authorize two tasks; resolve which lifecycle to execute before creating one.
+- When `spawn` cannot launch, as in Claude Code, state the launch limitation and the prepared commit in one short line, then return the prompt rendered for the current host as below.
 - By default, return only the recommended prompt as one unlabeled `text` fenced block. Put only the body to enter after `/goal` inside it, with no prose before or after the fence.
 - Honor an explicit request for one named delivery variant even when it differs from the evidence-based recommendation; identify the emitted variant through its `Delivery` field.
 - When the user explicitly requests both variants, return only the two `text` fenced prompt blocks, identify the variant inside each prompt's `Delivery` field, put the same closed scope contract inside both prompt bodies, and vary only the delivery mechanics and `Delivery` field.
 
-Before responding, verify that scope discovery and selection stayed read-only, any preparation stayed within its authorized phase, and only a requested spawn created a task. The selection session never creates its own native goal or durable goal file. For prompt output, verify readiness and return only the requested fenced contract; for spawn, report the actual startup state under the spawn workflow.
+Before responding, verify that scope discovery and selection stayed read-only, any preparation stayed within its authorized phase, and only a requested spawn created a task. The selection session never creates its own native goal or durable goal file. For prompt output, verify readiness and return only the requested fenced contract; for spawn, report the actual startup state under the spawn workflow or the launch limitation.

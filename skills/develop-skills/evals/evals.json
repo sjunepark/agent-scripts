@@ -114,6 +114,12 @@
       "prompt": "Two manual-only skills in this catalog install to both Codex and Claude Code. Each has `allow_implicit_invocation: false` in agents/openai.yaml and 'Explicit invocation only' in its description. Skill A is invoked only by users. Skill B is also loaded by name from a shared global instruction that tells the agent to run it after code review. In Claude Code both skills still appear in the automatic skill catalog. Decide the frontmatter change for each skill and the evidence needed afterward. This is a decision-only simulation; do not edit files.",
       "expected_output": "Add `disable-model-invocation: true` to Skill A only, keeping it consistent with the Codex adapter. Leave Skill B model-invocable because the field would block the named route; its description carries the manual-only intent. Do not add other client-specific frontmatter or fork either skill. Verify through Claude Code discovery that explicit /skill-name loads Skill A and an uninvoked in-scope request does not, and do not treat Codex evidence as covering Claude.",
       "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "Audit two catalog skills that install to both Codex and Claude Code after Claude support was added. Skill A's default mode only reads the repository and returns a prompt, but its `launch` mode requires Codex app task-creation tools that Claude Code lacks. Skill B's entire workflow dispatches subagents pinned to a Codex-only model and refuses to substitute a model. Both already set `disable-model-invocation: true`. Skill A's emitted prompt tells the executing session to use `$progress`. Decide the change for each skill. This is a decision-only simulation; do not edit files.",
+      "expected_output": "Treat invocation gating as insufficient evidence of Claude support. For Skill A, keep both targets, name Codex as the launch host, check the capability before mutation, and state the Claude fallback; render skill references for the host that will run the emitted prompt instead of hard-coding `$progress`. For Skill B, either narrow its install targets to Codex or map the model setting per client when the user specifies an equivalent, reporting unconfirmed settings. Do not fork either skill.",
+      "files": []
     }
   ]
 }

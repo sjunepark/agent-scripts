@@ -1,6 +1,6 @@
 # Goal Execution
 
-Use this workflow only when `$progress` is explicitly invoked in goal mode or
+Use this workflow only when this skill is explicitly invoked in goal mode or
 with a `Goal contract`, or when the resolved planning scope contains an active
 goal file. Apply the goal-contract reference loaded by `SKILL.md`; this workflow
 overlays its closed authorization boundary on the mutable project queue for one
@@ -29,7 +29,7 @@ persistent `/goal` run.
    evidence rather than rewriting the original contract.
 5. At every resumed turn, automatic continuation, compaction recovery, or
    handoff, recover and verify the goal file before selecting candidate work.
-   Treat the contract's repeated `$progress` invocation as continuing authority
+   Treat the contract's repeated `progress` invocation as continuing authority
    for this recovery; do not require the user to restate it on every turn.
 
 ## Check Every Transition

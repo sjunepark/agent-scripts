@@ -1,6 +1,6 @@
 ---
 name: address-issues
-description: "Resolve a specified GitHub issue or a confirmed queue of issues through validated, reviewed, merged PRs. Explicit invocation only."
+description: "Resolve a specified GitHub issue, or in Codex a confirmed queue of issues, through validated, reviewed, merged PRs. Explicit invocation only."
 disable-model-invocation: true
 ---
 
@@ -19,10 +19,12 @@ GPT-6 Astra at medium reasoning.
 - **Single:** an `<issue URL or number>` argument handles that issue in the
   current task. Resolve a bare number against the current repository; ask when
   the repository or issue is ambiguous.
-- **Multiple:** a `multiple <repository or issue list>` argument discovers
+- **Multiple (Codex only):** a `multiple <repository or issue list>` argument discovers
   candidates, confirms the selected issues and their order, then creates one
   separate Codex task per issue, sequentially. Read
-  [Sequential issue tasks](workflows/multiple.md) before dispatch.
+  [Sequential issue tasks](workflows/multiple.md) before dispatch. Claude Code
+  cannot create these tasks; there, state that limitation before discovering
+  candidates and offer single mode per issue.
 - A request naming several issues uses multiple mode. An issue-list URL alone
   supplies candidates, not an approved selection. Skill authoring, examples,
   issue triage, and PR-feedback-only requests do not execute this workflow.

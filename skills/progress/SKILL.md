@@ -21,7 +21,7 @@ or delivery authority by itself.
 
 ## Resolve the Work System
 
-1. Read applicable `AGENTS.md` files and inspect git status.
+1. Read applicable `AGENTS.md` or `CLAUDE.md` files and inspect git status.
 2. Determine the planning scope before selecting files. Use the user-named
    scope or index. During concurrent worktree work, select the current
    worktree's isolated namespace from the parallel-worktree workflow. Otherwise

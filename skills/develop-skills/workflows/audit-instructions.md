@@ -11,6 +11,8 @@ work. Account for shared defaults, each in-scope skill's entry point, runtime
 resources, and adapter metadata. Historical reports are evidence, not live rules.
 For discovery or rollout issues, distinguish source, installed copies, and the
 active session; source changes do not prove that a running session uses them.
+When a skill installs to several clients, check its required tools, model
+settings, and skill references in each one under the portability contract.
 
 Read the official guidance named by the user when a model migration motivates the
 audit. Separate its recommendations from local inference and retain constraints

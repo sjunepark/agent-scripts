@@ -66,6 +66,8 @@ Use this phase order:
 
 ## Long-Running Use
 
-Goal prompt: `Run $review-campaign repeatedly until it reports the matrix complete or a blocker finding. Every few sessions run $review-campaign status; run $review-campaign sync when it reports base drift. Stop and surface blockers immediately.`
+Codex goal prompt: `Run $review-campaign repeatedly until it reports the matrix complete or a blocker finding. Every few sessions run $review-campaign status; run $review-campaign sync when it reports base drift. Stop and surface blockers immediately.`
+
+Claude Code cannot load this user-invoked skill from a `/goal` condition. Run `/loop /review-campaign` instead; `/loop` has no completion condition, so stop it when a run reports the matrix complete or a blocker, and run `/review-campaign status` or `sync` yourself between iterations.
 
 Review sessions may run unattended. Merge the campaign branch at milestones—a completed phase or triage batch—so exported work items and auto-fixes travel with the ledger.

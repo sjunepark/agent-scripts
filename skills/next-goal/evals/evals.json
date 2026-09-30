@@ -317,6 +317,21 @@
       "files": [
         "evals/prepare-spawn-inputs.json"
       ]
+    },
+    {
+      "id": 34,
+      "prompt": "I'm running next-goal in Claude Code and will paste the result into Claude Code's /goal. The scope is already confirmed and the readiness gate has passed without delegation; I choose the recommended full Publication Foundation scope. Return the prompt. Then answer separately: if I had asked for `spawn` here, what would happen?",
+      "expected_output": "The goal contract references skills by plain name (for example `the progress skill`, `the create-pr skill`) with no `$name` or `/name` syntax, keeps every other field in the standard shape, and fits Claude Code's 4,000-character /goal limit. For spawn, it states that Claude Code cannot create Codex tasks, so spawn would complete preparation and state that launch limitation in one short line and return the contract rendered for Claude Code instead of claiming a task or native goal started.",
+      "files": [
+        "evals/fixtures/scope-cascade/AGENTS.md",
+        "evals/fixtures/scope-cascade/ROADMAP.md",
+        "evals/fixtures/scope-cascade/plans/canonical-artifacts.md",
+        "evals/fixtures/scope-cascade/plans/evaluation-data-plane.md",
+        "evals/fixtures/scope-cascade/plans/local-preview.md",
+        "evals/fixtures/scope-cascade/plans/publication-viewer-scaling.md",
+        "evals/fixtures/scope-cascade/plans/whole-codebase-review.md",
+        "evals/fixtures/scope-cascade/plans/performance-windows.md"
+      ]
     }
   ]
 }
