@@ -1,6 +1,7 @@
 ---
 name: cleanup-branches
 description: "Clean completed local and remote Git branches using integration and pull-request evidence. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Cleanup Branches

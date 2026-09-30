@@ -13,7 +13,7 @@ either this repo or public skill installs.
 | --- | --- | --- | --- |
 | Reusable agent assets | `agent-scripts` | `skills/`, `bin/`, docs, validation scripts, optional hooks | Git commit and push |
 | Repo-managed Codex plugins | `agent-scripts` | `plugins/`, `.agents/plugins/marketplace.json` | Remote-backed repo marketplace install and reinstall |
-| Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code, Pi, Codex skill copies | Re-run explicit install commands |
+| Published skill installs | `bunx skills` from the GitHub `skills/` subpath | Selected Claude Code and Codex skill copies | Re-run explicit install commands |
 | Machine pointers | chezmoi or harness-specific setup | symlinks or scripts that point tools at this repo | Chezmoi source repo or explicit local setup |
 | Stable personal defaults | chezmoi, with care | selected model, reasoning effort, sandbox default | Template or idempotent update script |
 | Runtime state | local machine only | auth, sessions, logs, caches, memories, SQLite files | Do not sync |
@@ -28,12 +28,12 @@ chezmoi source-path
 chezmoi status
 readlink ~/.codex/AGENTS.md
 readlink ~/.claude/CLAUDE.md
-readlink ~/.pi/agent/AGENTS.md
 ```
 
-The intended instruction targets are the three files under this repository's
-`global-agent-instructions/` directory. Chezmoi may own a pointer, but it must
-not own the live harness runtime directory that contains it.
+The intended instruction targets are the generated files under this
+repository's `global-agent-instructions/` directory. Chezmoi may own a
+pointer, but it must not own the live harness runtime directory that contains
+it.
 
 ## Codex Settings
 
@@ -237,7 +237,7 @@ are not updated by editing global instruction sources.
 
 ## Bootstrap Order For A New Machine
 
-1. Install Codex, Claude Code, Pi, Node.js, Bun, Git, chezmoi, and the 1Password CLI.
+1. Install Codex, Claude Code, Node.js, Bun, Git, chezmoi, and the 1Password CLI.
 2. Apply chezmoi only after resolving any pending managed-file diffs.
 3. Clone or update this repo.
 4. Provision `op-agent` using [the 1Password host setup](1password.md).

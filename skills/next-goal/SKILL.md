@@ -1,6 +1,7 @@
 ---
 name: next-goal
 description: "Select a substantial next goal; optionally prepare and commit its plan, or spawn a Codex task with a native goal and model preset. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Next Goal
@@ -13,13 +14,13 @@ Keep scope discovery and selection read-only. Preparation is a separately author
 
 ## Choose the Operation
 
-These are explicit skill instructions, not shell commands:
+These are skill invocation arguments, not shell commands:
 
-| Invocation | Authorized operation |
+| Argument | Authorized operation |
 | --- | --- |
-| `$next-goal` | Select and return a prompt; no mutation by default. |
-| `$next-goal prepare` | Select, complete and review the detailed plan, commit relevant preparation, then return a prompt. |
-| `$next-goal spawn [model] [reasoning]` | Prepare, then create one new Codex task from the prepared state and start a native goal there. |
+| (none) | Select and return a prompt; no mutation by default. |
+| `prepare` | Select, complete and review the detailed plan, commit relevant preparation, then return a prompt. |
+| `spawn [model] [reasoning]` | Prepare, then create one new Codex task from the prepared state and start a native goal there. |
 
 Honor an explicit prompt-only, preview, no-commit, or wait instruction over these defaults. A mention in a quote, example, or skill-design discussion does not request execution. Model arguments belong only to `spawn`; do not infer spawning from a model name alone. Keep explicit invocation policy unchanged.
 

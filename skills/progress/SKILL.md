@@ -5,8 +5,8 @@ description: "Manage and brief repo-local plans, task queues, continuation, hand
 
 # Progress
 
-Run this skill after the user explicitly invokes `$progress`, or when an
-already-established persistent goal contract requires `$progress` recovery at
+Run this skill after the user explicitly invokes it, or when an
+already-established persistent goal contract requires its recovery at
 a continuation, resume, compaction, or handoff. Do not infer the latter from an
 ordinary planning request. Treat the planning system as manually selected
 project memory: reconcile it with direct instructions and repository evidence

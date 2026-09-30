@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+
+// Usage: scripts/build-global-instructions [--check]
+// Writes global-agent-instructions/global-<harness>.md from src/template.md and
+// src/overlay-<harness>.md. --check reports stale or invalid output without writing.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const { buildAll, checkGenerated } = require("./lib/global-instructions");
+
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== "--check")) {
+  console.error("usage: scripts/build-global-instructions [--check]");
+  process.exit(2);
+}
+
+const results = buildAll();
+
+if (args.includes("--check")) {
+  const problems = checkGenerated(results);
+  if (problems.length > 0) {
+    console.error("Global instructions check failed:");
+    for (const problem of problems) console.error(`- ${problem}`);
+    process.exit(1);
+  }
+  console.log("Global instructions are current.");
+  process.exit(0);
+}
+
+const errors = results.flatMap((result) => result.errors);
+if (errors.length > 0) {
+  console.error("Global instructions build failed:");
+  for (const error of errors) console.error(`- ${error}`);
+  process.exit(1);
+}
+
+for (const result of results) {
+  fs.writeFileSync(result.outputFile, result.output);
+  console.log(`Wrote ${path.relative(process.cwd(), result.outputFile)}`);
+}

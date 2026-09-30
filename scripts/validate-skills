@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { validateSkillRegistry } = require("./lib/skill-registry");
+const { checkGenerated } = require("./lib/global-instructions");
 
 const root = path.resolve(__dirname, "..");
 const skillsRoot = path.join(root, "skills");
@@ -24,6 +25,9 @@ const allowedFrontMatterFields = new Set([
   "allowed-tools",
   "compatibility",
   "description",
+  // Claude Code reads invocation policy only from frontmatter; see
+  // skills/develop-skills/guides/claude-invocation.md.
+  "disable-model-invocation",
   "license",
   "metadata",
   "name",
@@ -125,6 +129,16 @@ function parseFrontMatter(file, content) {
       continue;
     }
 
+    if (key === "disable-model-invocation") {
+      // Only the restrictive value is meaningful; omission is the default.
+      if (rawValue.trim() !== "true") {
+        fail(file, `disable-model-invocation on line ${lineNumber} must be the plain value true`);
+        continue;
+      }
+      fields.set(key, { value: true, style: "boolean" });
+      continue;
+    }
+
     const parsed = parseScalar(file, rawValue, key, lineNumber);
     if (parsed !== null) fields.set(key, parsed);
   }
@@ -176,6 +190,19 @@ function validateFrontMatterFields(file, fields) {
     if (!allowedFrontMatterFields.has(field)) {
       fail(file, `unsupported Agent Skills front matter field: ${field}`);
     }
+  }
+}
+
+// A skill hidden from Claude's model must not be advertised to Codex's model,
+// so the two host policies can differ only in the conservative direction.
+function validateInvocationPolicy(file, skillDir, fields) {
+  if (!fields.has("disable-model-invocation")) return;
+  const adapter = path.join(skillDir, "agents", "openai.yaml");
+  const policy = fs.existsSync(adapter)
+    ? fs.readFileSync(adapter, "utf8").match(/^\s*allow_implicit_invocation:\s*(\S+)\s*$/m)
+    : null;
+  if (policy?.[1] !== "false") {
+    fail(file, "disable-model-invocation requires agents/openai.yaml policy allow_implicit_invocation: false");
   }
 }
 
@@ -341,6 +368,7 @@ for (const skillDir of skillDirs) {
   const frontMatter = parseFrontMatter(file, content);
   if (!frontMatter) continue;
   validateFrontMatterFields(file, frontMatter);
+  validateInvocationPolicy(file, skillDir, frontMatter);
 
   const name = frontMatter.get("name")?.value || "";
   if (!name) {
@@ -393,6 +421,10 @@ for (const [name, files] of names.entries()) {
 
 validateRegistryFile();
 
+for (const problem of checkGenerated()) {
+  fail(path.join(root, "global-agent-instructions"), problem);
+}
+
 if (errors.length > 0) {
   console.error("Skill validation failed:");
   for (const error of errors) {
@@ -408,4 +440,4 @@ if (warnings.length > 0) {
   }
 }
 
-console.log(`Validated ${names.size} skills and skill-registry.json.`);
+console.log(`Validated ${names.size} skills, skill-registry.json, and global instructions.`);

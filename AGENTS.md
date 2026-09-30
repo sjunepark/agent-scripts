@@ -18,7 +18,10 @@
 - Keep OpenAI/Codex-facing metadata in `agents/openai.yaml`.
 - Keep `SKILL.md` frontmatter portable to the Agent Skills specification; put
   client-specific interface and invocation policy in that client's metadata
-  file instead of adding custom top-level fields. Use one-line scalar values
+  file instead of adding custom top-level fields. The one exception is
+  `disable-model-invocation: true`, which Claude Code reads only from
+  frontmatter; use it only as
+  `skills/develop-skills/guides/claude-invocation.md` directs. Use one-line scalar values
   and, when needed, a one-level string mapping under `metadata` so the local
   dependency-free validator can parse the frontmatter strictly. Quote metadata
   values and any scalar more complex than a simple word or phrase.
@@ -90,11 +93,16 @@
 - Treat `scripts/audit-global-skills` only as a read-only transition wrapper
   for `bin/sjskills plan --global`; its profile and mutation interfaces are
   retired.
-- Run the dependency-free registry and reconciler tests with `node --test
-  scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js`.
+- Run the dependency-free registry, global-instruction, and reconciler tests
+  with `node --test scripts/lib/skill-registry.test.js
+  scripts/lib/global-instructions.test.js scripts/audit-global-skills.test.js`.
 - Validate this repo as a local source with `bunx skills add ./skills --list`.
 - Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
-- Validate published skill metadata and local links with `scripts/validate-skills`.
+- Validate published skill metadata, local links, and generated global
+  instructions with `scripts/validate-skills`.
+- Edit global instructions only in `global-agent-instructions/src/`, then run
+  `scripts/build-global-instructions`; never hand-edit the generated
+  `global-agent-instructions/global-*.md` files.
 - Validate one Codex plugin with `python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/<plugin-name>`.
 - If that plugin validator reports missing `yaml`, run it from a temporary
   virtualenv with `PyYAML` installed.
@@ -164,7 +172,7 @@
 - There is no package manifest or formatter config at the repo root today.
 - GitHub Actions development checks run on Linux only. Main integration and
   release checks verify supported native targets; see `docs/sjskills-releases.md`.
-- Dependency-free Node tests cover the registry and read-only audit transition
-  wrapper; Go tests cover project and global reconciliation.
+- Dependency-free Node tests cover the registry, generated global
+  instructions, and read-only audit transition wrapper; Go tests cover project and global reconciliation.
 - There is a repository-local skill validation script at `scripts/validate-skills`.
 - Do not add build or lint instructions to this file unless those workflows are added to the repository.

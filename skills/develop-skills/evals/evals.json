@@ -108,6 +108,12 @@
       "files": [
         "evals/evaluation-2026-09-10.json"
       ]
+    },
+    {
+      "id": 18,
+      "prompt": "Two manual-only skills in this catalog install to both Codex and Claude Code. Each has `allow_implicit_invocation: false` in agents/openai.yaml and 'Explicit invocation only' in its description. Skill A is invoked only by users. Skill B is also loaded by name from a shared global instruction that tells the agent to run it after code review. In Claude Code both skills still appear in the automatic skill catalog. Decide the frontmatter change for each skill and the evidence needed afterward. This is a decision-only simulation; do not edit files.",
+      "expected_output": "Add `disable-model-invocation: true` to Skill A only, keeping it consistent with the Codex adapter. Leave Skill B model-invocable because the field would block the named route; its description carries the manual-only intent. Do not add other client-specific frontmatter or fork either skill. Verify through Claude Code discovery that explicit /skill-name loads Skill A and an uninvoked in-scope request does not, and do not treat Codex evidence as covering Claude.",
+      "files": []
     }
   ]
 }

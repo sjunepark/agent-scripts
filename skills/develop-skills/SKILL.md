@@ -1,6 +1,7 @@
 ---
 name: develop-skills
 description: "Author, audit, merge, and evaluate Agent Skills and instruction stacks. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Develop Skills
@@ -25,6 +26,8 @@ Read the route needed for the requested operation, not every workflow:
   changing its structure, metadata, dependencies, or cross-client assumptions.
 - [Codex invocation policy](guides/codex-invocation.md) when creating or changing
   Codex adapter settings.
+- [Claude invocation policy](guides/claude-invocation.md) when a manual-only
+  skill installs to Claude Code or its `disable-model-invocation` field changes.
 - [Refresh upstream guidance](workflows/refresh-guidance.md) only for an explicit
   request to reconcile this skill with authoring sources.
 

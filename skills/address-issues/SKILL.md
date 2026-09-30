@@ -1,6 +1,7 @@
 ---
 name: address-issues
 description: "Resolve a specified GitHub issue or a confirmed queue of issues through validated, reviewed, merged PRs. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Address Issues
@@ -15,10 +16,10 @@ GPT-6 Astra at medium reasoning.
 
 ## Select the mode
 
-- **Single:** `$address-issues <issue URL or number>` handles that issue in the
+- **Single:** an `<issue URL or number>` argument handles that issue in the
   current task. Resolve a bare number against the current repository; ask when
   the repository or issue is ambiguous.
-- **Multiple:** `$address-issues multiple <repository or issue list>` discovers
+- **Multiple:** a `multiple <repository or issue list>` argument discovers
   candidates, confirms the selected issues and their order, then creates one
   separate Codex task per issue, sequentially. Read
   [Sequential issue tasks](workflows/multiple.md) before dispatch.

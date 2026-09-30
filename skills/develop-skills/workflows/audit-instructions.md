@@ -17,6 +17,12 @@ audit. Separate its recommendations from local inference and retain constraints
 needed by other intended models or clients. A more capable model does not change
 the package format, permissions, or invocation policy by itself.
 
+When one stack serves several model families, keep shared skills on their common
+ground: concise, explained, outcome-focused guidance with emphasis reserved for
+real invariants. Resolve a model- or client-specific need in that harness's
+instruction layer or adapter, not by forking a skill, unless evidence shows the
+shared wording fails for one target.
+
 Delegate independent inspection when it materially improves coverage, with bounded
 scopes and concise evidence. Coordinate edits to shared owners.
 

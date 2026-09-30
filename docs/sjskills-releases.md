@@ -88,7 +88,7 @@ Run the same repository-owned checks locally and in CI:
 ```sh
 go vet ./...
 python3 scripts/release_test.py
-node --test scripts/lib/skill-registry.test.js scripts/audit-global-skills.test.js
+node --test scripts/lib/skill-registry.test.js scripts/lib/global-instructions.test.js scripts/audit-global-skills.test.js
 node --test scripts/sjskills-hook.test.js
 scripts/validate-skills
 python3 scripts/release.py build --output .tmp/release-check

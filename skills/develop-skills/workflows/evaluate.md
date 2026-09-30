@@ -65,8 +65,9 @@ Uninvoked requests are negatives for manual-only skills and positives when
 implicit discovery is intended. Include ambiguous or unrelated cases when they
 could reveal a real routing error.
 
-Freeze expected selections before trials. Test in fresh contexts using the
-client's actual discovery path when possible. A prompted classification of a
+Freeze expected selections before trials. Test in fresh contexts using each
+target client's actual discovery path when possible; clients enforce invocation
+policy through different controls, so evidence from one does not cover another. A prompted classification of a
 description is a simulation, not proof that an installed client selects it.
 Record missed positives and false activations by case type; repeat when outcomes
 vary. If discovery is unchanged, verify consistency without claiming new measured

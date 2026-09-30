@@ -10,7 +10,8 @@ its declared prerequisites.
   `description`. Match the lowercase hyphenated name to its directory.
 - Describe the capability and selection boundary concisely. Preserve invocation
   intent under the entry point's policy, with client enforcement and UI settings
-  in separate adapter metadata.
+  in separate adapter metadata. The exception is a client that reads invocation
+  policy only from frontmatter; follow its invocation guide for that one field.
 - Keep runtime resources inside the package, without external symlinks,
   machine-specific paths, or parent-directory traversal.
 - Name each runtime resource directly from `SKILL.md` with its use condition.

@@ -1,6 +1,7 @@
 ---
 name: sjskills
 description: "Configure, inspect, or reconcile sjskills-managed project and global skills; restore named quarantines. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # sjskills

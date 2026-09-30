@@ -1,6 +1,7 @@
 ---
 name: review-campaign
 description: "Run a stateful whole-repository review campaign with a persistent `reviews/` ledger. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Review Campaign
@@ -17,7 +18,7 @@ Run a stateful whole-repository review in small, resumable sessions. The skill i
 
 ## Choose One Mode
 
-Invoke as `$review-campaign <mode>`; no argument means `continue`.
+Pass the mode as the invocation argument; no argument means `continue`.
 
 Bootstrap guard: when `reviews/REVIEW.md` does not exist, treat an omitted mode or explicit `continue` as `plan`. Only `plan` bootstraps the ledger; `continue` must not create `reviews/REVIEW.md`.
 

@@ -1,6 +1,7 @@
 ---
 name: delegate
 description: "Orchestrate code and file implementation through narrow GPT-5.6 Luna subagent assignments, then independently review and integrate the result. Explicit invocation only."
+disable-model-invocation: true
 ---
 
 # Delegate
