@@ -16,7 +16,7 @@ suitable GitHub identity.
   verified locally; the authenticated session created draft ID `399757443`,
   uploaded all six assets, matched every server-side digest by release ID, then
   published it. The published release is immutable.
-- The published installer updated `%LOCALAPPDATA%\sjskillsin\sjskills.exe`
+- The published installer updated `%LOCALAPPDATA%\sjskills\bin\sjskills.exe`
   on the Windows development machine to v1.4.0. Its binary matches the verified
   windows/amd64 archive, with SHA-256
   `8a02f00e273730f4831aa695ebbb1f7c50694b5f1c9ad387524bb4857be090f8`.
