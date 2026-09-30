@@ -10,7 +10,7 @@ schema or the CLI itself changes.
 
 ## Current state
 
-Proposed on 2026-09-30. Steps 1-4 are complete on `dev`, unreleased. The CLI
+Proposed on 2026-09-30. Steps 1-5 are complete on `dev`, unreleased. The CLI
 reads the published registry through `RegistrySource`
 (`internal/sjskills/registry_source.go`), pins agent-scripts sources to the
 registry's commit, records commit and digest evidence, and binds global apply
@@ -100,9 +100,13 @@ temporary binary until v1.2.0 shipped it.
    fixtures.~~ Done 2026-09-30. The fixture is frozen: tests assert its catalog
    counts, so catalog changes on `main` no longer touch Go tests. The Node test
    still validates the root registry against the repository's skills.
-5. Update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
+5. ~~Update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
    `skills/sjskills/` (including its global-rollout reference), and comments
-   that describe the embedded registry.
+   that describe the embedded registry.~~ Done 2026-09-30.
+   `docs/skill-registry.md` owns the publication and loading contract. The
+   release consumer check (`scripts/test-release.py`) now seeds the registry
+   cache, since the installed binary runs offline and embeds no registry; it
+   passed on windows/amd64.
 6. Release a new minor version and install it on each machine under the
    existing release process.
 
@@ -147,10 +151,9 @@ release step authorizes.
 
 ## Next action
 
-Implement step 5: update `docs/skill-registry.md`, `docs/sjskills-releases.md`,
-`skills/sjskills/` (including its global-rollout reference), and code comments
-that still describe the embedded registry (`internal/sjskills/status.go`,
-`internal/sjskills/global_layout.go`). Document the Git prerequisite for
-agent-scripts skills, registry evidence and re-review of older plans, stale
-registry warnings, and that `--no-status-check` has no offline registry
-fallback.
+Step 6: merge `dev` into `main` through an integration PR so the native
+matrix (macOS Intel, macOS Apple silicon, Windows x64) runs, then release a new
+minor version under `docs/sjskills-releases.md` and install it on each machine.
+Publishing and per-machine installation need the user's go-ahead. Merging also
+publishes the registry the new binary reads, so confirm `skill-registry.json`
+on `main` is intended first.

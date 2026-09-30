@@ -11,8 +11,8 @@
 
 1. [Read the skill registry from the published source](plans/sjskills-remote-registry.md)
    is proposed so registry changes stop requiring an sjskills release.
-   The CLI reads the published registry at a pinned commit and embeds none on
-   `dev`; docs and the release remain.
+   Implementation and docs are complete on `dev`; the integration PR and
+   release remain.
 
 ## Tasks
 

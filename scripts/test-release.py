@@ -2,6 +2,7 @@
 """Exercise built archives through the supported installers, including failures."""
 import argparse
 import importlib.util
+import hashlib
 import json
 from datetime import datetime, timezone
 import os
@@ -118,6 +119,20 @@ def main():
             'observedAt': datetime.now(timezone.utc).isoformat(),
             'retryAt': '0001-01-01T00:00:00Z',
         }))
+        # The binary embeds no registry. Seed the published-registry cache as a
+        # fresh observation so status stays offline and profiles/init fall back
+        # to it with a stale warning after their refresh attempt fails.
+        registry_bytes = (release.ROOT / 'skill-registry.json').read_bytes()
+        registry_commit = '0' * 40
+        registry_cache = cache_base / 'sjskills' / 'registry'
+        registry_cache.mkdir(parents=True)
+        (registry_cache / f'{registry_commit}.json').write_bytes(registry_bytes)
+        (registry_cache / 'latest.json').write_text(json.dumps({
+            'schema': 1, 'source': 'sjunepark/agent-scripts', 'ref': 'refs/heads/main',
+            'commit': registry_commit, 'sha256': hashlib.sha256(registry_bytes).hexdigest(),
+            'resolvedAt': datetime.now(timezone.utc).isoformat(),
+            'retryAt': '0001-01-01T00:00:00Z',
+        }))
         def cli(*arguments):
             return subprocess.run([str(binary), *arguments], cwd=consumer, env=env,
                                   capture_output=True, text=True, timeout=45)
@@ -127,7 +142,9 @@ def main():
         assert result.returncode == 0 and 'sjskills <command>' in result.stdout and 'status' in result.stdout, result
         check_status(cli, consumer, configured=False)
         result = cli('--json', 'profiles')
-        assert result.returncode == 0 and json.loads(result.stdout)['result'] == 'success', result
+        value = json.loads(result.stdout)
+        assert result.returncode == 0 and value['result'] == 'success', result
+        assert [w['code'] for w in value['warnings']] == ['registry-stale'], value
         result = cli('init', 'dev')
         assert result.returncode == 0, result
         manifest = consumer / 'sjskills.toml'
@@ -136,8 +153,9 @@ def main():
         assert manifest.read_bytes() == before, 'status changed the project manifest'
         result = cli('init', 'go')
         assert result.returncode != 0 and manifest.read_bytes() == before, result
+        # Plan never uses a cached registry, so it fails offline before Bun.
         result = cli('--json', 'plan')
-        assert result.returncode != 0 and 'bunx' in result.stdout, result
+        assert result.returncode != 0 and 'registry' in result.stdout, result
         # Reinstallation uses the same supported path.
         result = invoke(installer, output, destination)
         assert result.returncode == 0, result.stderr + result.stdout

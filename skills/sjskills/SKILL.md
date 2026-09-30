@@ -25,8 +25,9 @@ still blocks reconciliation. Restoring edited bytes does not grant ownership.
 Keep four states distinct:
 
 1. A source repository's local catalog is editable but not yet published.
-2. The registry identifies the published remote content reconciliation can
-   consume.
+2. The registry published on the source repository's `main` identifies the
+   remote content reconciliation can consume. `sjskills` reads it at run time
+   and installs that repository's skills from the same commit.
 3. A project's committed `sjskills.toml` selects project profiles and direct
    declarations.
 4. The registry defines one fixed, machine-independent global baseline.
@@ -123,13 +124,14 @@ independent unblocked scope unless the user required an all-or-nothing result.
    remain. Retain every reported quarantine identifier through a normal work
    cycle.
 
-When intended content changed in a registry-backed source, reconciliation can
-only consume the published remote content. Do not apply a local-only change.
+When intended content or the registry changed, reconciliation can only
+consume the published remote content. Do not apply a local-only change; a
+registry change needs no new `sjskills` release once it reaches `main`.
 If publication is requested, follow the source repository's instructions for
 validation, review, commit, and publication; those mechanics are outside this
-skill. Before reconciling, resolve the registry source and verify that its
-pinned remote ref contains each intended skill tree. A local or feature-branch
-commit is insufficient when the registry points elsewhere.
+skill. Before reconciling, verify that the commit named by the plan's
+`registry` evidence contains each intended registry entry and skill tree. A
+local or feature-branch commit is insufficient.
 
 ## Restore
 
