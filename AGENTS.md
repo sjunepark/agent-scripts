@@ -1,30 +1,54 @@
 # AGENTS.md
 
 ## Scope
-- This repository stores custom local skills for agentic coding tools and is meant to be consumed with `bunx skills`.
-- Treat `skills/` as the distributable source for this repository.
-- Treat `plugins/` as repo-managed local Codex plugin source.
-- Treat repo-local `.agents/` and `.claude/` as skills/config used while working in this repository, not as the source to distribute or globally install from.
-- Treat `.agents/plugins/marketplace.json` as repo-local Codex marketplace metadata, not as a global install target.
-- Keep shared instructions at the repo root. Add a nested `AGENTS.md` only when one skill subtree needs different rules.
+- This repository publishes personal agent skills, the `sjskills` reconciler
+  that installs them, Codex plugins and hooks, and the user-level global agent
+  instructions.
+- `skills/` is the published catalog and the only skill source to edit or
+  distribute. Publication makes a skill installable from the GitHub `skills/`
+  subpath; it does not make it global.
+- Repo-local `.agents/skills/` and `.claude/skills/` are git-ignored placements
+  that `sjskills` generates from `sjskills.toml`. Edit `skills/<skill-name>/`
+  instead of those copies.
+- `plugins/` holds repo-managed Codex plugin source, and
+  `.agents/plugins/marketplace.json` is its repo-local marketplace metadata.
+- Keep shared instructions in this file. Add a nested `AGENTS.md` only when one
+  subtree needs different rules.
+
+## Global agent instructions
+- On a machine set up from this repo, `~/.codex/AGENTS.md` is a symlink to
+  `global-agent-instructions/global-codex.md` and `~/.claude/CLAUDE.md` is a
+  symlink to `global-agent-instructions/global-claude.md` in this checkout.
+  Those generated files are the live user-level instructions for every project:
+  a rebuild, branch switch, or checkout here takes effect in new sessions
+  before anything is committed.
+- Edit only `global-agent-instructions/src/` (`template.md` for shared rules,
+  `overlay-<harness>.md` for harness-specific material), then run
+  `scripts/build-global-instructions` and commit sources with the regenerated
+  files. Never hand-edit `global-agent-instructions/global-*.md` or write
+  through the home-directory symlinks.
+- Keep durable personal defaults there, this repository's maintenance rules
+  here, and task-specific decisions, authority boundaries, and completion
+  checks in skills.
+- See `global-agent-instructions/README.md` for the slot format and
+  `docs/settings-sync.md#global-agent-instructions` for pointer ownership.
+  Verify a pointer with `readlink ~/.codex/AGENTS.md` or
+  `readlink ~/.claude/CLAUDE.md` before changing it.
 
 ## Skill layout
-- Store each skill in `skills/<skill-name>/`.
-- Treat `skills/` as a published catalog, not as a list of skills that should
-  all be installed globally.
-- Do not treat `.agents/skills/` or `.claude/skills/` as the canonical distribution layout for this repo.
-- When creating a new skill, start from `https://github.com/openai/skills/tree/main/skills/.system/skill-creator`.
-- Keep `SKILL.md` as the entry point for each skill.
-- Keep OpenAI/Codex-facing metadata in `agents/openai.yaml`.
+- Store each skill in `skills/<skill-name>/` with `SKILL.md` as its entry point
+  and OpenAI/Codex-facing metadata in `agents/openai.yaml`.
+- When creating a new skill, start from
+  `https://github.com/openai/skills/tree/main/skills/.system/skill-creator`.
 - Keep `SKILL.md` frontmatter portable to the Agent Skills specification; put
   client-specific interface and invocation policy in that client's metadata
   file instead of adding custom top-level fields. The one exception is
   `disable-model-invocation: true`, which Claude Code reads only from
   frontmatter; use it only as
-  `skills/develop-skills/guides/claude-invocation.md` directs. Use one-line scalar values
-  and, when needed, a one-level string mapping under `metadata` so the local
-  dependency-free validator can parse the frontmatter strictly. Quote metadata
-  values and any scalar more complex than a simple word or phrase.
+  `skills/develop-skills/guides/claude-invocation.md` directs. Use one-line
+  scalar values and, when needed, a one-level string mapping under `metadata`.
+  Quote metadata values and any scalar more complex than a simple word or
+  phrase.
 - Name bundled directories for what they contain: `workflows/` or `modes/`
   for alternate procedures, `rubrics/`, `lenses/`, or `checklists/` for
   evaluation criteria, `guides/` for topic-specific instruction, `recipes/`
@@ -34,116 +58,89 @@
 - Keep universally required steps and rules in `SKILL.md`. Link every bundled
   agent-read Markdown file directly from `SKILL.md` with an inline Markdown
   link, name every other runtime file such as a script or copied asset by its
-  exact relative path, and state when to use it; a directory name alone does
-  not expose its contents. Wrap inline-link destinations containing whitespace
-  or parentheses in angle brackets. Do not use reference-style links for
-  runtime pointers, and avoid link-like examples in fenced code because the
-  dependency-free validator scans inline-link syntax literally. Keep those
-  resources one directory level from `SKILL.md` and avoid resource-to-resource
-  routing. Interface metadata in `agents/` and test fixtures in `evals/` do not
-  need runtime pointers.
-- Keep bundled skill files self-contained; do not use symlinks or links to
-  absolute paths outside the skill directory.
-- Keep the directory name and the `name:` field in `SKILL.md` aligned.
+  exact relative path, and state when to use it. Wrap inline-link destinations
+  containing whitespace or parentheses in angle brackets. Do not use
+  reference-style links for runtime pointers, and avoid link-like examples in
+  fenced code because the validator scans inline-link syntax literally. Keep
+  those resources one directory level from `SKILL.md` and avoid
+  resource-to-resource routing. Interface metadata in `agents/` and test
+  fixtures in `evals/` do not need runtime pointers.
+- Keep bundled skill files self-contained: no symlinks and no links to paths
+  outside the skill directory.
+- `scripts/validate-skills` enforces the frontmatter subset, name and directory
+  alignment, link targets, runtime pointers, and registry coverage.
 
 ## Skill install scope
-- Treat `skill-registry.json` as the authoritative classification and install
-  policy for all published repo skills and deliberately recommended external
-  skills. See `docs/skill-registry.md` for its contract.
-- Published means available to install from the GitHub `skills/` subpath; it
-  does not imply global installation.
+- `skill-registry.json` is the authoritative classification and install policy
+  for published repo skills and deliberately recommended external skills. See
+  `docs/skill-registry.md` for its contract.
 - Keep the fixed global baseline small and machine-independent.
-- Select project profiles or direct skills in the project's committed
-  `sjskills.toml`; registry profile membership does not make a skill global.
-- When checking whether Codex loads skills, verify the intended installed
-  subset, not every skill present under this repo's `skills/`.
+- Projects select profiles or direct skills in their committed `sjskills.toml`;
+  registry profile membership does not make a skill global.
+- The registry's `.agents` and `.claude` targets map to `~/.agents/skills` and
+  `~/.claude/skills`. The reconciler creates no Pi-specific copies.
+- When checking which skills an agent loads, verify the intended installed
+  subset, not every skill under `skills/`.
 
-## Codex plugin layout
-- Store repo-local Codex plugins in `plugins/<plugin-name>/`.
-- Keep each plugin manifest at `plugins/<plugin-name>/.codex-plugin/plugin.json`.
-- Keep plugin skills under the plugin's `skills/` directory, not the published
-  root `skills/` catalog.
+## Codex plugins
+- Store each plugin in `plugins/<plugin-name>/` with its manifest at
+  `.codex-plugin/plugin.json`. Keep plugin skills under the plugin's own
+  `skills/` directory, and keep plugins skillless unless agent-facing
+  instructions are worth the persistent context.
 - Keep plugin lifecycle hooks read-only unless the user explicitly asks for a
   mutating hook. The `chezmoi-sync` startup hook must only check and report.
-- After changing plugin metadata, skills, or hooks, update the Codex cachebuster
-  and reinstall the plugin from the configured repo marketplace before testing.
-
-## Command layout
-- Store stable user-facing commands in `bin/`.
-- Treat `bin/` as the only directory intended to be added to `PATH` or symlinked
-  into `~/.local/bin`.
-- Store repository maintenance helpers in `scripts/`.
-- Do not put one-off maintenance helpers in `bin/`; add a stable wrapper there
-  only when the command is meant to be used across repositories.
-- Prefer exact command names without extensions for `bin/` commands.
-
-## Working commands
-- When explicitly invoked, use `$progress` to organize, orient to, continue,
-  or hand off repo-local plans and tasks.
-- Use `$code-review` after implementation to run one bounded review pass. It
-  applies the implementation, system, design, and diet lenses proportionately,
-  applies obvious safe fixes, and validates.
-- Inspect project-visible skills for the current working directory with `bunx skills list`.
-- `bunx skills list` is for understanding what this repo exposes locally in the current directory; it is not the command to verify machine-wide installs.
-- Use `bunx skills list -g` to inspect user-level global installs.
-- Use `skill-registry.json` as the desired skill registry.
-- Use `bin/sjskills plan --global` for read-only global inspection.
-- Use `bin/sjskills plan`, `apply`, and `restore <quarantine-id>` for a
-  project that commits `sjskills.toml`.
-- Treat `scripts/audit-global-skills` only as a read-only transition wrapper
-  for `bin/sjskills plan --global`; its profile and mutation interfaces are
-  retired.
-- Run the dependency-free registry, global-instruction, and reconciler tests
-  with `node --test scripts/lib/skill-registry.test.js
-  scripts/lib/global-instructions.test.js scripts/audit-global-skills.test.js`.
-- Validate this repo as a local source with `bunx skills add ./skills --list`.
-- Validate one skill directly with `bunx skills add ./skills/<skill-name> --list`.
-- Validate published skill metadata, local links, and generated global
-  instructions with `scripts/validate-skills`.
-- Edit global instructions only in `global-agent-instructions/src/`, then run
-  `scripts/build-global-instructions`; never hand-edit the generated
-  `global-agent-instructions/global-*.md` files.
-- Validate one Codex plugin with `python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/<plugin-name>`.
-- If that plugin validator reports missing `yaml`, run it from a temporary
-  virtualenv with `PyYAML` installed.
-- Install this repo's Codex marketplace for ongoing machine use from the remote:
+- Validate a plugin with
+  `python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/<plugin-name>`.
+  If it reports missing `yaml`, run it from a temporary virtualenv with
+  `PyYAML` installed.
+- After changing plugin metadata, skills, hooks, or scripts for ongoing use:
+  update the plugin's cachebuster, validate, commit and push, then run
+  `codex plugin marketplace upgrade personal` and
+  `codex plugin add <plugin-name>@personal`. `docs/settings-sync.md` has the
+  full sequence; update it in the same change when plugin behavior changes.
+- The marketplace for ongoing machine use is the remote:
   `codex plugin marketplace add https://github.com/sjunepark/agent-scripts.git --ref main`.
-- Do not leave this repo's Codex plugin marketplace pointed at
-  `/Users/sejunpark/IT/agent-scripts` or another local working tree unless the
-  user explicitly asks for a temporary local development install.
-- After changing repo-managed plugins for ongoing use, commit and push first,
-  then run `codex plugin marketplace upgrade personal` and reinstall the
-  affected plugin with `codex plugin add <plugin-name>@personal`.
-- Install or reinstall `chezmoi-sync` with `codex plugin add chezmoi-sync@personal`.
-- Enable the optional Git hook with `git config core.hooksPath hooks`; it runs `scripts/validate-skills`.
-- For installs on individual machines, use remote GitHub sources so updates can
-  flow across machines without depending on the current working tree.
-- For skills, use the GitHub `skills/` subpath so installs do not publish
-  repo-local `.agents/` and `.claude/` skills.
-- If a skill change should be synced or reinstalled from the remote URL, commit and push that change first, then run the remote-URL `bunx skills add ...` command. Do not reinstall from the remote before the relevant commit is published.
-- Reconcile only after intended public skill changes are committed, pushed,
-  and present at the registry's remote source; fetch that ref and verify each
+  Point it at a local working tree only for explicitly requested temporary
+  development testing.
+
+## Commands
+- `bin/` holds stable user-facing commands and is the only directory intended
+  for `PATH` or symlinking into `~/.local/bin`. Name its commands without
+  extensions.
+- `scripts/` holds repository maintenance helpers. Add a `bin/` wrapper only
+  when a command is meant to be used across repositories.
+- `scripts/audit-global-skills` is only a read-only transition wrapper for
+  `bin/sjskills plan --global`; its profile and mutation interfaces are
+  retired.
+
+## Validation
+- Run `scripts/validate-skills` after changing skills, the registry, or global
+  instructions. `git config core.hooksPath hooks` enables it as a pre-commit
+  hook.
+- Run the Node tests with `node --test scripts/lib/skill-registry.test.js
+  scripts/lib/global-instructions.test.js scripts/audit-global-skills.test.js
+  scripts/sjskills-hook.test.js`.
+- Run `go vet ./...` and `go test ./...` after changing `cmd/` or `internal/`,
+  and `python3 scripts/release_test.py` after changing release tooling.
+- Pull-request checks run on Linux only; checks targeting `main` and releases
+  also build and test the native targets. See `docs/sjskills-releases.md`.
+- Inspect the skills this repo exposes with `bunx skills add ./skills --list`,
+  or one skill with `bunx skills add ./skills/<skill-name> --list`.
+  `bunx skills add . ...` does not work for this repo; do not document it.
+- `bunx skills list` shows project-visible skills for the current directory;
+  `bunx skills list -g` shows user-level global installs.
+
+## Installing and reconciling
+- Install for ongoing use only from the remote GitHub `skills/` subpath, never
+  from `.`, `./skills`, or another working tree. Local-path installs are for
+  validation, unpublished work, or explicitly requested temporary testing.
+- Commit and push a skill change before reinstalling or reconciling from the
+  remote. Before reconciling, fetch the registry's remote ref and verify each
   intended skill tree matches the published tree, including after squash or
   rebase.
-- A first-run copy without trusted reconciler provenance is not an ordinary
-  update even when its bytes match. Resolve unmanaged desired paths explicitly;
-  `sjskills` has no force-adopt or force-replace interface.
-- Do not use `--all` for scoped installs; in the current `skills` CLI it expands to both `--skill '*'` and `--agent '*'`, which can override the intended agent restriction and recreate shared `~/.agents/skills` installs.
-- The registry declares selected installation targets as `.agents` and
-  `.claude`. The reconciler places them in `~/.agents/skills` and
-  `~/.claude/skills`, respectively; it does not create Pi-specific copies.
-- Global apply records verified local tree hashes in
-  `~/.agents/.global-skill-state.json`. Byte equality alone does not grant
-  ownership; later updates proceed only while installed content still matches
-  trusted reconciler state.
-- Global locks, transaction journals, recovery data, and quarantine live under
-  `~/.agents/.sjskills-global/`. Restore uses
-  `sjskills restore --global <quarantine-id>` and refuses to overwrite.
-- Do not install this repo's skills from the current working tree, `.` or `./skills`, when the goal is to install them for ongoing use on a machine.
-- Use local-path skill or plugin installs only for local validation,
-  unpublished work, or explicitly requested temporary development testing.
-- Use `-g` only when the task is specifically about a global install. Global installs write to user-level directories such as `~/.claude/skills`, `~/.pi/agent/skills`, or the shared `~/.agents/skills` depending on agent and install mode.
-- Do not document `bunx skills add . ...` for this repo unless that path is made to work; `./skills` is the local validation path that currently works.
+- Use `bin/sjskills plan`, `apply`, and `restore <quarantine-id>` in a project
+  that commits `sjskills.toml`, and `bin/sjskills plan --global` for read-only
+  global inspection.
 - Do not run `sjskills apply --global` or global restore against a real home
   as repository validation. A user-requested `sjskills` sync authorizes the
   configured scopes under `skills/sjskills/SKILL.md`; the agent reviews the
@@ -151,28 +148,24 @@
   requires the reviewed JSON artifact through `--approved-plan` and its digest
   through `--approved-plan-sha256`. Preserve provenance, current-tree, and
   filesystem checks; those flags bind evidence rather than expanding scope.
-- Restore project or global quarantines only with the identifier reported by
-  `sjskills`; restoration refuses to overwrite an active path.
+- Byte equality does not grant ownership. A first-run copy without trusted
+  reconciler provenance is not an ordinary update; resolve unmanaged desired
+  paths explicitly, because `sjskills` has no force-adopt or force-replace
+  interface.
+- Restore project or global quarantines only with the identifier `sjskills`
+  reported; restoration refuses to overwrite an active path. State and
+  quarantine locations are in `docs/skill-registry.md`.
+- Use `-g` with `bunx skills` only for a task specifically about a global
+  install. Do not use `--all` for scoped installs: it expands to both
+  `--skill '*'` and `--agent '*'`, which overrides the intended agent
+  restriction and recreates shared `~/.agents/skills` installs.
 
 ## Editing expectations
-- Prefer editing an existing skill in place over adding new top-level conventions.
-- When a skill's behavior changes, update `SKILL.md` and any referenced files in the same change.
-- Keep shared collaboration defaults in `global-agent-instructions/`; skills
-  own task-specific decisions, authority boundaries, and completion checks.
+- Prefer editing an existing skill in place over adding new top-level
+  conventions.
+- When a skill's behavior changes, update `SKILL.md` and any referenced files
+  in the same change.
 - For catalog-wide revisions, use the explicitly requested skill-development
-  workflow, account for each skill, and retain compliant skills without cosmetic
-  edits. Preserve activation policies unless their migration is requested.
-- When a plugin's behavior changes, update its manifest, hooks, scripts, and
-  `docs/settings-sync.md` together when those docs are affected. Keep plugins
-  skillless unless agent-facing instructions are worth the persistent context.
-- Keep skill instructions concise, executable, and tool-facing.
-- Prefer exact commands and concrete paths over generic guidance.
-
-## Current repo facts
-- There is no package manifest or formatter config at the repo root today.
-- GitHub Actions development checks run on Linux only. Main integration and
-  release checks verify supported native targets; see `docs/sjskills-releases.md`.
-- Dependency-free Node tests cover the registry, generated global
-  instructions, and read-only audit transition wrapper; Go tests cover project and global reconciliation.
-- There is a repository-local skill validation script at `scripts/validate-skills`.
-- Do not add build or lint instructions to this file unless those workflows are added to the repository.
+  workflow, account for each skill, and retain compliant skills without
+  cosmetic edits. Preserve activation policies unless their migration is
+  requested.
