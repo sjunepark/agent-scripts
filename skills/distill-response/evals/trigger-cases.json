@@ -1,0 +1,11 @@
+{
+  "policy": "Implicit discovery",
+  "cases": [
+    {"id": "distill", "prompt": "That answer was long. Distill it.", "activate": true},
+    {"id": "map", "prompt": "Give me a map of your last response so I can drill into parts of it.", "activate": true},
+    {"id": "elaborate", "prompt": "Elaborate B. Retry policy from the map above.", "activate": true},
+    {"id": "summarize-file", "prompt": "Summarize docs/skill-registry.md.", "activate": false},
+    {"id": "explain-code", "prompt": "Explain how the reconciler decides ownership.", "activate": false},
+    {"id": "shorter-rewrite", "prompt": "Make this commit message shorter.", "activate": false}
+  ]
+}

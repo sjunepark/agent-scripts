@@ -1,0 +1,11 @@
+{
+  "policy": "Implicit discovery",
+  "cases": [
+    {"id": "open", "prompt": "Open a PR for this branch.", "activate": true},
+    {"id": "for-review", "prompt": "Put this work up for review.", "activate": true},
+    {"id": "retarget", "prompt": "Change the base of PR #42 to the parent feature branch.", "activate": true},
+    {"id": "feedback", "prompt": "Fix what the reviewers asked for on PR #42.", "activate": false},
+    {"id": "merge", "prompt": "Merge the feature branch into dev locally.", "activate": false},
+    {"id": "commit-only", "prompt": "Commit these changes; don't push.", "activate": false}
+  ]
+}

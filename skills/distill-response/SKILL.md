@@ -1,6 +1,6 @@
 ---
 name: distill-response
-description: "Distill a prior AI response into a standalone, navigable explanation, or elaborate an item from an earlier distillation."
+description: "Distill a prior AI response into a standalone, navigable explanation, or elaborate an item from an earlier distillation. Use when asked to distill, condense, or map a long answer, or to expand a labeled item from that map."
 ---
 
 # Distill Response

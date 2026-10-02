@@ -1,0 +1,11 @@
+{
+  "policy": "Implicit discovery",
+  "cases": [
+    {"id": "diff", "prompt": "Review my uncommitted changes before I commit.", "activate": true},
+    {"id": "branch", "prompt": "Can you look over this branch and tell me what's wrong with it?", "activate": true},
+    {"id": "post-change", "prompt": "The refactor is done. Run the review pass.", "activate": true},
+    {"id": "pr-feedback", "prompt": "Address the review comments on PR #61.", "activate": false},
+    {"id": "explain", "prompt": "Walk me through how this change works.", "activate": false},
+    {"id": "docs", "prompt": "Review the README for typos.", "activate": false}
+  ]
+}

@@ -6,7 +6,7 @@ description: "Design or audit AGENTS.md, CLAUDE.md, and other agent rules files 
 # AGENTS.md Writer
 
 Produce durable instructions at the scope that needs them. Ground additions in
-non-obvious repository facts, recurring failures, hard constraints, or explicit
+non-obvious repository facts and gotchas, recurring failures, hard constraints, or explicit
 team decisions; prefer executable enforcement for mechanical rules.
 
 ## Establish the effective hierarchy
@@ -60,12 +60,13 @@ those guides before relying on them:
 
 ## Verify and finish
 
-Re-read the affected chains in documented load order for contradictions, stale
-commands, and size against each tool's documented limit or recommended length.
+Re-read the affected chains in documented load order for contradictions with
+each other and with skills installed at that scope, stale commands, and size against each tool's documented limit or recommended length.
 When hierarchy or discovery changes, inspect effective sources from the root and
 a representative nested directory: in Codex, run
 `codex --cd <dir> --ask-for-approval never "Show which instruction files are active."`;
-in Claude Code, check Memory files in `/context`. For other clients, use their
+in Claude Code, check Memory files in `/context` and run `/doctor` for
+oversized instruction files and skills. For other clients, use their
 documented introspection or a dry run. Report changed scopes, validation, and
 any unverified client behavior. An audit remains read-only; an authorized
 revision finishes through fixes and verification.

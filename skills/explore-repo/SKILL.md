@@ -1,6 +1,6 @@
 ---
 name: explore-repo
-description: "Inspect external Git source at pinned refs or compare upstream behavior using the centralized ~/.repos cache."
+description: "Inspect external Git source at pinned refs or compare upstream behavior using the centralized ~/.repos cache. Use when a question needs another repository's actual source or history: how a dependency or upstream project implements something, or what changed between its versions."
 ---
 
 # Explore Repo

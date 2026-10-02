@@ -16,8 +16,11 @@ Define the intended result, scope, prerequisites, and observable completion.
 Keep one coherent capability; add branches only when they change how that
 capability is delivered.
 
-Preserve the activation policy required by the entry point. Use concise task
-language in the description; add an exclusion only to prevent likely misrouting.
+Preserve the activation policy required by the entry point. The description is
+what a client reads to decide selection. For an implicitly discovered skill,
+state the capability, then the situations and user phrasings that should trigger
+it; a manual-only skill needs only concise task language. Add an exclusion only
+to prevent likely misrouting.
 For changed discovery, retain representative positive and near-miss requests,
 including uninvoked negatives for manual-only skills. Keep client enforcement in
 adapter metadata.
@@ -33,6 +36,10 @@ Describe outcomes and decision criteria where judgment works. Use exact commands
 checks, or ordering where deviation threatens correctness, data, permissions, or
 a fragile operation. Remove duplicated instructions, generic tutorials, stale
 workarounds, and rules that merely restate the task or host behavior.
+
+Record failures observed in real use at the step where the agent will meet
+them, and treat a new one as a reason to revise. Turn a failing case into its
+root decision; do not copy its phrasing or fixture details into the skill.
 
 Treat the instruction stack as context with a cost: descriptions should make
 selection easy, and using one route should not force unrelated reading. Keep

@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review changes or implementation against intended behavior, system constraints, design, and unnecessary complexity."
+description: "Review changes or implementation against intended behavior, system constraints, design, and unnecessary complexity. Use when asked to review a diff, branch, PR, or finished implementation, or for the review pass after a substantive change."
 ---
 
 # Code Review

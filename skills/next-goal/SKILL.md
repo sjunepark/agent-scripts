@@ -91,7 +91,7 @@ Treat goal membership as closed. Advancing a roadmap, changing `Current`, creati
 
 ## 4. Pass the Readiness Gate
 
-Before emitting a goal prompt, verify that the evidence supports a closed outcome, semantic included results and authoritative sources, a completion predicate, and enough settled direction for autonomous implementation. Reversible implementer-owned choices may remain open. Consequential user-owned decisions require explicit delegation or planning repair.
+Before emitting a goal prompt, verify that the evidence supports a closed outcome, semantic included results and authoritative sources, a completion predicate, and enough settled direction for autonomous implementation. Reversible implementer-owned choices may remain open. Consequential user-owned decisions require explicit delegation or planning repair. A goal whose outcome is a performance, cost, or quality improvement must name its metric, baseline, and regression guard in the cited sources, or include building and validating that measurement as its first result.
 
 When the outcome is closed but consequential decisions remain, first check
 whether the user already delegated those decisions or selected planning repair.

@@ -16,9 +16,17 @@ Structural validity, task behavior, and discovery are separate questions.
   capabilities and failure modes against the baseline. Use holdouts and repeated
   trials when adoption risk or observed variability makes them informative.
 
+Draw cases from observed session failures and reported defects first, then
+hand-written tasks, and use synthetic cases last. Note in one line what makes
+each case hard; a case the baseline handles easily cannot show improvement.
+
 Set assertions and stopping criteria before scoring. Expand after failures,
 candidate changes, unstable outcomes, or an unresolved risk; passing checks do
 not need repetition for its own sake.
+
+Check headroom before claiming improvement. When the baseline already passes
+nearly every assertion, the suite is a regression guard: add harder cases, or
+limit the claim to preserved behavior, cost, or size.
 
 ## Structural checks
 
@@ -42,9 +50,13 @@ Use an observation case to develop assertions only when needed, and do not score
 that same case as independent confirmation. Freeze criteria before scored trials;
 changes to criteria or candidate begin a new round.
 
-For subjective judgments, use concrete acceptable/unacceptable anchors and blind
-review where it matters. Alternate or randomize condition order and preserve
-failed runs. Keep holdouts out of tuning; if a holdout exposes a defect, fix it
+For subjective judgments, use concrete acceptable/unacceptable anchors. Grade
+outputs unlabeled in a fresh context that did not author the candidate whenever
+an isolated worker is available, and report unblinded grading as a limitation.
+When scored trials back an adoption or improvement claim, grade judgment-based
+assertions twice; treat disagreement between the passes as an unreliable
+assertion to tighten, not as a result. Alternate or randomize
+condition order and preserve failed runs. Keep holdouts out of tuning; if a holdout exposes a defect, fix it
 and use a new unexposed case for a fresh holdout claim.
 
 Record the request, assertions, baseline/candidate versions, outputs, observed
@@ -54,7 +66,9 @@ unavailable metrics from measured values. Small samples support case-level
 findings, not general reliability claims.
 
 Accept changed behavior when required assertions pass without a material
-regression on the covered tasks. For a removal decision, every retained source
+regression on the covered tasks. A difference of one case between single runs
+is within noise: repeat both conditions before attributing it to the candidate.
+For a removal decision, every retained source
 capability needs evidence or an explicit decision to drop it. Keep the baseline
 when a proposed complication has no demonstrated benefit.
 
@@ -76,7 +90,7 @@ trigger evidence.
 ## Finish
 
 Fix evidenced defects and rerun affected checks. Report what passed, failed, or
-could not be tested, with concise reusable cases and raw results when trials were
-run. Missing tools need not prevent finishing safe source edits, but unresolved
+could not be tested. When trials were run, keep the reusable cases and the raw
+per-case results beside the report, not only its narrative. Missing tools need not prevent finishing safe source edits, but unresolved
 critical checks prevent claims of validated adoption or safe predecessor removal.
 Complete publication or installation only within the already-authorized scope.

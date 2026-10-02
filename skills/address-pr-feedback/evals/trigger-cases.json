@@ -1,0 +1,11 @@
+{
+  "policy": "Implicit discovery",
+  "cases": [
+    {"id": "comments", "prompt": "Address the review comments on PR #61.", "activate": true},
+    {"id": "bot", "prompt": "CodeRabbit left findings on my PR. Fix the valid ones and reply.", "activate": true},
+    {"id": "changes-requested", "prompt": "The reviewer requested changes; sort it out.", "activate": true},
+    {"id": "fresh-review", "prompt": "Review PR #61 and tell me what you think.", "activate": false},
+    {"id": "create", "prompt": "Open a PR for this branch.", "activate": false},
+    {"id": "issue", "prompt": "Fix GitHub issue #45.", "activate": false}
+  ]
+}

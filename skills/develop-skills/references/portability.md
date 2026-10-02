@@ -8,7 +8,8 @@ its declared prerequisites.
 
 - Begin `SKILL.md` with portable YAML frontmatter containing `name` and
   `description`. Match the lowercase hyphenated name to its directory.
-- Describe the capability and selection boundary concisely. Preserve invocation
+- Describe the capability, when it applies, and its selection boundary
+  concisely. Preserve invocation
   intent under the entry point's policy, with client enforcement and UI settings
   in separate adapter metadata. The exception is a client that reads invocation
   policy only from frontmatter; follow its invocation guide for that one field.

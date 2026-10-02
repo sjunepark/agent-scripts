@@ -10,11 +10,15 @@ row for every criterion.
 - **Purpose:** Does the skill provide reusable, non-obvious help for one coherent
   capability? Can ordinary reasoning or an existing instruction already do it?
 - **Selection:** Does the concise description distinguish intended tasks from
-  likely near misses? Do invocation intent, adapter metadata, and cases agree?
+  likely near misses? For implicit discovery, does it name the triggering
+  situations rather than only summarize the capability? Do invocation intent,
+  adapter metadata, and cases agree?
 - **Context:** Does the entry point expose the necessary constraints and route
   only to relevant resources? Can a short skill remain self-contained?
 - **Specificity:** Are exact steps reserved for real invariants or fragile
-  operations? Can the agent adapt judgment-heavy work to the evidence?
+  operations? Can the agent adapt judgment-heavy work to the evidence? Are
+  failures observed in use recorded where the agent meets them, as decisions
+  rather than case-specific patches?
 - **Authority:** Does the skill preserve user scope and delegated decisions,
   ask only about unresolved consequential boundaries, and continue independent
   work while an answer is pending?

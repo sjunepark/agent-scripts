@@ -15,7 +15,9 @@ For an OpenAI instruction audit motivated by model capability, the
 [skills and prompts article](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
 provides a focused starting point. For the Claude equivalent, start from the
 [current Claude prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
-and its model-specific pages. For client mechanics, read the
+and its model-specific pages; the [claude.dev posts](https://claude.dev/llms.txt)
+on skills, tool design, and context engineering add the Claude Code team's
+practice. For client mechanics, read the
 [Codex skills documentation](https://developers.openai.com/codex/skills) or
 [Claude Code skills documentation](https://code.claude.com/docs/en/skills). Read model-specific guidance only when the
 requested change needs it. Record retrieval dates and missing coverage; do not

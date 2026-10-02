@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: "Create or update GitHub PRs with gh, including stacked PR bases and CodeRabbit or Greptile review controls."
+description: "Create or update GitHub PRs with gh, including stacked PR bases and CodeRabbit or Greptile review controls. Use when asked to open, raise, or submit a PR, put work up for review, or change an existing PR's base, title, or body."
 ---
 
 # Create PR

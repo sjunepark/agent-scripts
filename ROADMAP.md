@@ -16,7 +16,8 @@
 
 ## Tasks
 
-_None._
+1. [Evaluate Claude Code packaging for the Codex plugins](tasks/claude-code-plugin-evaluation.md)
+   is not started; `codex-pushover-notify` is the first candidate.
 
 ## Completed
 

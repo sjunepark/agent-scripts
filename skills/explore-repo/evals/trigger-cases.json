@@ -1,0 +1,11 @@
+{
+  "policy": "Implicit discovery",
+  "cases": [
+    {"id": "dependency-impl", "prompt": "How does Kong resolve a default subcommand? Check its source.", "activate": true},
+    {"id": "version-diff", "prompt": "What changed in release-please's manifest handling between v16 and v17?", "activate": true},
+    {"id": "upstream-compare", "prompt": "Compare our fork's retry logic with upstream at the tag we forked from.", "activate": true},
+    {"id": "local-code", "prompt": "How does our own registry loader handle missing profiles?", "activate": false},
+    {"id": "api-syntax", "prompt": "What's the current syntax for a Vite proxy config?", "activate": false},
+    {"id": "clone-to-work", "prompt": "Clone my other project next to this one so I can start a feature there.", "activate": false}
+  ]
+}

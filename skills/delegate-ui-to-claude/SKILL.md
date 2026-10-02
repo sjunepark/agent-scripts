@@ -38,6 +38,9 @@ Claude, inspect the result, and route revision feedback back to Claude.
 
 2. Verify and provision the delegate.
    - Confirm `claude` is available and inspect `claude --version`.
+   - The runs below set `--effort high` and leave the model to Claude's
+     configured default. Pass `--model` only when the user names one;
+     otherwise report that the model was inherited.
    - Work from the relevant UI repository root. Confirm that repository has a
      Claude-scoped Impeccable installation at
      `.claude/skills/impeccable/SKILL.md` and that Claude resolves
