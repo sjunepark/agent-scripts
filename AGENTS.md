@@ -4,6 +4,9 @@
 - This repository publishes personal agent skills, the `sjskills` reconciler
   that installs them, Codex plugins and hooks, and the user-level global agent
   instructions.
+- Skills and global instructions are consumed by both Claude Code and Codex.
+  Write and verify changes for both harnesses unless a file is explicitly
+  harness-specific.
 - `skills/` is the published catalog and the only skill source to edit or
   distribute. Publication makes a skill installable from the GitHub `skills/`
   subpath; it does not make it global.
