@@ -84,7 +84,8 @@ Repo-managed plugin source includes:
   reporting, prerequisites, and explicit installation/update procedures; the
   [delivery plan](../plans/sjskills-startup-check.md) separates source validation
   from publication and host activation. Startup findings grant no maintenance
-  or authentication-setup authority.
+  or authentication-setup authority. It also ships for Claude Code through
+  `.claude-plugin/`; see the management guide's Claude Code section.
 
 For `chezmoi-sync`:
 

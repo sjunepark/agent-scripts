@@ -1,0 +1,14 @@
+{
+  "name": "personal",
+  "owner": {
+    "name": "Sejun Park"
+  },
+  "description": "Personal Claude Code plugins from agent-scripts.",
+  "plugins": [
+    {
+      "name": "sjskills-maintenance",
+      "source": "./plugins/sjskills-maintenance",
+      "description": "Check sjskills CLI and configured skill status at startup without assigning agent work."
+    }
+  ]
+}

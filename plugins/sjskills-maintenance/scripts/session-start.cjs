@@ -22,6 +22,10 @@ async function check(input, options = {}) {
       return status;
     } catch { return { findings: [], incomplete: ["native CLI status"] }; }
   };
+  // Codex always sets PLUGIN_ROOT (plus CLAUDE_* aliases); Claude Code sets only
+  // CLAUDE_PLUGIN_ROOT. Plugin observation reads Codex metadata, so Claude skips it
+  // and relies on its own marketplace updates.
+  if (!env.PLUGIN_ROOT && env.CLAUDE_PLUGIN_ROOT) return report([await cli()]);
   const plugin = async () => {
     try {
       return await (options.observe || observePlugin)({ root: path.resolve(__dirname, ".."),

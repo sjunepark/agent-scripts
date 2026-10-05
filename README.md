@@ -19,8 +19,10 @@ rubrics, recipes, or factual references.
   symlinked into `~/.local/bin`.
 - [global-agent-instructions/](global-agent-instructions/README.md): personal
   instruction sources symlinked from each agent's user-level configuration.
-- `plugins/`: repo-managed local Codex plugins.
+- `plugins/`: repo-managed local Codex plugins; those with a
+  `.claude-plugin/` manifest also ship for Claude Code.
 - `.agents/plugins/marketplace.json`: repo-local Codex plugin marketplace.
+- `.claude-plugin/marketplace.json`: Claude Code plugin marketplace.
 - `codex-hooks/`: canonical standalone Codex hook definitions and scripts.
 - `bin/install-codex-hooks`: installer for lifecycle repair hooks.
 - `skills/`: published reusable skills.
@@ -254,6 +256,9 @@ machine-local Pushover credentials. See
 Use local plugin marketplace paths only for temporary development testing.
 For ongoing machine setup, commit and push plugin changes first, then run
 `codex plugin marketplace upgrade personal` and reinstall the affected plugin.
+
+For Claude Code, `sjskills-maintenance` is the only plugin shipped; see
+[docs/sjskills-startup-hook.md](docs/sjskills-startup-hook.md#claude-code).
 
 The `chezmoi-sync` startup hook only checks and reports. Use the bundled
 review helper before mutating actions such as `chezmoi apply`, `chezmoi add`,

@@ -90,6 +90,9 @@
   `.codex-plugin/plugin.json`. Keep plugin skills under the plugin's own
   `skills/` directory, and keep plugins skillless unless agent-facing
   instructions are worth the persistent context.
+- A plugin that also ships for Claude Code adds `.claude-plugin/plugin.json`
+  beside its Codex manifest and an entry in `.claude-plugin/marketplace.json`,
+  sharing one `hooks/hooks.json`. Validate with `claude plugin validate`.
 - Keep plugin lifecycle hooks read-only unless the user explicitly asks for a
   mutating hook. The `chezmoi-sync` startup hook must only check and report.
 - Validate a plugin with

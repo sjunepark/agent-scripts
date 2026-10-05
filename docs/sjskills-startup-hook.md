@@ -4,6 +4,7 @@ The source plugin `sjskills-maintenance@personal` runs checks directly on startu
 and resume. Healthy results produce no conversation output. Actionable findings
 or incomplete verification produce one short UI diagnostic with a manual next
 step. The hook supplies no agent instructions or maintenance authority.
+The same plugin directory ships for Codex and [Claude Code](#claude-code).
 
 The [delivery plan](../plans/sjskills-startup-check.md) records validation and
 publication status. Installing or activating this replacement on real hosts is
@@ -102,6 +103,35 @@ Inspect CLI/skill state with `sjskills status`. CLI updates follow the
 the canonical [sjskills workflow](../skills/sjskills/SKILL.md). Enabling the
 startup check grants neither operation. Disable its hook through `/hooks` or
 remove the plugin with `codex plugin remove sjskills-maintenance@personal`.
+
+## Claude Code
+
+`.claude-plugin/plugin.json` beside the Codex manifest and the repo-root
+`.claude-plugin/marketplace.json` publish the same plugin to Claude Code, which
+loads the shared `hooks/hooks.json`. Claude runs `command` through Git Bash on
+Windows and ignores the Codex-only `commandWindows` field. Do not point the
+manifest's `hooks` key at a separate file: Claude loads it in addition to
+`hooks/hooks.json`, so the check would run twice.
+
+Under Claude only the CLI status check runs. Plugin observation reads Codex
+metadata, so the adapter skips it when `PLUGIN_ROOT` is unset and
+`CLAUDE_PLUGIN_ROOT` is set; Codex always sets `PLUGIN_ROOT` alongside its
+`CLAUDE_*` compatibility aliases. Claude marketplace updates replace that check.
+
+Install from the published remote:
+
+```text
+claude plugin marketplace add sjunepark/agent-scripts
+claude plugin install sjskills-maintenance@personal
+```
+
+The marketplace tracks the default branch; the plugin manifest omits `version`,
+so updates follow the commit. Apply a published change with
+`claude plugin marketplace update personal` and
+`claude plugin update sjskills-maintenance@personal`, then restart. Remove it
+with `claude plugin uninstall sjskills-maintenance@personal`. Validate source
+with `claude plugin validate plugins/sjskills-maintenance` and
+`claude plugin validate .`.
 
 ## Source validation
 

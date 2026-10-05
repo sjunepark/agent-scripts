@@ -58,6 +58,13 @@ test("adapter runs exactly one status in event cwd, retains nonzero output, igno
   const result=await check(event,{...options,run:async()=>({code:1,stdout:JSON.stringify(value)})});assert.match(result.systemMessage,/CLI update available.*status process/);
   assert.match((await check(event,{...options,platform:"linux"})).systemMessage,/unsupported/);
 });
+test("Claude Code host runs only CLI status and skips Codex plugin observation",async()=>{
+  const calls=[];let observed=0;const base={platform:"darwin",arch:"arm64",now,resolve:()=>process.execPath,observe:async()=>{observed++;return healthyPlugin;},run:async(exe,args)=>{calls.push(args);return {code:0,stdout:JSON.stringify(healthy())};}};
+  assert.equal(await check(event,{...base,env:{CLAUDE_PLUGIN_ROOT:"/p",CLAUDE_PLUGIN_DATA:"/d"}}),null);assert.equal(observed,0);assert.deepEqual(calls,[["--json","status"]]);
+  const value=healthy();value.cliAdvisory.comparison="update";
+  assert.doesNotMatch((await check(event,{...base,env:{CLAUDE_PLUGIN_ROOT:"/p"},run:async()=>({code:0,stdout:JSON.stringify(value)})})).systemMessage,/plugin/);
+  assert.equal(await check(event,{...base,env:{PLUGIN_ROOT:"/p",CLAUDE_PLUGIN_ROOT:"/p"}}),null);assert.equal(observed,1);
+});
 test("plugin observation handles expiry, rollback, failure cooldown and installed version changes",async t=>{
   const root=temp(t);let calls=0;const opts=observation(root,{get:async url=>{calls++;return url.includes("/commits/")?{sha:commit}:{name:"sjskills-maintenance",version};}});
   assert.deepEqual(await observePlugin(opts),healthyPlugin);assert.equal(calls,2);
@@ -97,8 +104,12 @@ test("registered command executes controlled native checks in both native shells
   const env={...process.env,PSExecutionPolicyPreference:"Restricted",PATH:bin+path.delimiter+process.env.PATH,CODEX_HOME:home,HOME:home,USERPROFILE:home,PLUGIN_ROOT:installed,PLUGIN_DATA:data,HOOK_FIXTURE_LOG:log,HOOK_FIXTURE_STATUS:JSON.stringify(healthy(false)),HOOK_FIXTURE_PLUGINS:JSON.stringify({installed:[{pluginId:"sjskills-maintenance@personal",enabled:true,installed:true,version,marketplaceSource:{sourceType:"git",source:"https://github.com/sjunepark/agent-scripts.git"}}]})};
   const hook=JSON.parse(fs.readFileSync(path.join(installed,"hooks/hooks.json"))).hooks.SessionStart[0].hooks[0];assert.equal(hook.timeout,40);assert.equal(hook.additionalContextLimit,undefined);
   const shells=process.platform==="win32"?[["powershell.exe",["-NoProfile","-NonInteractive","-Command",hook.commandWindows]],[process.env.COMSPEC||"cmd.exe",["/d","/s","/c",hook.commandWindows]]]:[["/bin/sh",["-c",hook.command]]];
-  for(const [shell,args] of shells)for(const fallback of [false,true]){const shellEnv={...env};if(fallback){delete shellEnv.PLUGIN_ROOT;delete shellEnv.PLUGIN_DATA;shellEnv.CLAUDE_PLUGIN_ROOT=installed;shellEnv.CLAUDE_PLUGIN_DATA=data;}const result=spawnSync(shell,args,{env:shellEnv,cwd:root,input:JSON.stringify({...event,cwd:root}),encoding:"utf8",windowsHide:true,timeout:(hook.timeout+5)*1000});assert.equal(result.status,0,`${shell}: ${result.error?.code || ""} ${result.stderr}`);if(process.platform==="linux")assert.match(JSON.parse(result.stdout).systemMessage,/unsupported/);else assert.equal(result.stdout,"");}
-  if(process.platform!=="linux"){const commands=fs.readFileSync(log,"utf8").trim().split("\n").map(JSON.parse);assert.equal(commands.filter(c=>c.args[0]==="--json").length,shells.length*2);for(const c of commands)assert.ok(JSON.stringify(c.args)==='["--json","status"]'||JSON.stringify(c.args)==='["plugin","list","--marketplace","personal","--available","--json"]');}
+  const run=(shell,args,shellEnv)=>{const result=spawnSync(shell,args,{env:shellEnv,cwd:root,input:JSON.stringify({...event,cwd:root}),encoding:"utf8",windowsHide:true,timeout:(hook.timeout+5)*1000});assert.equal(result.status,0,`${shell}: ${result.error?.code || ""} ${result.stderr}`);if(process.platform==="linux")assert.match(JSON.parse(result.stdout).systemMessage,/unsupported/);else assert.equal(result.stdout,"");};
+  for(const [shell,args] of shells)run(shell,args,env);
+  // Claude Code sets only the CLAUDE_* roots and runs `command` through a POSIX shell (Git Bash on Windows).
+  const claudeEnv={...env,CLAUDE_PLUGIN_ROOT:installed.replaceAll("\\","/"),CLAUDE_PLUGIN_DATA:data};delete claudeEnv.PLUGIN_ROOT;delete claudeEnv.PLUGIN_DATA;
+  run(process.platform==="win32"?path.join(process.env.ProgramFiles||"C:/Program Files","Git","bin","bash.exe"):"/bin/sh",["-c",hook.command],claudeEnv);
+  if(process.platform!=="linux"){const commands=fs.readFileSync(log,"utf8").trim().split("\n").map(JSON.parse);assert.equal(commands.filter(c=>c.args[0]==="--json").length,shells.length+1);assert.equal(commands.filter(c=>c.args[0]==="plugin").length,shells.length);for(const c of commands)assert.ok(JSON.stringify(c.args)==='["--json","status"]'||JSON.stringify(c.args)==='["plugin","list","--marketplace","personal","--available","--json"]');}
   assert.deepEqual(fs.readFileSync(path.join(home,"config.toml")),beforeConfig);for(const protectedName of [".agents",".claude","plugins","auth.json"])assert.equal(fs.existsSync(path.join(home,protectedName)),false);assert.deepEqual(fs.readdirSync(data),["plugin-observation.json"]);
 });
 test("native resolution rejects a building wrapper without executing it",t=>{

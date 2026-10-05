@@ -1,0 +1,7 @@
+{
+  "name": "sjskills-maintenance",
+  "description": "Check sjskills CLI and configured skill status at startup without assigning agent work.",
+  "author": {
+    "name": "Sejun Park"
+  }
+}
