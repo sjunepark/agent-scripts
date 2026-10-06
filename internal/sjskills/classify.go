@@ -582,6 +582,14 @@ func canonicalProjectSourceIdentity(source string) (string, bool) {
 	return "https://" + hostPort + cleanPath, true
 }
 
+// isCanonicalSourceIdentityForScope additionally refuses local identities in
+// global scope, whose desired sources are always remote. Restore uses it so a
+// tampered global quarantine cannot reintroduce provenance that global
+// inventory would then distrust.
+func isCanonicalSourceIdentityForScope(scope Scope, identity string) bool {
+	return isCanonicalProjectSourceIdentity(identity) && (scope != ScopeGlobal || !isCanonicalLocalSourceIdentity(identity))
+}
+
 func isCanonicalProjectSourceIdentity(identity string) bool {
 	if strings.HasPrefix(identity, localSourceIdentityPrefix) {
 		return isCanonicalLocalSourceIdentity(identity)

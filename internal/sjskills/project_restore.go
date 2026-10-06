@@ -490,7 +490,7 @@ func (tx *restoreTransaction) preflight(ctx context.Context) error {
 		state.state = emptyTransactionProvenanceState(tx.scope)
 	}
 	for _, record := range state.state.Records {
-		if !isCanonicalProjectSourceIdentity(record.SourceIdentity) {
+		if !isCanonicalSourceIdentityForScope(tx.scope, record.SourceIdentity) {
 			return restoreConflict("provenance identity is incompatible")
 		}
 	}
@@ -596,7 +596,7 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 		}
 		if !exists || record.Scope != scope || record.Target != entry.Target || record.Skill != entry.Skill ||
 			record.SourceIdentity != entry.NewSourceIdentity || record.TreeHashAlgorithm != entry.TreeHashAlgorithm || record.TreeHash != entry.NewTreeHash ||
-			!isCanonicalProjectSourceIdentity(record.SourceIdentity) {
+			!isCanonicalSourceIdentityForScope(scope, record.SourceIdentity) {
 			return restoreConflict("update provenance does not match the manifest")
 		}
 		return nil
@@ -610,7 +610,7 @@ func validateRestoreProvenance(state ProvenanceState, entry ProjectQuarantineMan
 	}
 	if !exists || record.Scope != scope || record.Target != entry.Target || record.Skill != entry.Skill ||
 		record.SourceIdentity != oldSource || record.TreeHashAlgorithm != entry.TreeHashAlgorithm || record.TreeHash != entry.OldTreeHash ||
-		!isCanonicalProjectSourceIdentity(record.SourceIdentity) {
+		!isCanonicalSourceIdentityForScope(scope, record.SourceIdentity) {
 		return restoreConflict("restored provenance does not match the manifest")
 	}
 	return nil
@@ -1016,7 +1016,7 @@ func buildRestoreProvenanceState(previous ProvenanceState, entries []restoreEntr
 			delete(records, key)
 			continue
 		}
-		if !isCanonicalProjectSourceIdentity(entry.entry.OldSourceIdentity) {
+		if !isCanonicalSourceIdentityForScope(scope, entry.entry.OldSourceIdentity) {
 			return ProvenanceState{}, restoreConflict("quarantine source identity is incompatible")
 		}
 		records[projectPlacementKey(entry.entry.Target, entry.entry.Skill)] = ProvenanceRecord{
