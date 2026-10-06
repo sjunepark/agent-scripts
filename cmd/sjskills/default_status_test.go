@@ -202,6 +202,9 @@ func TestDefaultStatusNestedAndUnsafeConfiguration(t *testing.T) {
 					err = os.Mkdir(manifest, 0755)
 				} else {
 					err = os.Symlink(filepath.Join(f.project, "absent"), manifest)
+					if err != nil && runtime.GOOS == "windows" {
+						t.Skipf("symlinks unavailable: %v", err)
+					}
 				}
 				if err != nil {
 					t.Fatal(err)
