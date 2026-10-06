@@ -105,6 +105,11 @@
       "id": 21,
       "prompt": "Use $sjskills to sync a previously managed desired skill whose current tree equals the published content but differs from the saved provenance hash.",
       "expected_output": "The skill treats the reviewed local-modification update as an authorized quarantine and verified replacement, preserving actual current bytes and establishing fresh installation provenance. It verifies the final plan and reports the quarantine identifier."
+    },
+    {
+      "id": 22,
+      "prompt": "Use $sjskills to make the skill this project keeps at skills/team-tool/ load as a native skill here, and keep it in sync as I edit it.",
+      "expected_output": "The skill adds a [[direct]] entry named after the SKILL.md name with a forward-slash local source such as ./skills/team-tool, without access or full_depth, instead of copying or symlinking into .agents/skills or .claude/skills. It reviews sjskills plan, applies when installation was requested, re-plans to exact state, and explains that later edits appear as verified updates applied by rerunning plan and apply."
     }
   ]
 }
