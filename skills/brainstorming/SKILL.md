@@ -21,8 +21,10 @@ its lens. Include enough shared facts to work without conversation history,
 limit the assignment to analysis and response, and request concrete insights
 with their reasoning.
 
-Spawn one fresh subagent per prompt with `fork_turns: "none"`. Omit `model` and
-`reasoning_effort` so both inherit from the caller. Run independent prompts in
+Spawn one fresh subagent per prompt that does not inherit this conversation:
+in Codex pass `fork_turns: "none"`; in Claude Code start a new general-purpose
+agent rather than a fork. Leave model and reasoning-effort overrides unset so
+both inherit from the caller. Run independent prompts in
 parallel when capacity allows; otherwise dispatch as slots become available.
 Do not claim the requested fan-out occurred when fresh subagents are unavailable.
 

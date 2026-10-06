@@ -129,9 +129,6 @@
     }
   },
   "targetExceptions": {
-    "brainstorming": [
-      ".agents"
-    ],
     "codex-cleanup": [
       ".agents"
     ],
@@ -140,12 +137,6 @@
     ],
     "impeccable": [
       ".claude"
-    ],
-    "macos-storage-cleanup": [
-      ".agents"
-    ],
-    "windows-cleanup": [
-      ".agents"
     ]
   },
   "skills": [
