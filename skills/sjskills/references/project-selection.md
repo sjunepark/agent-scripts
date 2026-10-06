@@ -3,8 +3,9 @@
 Profiles are named collections defined centrally in `agent-scripts`'s
 `skill-registry.json`; `sjskills profiles` lists them. A project selects those
 names, but cannot define new profiles in its manifest. It can independently add
-skills from other repositories with `[[direct]]`, without changing the central
-registry or publishing those skills in `agent-scripts`.
+skills from other repositories, or skills it develops in its own tree, with
+`[[direct]]`, without changing the central registry or publishing those skills
+in `agent-scripts`.
 
 Inspect the access policy in `sjskills profiles` before selecting a profile.
 `kicpa` is public; `kicpa-private` uses the enrolled private GitHub catalog.

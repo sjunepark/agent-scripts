@@ -72,7 +72,9 @@ Use the ordinary Skills CLI workflow to discover source skill names or perform
 requested ad hoc installs. Never pass `--all` there: it also selects every agent
 and can recreate shared `~/.agents/skills` installs. For a project managed by `sjskills`, record external
 skills in `[[direct]]` and reconcile through `sjskills`; undeclared ad hoc
-installs in managed roots become quarantine candidates. Use the repository's
+installs in managed roots become quarantine candidates. A skill the project
+develops in its own tree is also a `[[direct]]` entry with a local path source;
+never copy or symlink it into a managed root by hand. Use the repository's
 plugin workflow for Codex plugins. Local catalog validation and publication are
 not reconciliation.
 
