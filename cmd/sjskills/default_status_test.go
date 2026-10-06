@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -202,7 +203,8 @@ func TestDefaultStatusNestedAndUnsafeConfiguration(t *testing.T) {
 					err = os.Mkdir(manifest, 0755)
 				} else {
 					err = os.Symlink(filepath.Join(f.project, "absent"), manifest)
-					if err != nil && runtime.GOOS == "windows" {
+					// ERROR_PRIVILEGE_NOT_HELD: no Developer Mode or elevation.
+					if runtime.GOOS == "windows" && errors.Is(err, syscall.Errno(1314)) {
 						t.Skipf("symlinks unavailable: %v", err)
 					}
 				}
