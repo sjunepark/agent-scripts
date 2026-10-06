@@ -147,6 +147,7 @@ func ResolveStatusScope(directory string, registry Registry, global bool) (Statu
 			return StatusScope{}, err
 		}
 		request.Manifest = &manifest
+		request.ProjectRoot = project.Root
 		root = project.Root
 	}
 	canonical, err := filepath.EvalSymlinks(root)
@@ -191,7 +192,8 @@ func (s StatusScope) identity() string {
 func (s StatusScope) cacheKey() string {
 	// Only upstream materialization inputs belong here. Roots, placement targets,
 	// profile names, and registry metadata affect local classification, which is
-	// always recomputed. Keep Matches stricter for command-produced snapshots.
+	// always recomputed. Local sources are hashed on every check, never cached.
+	// Keep Matches stricter for command-produced snapshots.
 	type input struct {
 		Name, Source string
 		Mode         InstallMode
@@ -200,7 +202,7 @@ func (s StatusScope) cacheKey() string {
 	}
 	inputs := make([]input, 0, len(s.Plan.Desired.Skills))
 	for _, skill := range s.Plan.Desired.Skills {
-		if skill.Manager == ManagerSkillsCLI {
+		if skill.Manager == ManagerSkillsCLI && skill.LocalPath == "" {
 			inputs = append(inputs, input{skill.Name, skill.Source, skill.Mode, skill.FullDepth, skill.Access.Effective()})
 		}
 	}
@@ -297,6 +299,49 @@ func RefreshStatusSnapshot(ctx context.Context, skills []DesiredSkill) (StatusSn
 	}
 	return StatusSnapshot{expected, time.Now().UTC()}, nil
 }
+
+// statusCachedDesired is the part of a scope whose expected content comes
+// from the upstream cache. Local sources change with the working tree, so
+// Check hashes them afresh instead.
+func statusCachedDesired(desired DesiredState) DesiredState {
+	cached := DesiredState{Scope: desired.Scope, Skills: make([]DesiredSkill, 0, len(desired.Skills))}
+	for _, skill := range desired.Skills {
+		if skill.LocalPath == "" {
+			cached.Skills = append(cached.Skills, skill)
+		}
+	}
+	return cached
+}
+
+func cachedStatusExpected(cached DesiredState, expected map[string]TreeHash) map[string]TreeHash {
+	result := make(map[string]TreeHash, len(cached.Skills))
+	for _, skill := range cached.Skills {
+		if hash, ok := expected[skill.Name]; ok && skill.Manager == ManagerSkillsCLI {
+			result[skill.Name] = hash
+		}
+	}
+	return result
+}
+
+// withLocalStatusExpected adds the current tree hash of every local source.
+func withLocalStatusExpected(desired DesiredState, cached map[string]TreeHash) (map[string]TreeHash, error) {
+	expected := make(map[string]TreeHash, len(desired.Skills))
+	for name, hash := range cached {
+		expected[name] = hash
+	}
+	for _, skill := range desired.Skills {
+		if skill.Manager != ManagerSkillsCLI || skill.LocalPath == "" {
+			continue
+		}
+		_, hash, err := inspectLocalSkillSource(skill, MaterializerLimits{})
+		if err != nil {
+			return nil, err
+		}
+		expected[skill.Name] = hash
+	}
+	return expected, nil
+}
+
 func validStatusExpected(desired DesiredState, expected map[string]TreeHash) bool {
 	count := 0
 	for _, skill := range desired.Skills {
@@ -313,14 +358,20 @@ func validStatusExpected(desired DesiredState, expected map[string]TreeHash) boo
 }
 func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *StatusSnapshot) Advisory {
 	result := newAdvisory(scope.Plan.Desired.Scope)
+	cachedDesired := statusCachedDesired(scope.Plan.Desired)
 	now := s.now()
+	if !hasSkillsCLIPlacement(cachedDesired) {
+		// No upstream content is needed, so the cache and its lock cannot
+		// make live local status unavailable.
+		return s.inspectStatus(result, scope, map[string]TreeHash{}, now)
+	}
 	entry, err := s.read(scope)
 	if err != nil {
 		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey()}
 	}
 	result.Cached = true
 	if reusable != nil && validStatusExpected(scope.Plan.Desired, reusable.Expected) && !reusable.ObservedAt.IsZero() && !reusable.ObservedAt.After(now) {
-		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey(), Expected: reusable.Expected, ObservedAt: reusable.ObservedAt}
+		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey(), Expected: cachedStatusExpected(cachedDesired, reusable.Expected), ObservedAt: reusable.ObservedAt}
 		result.Cached = false
 		if err := s.publish(scope, entry); err != nil {
 			result.Error = "status cache could not be written"
@@ -344,9 +395,9 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 					if refresh == nil {
 						refresh = RefreshStatusSnapshot
 					}
-					snapshot, refreshErr := refresh(ctx, scope.Plan.Desired.Skills)
+					snapshot, refreshErr := refresh(ctx, cachedDesired.Skills)
 					finished := s.now()
-					if refreshErr == nil && ctx.Err() == nil && validStatusExpected(scope.Plan.Desired, snapshot.Expected) && !snapshot.ObservedAt.IsZero() && !snapshot.ObservedAt.After(finished) {
+					if refreshErr == nil && ctx.Err() == nil && validStatusExpected(cachedDesired, snapshot.Expected) && !snapshot.ObservedAt.IsZero() && !snapshot.ObservedAt.After(finished) {
 						entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey(), Expected: snapshot.Expected, ObservedAt: snapshot.ObservedAt}
 						result.Cached = false
 					} else {
@@ -368,7 +419,7 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 	} else if !entry.fresh(now) {
 		result.Error = "upstream status could not be refreshed; retry cooldown active"
 	}
-	if entry.ObservedAt.IsZero() || !validStatusExpected(scope.Plan.Desired, entry.Expected) {
+	if entry.ObservedAt.IsZero() || !validStatusExpected(cachedDesired, entry.Expected) {
 		result.Cached = false
 		if result.Error == "" {
 			result.Error = "upstream status unavailable"
@@ -381,7 +432,24 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 		result.Freshness = AdvisoryStale
 		result.Cached = true
 	}
-	plan, err := InspectStatusPlan(scope, entry.Expected)
+	return s.inspectStatus(result, scope, entry.Expected, entry.ObservedAt)
+}
+
+// inspectStatus adds live local hashes to cached upstream evidence observed at
+// observedAt and classifies the current inventory.
+func (s StatusService) inspectStatus(result Advisory, scope StatusScope, cached map[string]TreeHash, observedAt time.Time) Advisory {
+	if result.ObservedAt == nil {
+		result.ObservedAt = &observedAt
+		result.Freshness = AdvisoryFresh
+	}
+	expected, err := withLocalStatusExpected(scope.Plan.Desired, cached)
+	if err != nil {
+		result.Freshness = AdvisoryUnavailable
+		result.ObservedAt = nil
+		result.Error = err.Error()
+		return result
+	}
+	plan, err := InspectStatusPlan(scope, expected)
 	if err != nil {
 		result.Freshness = AdvisoryUnavailable
 		result.ObservedAt = nil

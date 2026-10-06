@@ -305,7 +305,7 @@ func decodeGlobalProvenanceState(data []byte) (GlobalProvenanceState, GlobalProv
 			}
 			identity, ok := canonicalProjectSourceIdentity(record.Source)
 			key := projectPlacementKey(target, record.Skill)
-			if !ok || !isPortableName(record.Skill) || record.HashAlgorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(record.Hash) || record.RecordedAt.IsZero() {
+			if !ok || IsLocalSource(record.Source) || !isPortableName(record.Skill) || record.HashAlgorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(record.Hash) || record.RecordedAt.IsZero() {
 				return GlobalProvenanceState{}, "", false
 			}
 			if _, duplicate := seen[key]; duplicate {
@@ -343,7 +343,7 @@ func validGlobalProvenanceRecords(records []ProvenanceRecord) bool {
 		key := projectPlacementKey(record.Target, record.Skill)
 		if record.Scope != ScopeGlobal || !isPortableName(record.Skill) ||
 			(record.Target != TargetAgents && record.Target != TargetClaude) ||
-			!isCanonicalProjectSourceIdentity(record.SourceIdentity) ||
+			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || isCanonicalLocalSourceIdentity(record.SourceIdentity) ||
 			record.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
 			!lowercaseDigestPattern.MatchString(record.TreeHash) || record.RecordedAt.IsZero() {
 			return false

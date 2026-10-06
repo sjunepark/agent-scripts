@@ -94,6 +94,30 @@ boundary. Skills CLI-managed sources must be Git shorthand
 credentials, URL query strings, npm specifiers, and other schemes are rejected
 for that manager.
 
+A project manifest's `[[direct]]` entry may instead name a local skill
+directory, so a project can install a skill it develops in-repo. The registry
+and the fixed global baseline stay remote-only. Local sources use forward
+slashes and are either relative to the directory containing `sjskills.toml`
+(starting `./` or `../`) or absolute (`/path` or `C:/path`); home-relative and
+backslash spellings are rejected, as are `access` other than public and
+`full_depth`. Paths outside the project resolve but warn
+(`machine-specific-source`), because other checkouts need the same path.
+`sjskills` copies the directory into staging itself, without Skills CLI, and
+then treats it like any fetched tree. Provenance records
+`local:<normalized manifest path>` with the tree hash, so editing the source
+produces an ordinary update. The directory must be a real directory with a
+`SKILL.md` whose frontmatter `name` matches the entry, contain only regular
+files and directories, not lie inside a generated `.agents/skills`,
+`.claude/skills`, or `.sjskills` directory, and neither contain generated
+skill roots nor be or contain a project (any `sjskills.toml`). Checks use the
+symlink-resolved path, and the copy is read from that same path. A missing or invalid source makes `plan` and
+`apply` fail as invalid input (exit 65) with a message naming it; status
+reports the project scope unavailable with the same message. Switching an
+installed skill between remote and local sources, or respelling its path,
+changes its provenance identity and blocks as `provenance-source-mismatch`:
+remove the entry and apply, then re-add it and apply. Provenance containing
+`local:` identities requires an `sjskills` build that supports local sources.
+
 Public selections use the pinned Skills CLI's remote-fetch path and do not
 invoke gh. Skills CLI cannot clone a commit, so public GitHub sources pinned to
 a full commit, including every agent-scripts skill, are fetched anonymously
@@ -233,7 +257,8 @@ reused. “No drift detected” does not verify externally provisioned manual or
 workflow tools. Protected locations retain their existing ownership boundaries.
 
 Disposable complete expected-hash snapshots live under the platform user-cache
-directory in `sjskills/status/`. Identity includes the sorted Skills CLI-managed
+directory in `sjskills/status/`. Local direct sources are never cached; each
+check hashes them afresh. Identity includes the sorted Skills CLI-managed
 selection's names, exact source strings, effective access, copy mode, full-depth
 options, and the Skills CLI, tree-hash, and cache format versions. Matching selections share
 evidence across roots and scopes. Placement targets, profile names, and unrelated

@@ -109,9 +109,9 @@ type SkillDeclaration struct {
 	FullDepth bool        `json:"fullDepth,omitempty"`
 }
 
-// DirectSkill is a project-local third-party declaration. Version 1 fixes its
-// ownership to Skills CLI, its placement to copy mode, and its targets to the
-// registry defaults; the manifest carries only a portable name, installable
+// DirectSkill is a project-local declaration. Version 1 fixes its ownership
+// to Skills CLI, its placement to copy mode, and its targets to the registry
+// defaults; the manifest carries only a portable name, a remote or local
 // source, access policy, and optional full-depth hint.
 type DirectSkill struct {
 	Access    Access `toml:"access,omitempty" json:"access,omitempty"`
@@ -143,6 +143,9 @@ type DesiredSkill struct {
 	Workflow  string      `json:"workflow,omitempty"`
 	FullDepth bool        `json:"fullDepth"`
 	Targets   []Target    `json:"targets"`
+	// LocalPath is the absolute directory a local direct source resolves to on
+	// this machine. Source keeps the committed spelling for provenance.
+	LocalPath string `json:"localPath,omitempty"`
 }
 
 type DesiredState struct {
@@ -152,11 +155,14 @@ type DesiredState struct {
 
 // ResolveRequest is the pure boundary consumed by planning adapters. Global
 // requests ignore Manifest and always select the fixed baseline; project
-// requests require it and select only its profile/direct union.
+// requests require it and select only its profile/direct union. ProjectRoot,
+// the absolute directory containing the manifest, anchors relative local
+// direct sources.
 type ResolveRequest struct {
-	Registry Registry
-	Manifest *Manifest
-	Global   bool
+	Registry    Registry
+	Manifest    *Manifest
+	ProjectRoot string
+	Global      bool
 }
 
 // PlanAction is the stable action vocabulary shared by pure resolution,

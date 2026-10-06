@@ -80,7 +80,7 @@ func TestCanonicalRegistryAndProfiles(t *testing.T) {
 func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	registry := fixtureRegistry(t)
 	manifest := fixtureManifest(t, "dev-go.toml")
-	state, err := ResolveProject(registry, manifest)
+	state, err := ResolveProject(registry, manifest, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestProjectResolutionDevGoAndDirect(t *testing.T) {
 	}
 
 	manifest = fixtureManifest(t, "direct-third-party.toml")
-	state, err = ResolveProject(registry, manifest)
+	state, err = ResolveProject(registry, manifest, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestCanonicalManifestIncludesDirectSourceIdentity(t *testing.T) {
 	if len(manifest.Profiles) != 2 || len(manifest.Direct) != 1 {
 		t.Fatalf("manifest = %#v", manifest)
 	}
-	state, err := ResolveProject(fixtureRegistry(t), manifest)
+	state, err := ResolveProject(fixtureRegistry(t), manifest, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestBuildPlanKeepsWarningsAndEvidenceAtPureBoundary(t *testing.T) {
 }
 
 func TestKicpaAndManagerBoundaries(t *testing.T) {
-	state, err := ResolveProject(fixtureRegistry(t), fixtureManifest(t, "kicpa.toml"))
+	state, err := ResolveProject(fixtureRegistry(t), fixtureManifest(t, "kicpa.toml"), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestKicpaAndManagerBoundaries(t *testing.T) {
 	registry.Profiles["dev"] = Profile{Skills: append(registry.Profiles["dev"].Skills, "context7-mcp")}
 	slices.Sort(registry.Profiles["dev"].Skills)
 	dev := fixtureManifest(t, "dev-go.toml")
-	state, err = ResolveProject(registry, dev)
+	state, err = ResolveProject(registry, dev, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestManifestAndRegistryInvalidCases(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := ResolveProject(registry, manifest); err == nil || !issueCode(err, IssueCollision) {
+		if _, err := ResolveProject(registry, manifest, ""); err == nil || !issueCode(err, IssueCollision) {
 			t.Fatalf("%s resolution error = %v, want collision", name, err)
 		}
 	}
@@ -343,7 +343,7 @@ func TestSelectionScopedCollisionsAndUnselectedDirectCatalog(t *testing.T) {
 	if err := ValidateManifest(registry, manifest); err != nil {
 		t.Fatalf("unselected catalog direct should be allowed: %v", err)
 	}
-	state, err := ResolveProject(registry, manifest)
+	state, err := ResolveProject(registry, manifest, "")
 	if err != nil {
 		t.Fatal(err)
 	}

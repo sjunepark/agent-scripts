@@ -126,7 +126,9 @@ independent unblocked scope unless the user required an all-or-nothing result.
 
 When intended content or the registry changed, reconciliation can only
 consume the published remote content. Do not apply a local-only change; a
-registry change needs no new `sjskills` release once it reaches `main`.
+registry change needs no new `sjskills` release once it reaches `main`. The
+exception is a project `[[direct]]` entry with a local path source, which
+installs the working tree's current content.
 If publication is requested, follow the source repository's instructions for
 validation, review, commit, and publication; those mechanics are outside this
 skill. Before reconciling, verify that the commit named by the plan's

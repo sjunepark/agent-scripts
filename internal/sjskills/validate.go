@@ -310,10 +310,24 @@ func ValidateManifestShape(manifest Manifest) error {
 		if index > 0 && direct.Name < manifest.Direct[index-1].Name {
 			addIssue(&issues, IssueInvalidName, "manifest.direct", "must be sorted by name")
 		}
-		if direct.Source == "" {
+		switch {
+		case direct.Source == "":
 			addIssue(&issues, IssueInvalidSource, path+".source", "direct skill must record an installable source identity")
-		} else if problem := SkillsCLIPathProblem(direct.Source); problem != "" {
-			addIssue(&issues, IssueInvalidSource, path+".source", "direct skill source must be a git shorthand or credential-free https source: %s", problem)
+		case IsLocalSource(direct.Source):
+			if problem := LocalSourceProblem(direct.Source); problem != "" {
+				addIssue(&issues, IssueInvalidSource, path+".source", "direct skill local source is invalid: %s", problem)
+			}
+			if direct.Access.Effective() != AccessPublic {
+				addIssue(&issues, IssueInvalidSource, path+".access", "local sources are read from disk; omit access or use public")
+			}
+			if direct.FullDepth {
+				addIssue(&issues, IssueInvalidSource, path+".full_depth", "local sources name the skill directory and must not set full_depth")
+			}
+			continue
+		default:
+			if problem := SkillsCLIPathProblem(direct.Source); problem != "" {
+				addIssue(&issues, IssueInvalidSource, path+".source", "direct skill source must be a git shorthand, credential-free https source, or local path: %s", problem)
+			}
 		}
 		validateAccess(path, direct.Access, direct.Source, &issues)
 		// Direct entries intentionally have no manager, mode, target, or

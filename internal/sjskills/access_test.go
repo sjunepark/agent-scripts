@@ -8,7 +8,7 @@ import (
 
 func TestAccessProfileSelectionAndPublicCompatibility(t *testing.T) {
 	r := fixtureRegistry(t)
-	public, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa"}})
+	public, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa"}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestAccessProfileSelectionAndPublicCompatibility(t *testing.T) {
 			t.Fatal(s)
 		}
 	}
-	mixed, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa", "kicpa-private"}})
+	mixed, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa", "kicpa-private"}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestAccessProfileSelectionAndPublicCompatibility(t *testing.T) {
 			r.Profiles[name] = profile
 		}
 	}
-	omitted, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa"}})
+	omitted, err := ResolveProject(r, Manifest{Version: 1, Profiles: []string{"kicpa"}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestAccessDecodingRejectsMalformedAndPreservesDirect(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		desired, err := ResolveProject(fixtureRegistry(t), m)
+		desired, err := ResolveProject(fixtureRegistry(t), m, "")
 		if err != nil {
 			t.Fatal(err)
 		}

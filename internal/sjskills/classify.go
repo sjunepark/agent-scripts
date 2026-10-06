@@ -342,7 +342,7 @@ func validateProjectClassificationInputs(desired DesiredState, expected map[stri
 				issues = append(issues, Issue{Code: IssueInvalidMode, Path: path + ".mode", Message: "skills-cli installation must use copy mode"})
 			}
 			if _, ok := canonicalProjectSourceIdentity(skill.Source); !ok {
-				issues = append(issues, Issue{Code: IssueInvalidSource, Path: path + ".source", Message: "must be a credential-free remote source"})
+				issues = append(issues, Issue{Code: IssueInvalidSource, Path: path + ".source", Message: "must be a credential-free remote source or local path"})
 			}
 		case ManagerManual, ManagerWorkflow:
 		case ManagerNone:
@@ -485,9 +485,13 @@ func detachProjectClassification(classification ProjectClassification) ProjectCl
 // compare as ownership evidence.  GitHub URLs intentionally use repository
 // identity like the legacy reconciler; shorthand catalog suffixes remain part
 // of the identity so two shorthand paths cannot silently claim one another.
+// Local sources use their normalized manifest spelling under `local:`.
 func canonicalProjectSourceIdentity(source string) (string, bool) {
 	if source == "" || strings.TrimSpace(source) != source || strings.ContainsRune(source, 0) {
 		return "", false
+	}
+	if IsLocalSource(source) {
+		return localSourceIdentity(source)
 	}
 	if !strings.Contains(source, "://") {
 		parts := strings.Split(source, "/")
@@ -579,6 +583,9 @@ func canonicalProjectSourceIdentity(source string) (string, bool) {
 }
 
 func isCanonicalProjectSourceIdentity(identity string) bool {
+	if strings.HasPrefix(identity, localSourceIdentityPrefix) {
+		return isCanonicalLocalSourceIdentity(identity)
+	}
 	if strings.HasPrefix(identity, "github:") {
 		rest := strings.TrimPrefix(identity, "github:")
 		if !projectCanonicalIdentityPattern.MatchString(rest) || strings.ToLower(rest) != rest {

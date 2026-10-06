@@ -281,8 +281,11 @@ func skillsCLIAddArgs(skill DesiredSkill) ([]string, error) {
 // Materialize runs one plan.  Installable skills are keyed by identity (name,
 // source, and full-depth behavior). Skills sharing a source and discovery
 // options share one fetch; every selected skill still needs its own verified
-// snapshot. Manual and workflow entries
-// are returned as skipped and never reported as materialized successes.
+// snapshot. Local sources are copied into the same staging layout without
+// Skills CLI, after any remote fetch so Skills CLI never sees them; it is
+// preflighted only when a remote source is selected.
+// Manual and workflow entries are returned as skipped and never reported as
+// materialized successes.
 func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (*MaterializationPlan, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -306,14 +309,32 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 	plan.root = root
 	plan.cleanupRoot = root
 	plan.limits = m.limits
-	if err := m.preflightIn(ctx, root); err != nil {
-		if !errors.Is(err, errProcessTreeActive) {
-			_ = plan.Cleanup()
+	remote, local := make([]DesiredSkill, 0, len(installable)), make([]DesiredSkill, 0)
+	for _, skill := range installable {
+		if skill.LocalPath == "" {
+			remote = append(remote, skill)
+		} else {
+			local = append(local, skill)
 		}
-		return nil, err
+	}
+	// Report a broken local source before any tool or network dependency can
+	// fail first and hide the deterministic configuration error.
+	for _, skill := range local {
+		if _, _, err := inspectLocalSkillSource(skill, m.limits); err != nil {
+			_ = plan.Cleanup()
+			return nil, err
+		}
+	}
+	if len(remote) > 0 {
+		if err := m.preflightIn(ctx, root); err != nil {
+			if !errors.Is(err, errProcessTreeActive) {
+				_ = plan.Cleanup()
+			}
+			return nil, err
+		}
 	}
 
-	for _, batch := range materializationBatches(installable) {
+	for _, batch := range materializationBatches(remote) {
 		skill := batch[0]
 		args, err := skillsCLIAddArgs(skill)
 		if err == nil && len(batch) > 1 {
@@ -391,6 +412,22 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 			plan.snapshots[skill.Name] = snapshot
 		}
 	}
+	for _, skill := range local {
+		if err := ensureContext(ctx); err != nil {
+			_ = plan.Cleanup()
+			return nil, err
+		}
+		path, digest, err := stageLocalSkill(root, skill, m.limits)
+		if err != nil {
+			_ = plan.Cleanup()
+			var localErr *LocalSourceError
+			if errors.As(err, &localErr) {
+				return nil, localErr
+			}
+			return nil, m.sanitizeError(err, root)
+		}
+		plan.snapshots[skill.Name] = &SkillSnapshot{Skill: skill, Path: path, Hash: digest, plan: plan, stageRoot: root, limits: m.limits}
+	}
 	return plan, nil
 }
 
@@ -457,14 +494,18 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 				return nil, nil, materializationError(safeSkillName(skill.Name), "skills-cli installation must use copy mode", nil)
 			}
 			if previous, ok := seen[skill.Name]; ok {
-				if previous.Manager != ManagerSkillsCLI || previous.Source != skill.Source || previous.FullDepth != skill.FullDepth || previous.Access.Effective() != skill.Access.Effective() {
+				if previous.Manager != ManagerSkillsCLI || previous.Source != skill.Source || previous.LocalPath != skill.LocalPath || previous.FullDepth != skill.FullDepth || previous.Access.Effective() != skill.Access.Effective() {
 					return nil, nil, materializationError("classify", "skill identity has contradictory source or options", nil)
 				}
 				// The exact identity was already scheduled. Targets differ at
 				// placement time, not at materialization time.
 				continue
 			}
-			if problem := SkillsCLIPathProblem(skill.Source); problem != "" {
+			if skill.LocalPath != "" || IsLocalSource(skill.Source) {
+				if problem := LocalSourceProblem(skill.Source); problem != "" || !filepath.IsAbs(skill.LocalPath) || skill.Access != AccessPublic || skill.FullDepth {
+					return nil, nil, materializationError(safeSkillName(skill.Name), "local source requires a valid public path resolved against the project root", nil)
+				}
+			} else if problem := SkillsCLIPathProblem(skill.Source); problem != "" {
 				return nil, nil, materializationError(safeSkillName(skill.Name), "source is not installable by Skills CLI: "+problem, nil)
 			}
 			seen[skill.Name] = skill
@@ -477,7 +518,7 @@ func classifyMaterializationSkills(skills []DesiredSkill) ([]DesiredSkill, []Des
 }
 
 func sameDesiredSkill(left, right DesiredSkill) bool {
-	if left.Access.Effective() != right.Access.Effective() || left.Name != right.Name || left.SourceID != right.SourceID || left.Source != right.Source ||
+	if left.Access.Effective() != right.Access.Effective() || left.Name != right.Name || left.SourceID != right.SourceID || left.Source != right.Source || left.LocalPath != right.LocalPath ||
 		left.Scope != right.Scope || left.Origin != right.Origin || left.Manager != right.Manager ||
 		left.Mode != right.Mode || left.Workflow != right.Workflow || left.FullDepth != right.FullDepth ||
 		len(left.Targets) != len(right.Targets) {
