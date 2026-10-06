@@ -395,3 +395,21 @@ func TestLocalOnlyStatusDoesNotDependOnUpstreamCache(t *testing.T) {
 	}
 	requireStatusFinding(t, advisory, AdvisoryMissing, "team-tool", TargetAgents, string(ProjectStateReasonExpectedEntryAbsent))
 }
+
+func TestRestoreRejectsLocalIdentityInGlobalScope(t *testing.T) {
+	if !isCanonicalSourceIdentityForScope(ScopeProject, "local:./skills/team-tool") ||
+		isCanonicalSourceIdentityForScope(ScopeGlobal, "local:./skills/team-tool") ||
+		!isCanonicalSourceIdentityForScope(ScopeGlobal, "github:owner/repo") {
+		t.Fatal("scope-aware identity validation is wrong")
+	}
+	entry := restoreEntry{
+		entry:   ProjectQuarantineManifestEntry{Skill: "team-tool", Target: TargetAgents, Action: ProjectQuarantineEntryActionRemove, OldSourceIdentity: "local:./skills/team-tool"},
+		oldHash: classificationHash('a'),
+	}
+	if _, err := buildRestoreProvenanceState(ProvenanceState{}, []restoreEntry{entry}, time.Now(), ScopeGlobal); err == nil {
+		t.Fatal("global restore accepted a local source identity")
+	}
+	if _, err := buildRestoreProvenanceState(ProvenanceState{}, []restoreEntry{entry}, time.Now(), ScopeProject); err != nil {
+		t.Fatalf("project restore rejected a local source identity: %v", err)
+	}
+}
