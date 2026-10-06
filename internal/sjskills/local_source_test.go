@@ -2,6 +2,7 @@ package sjskills
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -252,8 +253,8 @@ func TestLocalSourceRejectsParentOnlyAndProjectRoots(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(project, ManifestFileName), []byte("version = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := inspectLocalSkillSource(localDesiredSkill(project), MaterializerLimits{})
-	if err == nil || !strings.Contains(err.Error(), "is a project root") {
+	_, _, err := inspectLocalSkillSource(localDesiredSkill(project), MaterializerLimits{})
+	if err == nil || !strings.Contains(err.Error(), "sjskills.toml is a project manifest") {
 		t.Fatalf("project-root source error = %v", err)
 	}
 	if err := os.Remove(filepath.Join(project, ManifestFileName)); err != nil {
@@ -262,7 +263,7 @@ func TestLocalSourceRejectsParentOnlyAndProjectRoots(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(project, ".claude", "skills"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, err = inspectLocalSkillSource(localDesiredSkill(project), MaterializerLimits{})
+	_, _, err = inspectLocalSkillSource(localDesiredSkill(project), MaterializerLimits{})
 	if err == nil || !strings.Contains(err.Error(), ".claude/skills is a generated") {
 		t.Fatalf("source containing a managed root error = %v", err)
 	}
@@ -335,7 +336,62 @@ func TestStatusReportsLocalSourceEditAsUpdate(t *testing.T) {
 	}
 	now := time.Date(2026, 10, 6, 1, 0, 0, 0, time.UTC)
 	service := StatusService{CacheRoot: filepath.Join(t.TempDir(), "status"), Now: func() time.Time { return now },
-		Refresh: func(context.Context, []DesiredSkill) (StatusSnapshot, error) { return StatusSnapshot{map[string]TreeHash{}, now}, nil }}
+		Refresh: func(context.Context, []DesiredSkill) (StatusSnapshot, error) {
+			return StatusSnapshot{map[string]TreeHash{}, now}, nil
+		}}
 	advisory := service.Check(context.Background(), scope, nil)
 	requireStatusFinding(t, advisory, AdvisoryUpdate, "team-tool", TargetClaude, string(ProjectStateReasonVerifiedUpdate))
+}
+
+func TestLocalSkillDeclaredNameStripsCommentAfterQuotedValue(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "SKILL.md")
+	for content, want := range map[string]string{
+		"---\nname: \"team-tool\" # maintained locally\n---\n": "team-tool",
+		"---\nname: 'team-tool'\n---\n":                        "team-tool",
+	} {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if name, err := localSkillDeclaredName(path); err != nil || name != want {
+			t.Fatalf("%q: name = %q err=%v", content, name, err)
+		}
+	}
+}
+
+func TestMaterializeReportsBrokenLocalSourceBeforeRemoteTooling(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "team-tool")
+	runner := &materializeRunner{invoke: func(context.Context, string, []string, []string) (ProcessResult, error) {
+		return ProcessResult{}, errors.New("bunx unavailable")
+	}}
+	materializer, _ := testMaterializer(t, runner, MaterializerLimits{})
+	_, err := materializer.Materialize(context.Background(), []DesiredSkill{localDesiredSkill(missing), desiredMaterializeSkill("remote-tool", "example/remote-catalog")})
+	var localErr *LocalSourceError
+	if !errors.As(err, &localErr) || len(runner.calls) != 0 {
+		t.Fatalf("error = %v, calls = %d; want a local source error before any process", err, len(runner.calls))
+	}
+}
+
+func TestLocalOnlyStatusDoesNotDependOnUpstreamCache(t *testing.T) {
+	root := canonicalTempHome(t)
+	writeLocalSkill(t, filepath.Join(root, "skills", "team-tool"), "team-tool")
+	if err := os.WriteFile(filepath.Join(root, ManifestFileName), []byte("version = 1\n[[direct]]\nname = \"team-tool\"\nsource = \"./skills/team-tool\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scope, err := ResolveStatusScope(root, minimalGlobalRegistry(t), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blocked, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	service := StatusService{CacheRoot: blocked, Refresh: func(context.Context, []DesiredSkill) (StatusSnapshot, error) {
+		t.Fatal("local-only status refreshed upstream evidence")
+		return StatusSnapshot{}, nil
+	}}
+	advisory := service.Check(context.Background(), scope, nil)
+	if advisory.Freshness != AdvisoryFresh || advisory.Error != "" || validateAdvisories([]Advisory{advisory}) != nil {
+		t.Fatalf("advisory = %+v", advisory)
+	}
+	requireStatusFinding(t, advisory, AdvisoryMissing, "team-tool", TargetAgents, string(ProjectStateReasonExpectedEntryAbsent))
 }

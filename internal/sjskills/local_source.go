@@ -166,14 +166,16 @@ func resolveLocalSourcePath(projectRoot, source string) (string, error) {
 
 // inspectLocalSkillSource proves that a local source is a real skill
 // directory that the copy-mode placement contract can represent, and returns
-// its tree hash. Every failure names the manifest source so the user can fix
-// or remove the declaration.
-func inspectLocalSkillSource(skill DesiredSkill, limits MaterializerLimits) (TreeHash, error) {
-	fail := func(message string, cause error) (TreeHash, error) {
+// its canonical path and tree hash. Every read after symlink resolution uses
+// that one canonical path, so validation, hashing, and staging see the same
+// tree. Every failure names the manifest source so the user can fix or remove
+// the declaration.
+func inspectLocalSkillSource(skill DesiredSkill, limits MaterializerLimits) (string, TreeHash, error) {
+	fail := func(message string, cause error) (string, TreeHash, error) {
 		if cause != nil {
 			message += ": " + cause.Error()
 		}
-		return TreeHash{}, &LocalSourceError{Skill: safeSkillName(skill.Name), Source: skill.Source, Problem: message}
+		return "", TreeHash{}, &LocalSourceError{Skill: safeSkillName(skill.Name), Source: skill.Source, Problem: message}
 	}
 	if skill.LocalPath == "" || !filepath.IsAbs(skill.LocalPath) {
 		return fail("has no resolved absolute path", nil)
@@ -195,24 +197,23 @@ func inspectLocalSkillSource(skill DesiredSkill, limits MaterializerLimits) (Tre
 	if insideManagedDirectory(canonical) {
 		return fail("is inside a generated .agents/skills, .claude/skills, or .sjskills directory; point it at the skill's own source", nil)
 	}
-	if _, err := os.Lstat(filepath.Join(canonical, ManifestFileName)); err == nil {
-		return fail("is a project root containing sjskills.toml, not a skill directory", nil)
-	}
+	// The walk also rejects any sjskills.toml, which is how a source that
+	// contains this (or any) project root is caught after symlink resolution.
 	if err := validateLocalSkillTree(canonical, limits); err != nil {
 		return fail("cannot be installed", err)
 	}
-	declared, err := localSkillDeclaredName(filepath.Join(skill.LocalPath, "SKILL.md"))
+	declared, err := localSkillDeclaredName(filepath.Join(canonical, "SKILL.md"))
 	if err != nil {
 		return fail("is not a skill", err)
 	}
 	if declared != skill.Name {
 		return fail(fmt.Sprintf("declares SKILL.md name %q, not %q", declared, skill.Name), nil)
 	}
-	digest, err := hashSkillTree(skill.LocalPath, limits)
+	digest, err := hashSkillTree(canonical, limits)
 	if err != nil {
 		return fail("cannot be hashed", err)
 	}
-	return digest, nil
+	return canonical, digest, nil
 }
 
 func insideManagedDirectory(canonical string) bool {
@@ -270,6 +271,8 @@ func validateLocalSkillTree(root string, limits MaterializerLimits) error {
 				}
 			case !info.Mode().IsRegular():
 				return fmt.Errorf("%s is not a regular file", filepath.ToSlash(relative))
+			case child.Name() == ManifestFileName:
+				return fmt.Errorf("%s is a project manifest; a skill source must not be or contain a project", filepath.ToSlash(relative))
 			}
 		}
 		return nil
@@ -303,8 +306,17 @@ func localSkillDeclaredName(skillFile string) (string, error) {
 			continue
 		}
 		value = strings.TrimSpace(value)
-		if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') && value[len(value)-1] == value[0] {
-			value = value[1 : len(value)-1]
+		if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
+			// A quoted scalar ends at its closing quote; only a comment may follow.
+			end := strings.IndexByte(value[1:], value[0])
+			if end < 0 {
+				break
+			}
+			rest := strings.TrimSpace(value[end+2:])
+			if rest != "" && !strings.HasPrefix(rest, "#") {
+				break
+			}
+			value = value[1 : end+1]
 		} else if before, _, found := strings.Cut(value, " #"); found {
 			value = strings.TrimSpace(before)
 		}
@@ -320,7 +332,7 @@ func localSkillDeclaredName(skillFile string) (string, error) {
 // at the same path a Skills CLI install would use, then proves the copy equals
 // the source as inspected. A source edited mid-copy is reported, not adopted.
 func stageLocalSkill(root string, skill DesiredSkill, limits MaterializerLimits) (string, TreeHash, error) {
-	sourceHash, err := inspectLocalSkillSource(skill, limits)
+	sourcePath, sourceHash, err := inspectLocalSkillSource(skill, limits)
 	if err != nil {
 		return "", TreeHash{}, err
 	}
@@ -332,8 +344,10 @@ func stageLocalSkill(root string, skill DesiredSkill, limits MaterializerLimits)
 		return "", TreeHash{}, materializationError(safeSkillName(skill.Name), "local source staging directory could not be created", err)
 	}
 	remaining := normalizedLimits(limits).MaxTreeBytes
-	if err := copyLocalSkillTree(skill.LocalPath, destination, &remaining); err != nil {
-		return "", TreeHash{}, &LocalSourceError{Skill: safeSkillName(skill.Name), Source: skill.Source, Problem: "could not be copied: " + err.Error()}
+	// Failures from here on are races with concurrent edits, not configuration
+	// problems, so they stay ordinary (retryable) materialization errors.
+	if err := copyLocalSkillTree(sourcePath, destination, &remaining); err != nil {
+		return "", TreeHash{}, materializationError(safeSkillName(skill.Name), "local source could not be copied; retry", err)
 	}
 	staged, err := locateStagedSkill(root, skill.Name)
 	if err != nil {
@@ -344,7 +358,7 @@ func stageLocalSkill(root string, skill DesiredSkill, limits MaterializerLimits)
 		return "", TreeHash{}, err
 	}
 	if stagedHash != sourceHash {
-		return "", TreeHash{}, &LocalSourceError{Skill: safeSkillName(skill.Name), Source: skill.Source, Problem: "changed while it was copied; retry"}
+		return "", TreeHash{}, materializationError(safeSkillName(skill.Name), "local source changed while it was copied; retry", nil)
 	}
 	return staged, stagedHash, nil
 }

@@ -333,7 +333,7 @@ func withLocalStatusExpected(desired DesiredState, cached map[string]TreeHash) (
 		if skill.Manager != ManagerSkillsCLI || skill.LocalPath == "" {
 			continue
 		}
-		hash, err := inspectLocalSkillSource(skill, MaterializerLimits{})
+		_, hash, err := inspectLocalSkillSource(skill, MaterializerLimits{})
 		if err != nil {
 			return nil, err
 		}
@@ -360,6 +360,11 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 	result := newAdvisory(scope.Plan.Desired.Scope)
 	cachedDesired := statusCachedDesired(scope.Plan.Desired)
 	now := s.now()
+	if !hasSkillsCLIPlacement(cachedDesired) {
+		// No upstream content is needed, so the cache and its lock cannot
+		// make live local status unavailable.
+		return s.inspectStatus(result, scope, map[string]TreeHash{}, now)
+	}
 	entry, err := s.read(scope)
 	if err != nil {
 		entry = statusCacheEntry{Version: statusCacheVersion, Identity: scope.cacheKey()}
@@ -427,7 +432,17 @@ func (s StatusService) Check(ctx context.Context, scope StatusScope, reusable *S
 		result.Freshness = AdvisoryStale
 		result.Cached = true
 	}
-	expected, err := withLocalStatusExpected(scope.Plan.Desired, entry.Expected)
+	return s.inspectStatus(result, scope, entry.Expected, entry.ObservedAt)
+}
+
+// inspectStatus adds live local hashes to cached upstream evidence observed at
+// observedAt and classifies the current inventory.
+func (s StatusService) inspectStatus(result Advisory, scope StatusScope, cached map[string]TreeHash, observedAt time.Time) Advisory {
+	if result.ObservedAt == nil {
+		result.ObservedAt = &observedAt
+		result.Freshness = AdvisoryFresh
+	}
+	expected, err := withLocalStatusExpected(scope.Plan.Desired, cached)
 	if err != nil {
 		result.Freshness = AdvisoryUnavailable
 		result.ObservedAt = nil

@@ -108,8 +108,9 @@ then treats it like any fetched tree. Provenance records
 produces an ordinary update. The directory must be a real directory with a
 `SKILL.md` whose frontmatter `name` matches the entry, contain only regular
 files and directories, not lie inside a generated `.agents/skills`,
-`.claude/skills`, or `.sjskills` directory, and be neither a project root nor
-contain generated skill roots. A missing or invalid source makes `plan` and
+`.claude/skills`, or `.sjskills` directory, and neither contain generated
+skill roots nor be or contain a project (any `sjskills.toml`). Checks use the
+symlink-resolved path, and the copy is read from that same path. A missing or invalid source makes `plan` and
 `apply` fail as invalid input (exit 65) with a message naming it; status
 reports the project scope unavailable with the same message. Switching an
 installed skill between remote and local sources, or respelling its path,

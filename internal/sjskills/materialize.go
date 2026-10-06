@@ -317,6 +317,14 @@ func (m *Materializer) Materialize(ctx context.Context, skills []DesiredSkill) (
 			local = append(local, skill)
 		}
 	}
+	// Report a broken local source before any tool or network dependency can
+	// fail first and hide the deterministic configuration error.
+	for _, skill := range local {
+		if _, _, err := inspectLocalSkillSource(skill, m.limits); err != nil {
+			_ = plan.Cleanup()
+			return nil, err
+		}
+	}
 	if len(remote) > 0 {
 		if err := m.preflightIn(ctx, root); err != nil {
 			if !errors.Is(err, errProcessTreeActive) {
