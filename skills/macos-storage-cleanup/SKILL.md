@@ -1,6 +1,7 @@
 ---
 name: macos-storage-cleanup
 description: "Audit and reclaim macOS storage using measured, authorized cleanup of caches, build artifacts, app data, and local copies. Explicit invocation only; excludes Codex-owned storage, repair, and device reset."
+disable-model-invocation: true
 compatibility: "Requires macOS and read-only filesystem, process, and command inspection; optional cleanup requires the supported owning app or CLI."
 ---
 

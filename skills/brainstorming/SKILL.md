@@ -1,6 +1,7 @@
 ---
 name: brainstorming
 description: "Brainstorm from diverse perspectives through fresh subagents, then synthesize their insights. Explicit request only."
+disable-model-invocation: true
 ---
 
 # Brainstorming
@@ -23,8 +24,10 @@ with their reasoning.
 
 Spawn one fresh subagent per prompt that does not inherit this conversation:
 in Codex pass `fork_turns: "none"`; in Claude Code start a new general-purpose
-agent rather than a fork. Leave model and reasoning-effort overrides unset so
-both inherit from the caller. Run independent prompts in
+agent rather than a fork. Workers use the caller's model and reasoning effort:
+in Codex leave `model` and `reasoning_effort` unset; in Claude Code set `model`
+to the caller's model, because an unset model can resolve to a configured
+subagent default. Run independent prompts in
 parallel when capacity allows; otherwise dispatch as slots become available.
 Do not claim the requested fan-out occurred when fresh subagents are unavailable.
 
