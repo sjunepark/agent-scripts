@@ -1,6 +1,7 @@
 ---
 name: windows-cleanup
 description: "Diagnose Windows slowdown and reclaim storage or reduce startup and background load with supported tools. Explicit invocation only; excludes registry optimization, debloating, incident response, hardware repair, and reset."
+disable-model-invocation: true
 ---
 
 # Windows Cleanup
