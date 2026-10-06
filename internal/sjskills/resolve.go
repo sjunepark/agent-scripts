@@ -16,7 +16,7 @@ func Resolve(request ResolveRequest) (DesiredState, error) {
 			Code: IssueEmptySelection, Path: "manifest", Message: "project resolution requires a manifest",
 		}}}
 	}
-	return ResolveProject(request.Registry, *request.Manifest)
+	return ResolveProject(request.Registry, *request.Manifest, request.ProjectRoot)
 }
 
 // BuildPlan derives stable warnings/evidence without reading files, invoking
@@ -35,6 +35,9 @@ func BuildPlan(request ResolveRequest) (Plan, error) {
 		},
 	}
 	for _, skill := range desired.Skills {
+		if skill.LocalPath != "" && !isPortableLocalSource(skill.Source) {
+			plan.Warnings = append(plan.Warnings, Warning{Code: "machine-specific-source", Message: fmt.Sprintf("%s uses local source %s, which is absolute or outside the project; other checkouts need the same path", skill.Name, skill.Source)})
+		}
 		switch skill.Manager {
 		case ManagerManual:
 			plan.Warnings = append(plan.Warnings, Warning{Code: "manual-action", Message: fmt.Sprintf("%s requires its recorded manual provisioning procedure", skill.Name)})
@@ -67,8 +70,9 @@ func ResolveGlobal(registry Registry) (DesiredState, error) {
 
 // ResolveProject unions selected profile sets and direct entries. Every name
 // is checked before a desired result is returned, so contradictory/duplicate
-// sources cannot reach a later materialization adapter.
-func ResolveProject(registry Registry, manifest Manifest) (DesiredState, error) {
+// sources cannot reach a later materialization adapter. projectRoot is the
+// absolute manifest directory that anchors relative local direct sources.
+func ResolveProject(registry Registry, manifest Manifest, projectRoot string) (DesiredState, error) {
 	if err := ValidateManifest(registry, manifest); err != nil {
 		return DesiredState{}, err
 	}
@@ -90,12 +94,22 @@ func ResolveProject(registry Registry, manifest Manifest) (DesiredState, error) 
 			state.Skills = append(state.Skills, skill)
 		}
 	}
-	for _, direct := range manifest.Direct {
+	for index, direct := range manifest.Direct {
 		if previous, exists := selected[direct.Name]; exists {
 			return DesiredState{}, collisionError("direct", direct.Name, previous)
 		}
 		selected[direct.Name] = "direct"
-		state.Skills = append(state.Skills, resolveDirectSkill(registry, direct))
+		skill := resolveDirectSkill(registry, direct)
+		if IsLocalSource(direct.Source) {
+			localPath, err := resolveLocalSourcePath(projectRoot, direct.Source)
+			if err != nil {
+				return DesiredState{}, &ValidationErrors{Issues: []Issue{{
+					Code: IssueInvalidSource, Path: fmt.Sprintf("manifest.direct[%d].source", index), Message: err.Error(),
+				}}}
+			}
+			skill.LocalPath = localPath
+		}
+		state.Skills = append(state.Skills, skill)
 	}
 	sortDesiredSkills(state.Skills)
 	return state, nil

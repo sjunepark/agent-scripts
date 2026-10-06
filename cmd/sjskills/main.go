@@ -367,6 +367,7 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 			return nil, a.invalid(operation, readErr)
 		}
 		request.Manifest = &manifest
+		request.ProjectRoot = discovered.Root
 		project = &discovered
 		envelope.Path = discovered.ManifestPath
 	}
@@ -385,6 +386,19 @@ func (a *application) prepare(ctx context.Context, global bool, operation sjskil
 		ctx = context.Background()
 	}
 	materialized, materializeErr := materialize(ctx, plan.Desired.Skills)
+	var localErr *sjskills.LocalSourceError
+	if errors.As(materializeErr, &localErr) {
+		// A missing or malformed local source is a manifest/working-tree
+		// problem, not an outage: report it as invalid input so it is fixed
+		// rather than retried.
+		if materialized != nil {
+			_ = a.materializationCleanup()(materialized)
+		}
+		envelope := prepared.envelope
+		envelope.Result = sjskills.ResultInvalid
+		envelope.Error = &sjskills.Issue{Code: sjskills.IssueInvalidSource, Path: "manifest.direct." + localErr.Skill + ".source", Message: localErr.Error()}
+		return nil, envelope
+	}
 	if materializeErr != nil {
 		if materialized != nil {
 			prepared.materialized = materialized

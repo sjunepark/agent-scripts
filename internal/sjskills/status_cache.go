@@ -136,7 +136,7 @@ func (s StatusService) read(scope StatusScope) (statusCacheEntry, error) {
 		return statusCacheEntry{}, errors.New("incompatible status cache")
 	}
 	// A failed cold refresh has no snapshot but retains its bounded cooldown.
-	if !entry.ObservedAt.IsZero() && !validStatusExpected(scope.Plan.Desired, entry.Expected) {
+	if !entry.ObservedAt.IsZero() && !validStatusExpected(statusCachedDesired(scope.Plan.Desired), entry.Expected) {
 		return statusCacheEntry{}, errors.New("incomplete status cache")
 	}
 	if entry.ObservedAt.IsZero() && len(entry.Expected) != 0 {

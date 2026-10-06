@@ -28,7 +28,8 @@ The installers require no checkout, Go, or GitHub CLI. macOS uses system shell,
 `curl`, `tar`, and `shasum`; Windows uses Windows PowerShell 5.1 or newer and
 .NET. `plan` and `apply` require network access to the published registry,
 Bun (`bunx`) for the pinned Skills CLI, and Git, which fetches agent-scripts
-skills at the registry's commit. Help and version perform no status checks. Profiles and manifest
+skills at the registry's commit; a selection made only of local direct sources
+needs neither. Help and version perform no status checks. Profiles and manifest
 initialization retain their primary behavior without Bun; their incidental
 notices may report unavailable upstream evidence. Bare/named `status` also
 succeeds with explicit unavailable skill evidence when no cached evidence or Bun

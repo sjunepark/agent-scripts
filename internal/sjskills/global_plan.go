@@ -126,7 +126,7 @@ func validateGlobalClassificationInputs(registry Registry, desired DesiredState,
 			if skill.Mode != ModeCopy {
 				issues = append(issues, Issue{Code: IssueInvalidMode, Path: path + ".mode", Message: "skills-cli installation must use copy mode"})
 			}
-			if _, ok := canonicalProjectSourceIdentity(skill.Source); !ok {
+			if _, ok := canonicalProjectSourceIdentity(skill.Source); !ok || IsLocalSource(skill.Source) {
 				issues = append(issues, Issue{Code: IssueInvalidSource, Path: path + ".source", Message: "must be a credential-free remote source"})
 			}
 		} else if skill.Manager != ManagerManual && skill.Manager != ManagerWorkflow {

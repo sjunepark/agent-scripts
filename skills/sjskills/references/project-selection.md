@@ -37,12 +37,23 @@ source = "your-org/team-skills"
 Use the source's actual skill name, not an alias. Repeat `[[direct]]` for more
 skills, sorting entries by name and profile names alphabetically. Direct names
 must be unique and cannot overlap selected profiles or the fixed global
-baseline. Sources accept Git shorthand (`owner/repo[/path]`) or credential-free
-HTTPS; local paths, embedded credentials, URL queries, npm specifiers, and other
-schemes are unsupported. Set optional `full_depth = true` only when deeper
+baseline. Sources accept Git shorthand (`owner/repo[/path]`), credential-free
+HTTPS, or a local skill directory; embedded credentials, URL queries, npm
+specifiers, and other schemes are unsupported. Set optional `full_depth = true` only when deeper
 source discovery is needed. Direct skills use copy mode and the registry's
 default targets, currently project `.agents/skills` and `.claude/skills`;
 per-entry manager, mode, target, and workflow fields are unsupported.
+
+For a skill the project develops itself, point `source` at its directory with
+a forward-slash path relative to `sjskills.toml`, such as
+`source = "./skills/team-tool"`, and use its `SKILL.md` name. `apply` copies
+the current tree; after editing it, `plan` reports an update. Prefer in-repo
+paths: `../` and absolute paths work but warn as machine-specific. Do not point
+at a generated `.agents/skills` or `.claude/skills` copy, and do not set
+`access` or `full_depth`. A missing source or mismatched name makes `plan`
+fail as invalid input; restore the directory or remove the entry. Switching an
+installed skill between a remote and local source blocks as
+`provenance-source-mismatch`: remove the entry and apply, then re-add it.
 
 For a direct-only project, omit `profiles` or use `profiles = []`, and include
 at least one `[[direct]]` entry. Create that manifest directly when adoption is

@@ -2,4 +2,4 @@ version = 1
 
 [[direct]]
 name = "local-skill"
-source = "../local-skill"
+source = "~/local-skill"
