@@ -1,10 +1,26 @@
 # sjskills standalone release delivery
 
-Status: `sjskills-v1.4.0` published as an immutable release on 2026-09-30 (KST).
+Status: `sjskills-v1.5.0` published as an immutable release on 2026-10-06 (KST).
 Hosted verification is working; unattended hosted publication still needs a
 suitable GitHub identity.
 
 ## Published releases
+
+- [sjskills-v1.5.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.5.0)
+  points to `67c3f60ca4d2d12fad637ed98638c7a73c40c7e0` and is immutable.
+  It adds local-path `[[direct]]` sources (merged PR #29); older binaries
+  reject `local:` provenance.
+- The [v1.5.0 release run](https://github.com/sjunepark/agent-scripts/actions/runs/37399587178)
+  passed native reconciliation and installer checks on macOS amd64, macOS arm64,
+  and Windows amd64 with `publish=false`.
+- Publication used the exact CI artifacts. Tag/commit, `SHA256SUMS`, and
+  archive `release.json` identities were verified locally; the authenticated
+  session created draft ID `404224031`, uploaded all six assets, matched every
+  server-side digest by release ID, then published it.
+- The published installer updated `%LOCALAPPDATA%\sjskills\bin\sjskills.exe`
+  on the Windows development machine to v1.5.0. Its binary matches the verified
+  windows/amd64 archive, with SHA-256
+  `7d30bbd3777404349f651c43a5f1e95baeb6dfbecd27b2f2e08ad797a0061b0f`.
 
 - [sjskills-v1.4.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.4.0)
   points to `830304768fdd1fc20798b1b2a55118c1619d10b1` and is immutable.
