@@ -1,7 +1,6 @@
 ---
 name: address-issues
 description: "Resolve a specified GitHub issue, or in Codex a confirmed queue of issues, through validated, reviewed, merged PRs. Explicit invocation only."
-disable-model-invocation: true
 ---
 
 # Address Issues

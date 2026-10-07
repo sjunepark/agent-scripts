@@ -12,6 +12,30 @@ loading behavior. Progressive disclosure comes from explicit, conditional
 links in each `SKILL.md` to focused resources such as workflows, guides,
 rubrics, recipes, or factual references.
 
+## Temporary workarounds
+
+Revert these once the upstream bug is fixed.
+
+**Claude Code model invocation re-enabled (since 2026-10-07).** The Claude
+desktop Code tab and claude.ai/code block any message that starts with a slash
+command and contains a second slash command, a link, or inline formatting
+([anthropics/claude-code#98568](https://github.com/anthropics/claude-code/issues/98568),
+[#98577](https://github.com/anthropics/claude-code/issues/98577)). Manual-only
+skills then cannot be combined in one message, so `disable-model-invocation:
+true` was removed from these skills' `SKILL.md` frontmatter. Their descriptions
+still state the explicit-invocation intent, and Codex adapters are unchanged.
+
+- `address-issues`
+- `brainstorming`
+- `clarify`
+- `delegate`
+- `develop-skills`
+- `next-goal`
+
+To revert, restore `disable-model-invocation: true` after `description:` in
+each listed skill, delete this section, validate, commit, push, and reconcile
+the global and project installs with `sjskills`.
+
 ## Layout
 
 - `AGENTS.md`: maintenance instructions for this repository.

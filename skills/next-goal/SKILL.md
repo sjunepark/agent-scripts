@@ -1,7 +1,6 @@
 ---
 name: next-goal
 description: "Select a substantial next goal; optionally prepare and commit its plan, or spawn a Codex task with a native goal and model preset. Explicit invocation only."
-disable-model-invocation: true
 ---
 
 # Next Goal

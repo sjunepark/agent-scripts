@@ -1,7 +1,6 @@
 ---
 name: delegate
 description: "Orchestrate code and file implementation through narrow subagent assignments (GPT-5.6 Luna in Codex, Sonnet 5.5 in Claude Code), then independently review and integrate the result. Explicit invocation only."
-disable-model-invocation: true
 ---
 
 # Delegate

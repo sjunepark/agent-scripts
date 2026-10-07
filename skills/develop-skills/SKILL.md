@@ -1,7 +1,6 @@
 ---
 name: develop-skills
 description: "Author, audit, merge, and evaluate Agent Skills and instruction stacks. Explicit invocation only."
-disable-model-invocation: true
 ---
 
 # Develop Skills
