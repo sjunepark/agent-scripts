@@ -1,7 +1,6 @@
 ---
 name: clarify
 description: "Resolve consequential gaps in the current request's intent. Explicit request only."
-disable-model-invocation: true
 ---
 
 # Clarify

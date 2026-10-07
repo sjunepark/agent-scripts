@@ -1,7 +1,6 @@
 ---
 name: brainstorming
 description: "Brainstorm from diverse perspectives through fresh subagents, then synthesize their insights. Explicit request only."
-disable-model-invocation: true
 ---
 
 # Brainstorming
