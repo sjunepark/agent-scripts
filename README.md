@@ -16,14 +16,18 @@ rubrics, recipes, or factual references.
 
 Revert these once the upstream bug is fixed.
 
-**Claude Code model invocation re-enabled (since 2026-10-07).** The Claude
-desktop Code tab and claude.ai/code block any message that starts with a slash
-command and contains a second slash command, a link, or inline formatting
-([anthropics/claude-code#98568](https://github.com/anthropics/claude-code/issues/98568),
-[#98577](https://github.com/anthropics/claude-code/issues/98577)). Manual-only
-skills then cannot be combined in one message, so `disable-model-invocation:
-true` was removed from these skills' `SKILL.md` frontmatter. Their descriptions
-still state the explicit-invocation intent, and Codex adapters are unchanged.
+**Claude Code model invocation re-enabled (since 2026-10-07).** Since about
+2026-10-01, the Claude desktop Code tab refuses to send a message that starts
+with a slash command and also contains another slash command, a link, or inline
+formatting. Its warning names all three, and a message starting
+`/clarify /brainstorming` was blocked locally.
+[anthropics/claude-code#98568](https://github.com/anthropics/claude-code/issues/98568)
+tracks the URL and backtick cases;
+[#98577](https://github.com/anthropics/claude-code/issues/98577) tracks the same
+check rejecting non-ASCII or dotted command names. Manual-only skills therefore
+cannot be combined in one message, so `disable-model-invocation: true` was
+removed from these skills' `SKILL.md` frontmatter. Their descriptions still
+state the explicit-invocation intent, and Codex adapters are unchanged.
 
 - `address-issues`
 - `brainstorming`
