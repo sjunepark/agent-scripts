@@ -147,7 +147,7 @@ test("access profiles remain explicit, composable, and GitHub-only", () => {
   assert.equal(registry.profiles.kicpa.access, "public");
   assert.equal(registry.profiles["kicpa-private"].access, "github-authenticated");
   assert.equal(registry.profiles.kicpa.skills.length, 5);
-  assert.equal(registry.profiles["kicpa-private"].skills.length, 7);
+  assert.equal(registry.profiles["kicpa-private"].skills.length, 8);
   for (const value of [null, "", "private", true, 1, [], {}]) {
     assertErrorIncludes(validationErrors((r) => r.profiles["kicpa-private"].access = value), "access must be");
   }
