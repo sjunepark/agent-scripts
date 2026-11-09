@@ -64,6 +64,7 @@
       "skills": [
         "cagr-research",
         "crowe-design",
+        "mus-sampling",
         "organize-engagement-files",
         "render-markdown-pdf",
         "sync-rfi",
@@ -330,6 +331,12 @@
     {
       "name": "modern-rust",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "mus-sampling",
+      "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
     },
