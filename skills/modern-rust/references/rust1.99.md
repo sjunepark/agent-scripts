@@ -11,7 +11,7 @@ Released October 2026.
 
 ## Compatibility and migration
 
-- New APIs require MSRV 1.99. Disabling inherited default features with `default-features = false` on a `workspace = true` dependency also requires edition 2024; earlier editions ignore that setting with a warning.
+- New APIs require MSRV 1.99. Setting `default-features = false` on a `workspace = true` dependency whose workspace entry enables default features also requires edition 2024; earlier editions ignore that override with a warning. When the workspace entry already disables defaults, no edition change is needed.
 - Cargo disables incremental compilation by default when the `CI` environment variable is set, which can change CI build times and caching.
 - Legacy integer modules such as `std::i32` are fully deprecated; use associated constants like `i32::MAX`. `no_mangle_generic_items` is a hard error, and `semicolon_in_expressions_from_non_local_macros` now covers macros from other crates.
 - Prefer Rust 1.99.1 over 1.99.0: it fixes an x86_64 miscompilation of FFI `bool` returns and a missing `wcslen` symbol on UEFI and embedded targets.
