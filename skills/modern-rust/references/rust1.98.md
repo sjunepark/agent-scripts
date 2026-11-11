@@ -4,7 +4,7 @@ Released August 2026.
 
 ## Important changes
 
-- Standard-library additions include `str::substr_range`, `[T]::subslice_range`, `strip_circumfix` for slices and strings, `bool::ok_or` and `ok_or_else`, endian-specific `String::from_utf16le`/`from_utf16be` constructors and lossy variants, `NonZero::from_str_radix`, and `Atomic<T>::from_mut` with slice conversions.
+- Standard-library additions include `str::substr_range`, `[T]::subslice_range`, `strip_circumfix` for slices and strings, `bool::ok_or` and `ok_or_else`, endian-specific `String::from_utf16le`/`from_utf16be` constructors and lossy variants, `NonZero::from_str_radix`, and `from_mut`, `from_mut_slice`, and `get_mut_slice` on concrete atomic types such as `AtomicBool` and `AtomicU32`. The generic `Atomic<T>` type itself remains unstable.
 - Allocation-free integer formatting is stable through `core::fmt::NumBuffer` and `{integer}::format_into`; floats gain `algebraic_*` arithmetic that permits reassociation-style optimizations.
 - `std::range::legacy` names the `core::ops` range types alongside the 1.96 `core::range` types. `{core,std}::derive` is now an intentionally stable path.
 - New runtime-symbol lints reject or warn on definitions of core symbols such as `memcmp`, `memset`, and `strlen`; `c_void_returns` warns on `c_void` return types. Several bare-metal Armv7-A/R and Armv8-R targets reach Tier 2.

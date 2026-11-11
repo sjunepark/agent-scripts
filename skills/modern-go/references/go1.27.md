@@ -34,7 +34,9 @@ Released August 2026.
 
 - `encoding/json` error text can change, and v2 rejects invalid UTF-8 and
   duplicate object names by default. Use the v2 options that select v1
-  semantics, or temporarily `GOEXPERIMENT=nojsonv2`, while migrating.
+  semantics while migrating. `GOEXPERIMENT=nojsonv2` temporarily restores the
+  v1 implementation, but only builds when neither the module nor any
+  dependency imports `encoding/json/v2` or `encoding/json/jsontext`.
 - Removed `GODEBUG` settings, including `asynctimerchan`, `gotypesalias`,
   `x509keypairleaf`, `tlsrsakex`, `tls3des`, `tls10server`, and
   `tlsunsafeekm`, fail the build in `go.mod` `godebug` lines or `//go:debug`
@@ -44,11 +46,15 @@ Released August 2026.
   `zlib`, `zip`, and `png`. gofmt alignment no longer varies by architecture,
   so previously formatted files may see small whitespace changes. Closure
   symbol names change.
-- `go tool trace -http=:port` listens only on localhost. On Windows and Darwin,
-  `x509.SystemCertPool` honors `SSL_CERT_FILE` and `SSL_CERT_DIR`. `crypto/tls`
+- `go tool trace -http=:port` listens only on localhost. `crypto/tls`
   deprecates `Config.Rand`.
+- On Windows and Darwin, `x509.SystemCertPool` honors `SSL_CERT_FILE` and
+  `SSL_CERT_DIR`: when set, Go loads roots from disk and uses its own verifier
+  instead of the platform verifier, so CAs present only in the platform store
+  stop verifying. `GODEBUG=x509sslcertoverrideplatform=0` disables this.
 - Darwin requires macOS 13 or newer. Big-endian `linux/ppc64` switches to the
-  ELFv2 ABI and requires Linux 3.13 or newer.
+  ELFv2 ABI and requires Linux 3.13 or newer, or RHEL 7's 3.10 kernel, which
+  backports ELFv2 support.
 
 Official details: [Go 1.27 release notes](https://go.dev/doc/go1.27) and the
 [Go release history](https://go.dev/doc/devel/release).
