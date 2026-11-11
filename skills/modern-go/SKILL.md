@@ -32,8 +32,10 @@ cutoff.
   `WaitGroup.Go`, stable `synctest`, and experimental JSON v2.
 - [Go 1.26](references/go1.26.md) — `new(expr)`, modernized `go fix`, Green Tea
   GC by default, and test artifacts.
+- [Go 1.27](references/go1.27.md) — generic methods, stable JSON v2, ML-DSA,
+  and removed `GODEBUG` settings.
 
-Coverage ends at Go 1.26. For a newer or uncertain toolchain, consult the
+Coverage ends at Go 1.27. For a newer or uncertain toolchain, consult the
 current official release history and release notes before making
 version-sensitive decisions. Use the bundled files as orientation, then verify
 exact APIs and behavior in current official documentation.
