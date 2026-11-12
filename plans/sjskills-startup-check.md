@@ -1,12 +1,14 @@
-# Check sjskills automatically without assigning work to the agent
+# Check sjskills automatically and let the agent offer a sync
 
 ## Outcome
 
 On startup and resume, the hook runs a deterministic check of the installed
 sjskills CLI, configured skill scopes, and this plugin's published version.
 Healthy checks stay out of the conversation. Findings requiring attention produce
-one short diagnostic with a next step. The hook never assigns maintenance work to
-the agent and never updates, installs, synchronizes, quarantines, or restores.
+one short diagnostic with a next step, and the same bounded facts reach the
+agent so its first reply can name the drift and offer a sync. The hook never
+updates, installs, synchronizes, quarantines, or restores, and the agent acts
+only after the user agrees.
 
 The user selected **only check and report** on 2026-09-15. This replaces the
 previous automatic-maintenance target. Stages A–D were delivered through the
@@ -14,6 +16,29 @@ previous automatic-maintenance target. Stages A–D were delivered through the
 date, the user separately requested "merge to main and sync current machine,"
 authorizing stage E delivery to the current Windows host and explicit configured
 skill reconciliation. The startup hook's check-only boundary is unchanged.
+
+### 2026-11-12: tell the agent, offer only
+
+[Issue #39](https://github.com/sjunepark/agent-scripts/issues/39) reversed the
+"no agent context" half of that decision. Transcripts from one Windows host
+showed 119 startup notices, 103 of them `project skills differ`, with no
+follow-up: the `systemMessage` reaches only the user, and it named no skills.
+The hook now names affected skills (validated names, three per category) and,
+for a validated `SessionStart` event, passes the same facts as
+`hookSpecificOutput.additionalContext`. The context is a notice, not a task:
+findings, fixed review commands, an unconfirmed-state line for incomplete
+checks, and one sentence telling the agent to mention the results and offer a
+sync or update, changing nothing unless the user agrees. That keeps the
+`sjskills` skill's rule that the user's request supplies sync authority. The
+retired injected path differed in kind: about 9.5K characters of unattended
+update-and-sync instructions that assigned work instead of reporting it.
+
+Still open from that issue: 16 of the 119 runs were incomplete after 31–40 s,
+against the 35 s adapter deadline and the CLI's 30 s foreground budget. A cold
+project scope returns `unavailable` with no findings, so the hook cannot report
+locally detectable drift such as a missing skill. Fixing that belongs in the CLI
+status service (report local findings before the upstream refresh completes),
+not in this adapter, and is left for a separate change.
 
 ## Current state
 
@@ -102,16 +127,17 @@ output or remote instructions.
 | Result | Meaning | Hook-visible output |
 | --- | --- | --- |
 | `ok` | All applicable checks have fresh evidence and no actionable findings | No conversation context or message; a short execution status label is sufficient |
-| `attention` | Update available, missing/extra/changed skill, conflict, or configuration requiring intervention | One concise factual line naming affected scopes and a manual next step |
-| `unavailable` | Missing prerequisite, unsupported/incomplete JSON, stale/unavailable evidence, timeout, or failed inspection | One concise line saying verification could not complete and why |
+| `attention` | Update available, missing/extra/changed skill, conflict, or configuration requiring intervention | One concise factual line naming affected scopes, skills, and review command; the same facts as agent context with an offer-only instruction |
+| `unavailable` | Missing prerequisite, unsupported/incomplete JSON, stale/unavailable evidence, timeout, or failed inspection | One concise line saying verification could not complete and why; agent context saying skill state is unconfirmed |
 
 If some checks have findings and others fail, retain both facts in the one-line
 summary; never replace known findings with a generic success or failure.
-Examples: `sjskills: CLI update available; project skills differ. Run sjskills status.`
-and `sjskills: check incomplete (private-source authentication unavailable). Run sjskills status.`
+Examples: `sjskills: project skills differ (missing dart-dsd; update context7-cli). Review with sjskills plan.`
+and `sjskills: check incomplete (project verification). Run sjskills status manually.`
 Use fixed diagnostic templates that do not leak tokens, repository content, or
 unbounded tool output. Findings are reports, never requests for the agent to run
-the suggested command. No `additionalContext` maintenance task in any branch.
+the suggested command. Agent context carries these facts and an offer, never a
+maintenance task, a mutating command, or permission to act unasked.
 
 Missing project configuration means the project scope is inapplicable, while
 global and CLI checks still run. Do not recommend initialization on every session.
@@ -244,10 +270,10 @@ hook rather than silently reverting to automatic maintenance.
 
 | Scenario | Required evidence |
 | --- | --- |
-| Fresh CLI/global/project, no findings | Silent conversation; no maintenance context or agent calls |
+| Fresh CLI/global/project, no findings | Silent conversation; no agent context or agent calls |
 | No project manifest | Global/CLI still checked; no initialization or repetitive setup warning |
 | CLI/plugin update available | One-line attention report; zero installation/marketplace refresh calls |
-| Missing, extra, modified, conflicted skills | Attention with affected scope; zero apply/quarantine/restore calls |
+| Missing, extra, modified, conflicted skills | Attention naming scope and skills for user and agent; bounded context with no mutating command; zero apply/quarantine/restore calls |
 | CLI ahead or development version | Ahead is not downgraded; uncomparable is not verified healthy |
 | Exit zero with unavailable/stale evidence | Incomplete check reported, never `ok` |
 | Missing CLI, incompatible JSON, omitted scope, disabled status | Actionable incomplete-check report; no fallback build/install |

@@ -310,9 +310,10 @@ ownership, and upstream removal checks are documented in
 
 `sjskills-maintenance` checks the native CLI, configured skills, and published
 plugin version on startup and resume. Healthy checks stay silent; findings or
-incomplete verification produce one short report. It never assigns maintenance
-to the agent or updates installations. See the [plugin guide](docs/sjskills-startup-hook.md)
-for per-host installation, hook trust, and migration from the retired standalone
+incomplete verification produce one short report naming the affected skills,
+and the agent receives the same facts so it can offer a sync. It never updates
+installations itself, and the agent acts only after the user agrees. See the
+[plugin guide](docs/sjskills-startup-hook.md) for per-host installation, hook trust, and migration from the retired standalone
 installer. The [startup-check plan](plans/sjskills-startup-check.md) tracks
 publication and activation; older installations retain their previous behavior
 until replaced.

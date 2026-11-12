@@ -90,7 +90,7 @@ async function observePlugin(options) {
   try { version = await (options.provenance || provenance)(options); }
   catch { return unavailable(); }
   const key = `${SOURCE}@main:${version}`;
-  const result = (published) => ({ plugin: true, findings: published === version ? [] : ["plugin update available"], incomplete: [] });
+  const result = (published) => ({ plugin: true, findings: published === version ? [] : [{ summary: "plugin update available" }], incomplete: [] });
   let file, lock, owned = false, writable = false;
   try {
     safeDirectory(dataRoot);
