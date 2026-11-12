@@ -5,13 +5,18 @@ const { nativeExecutable, runProcess, LIMIT } = require("./process.cjs");
 const { classifyStatus, report } = require("./status.cjs");
 const { observePlugin } = require("./observation.cjs");
 
+// Only a validated startup or resume event reaches the agent: its hookEventName is
+// known. Unparseable, oversized, or late stdin keeps the user-facing message only.
+// A validated event with an unusable cwd is an incomplete check like any other.
+const agent = { context: true };
+
 async function check(input, options = {}) {
   if (input?.hook_event_name !== "SessionStart" || !["startup", "resume"].includes(input.source)) return null;
   const platform = options.platform || process.platform, arch = options.arch || process.arch;
   if (!((platform === "darwin" && ["x64", "arm64"].includes(arch)) || (platform === "win32" && arch === "x64"))) {
     return { systemMessage: "sjskills: check skipped (unsupported release target)." };
   }
-  if (typeof input.cwd !== "string" || !path.isAbsolute(input.cwd)) return report([{ findings: [], incomplete: ["session directory"] }]);
+  if (typeof input.cwd !== "string" || !path.isAbsolute(input.cwd)) return report([{ findings: [], incomplete: ["session directory"] }], agent);
   const env = options.env || process.env, signal = options.signal;
   const run = options.run || runProcess, resolve = options.resolve || nativeExecutable;
   const cli = async () => {
@@ -25,14 +30,14 @@ async function check(input, options = {}) {
   // Codex always sets PLUGIN_ROOT (plus CLAUDE_* aliases); Claude Code sets only
   // CLAUDE_PLUGIN_ROOT. Plugin observation reads Codex metadata, so Claude skips it
   // and relies on its own marketplace updates.
-  if (!env.PLUGIN_ROOT && env.CLAUDE_PLUGIN_ROOT) return report([await cli()]);
+  if (!env.PLUGIN_ROOT && env.CLAUDE_PLUGIN_ROOT) return report([await cli()], agent);
   const plugin = async () => {
     try {
       return await (options.observe || observePlugin)({ root: path.resolve(__dirname, ".."),
         dataRoot: env.PLUGIN_DATA || env.CLAUDE_PLUGIN_DATA, env, signal, now: options.now });
     } catch { return { plugin: true, findings: [], incomplete: ["plugin verification"] }; }
   };
-  return report(await Promise.all([cli(), plugin()]));
+  return report(await Promise.all([cli(), plugin()]), agent);
 }
 
 async function main() {
