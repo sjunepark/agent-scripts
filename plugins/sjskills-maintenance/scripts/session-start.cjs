@@ -6,7 +6,8 @@ const { classifyStatus, report } = require("./status.cjs");
 const { observePlugin } = require("./observation.cjs");
 
 // Only a validated startup or resume event reaches the agent: its hookEventName is
-// known. Malformed, oversized, or late input keeps the user-facing message only.
+// known. Unparseable, oversized, or late stdin keeps the user-facing message only.
+// A validated event with an unusable cwd is an incomplete check like any other.
 const agent = { context: true };
 
 async function check(input, options = {}) {

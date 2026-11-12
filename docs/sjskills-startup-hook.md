@@ -62,9 +62,10 @@ skill state is unconfirmed and the agent should suggest `sjskills status`), and
 ends with one fixed sentence: mention the results and offer a sync or update,
 changing nothing unless the user agrees. It names no mutating command. Its
 length stays under 2,500 characters even for the largest possible drift. Output
-for malformed, oversized, or late hook input stays user-only, because the event
-it would be attached to is unknown. An unsupported release target also gets only
-the skip message.
+for unparseable, oversized, or late hook input stays user-only, because the
+event it would be attached to is unknown. A validated event whose session
+directory is missing or relative is an incomplete check and reaches the agent.
+An unsupported release target also gets only the skip message.
 
 ## Timing and process ownership
 
