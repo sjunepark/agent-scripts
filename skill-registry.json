@@ -52,6 +52,7 @@
     "kicpa": {
       "access": "public",
       "skills": [
+        "dart-dsd",
         "darty",
         "kasb",
         "kisnet-ytm",
@@ -92,6 +93,10 @@
     },
     "context7-mcp-manual": {
       "kind": "external"
+    },
+    "dart-dsd": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/dsdai/tree/main/skills/dart-dsd"
     },
     "darty": {
       "kind": "external",
@@ -228,6 +233,12 @@
     {
       "name": "crowe-design",
       "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "dart-dsd",
+      "source": "dart-dsd",
       "manager": "skills-cli",
       "mode": "copy"
     },
