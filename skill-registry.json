@@ -57,7 +57,8 @@
         "kasb",
         "kisnet-ytm",
         "krx-cli",
-        "windows-cleanup"
+        "windows-cleanup",
+        "xldif"
       ]
     },
     "kicpa-private": {
@@ -70,8 +71,7 @@
         "render-markdown-pdf",
         "sync-rfi",
         "tf-basic-data-prep",
-        "wacc-peer-screening",
-        "xldif"
+        "wacc-peer-screening"
       ]
     },
     "rust": {
