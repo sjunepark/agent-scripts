@@ -70,7 +70,8 @@
         "render-markdown-pdf",
         "sync-rfi",
         "tf-basic-data-prep",
-        "wacc-peer-screening"
+        "wacc-peer-screening",
+        "xldif"
       ]
     },
     "rust": {
@@ -132,6 +133,10 @@
     },
     "skill-cleaner-manual": {
       "kind": "external"
+    },
+    "xldif": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/xldif/tree/main/skills/xldif"
     }
   },
   "targetExceptions": {
@@ -443,6 +448,12 @@
     {
       "name": "write-go-docs",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "xldif",
+      "source": "xldif",
       "manager": "skills-cli",
       "mode": "copy"
     }
