@@ -54,6 +54,7 @@
       "skills": [
         "dart-dsd",
         "darty",
+        "excel-formula-remover",
         "kasb",
         "kisnet-ytm",
         "krx-cli",
@@ -102,6 +103,10 @@
     "darty": {
       "kind": "external",
       "location": "https://github.com/cpaikr/darty/tree/main/skill/darty"
+    },
+    "excel-formula-remover": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/excel-tovalue/tree/main/skill/excel-formula-remover"
     },
     "impeccable": {
       "kind": "external",
@@ -283,6 +288,12 @@
       "manager": "skills-cli",
       "mode": "copy",
       "fullDepth": true
+    },
+    {
+      "name": "excel-formula-remover",
+      "source": "excel-formula-remover",
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "explore-repo",
