@@ -60,10 +60,12 @@ Read a file when its feature affects the task or an upgrade crosses it.
   [1.94](references/rust1.94.md) `array_windows` and Cargo config inclusion ·
   [1.95](references/rust1.95.md) `if let` guards and `cfg_select!` ·
   [1.96](references/rust1.96.md) core ranges and stricter Wasm linking ·
-  [1.97](references/rust1.97.md) v0 mangling and Cargo warning controls.
+  [1.97](references/rust1.97.md) v0 mangling and Cargo warning controls ·
+  [1.98](references/rust1.98.md) integer formatting and runtime-symbol lints ·
+  [1.99](references/rust1.99.md) C-variadic definitions and raw vector parts.
 
 Rust remains on SemVer major 1; this skill treats each stable `1.N` feature
-release as a version. Coverage starts at Rust 1.72 and ends at 1.97. For a
+release as a version. Coverage starts at Rust 1.72 and ends at 1.99. For a
 newer or uncertain toolchain, check the current
 [official release announcements](https://blog.rust-lang.org/releases/) before
 making version-sensitive decisions. Use these files for orientation, then
