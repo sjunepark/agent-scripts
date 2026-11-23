@@ -101,7 +101,7 @@ func TestRegistryFailuresAndStaleWarnings(t *testing.T) {
 		t.Fatalf("stale rendering %q", errout.String())
 	}
 
-	unsupported := &sjskills.Issue{Code: sjskills.IssueRegistryVersion, Path: "registry.version", Message: "published registry version 5 is not supported"}
+	unsupported := &sjskills.Issue{Code: sjskills.IssueRegistryVersion, Path: "registry.version", Message: "published registry version 6 is not supported"}
 	for name, test := range map[string]struct {
 		err    error
 		result sjskills.Result

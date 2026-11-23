@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -43,7 +44,7 @@ func addIssue(issues *[]Issue, code IssueCode, path, format string, args ...any)
 	*issues = append(*issues, Issue{Code: code, Path: path, Message: fmt.Sprintf(format, args...)})
 }
 
-// ValidateRegistry applies structural and semantic rules to a decoded v4
+// ValidateRegistry applies structural and semantic rules to a decoded v5
 // registry. It never reads from disk, invokes a subprocess, or resolves a
 // source.
 func ValidateRegistry(registry Registry) error {
@@ -120,6 +121,75 @@ func validateSources(sources map[string]Source, issues *[]Issue) {
 			addIssue(issues, IssueInvalidSource, path+".catalogPath", "external source must not define catalogPath")
 		}
 	}
+	validateFormerIdentities(sources, issues)
+}
+
+// validateFormerIdentities keeps rename migration explicit and unambiguous: a
+// former identity must be a canonical remote identity that no source currently
+// uses, and every source naming it must share one current identity, so a
+// migrated record can never be claimed by an unrelated live source.
+func validateFormerIdentities(sources map[string]Source, issues *[]Issue) {
+	current := make(map[string]string, len(sources))
+	for _, sourceID := range sortedSourceIDs(sources) {
+		if identity, ok := remoteSourceIdentity(sources[sourceID].Location); ok {
+			current[identity] = sourceID
+		}
+	}
+	claimedBy := make(map[string]string)
+	for _, sourceID := range sortedSourceIDs(sources) {
+		source := sources[sourceID]
+		if source.FormerIdentities == nil {
+			continue
+		}
+		path := "registry.sources." + sourceID + ".formerIdentities"
+		if len(source.FormerIdentities) == 0 {
+			addIssue(issues, IssueEmptySelection, path, "must be a non-empty array when present")
+			continue
+		}
+		identity, ok := remoteSourceIdentity(source.Location)
+		if !ok || !isRemoteSource(source.Location) {
+			addIssue(issues, IssueInvalidSource, path, "requires a remote location with a canonical source identity")
+			continue
+		}
+		if !sort.StringsAreSorted(source.FormerIdentities) {
+			addIssue(issues, IssueMalformedInput, path, "must be sorted")
+		}
+		seen := make(map[string]bool, len(source.FormerIdentities))
+		for index, former := range source.FormerIdentities {
+			entryPath := path + "[" + strconv.Itoa(index) + "]"
+			if seen[former] {
+				addIssue(issues, IssueDuplicate, entryPath, "duplicate former identity %q", former)
+				continue
+			}
+			seen[former] = true
+			if !isCanonicalSourceIdentityForScope(ScopeGlobal, former) {
+				addIssue(issues, IssueInvalidSource, entryPath, "must be a canonical remote source identity such as github:owner/repo")
+				continue
+			}
+			if former == identity {
+				addIssue(issues, IssueInvalidSource, entryPath, "must differ from the source's current identity %q", identity)
+				continue
+			}
+			if owner, used := current[former]; used {
+				addIssue(issues, IssueCollision, entryPath, "former identity %q is the current identity of source %q", former, owner)
+				continue
+			}
+			if previous, claimed := claimedBy[former]; claimed {
+				if previousIdentity, _ := remoteSourceIdentity(sources[previous].Location); previousIdentity != identity {
+					addIssue(issues, IssueCollision, entryPath, "former identity %q is also claimed by source %q", former, previous)
+				}
+				continue
+			}
+			claimedBy[former] = sourceID
+		}
+	}
+}
+
+func remoteSourceIdentity(location string) (string, bool) {
+	if location == "" || IsLocalSource(location) {
+		return "", false
+	}
+	return canonicalProjectSourceIdentity(location)
 }
 
 func validateSkillDeclarations(skills []SkillDeclaration, sources map[string]Source, issues *[]Issue) {

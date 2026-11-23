@@ -163,7 +163,7 @@ globally.
 Use `skill-registry.json` as the source of truth for whether a skill is global,
 project-profile, workflow-managed, manual, or catalog-only, along with its
 provenance and installation targets. See
-[docs/skill-registry.md](docs/skill-registry.md) for the version 4 contract.
+[docs/skill-registry.md](docs/skill-registry.md) for the version 5 contract.
 
 For a project, commit only the intent file and treat reconciled placements and
 state as generated machine-local data:

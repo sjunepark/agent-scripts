@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "description": "Version 4 desired-state registry for sjskills.",
+  "version": 5,
+  "description": "Version 5 desired-state registry for sjskills.",
   "defaults": {
     "targets": [
       ".agents",
@@ -121,7 +121,10 @@
     },
     "kicpa": {
       "kind": "external",
-      "location": "https://github.com/cpaikr/kicpa/tree/main/skills"
+      "location": "https://github.com/cpaikr/kicpa/tree/main/skills",
+      "formerIdentities": [
+        "github:sjunepark/kicpa"
+      ]
     },
     "kisnet-ytm": {
       "kind": "external",

@@ -94,6 +94,92 @@ function validateTargets(label, targets, errors) {
   }
 }
 
+// Mirror of sjskills' canonical provenance identity for remote locations:
+// GitHub sources reduce to github:<owner>/<repo>, other HTTPS sources keep
+// their lowercase host and path.
+function remoteSourceIdentity(location) {
+  if (typeof location !== "string" || skillsCliSourceProblem(location)) return null;
+  if (!location.includes("://")) {
+    // Shorthand strips a case-sensitive .git before lowercasing, as sjskills does.
+    const [owner, repository, ...rest] = location.split("/");
+    return `github:${[owner, repository.replace(/\.git$/, ""), ...rest].join("/").toLowerCase()}`;
+  }
+  const parsed = new URL(location);
+  let parts;
+  try {
+    parts = decodeURIComponent(parsed.pathname).split("/").filter(Boolean);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === "github.com" && parsed.port === "") {
+    if (parts.length < 2) return null;
+    return `github:${parts[0].toLowerCase()}/${parts[1].toLowerCase().replace(/\.git$/, "")}`;
+  }
+  // URL() drops a default :443; sjskills keeps any explicit port, written as
+  // a plain decimal number.
+  const authority = location.slice("https://".length).split(/[/?#]/)[0];
+  const explicitPort = /:(\d+)$/.exec(authority);
+  const hostPort = explicitPort ? `${host}:${Number(explicitPort[1])}` : host;
+  const path = parts.join("/").replace(/\.git$/, "");
+  return `https://${hostPort}${path ? `/${path}` : ""}`;
+}
+
+const formerIdentityPattern = /^github:[a-z0-9_.-]+\/[a-z0-9_.-]+(?:\/[a-z0-9_.-]+)*$/;
+
+function canonicalFormerIdentity(identity) {
+  if (typeof identity !== "string") return false;
+  if (identity.startsWith("github:")) {
+    return formerIdentityPattern.test(identity) &&
+      !identity.split("/").some((part) => part === "." || part === "..");
+  }
+  return identity.startsWith("https://") && remoteSourceIdentity(identity) === identity;
+}
+
+// Former identities let installs recorded under a renamed or transferred
+// repository migrate to the source's current identity. Keep them explicit and
+// unambiguous: sorted canonical GitHub identities that no source currently
+// uses, claimed only by sources sharing one current identity.
+function formerIdentityProblems(sources) {
+  const errors = [];
+  const current = new Map();
+  for (const [id, source] of Object.entries(sources)) {
+    const identity = remoteSourceIdentity(source?.location);
+    if (identity) current.set(identity, id);
+  }
+  const claimed = new Map();
+  for (const [id, source] of Object.entries(sources)) {
+    if (!isObject(source) || source.formerIdentities === undefined) continue;
+    const label = `source ${id} formerIdentities`;
+    const identities = source.formerIdentities;
+    if (!Array.isArray(identities) || identities.length === 0) {
+      errors.push(`${label} must be a non-empty array when present`);
+      continue;
+    }
+    const identity = remoteSourceIdentity(source.location);
+    if (!identity) {
+      errors.push(`${label} requires a remote location`);
+      continue;
+    }
+    if (!arraysEqual(identities, [...identities].sort())) errors.push(`${label} must be sorted`);
+    if (new Set(identities).size !== identities.length) errors.push(`${label} must not repeat an identity`);
+    for (const former of identities) {
+      if (!canonicalFormerIdentity(former)) {
+        errors.push(`${label} entry ${former} must be a canonical identity such as github:owner/repo`);
+      } else if (former === identity) {
+        errors.push(`${label} entry ${former} must differ from the current identity`);
+      } else if (current.has(former)) {
+        errors.push(`${label} entry ${former} is the current identity of source ${current.get(former)}`);
+      } else if (claimed.has(former) && claimed.get(former).identity !== identity) {
+        errors.push(`${label} entry ${former} is also claimed by source ${claimed.get(former).id}`);
+      } else if (!claimed.has(former)) {
+        claimed.set(former, { id, identity });
+      }
+    }
+  }
+  return errors;
+}
+
 function validateSkillRegistry(registry, options = {}) {
   const errors = [];
   if (!isObject(registry)) return ["registry must be an object"];
@@ -104,7 +190,7 @@ function validateSkillRegistry(registry, options = {}) {
     "registry",
     errors
   );
-  if (registry.version !== 4) errors.push("version must be 4");
+  if (registry.version !== 5) errors.push("version must be 5");
   if (typeof registry.description !== "string" || registry.description.trim() === "") {
     errors.push("description must be a non-empty string");
   }
@@ -138,7 +224,7 @@ function validateSkillRegistry(registry, options = {}) {
       errors.push(`${label} must be an object`);
       continue;
     }
-    rejectUnknownFields(source, new Set(["catalogPath", "kind", "location"]), label, errors);
+    rejectUnknownFields(source, new Set(["catalogPath", "formerIdentities", "kind", "location"]), label, errors);
     if (!portableName(id)) errors.push(`${label} has an invalid id`);
     if (!new Set(["external", "repository"]).has(source.kind)) {
       errors.push(`${label} has unsupported kind ${source.kind}`);
@@ -156,6 +242,7 @@ function validateSkillRegistry(registry, options = {}) {
       errors.push(`${label} external source must not define catalogPath`);
     }
   }
+  errors.push(...formerIdentityProblems(registry.sources));
 
   const known = new Map();
   const repositoryNames = new Set();
@@ -297,7 +384,7 @@ function readSkillRegistry(file, options = {}) {
 
 function globalSkillEntries(registry, profile) {
   if (profile !== undefined) {
-    throw new Error("version 4 has one fixed global baseline; profile selection is not supported");
+    throw new Error("version 5 has one fixed global baseline; profile selection is not supported");
   }
   const byName = new Map(registry.skills.map((skill) => [skill.name, skill]));
   return registry.global.baseline.map((name) => {

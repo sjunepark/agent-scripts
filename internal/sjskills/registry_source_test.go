@@ -104,7 +104,7 @@ func TestParseRefAdvertisementFindsMain(t *testing.T) {
 }
 
 func TestRegistrySourceResolveFetchesAtResolvedCommitAndCaches(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 
@@ -112,7 +112,7 @@ func TestRegistrySourceResolveFetchesAtResolvedCommitAndCaches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if published.Commit != testCommitA || published.SHA256 != digest(string(registryV4JSON)) || !published.ResolvedAt.Equal(now) || published.Stale {
+	if published.Commit != testCommitA || published.SHA256 != digest(string(registryV5JSON)) || !published.ResolvedAt.Equal(now) || published.Stale {
 		t.Fatalf("published = %+v", published)
 	}
 	if published.Registry.Version != RegistryVersion {
@@ -129,11 +129,11 @@ func TestRegistrySourceResolveFetchesAtResolvedCommitAndCaches(t *testing.T) {
 }
 
 func TestRegistrySourceResolveFollowsBranchMoves(t *testing.T) {
-	changed := strings.Replace(string(registryV4JSON), `"Version 4 desired-state registry for sjskills."`, `"Changed on main."`, 1)
-	if changed == string(registryV4JSON) {
+	changed := strings.Replace(string(registryV5JSON), `"Version 5 desired-state registry for sjskills."`, `"Changed on main."`, 1)
+	if changed == string(registryV5JSON) {
 		t.Fatal("fixture description not found")
 	}
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON), testCommitB: changed})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON), testCommitB: changed})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	if _, err := source.Resolve(context.Background()); err != nil {
@@ -154,7 +154,7 @@ func TestRegistrySourceResolveFollowsBranchMoves(t *testing.T) {
 }
 
 func TestRegistrySourceForStatusUsesCacheWithinInterval(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	if _, err := source.Resolve(context.Background()); err != nil {
@@ -172,7 +172,7 @@ func TestRegistrySourceForStatusUsesCacheWithinInterval(t *testing.T) {
 }
 
 func TestRegistrySourceStaleFallbackAndCooldown(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	resolvedAt := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	now := resolvedAt
 	source := server.source(t, t.TempDir(), &now)
@@ -225,8 +225,8 @@ func TestRegistrySourceUnavailableWithoutCache(t *testing.T) {
 }
 
 func TestRegistrySourceUnsupportedVersionFailsClosed(t *testing.T) {
-	future := strings.Replace(string(registryV4JSON), `"version": 4`, `"version": 5`, 1)
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON), testCommitB: future})
+	future := strings.Replace(string(registryV5JSON), `"version": 5`, `"version": 6`, 1)
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON), testCommitB: future})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	if _, err := source.Resolve(context.Background()); err != nil {
@@ -239,14 +239,14 @@ func TestRegistrySourceUnsupportedVersionFailsClosed(t *testing.T) {
 	} {
 		_, err := load(context.Background())
 		var issue *Issue
-		if !errors.As(err, &issue) || issue.Code != IssueRegistryVersion || !strings.Contains(issue.Message, "version 5") || !strings.Contains(issue.Message, "install the sjskills release") {
+		if !errors.As(err, &issue) || issue.Code != IssueRegistryVersion || !strings.Contains(issue.Message, "version 6") || !strings.Contains(issue.Message, "install the sjskills release") {
 			t.Fatalf("%s: err = %v", name, err)
 		}
 	}
 }
 
 func TestRegistrySourceRejectsInvalidInputs(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: `{"version": 4}`})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: `{"version": 5}`})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	var validation *ValidationErrors
@@ -269,7 +269,7 @@ func TestRegistrySourceRejectsInvalidInputs(t *testing.T) {
 }
 
 func TestRegistrySourceIgnoresTamperedCommitCache(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	cacheRoot := t.TempDir()
 	source := server.source(t, cacheRoot, &now)
@@ -280,7 +280,7 @@ func TestRegistrySourceIgnoresTamperedCommitCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tampered := strings.Replace(string(registryV4JSON), `"Version 4 desired-state registry for sjskills."`, `"Tampered."`, 1)
+	tampered := strings.Replace(string(registryV5JSON), `"Version 5 desired-state registry for sjskills."`, `"Tampered."`, 1)
 	if err := writeRegistryCacheFile(directory, testCommitA+".json", []byte(tampered)); err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestRegistrySourceIgnoresTamperedCommitCache(t *testing.T) {
 }
 
 func TestPublishedRegistryPinsOwnSourcesAndRecordsEvidence(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	published, err := source.Resolve(context.Background())
@@ -335,7 +335,7 @@ func TestPublishedRegistryPinsOwnSourcesAndRecordsEvidence(t *testing.T) {
 }
 
 func TestRegistrySourceNoCacheWritesNothing(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	cacheRoot := filepath.Join(t.TempDir(), "cache")
 	source := server.source(t, cacheRoot, &now)
@@ -354,7 +354,7 @@ func TestRegistrySourceNoCacheWritesNothing(t *testing.T) {
 }
 
 func TestRegistrySourceMissingReviewedCommitConflicts(t *testing.T) {
-	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV4JSON)})
+	server := newRegistryServer(t, testCommitA, map[string]string{testCommitA: string(registryV5JSON)})
 	now := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	source := server.source(t, t.TempDir(), &now)
 	_, err := source.At(context.Background(), testCommitB)

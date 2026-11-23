@@ -1,6 +1,6 @@
 # Skill registry
 
-`skill-registry.json` is the version 4 desired-state contract consumed by
+`skill-registry.json` is the version 5 desired-state contract consumed by
 `sjskills`. It classifies this repository's published skills and deliberately
 recommended external skills without duplicating a skill declaration across
 global and project policy.
@@ -86,6 +86,9 @@ Each `skills` entry records:
 - `mode`: `copy` for Skills CLI-managed entries.
 - `fullDepth`: an optional Skills CLI materialization requirement.
 - `workflow`: the provisioning workflow for workflow-managed entries.
+
+A source may also record `formerIdentities`; see
+[Renamed sources](#renamed-sources).
 
 A `repository` source names the published GitHub `skills/` catalog.
 An `external` source names a deliberately tracked upstream or a manual
@@ -254,6 +257,35 @@ recovery data, and manifest-backed quarantine live under
 `~/.agents/.sjskills-global/`. The prior `~/.skill-quarantine` location is
 protected and never reused by `sjskills`.
 
+### Renamed sources
+
+A source whose repository was renamed or transferred keeps ownership of copies
+installed under its old name only when the registry says so. Its
+`formerIdentities` lists the canonical provenance identities it was installed
+under, such as `github:sjunepark/kicpa` for `kicpa`, whose location is now
+`https://github.com/cpaikr/kicpa/tree/main/skills`. Entries are sorted,
+lowercase `github:<owner>/<repo>` or canonical HTTPS identities, never `local:`;
+each differs from every source's current identity, and only sources sharing one
+current identity may list the same former identity. The list requires a remote
+location and is version 5's only schema addition, so a version 4 binary fails
+closed and names the release to install.
+
+A trusted record from a declared former identity of the placement's own
+central source is then classified like a record from the current identity:
+identical bytes are `unchanged` with reason `former-source-identity`, and
+other bytes follow the ordinary `verified-update` and `local-modification`
+rules. Any other identity still blocks as `provenance-source-mismatch`. Apply
+re-records every such record under the current identity, keeping its tree hash
+and recorded time when the bytes are unchanged; a plan of only these rewrites
+is still applied, and status reports them as update findings. Quarantine and
+the recovery journal describe migrated records by the current identity, and the
+journal lists each rewrite so crash recovery can verify the state transition.
+Backups quarantined after the migration therefore restore under the current
+identity. A same-source update backup quarantined before it still names the
+former identity, so its restore fails closed once the migration commits; its
+bytes stay in the quarantine run for manual recovery. Removed placements and
+direct declarations never migrate.
+
 ## Automatic status evidence
 
 `sjskills` and `sjskills status` share one explicit report of the running CLI
@@ -391,7 +423,7 @@ CLI integration tests build a native fake `bunx` and fake `git` in a temporary
 directory so they do not fall through to a real Skills CLI or network on
 Windows. They build the binary with the `sjskillstest` tag, which alone lets it
 read a local fixture registry server; release builds never set it. Go tests use
-the frozen `internal/sjskills/testdata/registry-v4.json`, not the live registry. Unix permission-bit
+the frozen `internal/sjskills/testdata/registry-v5.json`, not the live registry. Unix permission-bit
 assertions apply only on Unix; Windows uses native ACLs and synthesized mode
 bits. All global mutation tests use isolated temporary homes.
 

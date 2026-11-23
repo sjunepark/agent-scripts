@@ -16,7 +16,7 @@ import (
 // fixture registry's selections, eight 8 KiB files per placement, and trusted provenance.
 // It measures cache lookup plus fresh local hashing/classification, not network.
 func BenchmarkStatusWarmDevGoAndGlobal(b *testing.B) {
-	registry, err := ParseRegistry(registryV4JSON)
+	registry, err := ParseRegistry(registryV5JSON)
 	if err != nil {
 		b.Fatal(err)
 	}

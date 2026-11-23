@@ -204,6 +204,10 @@ type ApplyResult struct {
 	Quarantined []AppliedPlacement
 	Quarantine  *ProjectQuarantineResult
 	Migrated    bool
+	// SourceMigrated lists unchanged placements whose provenance was
+	// re-recorded from a registry-declared former source identity. Updated
+	// placements are recorded under the current identity as part of the update.
+	SourceMigrated []AppliedPlacement
 }
 
 // ProjectQuarantineResult is the path-free recovery handle returned when an
@@ -386,7 +390,10 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 	if reviewedMigration != stateOnlyMigration {
 		return finishApplySetup(&tx, freshPlan, applyConflict("global provenance migration changed after planning"))
 	}
-	if len(mutationOperations) == 0 && !stateOnlyMigration {
+	// The reviewed plan already compared operation reasons, so exact
+	// placements awaiting a source identity rewrite are part of its identity.
+	sourceMigrations := operationsWithReason(freshPlan.Operations, PlanActionUnchanged, ProjectStateReasonFormerSourceIdentity)
+	if len(mutationOperations) == 0 && !stateOnlyMigration && len(sourceMigrations) == 0 {
 		if tx.deps.beforeCommit != nil {
 			if hookErr := tx.deps.beforeCommit(); hookErr != nil {
 				return finishApplySetup(&tx, freshPlan, applyUnavailable("apply verification preflight failed"))
@@ -447,6 +454,12 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 	if primary == nil && stateOnlyMigration {
 		result.Migrated = true
 	}
+	if primary == nil && len(sourceMigrations) > 0 {
+		result.SourceMigrated = make([]AppliedPlacement, 0, len(sourceMigrations))
+		for _, operation := range sourceMigrations {
+			result.SourceMigrated = append(result.SourceMigrated, AppliedPlacement{Skill: operation.Skill, Target: operation.Target})
+		}
+	}
 	recoveryRequired := false
 	if primary != nil && !tx.journalCleared && commit != nil && commit.replaced {
 		if restoreErr := tx.restoreState(preimage, commit); restoreErr != nil {
@@ -506,6 +519,16 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 		return result, primary
 	}
 	return result, nil
+}
+
+func operationsWithReason(operations []PlanOperation, action PlanAction, reason ProjectStateReason) []PlanOperation {
+	result := make([]PlanOperation, 0)
+	for _, operation := range operations {
+		if operation.Action == action && operation.Reason == string(reason) {
+			result = append(result, operation)
+		}
+	}
+	return result
 }
 
 func planHasEvidence(plan Plan, kind string) bool {
@@ -1807,10 +1830,9 @@ func buildApplyState(previous ProvenanceState, session *ProjectApplySession, rec
 	if state.Records == nil {
 		state.Records = []ProvenanceRecord{}
 	}
-	records := make(map[string]ProvenanceRecord, len(state.Records)+len(session.Plan.Operations))
-	for _, record := range state.Records {
-		records[projectPlacementKey(record.Target, record.Skill)] = record
-	}
+	// Every record from a declared former identity of its desired source is
+	// re-recorded under the current identity, including unchanged placements.
+	records := effectiveProvenanceRecords(state, session.Desired)
 	desired := desiredByPlacement(session.Desired)
 	for _, operation := range reviewedMutationOperations(session) {
 		key := projectPlacementKey(operation.Target, operation.Skill)
