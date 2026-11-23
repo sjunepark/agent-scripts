@@ -68,6 +68,7 @@
       "skills": [
         "cagr-research",
         "crowe-design",
+        "excel",
         "mus-sampling",
         "organize-engagement-files",
         "render-markdown-pdf",
@@ -293,6 +294,12 @@
       "manager": "skills-cli",
       "mode": "copy",
       "fullDepth": true
+    },
+    {
+      "name": "excel",
+      "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "excel-formula-remover",
