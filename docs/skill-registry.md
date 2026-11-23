@@ -124,8 +124,26 @@ a full commit, including every agent-scripts skill, are fetched anonymously
 with Git and installed through local-source discovery; these selections require
 Git. That fetch disables credential helpers, redirects, and submodules and drops
 inherited `GIT_*`, `GH_*`, askpass, and token variables, while keeping system
-Git configuration such as `core.autocrlf` so installed bytes match Skills CLI's
-own clones on the same machine. Authenticated selections require Git, GitHub CLI,
+Git configuration such as TLS and proxy settings.
+
+File contents do not depend on the host's Git configuration. Every Git
+checkout that sjskills or its Skills CLI subprocess performs (public,
+commit-pinned, and authenticated) forces `core.autocrlf=false`, `core.eol=lf`,
+and disabled `filter.lfs.*` drivers (the same LFS overrides Skills CLI applies
+to its own clones) as command-scope configuration through `GIT_CONFIG_COUNT`.
+Any inherited `GIT_CONFIG_COUNT` entries or `GIT_CONFIG_PARAMETERS` are
+dropped. Installed files therefore equal the committed blobs, except where the
+source's own `.gitattributes` asks for a conversion such as `eol=crlf`, which
+applies identically on every host. Windows, whose Git for Windows system
+configuration sets `core.autocrlf=true`, thus installs the same contents as
+macOS and Linux. Installs made by earlier sjskills releases on a host that
+converted line endings (any Windows host with that default) hold converted
+bytes, so the first plan after upgrading reports those skills as updates once.
+The tree hash also records each file's executable bit and symlinks, which
+Windows checkouts do not preserve, so a skill with executable or symlinked
+files still hashes differently on Windows than on macOS and Linux.
+
+Authenticated selections require Git, GitHub CLI,
 and an existing gh login with repository access. They accept GitHub.com
 shorthand or credential-free `https://github.com` sources, including supported
 `/tree/<ref>[/<subpath>]` forms. A ref may be a branch, tag, or full 40-character

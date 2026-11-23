@@ -563,6 +563,8 @@ func TestMaterializeIsolatesHomeSignalsAndPreservesCredentialHelpers(t *testing.
 	}()
 	env := runner.calls[0].env
 	root := plan.Root()
+	// Skills CLI's own clones of branch sources use the same checkout bytes.
+	assertCanonicalCheckoutConfig(t, runner.calls[len(runner.calls)-1].env)
 	want := map[string]string{
 		"PATH": "/custom/bin", "HOME": root, "USERPROFILE": root,
 		"CODEX_HOME": filepath.Join(root, ".agents"), "CLAUDE_CONFIG_DIR": filepath.Join(root, ".claude"),
@@ -1040,12 +1042,14 @@ func TestMaterializeFetchesCommitPinnedPublicSourceWithGit(t *testing.T) {
 		if strings.Contains(joined, "credential.helper=!") || !strings.Contains(joined, "-c credential.helper= ") || envValue(call.env, "GIT_TERMINAL_PROMPT") != "0" {
 			t.Fatalf("git call is not anonymous: %q", joined)
 		}
-		// System configuration (core.autocrlf) must match Skills CLI's own
-		// clones, while a caller's repository variables must never leak in.
+		// System configuration (TLS, proxies) stays available, line endings
+		// are pinned, and a caller's repository variables never leak in.
 		if envHas(call.env, "GIT_CONFIG_NOSYSTEM") || envHas(call.env, "GIT_DIR") || envHas(call.env, "git_work_tree") || envHas(call.env, "SSH_ASKPASS") || envHas(call.env, "GH_TOKEN") || envValue(call.env, "HOME") == "" {
 			t.Fatalf("git environment = %q", call.env)
 		}
+		assertCanonicalCheckoutConfig(t, call.env)
 	}
+	assertCanonicalCheckoutConfig(t, add.env)
 	if !filepath.IsAbs(add.args[2]) || filepath.Base(add.args[2]) != "skills" {
 		t.Fatalf("skills add source = %q, want the fetched checkout", add.args[2])
 	}

@@ -628,16 +628,47 @@ func ensureContext(ctx context.Context) error {
 	}
 }
 
+// canonicalCheckoutConfig pins the Git settings that rewrite file contents on
+// checkout, so staged bytes equal the source's committed blobs on every host.
+// Projects commit their placements; a Windows host, whose Git for Windows
+// system config sets core.autocrlf=true and a required LFS filter, must stage
+// what macOS and Linux stage. core.eol=lf replaces the platform-dependent
+// "native" default for paths a source's .gitattributes marks as text, while an
+// explicit eol attribute in that source still applies identically everywhere.
+// The LFS entries match the overrides Skills CLI passes to its own clones, so
+// commit-pinned fetches stage LFS pointers exactly as branch installs do.
+// Command-scope environment configuration outranks system, global, and
+// repository files and is inherited by the Git processes Skills CLI spawns;
+// the rest of the system configuration (TLS, proxies) is kept.
+var canonicalCheckoutConfig = [][2]string{
+	{"core.autocrlf", "false"},
+	{"core.eol", "lf"},
+	{"filter.lfs.required", "false"},
+	{"filter.lfs.smudge", ""},
+	{"filter.lfs.clean", ""},
+	{"filter.lfs.process", ""},
+}
+
+// inheritedCommandConfig reports environment-borne command-scope Git
+// configuration. Inherited entries could renumber or override
+// canonicalCheckoutConfig, so they never reach a materialization process.
+func inheritedCommandConfig(key string) bool {
+	upper := strings.ToUpper(key)
+	return upper == "GIT_CONFIG_COUNT" || upper == "GIT_CONFIG_PARAMETERS" ||
+		strings.HasPrefix(upper, "GIT_CONFIG_KEY_") || strings.HasPrefix(upper, "GIT_CONFIG_VALUE_")
+}
+
 // isolatedEnvironment keeps ordinary inherited environment values (notably
 // PATH and Git credential-helper variables) while replacing home/profile and
 // common temp/cache/config signals that could make the CLI write outside the
-// staging root.
+// staging root. It also pins canonicalCheckoutConfig for every Git checkout
+// that sjskills or its Skills CLI subprocess performs.
 func isolatedEnvironment(base []string, root, platform string) []string {
 	values := make(map[string]string, len(base)+8)
 	order := make([]string, 0, len(base)+8)
 	for _, item := range base {
 		key, value, ok := strings.Cut(item, "=")
-		if !ok || key == "" {
+		if !ok || key == "" || inheritedCommandConfig(key) {
 			continue
 		}
 		if _, exists := values[key]; !exists {
@@ -693,6 +724,11 @@ func isolatedEnvironment(base []string, root, platform string) []string {
 	}
 	for key, value := range redirects {
 		set(key, value)
+	}
+	set("GIT_CONFIG_COUNT", strconv.Itoa(len(canonicalCheckoutConfig)))
+	for index, entry := range canonicalCheckoutConfig {
+		set(fmt.Sprintf("GIT_CONFIG_KEY_%d", index), entry[0])
+		set(fmt.Sprintf("GIT_CONFIG_VALUE_%d", index), entry[1])
 	}
 	if windows {
 		if drive, pathPart := windowsHomeParts(root); drive != "" {

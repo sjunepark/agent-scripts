@@ -121,9 +121,10 @@ func pinnedPublicGitHubSource(skill DesiredSkill) bool {
 
 // publicSource fetches a commit-pinned public GitHub source anonymously. Every
 // credential helper is disabled; only the pinned commit is fetched. Git runs in
-// the environment Skills CLI uses for its own remote clones, keeping system
-// configuration such as core.autocrlf, so installed bytes and expected-content
-// hashes match those of a branch install on the same machine.
+// the environment Skills CLI uses for its own remote clones: system
+// configuration (TLS, proxies) is kept, and isolatedEnvironment pins line
+// endings so installed bytes and expected-content hashes match a branch
+// install and every other host.
 func (m *Materializer) publicSource(ctx context.Context, root, source string) (string, error) {
 	repo, err := githubRepository(source)
 	if err != nil {

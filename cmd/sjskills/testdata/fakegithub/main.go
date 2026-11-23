@@ -14,6 +14,27 @@ import (
 const token = "sjskills-sentinel-credential-never-log"
 
 func fail() { os.Exit(7) }
+
+// canonicalCommandConfig reports whether the only command-scope Git
+// configuration is sjskills' pinned checkout configuration; anything inherited
+// from the caller (such as an untrusted credential helper) must be dropped.
+func canonicalCommandConfig() bool {
+	want := [][2]string{
+		{"core.autocrlf", "false"}, {"core.eol", "lf"}, {"filter.lfs.required", "false"},
+		{"filter.lfs.smudge", ""}, {"filter.lfs.clean", ""}, {"filter.lfs.process", ""},
+	}
+	if os.Getenv("GIT_CONFIG_PARAMETERS") != "" || os.Getenv("GIT_CONFIG_COUNT") != fmt.Sprint(len(want)) {
+		return false
+	}
+	for i, entry := range want {
+		value, ok := os.LookupEnv(fmt.Sprintf("GIT_CONFIG_VALUE_%d", i))
+		if os.Getenv(fmt.Sprintf("GIT_CONFIG_KEY_%d", i)) != entry[0] || !ok || value != entry[1] {
+			return false
+		}
+	}
+	return true
+}
+
 func main() {
 	name := strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
 	if os.Getenv("SJSKILLS_FAKE_GITHUB_LOG") != "" {
@@ -68,7 +89,7 @@ func main() {
 				break
 			}
 		}
-		if index < 0 || len(args) < 2 || os.Getenv("GIT_ALLOW_PROTOCOL") != "https" || os.Getenv("GIT_CONFIG_COUNT") != "" || os.Getenv("GIT_TRACE") != "" {
+		if index < 0 || len(args) < 2 || os.Getenv("GIT_ALLOW_PROTOCOL") != "https" || !canonicalCommandConfig() || os.Getenv("GIT_TRACE") != "" {
 			fail()
 		}
 		if !strings.Contains(strings.Join(args[:index], " "), "credential.helper=!") {
