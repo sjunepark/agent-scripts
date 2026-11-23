@@ -71,6 +71,7 @@
         "mus-sampling",
         "organize-engagement-files",
         "render-markdown-pdf",
+        "report-prose-review",
         "sync-rfi",
         "tf-basic-data-prep",
         "wacc-peer-screening"
@@ -404,6 +405,12 @@
     },
     {
       "name": "render-markdown-pdf",
+      "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "report-prose-review",
       "source": "kicpa",
       "manager": "skills-cli",
       "mode": "copy"
