@@ -1,14 +1,14 @@
 {
   "name": "sjskills-maintenance",
-  "version": "0.1.0+codex.20260915062837",
-  "description": "Check CLI, configured skills, and published plugin status at startup without assigning agent work.",
+  "version": "0.1.0+codex.20261112071654",
+  "description": "Check CLI, configured skills, and published plugin status at startup and tell the agent about drift so it can offer a sync.",
   "author": {
     "name": "Local developer"
   },
   "interface": {
     "displayName": "sjskills Startup Check",
     "shortDescription": "Report actionable sjskills status at startup.",
-    "longDescription": "New and resumed sessions run direct read-only status checks. Healthy checks stay silent; actionable or incomplete checks produce one diagnostic. Updates and synchronization require a separate request.",
+    "longDescription": "New and resumed sessions run direct read-only status checks. Healthy checks stay silent; actionable or incomplete checks produce one diagnostic for the user and a short summary for the agent naming the affected skills. The agent may only offer an update or sync; it runs one only after the user agrees.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
