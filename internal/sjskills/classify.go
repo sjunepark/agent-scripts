@@ -37,6 +37,7 @@ const (
 	ProjectStateReasonDesiredPathUnmanaged        ProjectStateReason = "desired-path-unmanaged"
 	ProjectStateReasonProvenanceSourceMismatch    ProjectStateReason = "provenance-source-mismatch"
 	ProjectStateReasonVerifiedExact               ProjectStateReason = "verified-exact"
+	ProjectStateReasonFormerSourceIdentity        ProjectStateReason = "former-source-identity"
 	ProjectStateReasonVerifiedUpdate              ProjectStateReason = "verified-update"
 	ProjectStateReasonLocalModification           ProjectStateReason = "local-modification"
 	ProjectStateReasonMalformedEntryPreserved     ProjectStateReason = "malformed-entry-preserved"
@@ -240,17 +241,27 @@ func classifyCopyPlacement(state *ProjectState, skill DesiredSkill, root Project
 		state.Reason = ProjectStateReasonDesiredPathUnmanaged
 		return
 	}
+	// A registry-declared former identity of this source is the same owner
+	// under its old repository name; every tree-hash rule below still applies.
+	// Exact bytes then need only the state rewrite, reported by its own reason.
+	formerIdentity := false
 	if record.SourceIdentity != state.SourceIdentity {
-		state.Kind = ProjectStateProtected
-		state.Action = PlanActionBlocked
-		state.Reason = ProjectStateReasonProvenanceSourceMismatch
-		return
+		if !isFormerSourceIdentity(skill, record.SourceIdentity) {
+			state.Kind = ProjectStateProtected
+			state.Action = PlanActionBlocked
+			state.Reason = ProjectStateReasonProvenanceSourceMismatch
+			return
+		}
+		formerIdentity = true
 	}
 	if treeHashMatchesRecord(*entry.Hash, record) {
 		if entry.Hash.Algorithm == expected.Algorithm && entry.Hash.Digest == expected.Digest {
 			state.Kind = ProjectStateExact
 			state.Action = PlanActionUnchanged
 			state.Reason = ProjectStateReasonVerifiedExact
+			if formerIdentity {
+				state.Reason = ProjectStateReasonFormerSourceIdentity
+			}
 			return
 		}
 		state.Kind = ProjectStateOutdated
@@ -350,6 +361,7 @@ func validateProjectClassificationInputs(desired DesiredState, expected map[stri
 		default:
 			issues = append(issues, Issue{Code: IssueInvalidManager, Path: path + ".manager", Message: "unsupported manager"})
 		}
+		validateDesiredFormerIdentities(path, skill, &issues)
 	}
 
 	expectedByName := make(map[string]TreeHash, len(expected))

@@ -2464,7 +2464,7 @@ func TestConfirmGlobalApplyIncludesProvenanceMigration(t *testing.T) {
 		{1, 2, 0, "Apply 4 global changes (1 install, 2 updates, provenance migration)? [y/N] "},
 	} {
 		var output bytes.Buffer
-		confirmed, err := confirmApply(strings.NewReader("n\n"), &output, true, test.installs, test.updates, test.removals, true)
+		confirmed, err := confirmApply(strings.NewReader("n\n"), &output, true, test.installs, test.updates, test.removals, 0, true)
 		if err != nil || confirmed || output.String() != test.want {
 			t.Errorf("installs=%d updates=%d confirmed=%v err=%v output=%q want=%q", test.installs, test.updates, confirmed, err, output.String(), test.want)
 		}

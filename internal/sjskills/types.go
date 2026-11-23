@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	RegistryVersion = 4
+	RegistryVersion = 5
 	ManifestVersion = 1
 )
 
@@ -60,7 +60,7 @@ const (
 	ScopeProject Scope = "project"
 )
 
-// Registry is the strict version-4 desired-state catalog. The Skills slice is
+// Registry is the strict version-5 desired-state catalog. The Skills slice is
 // the sole declaration of a skill's source and installation metadata. Global
 // and profile fields contain only names referring to those declarations.
 type Registry struct {
@@ -91,10 +91,14 @@ type Profile struct {
 
 // Source describes a source/catalog record. Source IDs are used only by the
 // central registry; direct manifest declarations carry a location directly.
+// FormerIdentities names canonical provenance identities the same source was
+// installed under before a repository rename or transfer. Only identities the
+// registry names here may be re-recorded as the location's current identity.
 type Source struct {
-	Kind        SourceKind `json:"kind"`
-	Location    string     `json:"location,omitempty"`
-	CatalogPath string     `json:"catalogPath,omitempty"`
+	Kind             SourceKind `json:"kind"`
+	Location         string     `json:"location,omitempty"`
+	CatalogPath      string     `json:"catalogPath,omitempty"`
+	FormerIdentities []string   `json:"formerIdentities,omitempty"`
 }
 
 // SkillDeclaration is the one central declaration for a skill. A missing
@@ -146,6 +150,9 @@ type DesiredSkill struct {
 	// LocalPath is the absolute directory a local direct source resolves to on
 	// this machine. Source keeps the committed spelling for provenance.
 	LocalPath string `json:"localPath,omitempty"`
+	// FormerSourceIdentities copies the central source's registry-declared
+	// former provenance identities; direct declarations never carry any.
+	FormerSourceIdentities []string `json:"formerSourceIdentities,omitempty"`
 }
 
 type DesiredState struct {

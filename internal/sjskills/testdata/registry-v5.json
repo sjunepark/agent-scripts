@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "description": "Version 4 desired-state registry for sjskills.",
+  "version": 5,
+  "description": "Version 5 desired-state registry for sjskills.",
   "defaults": {
     "targets": [
       ".agents",

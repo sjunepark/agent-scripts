@@ -20,10 +20,9 @@ func (tx *applyTransaction) planQuarantine(session *ProjectApplySession, preimag
 	if err != nil || !projectQuarantineIDPattern.MatchString(id) {
 		return applyUnavailable("quarantine identity is unavailable")
 	}
-	records := make(map[string]ProvenanceRecord, len(preimage.state.Records))
-	for _, record := range preimage.state.Records {
-		records[projectPlacementKey(record.Target, record.Skill)] = record
-	}
+	// Updates quarantine the preimage under its migrated identity, so the
+	// manifest's old and new identities agree as for any same-source update.
+	records := effectiveProvenanceRecords(preimage.state, session.Desired)
 	desired := desiredByPlacement(session.Desired)
 	entries := make([]ProjectQuarantineManifestEntry, 0, len(operations))
 	for _, operation := range operations {
@@ -222,7 +221,7 @@ func (tx *applyTransaction) quarantineExisting(session *ProjectApplySession, pre
 		return applyConflict("reviewed quarantine preimage identity changed")
 	}
 	expectedHash, expectedOK := treeHashFromPlanEvidence(operation.Expected)
-	record, recordOK := quarantineRecord(preimage.state, operation.Target, operation.Skill)
+	record, recordOK := effectiveProvenanceRecords(preimage.state, session.Desired)[projectPlacementKey(operation.Target, operation.Skill)]
 	entry := tx.quarantine.manifest.Entries[index]
 	if entry.OldSourceIdentity != removalSourceIdentity(record, recordOK, oldHash) ||
 		(action == ProjectQuarantineEntryActionRemove &&

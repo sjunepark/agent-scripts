@@ -33,7 +33,7 @@ function assertErrorIncludes(errors, expected) {
   );
 }
 
-test("live registry is the validated version 4 contract published to sjskills", () => {
+test("live registry is the validated version 5 contract published to sjskills", () => {
   const live = liveRegistry();
   const repositorySkillNames = fs
     .readdirSync(path.join(repositoryRoot, "skills"), { withFileTypes: true })
@@ -43,7 +43,7 @@ test("live registry is the validated version 4 contract published to sjskills", 
   assert.deepEqual(validateSkillRegistry(live, { repositorySkillNames }), []);
 });
 
-test("version 4 resolves one fixed global baseline with target exceptions", () => {
+test("version 5 resolves one fixed global baseline with target exceptions", () => {
   const entries = globalSkillEntries(liveRegistry());
 
   assert.deepEqual(
@@ -65,7 +65,7 @@ test("version 4 resolves one fixed global baseline with target exceptions", () =
   assert.ok(entries.every((entry) => entry.manager === "skills-cli" && entry.mode === "copy"));
 });
 
-test("version 4 serializes a defined source for location-free baseline managers", () => {
+test("version 5 serializes a defined source for location-free baseline managers", () => {
   const registry = structuredClone(liveRegistry());
   const name = registry.global.baseline[0];
   registry.sources["location-free"] = { kind: "external" };
@@ -79,14 +79,14 @@ test("version 4 serializes a defined source for location-free baseline managers"
   assert.equal(JSON.parse(JSON.stringify(entry)).source, "");
 });
 
-test("version 4 rejects profile selection", () => {
+test("version 5 rejects profile selection", () => {
   assert.throws(
     () => globalSkillEntries(liveRegistry(), "dev"),
     /one fixed global baseline; profile selection is not supported/
   );
 });
 
-test("version 4 validates desired-set integrity", () => {
+test("version 5 validates desired-set integrity", () => {
   assertErrorIncludes(
     validationErrors((registry) => registry.global.baseline.push("missing-skill")),
     "global.baseline references unknown skill missing-skill"
@@ -101,7 +101,7 @@ test("version 4 validates desired-set integrity", () => {
   );
 });
 
-test("version 4 validates targets and installable remote sources", () => {
+test("version 5 validates targets and installable remote sources", () => {
   assertErrorIncludes(
     validationErrors((registry) => {
       registry.defaults.targets = "xx";
@@ -122,7 +122,7 @@ test("version 4 validates targets and installable remote sources", () => {
   );
 });
 
-test("version 4 rejects unclassified repository skills", () => {
+test("version 5 rejects unclassified repository skills", () => {
   const registry = liveRegistry();
   const errors = validateSkillRegistry(registry, {
     repositorySkillNames: ["brainstorming", "not-classified"]
@@ -161,4 +161,30 @@ test("access profiles remain explicit, composable, and GitHub-only", () => {
   delete registry.profiles["kicpa-private"];
   registry.profiles = Object.fromEntries(Object.entries(registry.profiles).sort(([a],[b]) => a.localeCompare(b)));
   assert.deepEqual(validateSkillRegistry(registry), []);
+});
+
+test("version 5 validates registry-declared former source identities", () => {
+  const setFormer = (former, location) => (registry) => {
+    if (location !== undefined) registry.sources.kicpa.location = location;
+    registry.sources.kicpa.formerIdentities = former;
+  };
+  assert.deepEqual(validationErrors(setFormer(["github:sjunepark/kicpa"])), []);
+  for (const [former, expected, location] of [
+    [[], "must be a non-empty array"],
+    ["github:sjunepark/kicpa", "must be a non-empty array"],
+    [["github:b/kicpa", "github:a/kicpa"], "must be sorted"],
+    [["github:sjunepark/kicpa", "github:sjunepark/kicpa"], "must not repeat"],
+    [["sjunepark/kicpa"], "must be a canonical identity"],
+    [["github:SJunePark/kicpa"], "must be a canonical identity"],
+    [["local:./kicpa"], "must be a canonical identity"],
+    [["github:cpaikr/kicpa"], "must differ from the current identity"],
+    [["github:cpaikr/kasb"], "is the current identity of source kasb"],
+    [["github:sjunepark/kicpa"], "requires a remote location", ""]
+  ]) {
+    assertErrorIncludes(validationErrors(setFormer(former, location)), expected);
+  }
+  assertErrorIncludes(validationErrors((registry) => {
+    registry.sources.kicpa.formerIdentities = ["github:sjunepark/kicpa"];
+    registry.sources.kasb.formerIdentities = ["github:sjunepark/kicpa"];
+  }), "is also claimed by source");
 });

@@ -55,6 +55,9 @@ at a generated `.agents/skills` or `.claude/skills` copy, and do not set
 fail as invalid input; restore the directory or remove the entry. Switching an
 installed skill between a remote and local source blocks as
 `provenance-source-mismatch`: remove the entry and apply, then re-add it.
+A renamed or transferred registry source migrates only through its registry
+`formerIdentities`; never edit `.sjskills/state.json` or managed copies to
+clear a mismatch.
 
 For a direct-only project, omit `profiles` or use `profiles = []`, and include
 at least one `[[direct]]` entry. Create that manifest directly when adoption is

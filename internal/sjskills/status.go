@@ -101,6 +101,12 @@ func summarizeStatus(plan Plan) []AdvisoryFinding {
 			category = AdvisoryMissing
 		case PlanActionUpdate:
 			category = AdvisoryUpdate
+		case PlanActionUnchanged:
+			// Exact bytes still await a provenance rewrite on apply.
+			if op.Reason != string(ProjectStateReasonFormerSourceIdentity) {
+				continue
+			}
+			category = AdvisoryUpdate
 		case PlanActionQuarantine:
 			category = AdvisoryExtra
 		case PlanActionBlocked:
