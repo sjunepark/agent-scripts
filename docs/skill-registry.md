@@ -123,22 +123,30 @@ invoke gh. Skills CLI cannot clone a commit, so public GitHub sources pinned to
 a full commit, including every agent-scripts skill, are fetched anonymously
 with Git and installed through local-source discovery; these selections require
 Git. That fetch disables credential helpers, redirects, and submodules and drops
-inherited `GIT_*`, `GH_*`, askpass, and token variables, while keeping system
-Git configuration such as TLS and proxy settings.
+inherited `GIT_*`, `GH_*`, askpass, and token variables.
 
-File contents do not depend on the host's Git configuration. Every Git
-checkout that sjskills or its Skills CLI subprocess performs (public,
-commit-pinned, and authenticated) forces `core.autocrlf=false`, `core.eol=lf`,
-and disabled `filter.lfs.*` drivers (the same LFS overrides Skills CLI applies
-to its own clones) as command-scope configuration through `GIT_CONFIG_COUNT`.
-Any inherited `GIT_CONFIG_COUNT` entries or `GIT_CONFIG_PARAMETERS` are
-dropped. Installed files therefore equal the committed blobs, except where the
-source's own `.gitattributes` asks for a conversion such as `eol=crlf`, which
-applies identically on every host. Windows, whose Git for Windows system
-configuration sets `core.autocrlf=true`, thus installs the same contents as
-macOS and Linux. Installs made by earlier sjskills releases on a host that
-converted line endings (any Windows host with that default) hold converted
-bytes, so the first plan after upgrading reports those skills as updates once.
+File contents do not depend on the host's Git setup. No Git process that
+sjskills or its Skills CLI subprocess runs (public, commit-pinned, and
+authenticated) reads host Git configuration or attribute files.
+`GIT_CONFIG_NOSYSTEM` and `GIT_ATTR_NOSYSTEM` are set, the global
+configuration and `HOME` point into private staging, and inherited
+`GIT_CONFIG*` and `GIT_ATTR_*` variables are dropped. On top of that,
+`core.autocrlf=false` and `core.eol=lf` are forced through `GIT_CONFIG_COUNT`.
+This needs Git 2.31 or later, and remote materialization refuses older Git
+before fetching.
+
+So no host can add line-ending conversion, attributes such as a
+`core.attributesFile`, or filter drivers (LFS or any other `filter=<name>` a
+source names). Installed files equal the committed blobs, except where the
+source's own `.gitattributes` asks for a built-in conversion such as
+`eol=crlf`, which applies identically on every host. Windows, whose Git for
+Windows system configuration sets `core.autocrlf=true` and an LFS filter, thus
+installs the same contents as macOS and Linux. Network settings in Git
+configuration files (proxies, certificate bundles) do not apply. Supply a proxy
+through `HTTPS_PROXY`, as authenticated fetching already required. Installs
+made by earlier sjskills releases on a host that converted line endings (any
+Windows host with that default) hold converted bytes, so the first plan after
+upgrading reports those skills as updates once.
 The tree hash also records each file's executable bit and symlinks, which
 Windows checkouts do not preserve, so a skill with executable or symlinked
 files still hashes differently on Windows than on macOS and Linux.

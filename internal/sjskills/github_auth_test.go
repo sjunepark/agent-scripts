@@ -126,7 +126,8 @@ func TestAuthenticatedFetchFailureCleanup(t *testing.T) {
 			}
 			if mode == "missing-gh" || mode == "missing-git" || mode == "migration" {
 				for _, call := range runner.calls {
-					if call.command == "git" || call.command == "gh" {
+					// The preflight Git version probe is not an auth process.
+					if (call.command == "git" || call.command == "gh") && !isGitVersionProbe(call.command, call.args) {
 						t.Fatal("preflight invoked auth process")
 					}
 				}

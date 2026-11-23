@@ -2,6 +2,7 @@ package sjskills
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,19 +27,28 @@ func assertCanonicalCheckoutConfig(t *testing.T, env []string) {
 			t.Fatalf("command config %d = %s=%s, want %s=%s", index, key, value, entry[0], entry[1])
 		}
 	}
+	if envValue(env, "GIT_CONFIG_NOSYSTEM") != "1" || envValue(env, "GIT_ATTR_NOSYSTEM") != "1" {
+		t.Fatalf("host system configuration or attributes are readable: %q", env)
+	}
+	home := envValue(env, "HOME")
+	if global := envValue(env, "GIT_CONFIG_GLOBAL"); home == "" || global != filepath.Join(home, ".gitconfig") {
+		t.Fatalf("GIT_CONFIG_GLOBAL = %q, want the staging home's", global)
+	}
 	for _, item := range env {
 		key, _, _ := strings.Cut(item, "=")
-		if strings.EqualFold(key, "GIT_CONFIG_PARAMETERS") {
+		upper := strings.ToUpper(key)
+		if upper == "GIT_CONFIG_PARAMETERS" || upper == "GIT_CONFIG" || upper == "GIT_CONFIG_SYSTEM" || strings.HasPrefix(upper, "GIT_ATTR_") && upper != "GIT_ATTR_NOSYSTEM" {
 			t.Fatalf("inherited %s reached the process", key)
 		}
 	}
 }
 
-func TestIsolatedEnvironmentReplacesInheritedCommandConfig(t *testing.T) {
+func TestIsolatedEnvironmentReplacesInheritedGitConfiguration(t *testing.T) {
 	for _, platform := range []string{"darwin", "windows"} {
 		env := isolatedEnvironment([]string{
 			"PATH=/bin", "git_config_count=9", "GIT_CONFIG_KEY_8=core.autocrlf", "GIT_CONFIG_VALUE_8=true",
-			"GIT_CONFIG_PARAMETERS='core.eol'='crlf'", "GIT_ASKPASS=/askpass",
+			"GIT_CONFIG_PARAMETERS='core.eol'='crlf'", "GIT_CONFIG_GLOBAL=/host/.gitconfig", "GIT_CONFIG_SYSTEM=/host/gitconfig",
+			"GIT_CONFIG=/host/config", "GIT_CONFIG_NOSYSTEM=0", "GIT_ATTR_SOURCE=HEAD", "GIT_ASKPASS=/askpass",
 		}, t.TempDir(), platform)
 		assertCanonicalCheckoutConfig(t, env)
 		for _, name := range []string{"git_config_count", "GIT_CONFIG_KEY_8", "GIT_CONFIG_VALUE_8"} {
@@ -48,6 +58,38 @@ func TestIsolatedEnvironmentReplacesInheritedCommandConfig(t *testing.T) {
 		}
 		if envValue(env, "GIT_ASKPASS") != "/askpass" || envValue(env, "PATH") != "/bin" {
 			t.Fatalf("%s: ordinary inherited values were dropped: %q", platform, env)
+		}
+	}
+}
+
+func TestRequireCanonicalCheckoutGit(t *testing.T) {
+	for output, ok := range map[string]bool{
+		"git version 2.45.1.windows.1\n":       true,
+		"git version 2.39.5 (Apple Git-154)\n": true,
+		"git version 2.31.0\n":                 true,
+		"git version 3.0.0\n":                  true,
+		"git version 2.30.9\n":                 false,
+		"git version 1.9.5\n":                  false,
+		"hub version 2.45.0\n":                 false,
+		"":                                     false,
+	} {
+		if err := requireCanonicalCheckoutGit([]byte(output)); (err == nil) != ok {
+			t.Errorf("requireCanonicalCheckoutGit(%q) = %v, want ok=%t", output, err, ok)
+		}
+	}
+}
+
+func TestMaterializeRefusesGitWithoutCommandScopeConfig(t *testing.T) {
+	runner := defaultMaterializeRunner()
+	runner.gitVersion = "git version 2.30.2\n"
+	m, _ := testMaterializer(t, runner, MaterializerLimits{})
+	plan, err := m.Materialize(context.Background(), []DesiredSkill{desiredMaterializeSkill("demo", "example/catalog")})
+	if err == nil || plan != nil || !strings.Contains(err.Error(), "requires Git 2.31 or later") {
+		t.Fatalf("plan %v error %v, want an old-Git refusal", plan, err)
+	}
+	for _, call := range runner.calls {
+		if len(call.args) > 1 && call.args[1] == "add" {
+			t.Fatal("Skills CLI ran with Git that ignores the checkout pin")
 		}
 	}
 }
@@ -109,17 +151,19 @@ func TestCanonicalCheckoutBytesIgnoreHostConfig(t *testing.T) {
 
 	// The source commits LF blobs without any filter. Its .gitattributes marks
 	// one path as text (subject to core.eol), one as eol=crlf (a source
-	// decision every host must honor), and one as LFS-filtered.
+	// decision every host must honor), one as LFS-filtered, and one with a
+	// custom filter that only some hosts define a driver for.
 	source := filepath.Join(scratch, "source")
 	neutral := append(append([]string(nil), base...), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+empty,
 		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.invalid", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.invalid")
 	files := map[string]string{
-		".gitattributes":        "skills/demo/text.md text\nskills/demo/crlf.md text eol=crlf\nskills/demo/blob.bin filter=lfs\n",
-		"skills/demo/SKILL.md":  "---\nname: demo\n---\nline one\nline two\n",
-		"skills/demo/text.md":   "text one\ntext two\n",
-		"skills/demo/crlf.md":   "crlf one\ncrlf two\n",
-		"skills/demo/blob.bin":  "pointer-like content\n",
-		"skills/demo/data.json": "{\n  \"a\": 1\n}\n",
+		".gitattributes":         "skills/demo/text.md text\nskills/demo/crlf.md text eol=crlf\nskills/demo/blob.bin filter=lfs\nskills/demo/custom.txt filter=custom\n",
+		"skills/demo/SKILL.md":   "---\nname: demo\n---\nline one\nline two\n",
+		"skills/demo/text.md":    "text one\ntext two\n",
+		"skills/demo/crlf.md":    "crlf one\ncrlf two\n",
+		"skills/demo/blob.bin":   "pointer-like content\n",
+		"skills/demo/custom.txt": "custom content\n",
+		"skills/demo/data.json":  "{\n  \"a\": 1\n}\n",
 	}
 	for name, content := range files {
 		path := filepath.Join(source, filepath.FromSlash(name))
@@ -145,6 +189,14 @@ func TestCanonicalCheckoutBytesIgnoreHostConfig(t *testing.T) {
 
 	// Each hostile host rewrites a named file when the canonical environment is
 	// absent; the control below proves the fixture still models that host.
+	hostAttributes := filepath.Join(scratch, "host.gitattributes")
+	if err := os.WriteFile(hostAttributes, []byte("*.md text eol=crlf\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	globalConfig := filepath.Join(scratch, "global.gitconfig")
+	if err := os.WriteFile(globalConfig, []byte("[core]\n\tautocrlf = true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	hosts := []struct {
 		label, config, rewritten string
 		inherited                []string
@@ -152,6 +204,9 @@ func TestCanonicalCheckoutBytesIgnoreHostConfig(t *testing.T) {
 		{label: "windows-default", config: "[core]\n\tautocrlf = true\n", rewritten: "SKILL.md"},
 		{label: "eol-crlf", config: "[core]\n\teol = crlf\n", rewritten: "text.md"},
 		{label: "lfs-filter", config: "[filter \"lfs\"]\n\tsmudge = git hash-object --stdin\n\trequired = true\n", rewritten: "blob.bin"},
+		{label: "custom-filter", config: "[filter \"custom\"]\n\tsmudge = git hash-object --stdin\n", rewritten: "custom.txt"},
+		{label: "attributes-file", config: "[core]\n\tattributesFile = " + filepath.ToSlash(hostAttributes) + "\n", rewritten: "SKILL.md"},
+		{label: "global-config", rewritten: "SKILL.md", inherited: []string{"GIT_CONFIG_GLOBAL=" + globalConfig}},
 		{label: "caller-parameters", rewritten: "SKILL.md", inherited: []string{"GIT_CONFIG_PARAMETERS='core.autocrlf'='true'"}},
 		{label: "unset"},
 	}

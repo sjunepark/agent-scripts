@@ -16,14 +16,12 @@ const token = "sjskills-sentinel-credential-never-log"
 func fail() { os.Exit(7) }
 
 // canonicalCommandConfig reports whether the only command-scope Git
-// configuration is sjskills' pinned checkout configuration; anything inherited
-// from the caller (such as an untrusted credential helper) must be dropped.
+// configuration is sjskills' pinned checkout configuration, with host config
+// and attribute files excluded; anything inherited from the caller (such as
+// an untrusted credential helper) must be dropped.
 func canonicalCommandConfig() bool {
-	want := [][2]string{
-		{"core.autocrlf", "false"}, {"core.eol", "lf"}, {"filter.lfs.required", "false"},
-		{"filter.lfs.smudge", ""}, {"filter.lfs.clean", ""}, {"filter.lfs.process", ""},
-	}
-	if os.Getenv("GIT_CONFIG_PARAMETERS") != "" || os.Getenv("GIT_CONFIG_COUNT") != fmt.Sprint(len(want)) {
+	want := [][2]string{{"core.autocrlf", "false"}, {"core.eol", "lf"}}
+	if os.Getenv("GIT_CONFIG_NOSYSTEM") != "1" || os.Getenv("GIT_ATTR_NOSYSTEM") != "1" || os.Getenv("GIT_CONFIG_PARAMETERS") != "" || os.Getenv("GIT_CONFIG_COUNT") != fmt.Sprint(len(want)) {
 		return false
 	}
 	for i, entry := range want {
@@ -37,6 +35,12 @@ func canonicalCommandConfig() bool {
 
 func main() {
 	name := strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
+	if name == "git" && len(os.Args) == 2 && os.Args[1] == "version" {
+		// sjskills preflight requires Git 2.31 for GIT_CONFIG_COUNT. The probe
+		// is not a fetch or auth process, so it is not logged.
+		fmt.Println("git version 2.45.1")
+		return
+	}
 	if os.Getenv("SJSKILLS_FAKE_GITHUB_LOG") != "" {
 		f, e := os.OpenFile(os.Getenv("SJSKILLS_FAKE_GITHUB_LOG"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if e != nil {
