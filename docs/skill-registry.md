@@ -280,8 +280,11 @@ and recorded time when the bytes are unchanged; a plan of only these rewrites
 is still applied, and status reports them as update findings. Quarantine and
 the recovery journal describe migrated records by the current identity, and the
 journal lists each rewrite so crash recovery can verify the state transition.
-Restored backups therefore return under the current identity. Removed
-placements and direct declarations never migrate.
+Backups quarantined after the migration therefore restore under the current
+identity. A same-source update backup quarantined before it still names the
+former identity, so its restore fails closed once the migration commits; its
+bytes stay in the quarantine run for manual recovery. Removed placements and
+direct declarations never migrate.
 
 ## Automatic status evidence
 

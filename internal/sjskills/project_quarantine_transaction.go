@@ -343,15 +343,6 @@ func (tx *applyTransaction) quarantineEntryIndex(target Target, skill string) in
 	return -1
 }
 
-func quarantineRecord(state ProvenanceState, target Target, skill string) (ProvenanceRecord, bool) {
-	for _, record := range state.Records {
-		if record.Target == target && record.Skill == skill {
-			return record, true
-		}
-	}
-	return ProvenanceRecord{}, false
-}
-
 func (tx *applyTransaction) setQuarantineEntryStatus(target Target, skill string, status ProjectQuarantineEntryStatus) error {
 	index := tx.quarantineEntryIndex(target, skill)
 	if index < 0 {

@@ -109,8 +109,10 @@ function remoteSourceIdentity(location) {
     if (parts.length < 2) return null;
     return `github:${parts[0].toLowerCase()}/${parts[1].toLowerCase().replace(/\.git$/, "")}`;
   }
+  // URL() drops a default :443; sjskills keeps any explicit port.
+  const authority = location.slice("https://".length).split(/[/?#]/)[0].toLowerCase();
   const path = parts.join("/").replace(/\.git$/, "");
-  return `https://${parsed.host.toLowerCase()}${path ? `/${path}` : ""}`;
+  return `https://${authority}${path ? `/${path}` : ""}`;
 }
 
 const formerIdentityPattern = /^github:[a-z0-9_.-]+\/[a-z0-9_.-]+(?:\/[a-z0-9_.-]+)*$/;

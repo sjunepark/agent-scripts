@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -327,7 +328,8 @@ func TestJournalSourceMigrationsMustDescribeTheStateTransition(t *testing.T) {
 		t.Fatal("valid migration journal rejected")
 	}
 	for name, mutate := range map[string]func(*projectTransactionJournal){
-		"undeclared": func(j *projectTransactionJournal) { j.SourceMigrations = nil },
+		"undeclared": func(j *projectTransactionJournal) { j.SourceMigrations = j.SourceMigrations[:1] },
+		"none":       func(j *projectTransactionJournal) { j.SourceMigrations = nil },
 		"empty":      func(j *projectTransactionJournal) { j.SourceMigrations = []sourceIdentityMigration{} },
 		"wrong-old":  func(j *projectTransactionJournal) { j.SourceMigrations[0].OldSourceIdentity = "github:other/demo" },
 		"unchanged":  func(j *projectTransactionJournal) { j.SourceMigrations[0].NewSourceIdentity = formerFixtureIdentity },
@@ -343,13 +345,17 @@ func TestJournalSourceMigrationsMustDescribeTheStateTransition(t *testing.T) {
 			changed.TreeHash = classificationHash('2').Digest
 			j.CandidateState = encode(changed, otherMigrated)
 		},
-		"restore": func(j *projectTransactionJournal) { j.Kind = projectTransactionKindRestore },
 	} {
 		journal := valid()
 		mutate(&journal)
 		if validProjectTransactionJournal(journal) {
 			t.Errorf("%s: invalid migration journal accepted", name)
 		}
+	}
+	restore := valid()
+	restore.Kind = projectTransactionKindRestore
+	if validJournalSourceMigrations(restore) {
+		t.Error("restore journal accepted source migrations")
 	}
 }
 
@@ -433,7 +439,8 @@ func TestApplyGlobalChangesMigratesFormerSourceIdentity(t *testing.T) {
 	registry.Sources["fixture"] = Source{Kind: SourceExternal, Location: "renamed/skills", FormerIdentities: []string{"github:example/skills"}}
 	replanned := replanGlobalApplyFixture(t, session, registry)
 	assertOperationReasons(t, replanned.Plan, PlanActionUnchanged, ProjectStateReasonFormerSourceIdentity, 2)
-	result, err := ApplyGlobalChanges(context.Background(), replanned, ApplyDeps{Now: fixedApplyTime})
+	later := func() time.Time { return fixedApplyTime().Add(time.Hour) }
+	result, err := ApplyGlobalChanges(context.Background(), replanned, ApplyDeps{Now: later})
 	if err != nil || len(result.SourceMigrated) != 2 || len(result.Installed)+len(result.Updated) != 0 || result.Migrated {
 		t.Fatalf("result = %#v err=%v", result, err)
 	}
