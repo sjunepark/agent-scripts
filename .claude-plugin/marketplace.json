@@ -8,7 +8,7 @@
     {
       "name": "sjskills-maintenance",
       "source": "./plugins/sjskills-maintenance",
-      "description": "Check sjskills CLI and configured skill status at startup without assigning agent work."
+      "description": "Check sjskills CLI and configured skill status at startup and tell the agent about drift so it can offer a sync."
     }
   ]
 }

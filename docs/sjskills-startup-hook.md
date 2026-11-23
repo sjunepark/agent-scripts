@@ -2,8 +2,10 @@
 
 The source plugin `sjskills-maintenance@personal` runs checks directly on startup
 and resume. Healthy results produce no conversation output. Actionable findings
-or incomplete verification produce one short UI diagnostic with a manual next
-step. The hook supplies no agent instructions or maintenance authority.
+or incomplete verification produce one short UI diagnostic and the same facts
+as bounded agent context, so the agent's first reply can name the drift and
+offer a sync. The hook grants no maintenance authority: a sync or update runs
+only after the user agrees, under the [sjskills workflow](../skills/sjskills/SKILL.md).
 The same plugin directory ships for Codex and [Claude Code](#claude-code).
 
 The [delivery plan](../plans/sjskills-startup-check.md) records validation and
@@ -34,9 +36,36 @@ findings, missing scopes, disabled inspection, and development versions do not
 establish health. Known findings remain visible when another check fails.
 Fresh evidence that no stable release exists is healthy when the running CLI
 version is stable and the result contains no available-release metadata.
-Diagnostics use fixed text and omit skill names, private sources, credentials,
-raw subprocess output, and remote text. Repeated unresolved findings remain
+Diagnostics use fixed text and omit private sources, credentials, raw
+subprocess output, and remote text. Repeated unresolved findings remain
 visible on each applicable invocation.
+
+## What the user and agent see
+
+Each actionable scope is reported as `<scope> skills differ (<category>
+<names>; …)`, in the order missing, update, extra, conflict, with its review
+command (`sjskills plan` or `sjskills plan --global`) fixed by scope rather than
+copied from CLI output. At most three names appear per category, followed by a
+remaining count. Only valid Agent Skills names (lowercase letters, digits, and
+inner hyphens, at most 64 characters) are echoed; any other name is counted but
+never shown, so CLI output cannot place arbitrary text in front of the agent.
+For example:
+
+```text
+sjskills: project skills differ (missing dart-dsd; update context7-cli). Review with sjskills plan.
+```
+
+For a validated `SessionStart` event, the same facts go to the agent through
+`hookSpecificOutput.additionalContext`, which both Claude Code and Codex accept.
+The context lists the findings, says when verification did not finish (so
+skill state is unconfirmed and the agent should suggest `sjskills status`), and
+ends with one fixed sentence: mention the results and offer a sync or update,
+changing nothing unless the user agrees. It names no mutating command. Its
+length stays under 2,500 characters even for the largest possible drift. Output
+for unparseable, oversized, or late hook input stays user-only, because the
+event it would be attached to is unknown. A validated event whose session
+directory is missing or relative is an incomplete check and reaches the agent.
+An unsupported release target also gets only the skip message.
 
 ## Timing and process ownership
 
@@ -101,7 +130,7 @@ respect custom `CODEX_HOME`; source validation is not host activation.
 Inspect CLI/skill state with `sjskills status`. CLI updates follow the
 [release guide](sjskills-releases.md); explicitly requested reconciliation follows
 the canonical [sjskills workflow](../skills/sjskills/SKILL.md). Enabling the
-startup check grants neither operation. Disable its hook through `/hooks` or
+startup check grants neither operation; the agent's offer needs the user's yes. Disable its hook through `/hooks` or
 remove the plugin with `codex plugin remove sjskills-maintenance@personal`.
 
 ## Claude Code
