@@ -58,6 +58,7 @@
         "kasb",
         "kisnet-ytm",
         "krx-cli",
+        "todoist-cli",
         "windows-cleanup",
         "xldif"
       ]
@@ -138,6 +139,10 @@
     },
     "skill-cleaner-manual": {
       "kind": "external"
+    },
+    "todoist-cli": {
+      "kind": "external",
+      "location": "https://github.com/todoist/todoist-cli/tree/main/skills/todoist-cli"
     },
     "xldif": {
       "kind": "external",
@@ -429,6 +434,12 @@
     {
       "name": "tf-basic-data-prep",
       "source": "kicpa",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "todoist-cli",
+      "source": "todoist-cli",
       "manager": "skills-cli",
       "mode": "copy"
     },
