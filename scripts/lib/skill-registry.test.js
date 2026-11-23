@@ -188,3 +188,28 @@ test("version 5 validates registry-declared former source identities", () => {
     registry.sources.kasb.formerIdentities = ["github:sjunepark/kicpa"];
   }), "is also claimed by source");
 });
+
+test("version 5 former identities compare identities exactly as sjskills derives them", () => {
+  // Go keeps an uppercase .GIT suffix in shorthand, so these two sources have
+  // different current identities and cannot share a former identity.
+  assertErrorIncludes(validationErrors((registry) => {
+    registry.sources.kicpa.location = "Acme/Tools.GIT";
+    registry.sources.kicpa.formerIdentities = ["github:old/tools"];
+    registry.sources.kasb.location = "acme/tools.git";
+    registry.sources.kasb.formerIdentities = ["github:old/tools"];
+  }), "is also claimed by source");
+  // Explicit ports are kept but normalized to a plain decimal number.
+  assertErrorIncludes(validationErrors((registry) => {
+    registry.sources.kicpa.location = "https://example.com:0443/repo";
+    registry.sources.kicpa.formerIdentities = ["https://example.com:0443/old"];
+  }), "must be a canonical identity");
+  // (kicpa-private's GitHub-only access rule still rejects this host.)
+  assert.deepEqual(validationErrors((registry) => {
+    registry.sources.kicpa.location = "https://example.com:0443/repo";
+    registry.sources.kicpa.formerIdentities = ["https://example.com:443/old"];
+  }).filter((error) => error.includes("formerIdentities")), []);
+  // A malformed path escape yields validation results instead of throwing.
+  assert.doesNotThrow(() => validationErrors((registry) => {
+    registry.sources.kicpa.location = "https://example.com/%";
+  }));
+});

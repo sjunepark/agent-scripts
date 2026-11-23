@@ -100,19 +100,29 @@ function validateTargets(label, targets, errors) {
 function remoteSourceIdentity(location) {
   if (typeof location !== "string" || skillsCliSourceProblem(location)) return null;
   if (!location.includes("://")) {
-    const [owner, repository, ...rest] = location.toLowerCase().split("/");
-    return `github:${[owner, repository.replace(/\.git$/, ""), ...rest].join("/")}`;
+    // Shorthand strips a case-sensitive .git before lowercasing, as sjskills does.
+    const [owner, repository, ...rest] = location.split("/");
+    return `github:${[owner, repository.replace(/\.git$/, ""), ...rest].join("/").toLowerCase()}`;
   }
   const parsed = new URL(location);
-  const parts = decodeURIComponent(parsed.pathname).split("/").filter(Boolean);
-  if (parsed.hostname.toLowerCase() === "github.com" && (parsed.port === "" || parsed.port === "443")) {
+  let parts;
+  try {
+    parts = decodeURIComponent(parsed.pathname).split("/").filter(Boolean);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === "github.com" && parsed.port === "") {
     if (parts.length < 2) return null;
     return `github:${parts[0].toLowerCase()}/${parts[1].toLowerCase().replace(/\.git$/, "")}`;
   }
-  // URL() drops a default :443; sjskills keeps any explicit port.
-  const authority = location.slice("https://".length).split(/[/?#]/)[0].toLowerCase();
+  // URL() drops a default :443; sjskills keeps any explicit port, written as
+  // a plain decimal number.
+  const authority = location.slice("https://".length).split(/[/?#]/)[0];
+  const explicitPort = /:(\d+)$/.exec(authority);
+  const hostPort = explicitPort ? `${host}:${Number(explicitPort[1])}` : host;
   const path = parts.join("/").replace(/\.git$/, "");
-  return `https://${authority}${path ? `/${path}` : ""}`;
+  return `https://${hostPort}${path ? `/${path}` : ""}`;
 }
 
 const formerIdentityPattern = /^github:[a-z0-9_.-]+\/[a-z0-9_.-]+(?:\/[a-z0-9_.-]+)*$/;
