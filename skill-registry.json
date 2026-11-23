@@ -119,7 +119,7 @@
     },
     "kicpa": {
       "kind": "external",
-      "location": "https://github.com/sjunepark/kicpa/tree/main/skills"
+      "location": "https://github.com/cpaikr/kicpa/tree/main/skills"
     },
     "kisnet-ytm": {
       "kind": "external",
