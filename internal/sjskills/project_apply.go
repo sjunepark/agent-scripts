@@ -406,9 +406,9 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 		if !sameReviewedPlan(freshPlan, verifiedPlan, session.global != nil) {
 			return finishApplySetup(&tx, verifiedPlan, applyConflict("project state changed during apply verification"))
 		}
-		upgraded, upgradeErr := tx.persistPlannedTreeHashUpgrade(verifiedPlan)
+		upgrade, upgradeErr := tx.persistPlannedTreeHashUpgrade(session, verifiedPlan)
 		result, err := finishApplySetup(&tx, verifiedPlan, upgradeErr)
-		result.TreeHashesUpgraded = upgraded
+		result.TreeHashesUpgraded, result.Migrated = upgrade.upgraded, upgrade.formatMigrated
 		return result, err
 	}
 	if err := tx.syncCreatedDirectoryParents(createdDerived); err != nil {
@@ -421,17 +421,20 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 	tx.ancestors = ancestors
 	// Persist upgraded records first, so the transaction below, its journal,
 	// and any quarantine manifest start from the provenance the plan used.
-	upgraded, err := tx.persistPlannedTreeHashUpgrade(freshPlan)
-	if err != nil {
-		return finishApplySetup(&tx, freshPlan, err)
+	// A legacy version 1 global format migration that lands here is reported
+	// even if the transaction below fails.
+	var preimage *applyStatePreimage
+	upgrade, err := tx.persistPlannedTreeHashUpgrade(session, freshPlan)
+	if err == nil {
+		preimage, err = captureTransactionStatePreimage(session.Layout, session.Desired.Scope)
 	}
-	preimage, err := captureTransactionStatePreimage(session.Layout, session.Desired.Scope)
 	if err != nil {
 		result, setupErr := finishApplySetup(&tx, freshPlan, err)
-		result.TreeHashesUpgraded = upgraded
+		result.TreeHashesUpgraded, result.Migrated = upgrade.upgraded, upgrade.formatMigrated
 		return result, setupErr
 	}
-	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}, Quarantined: []AppliedPlacement{}, TreeHashesUpgraded: upgraded}
+	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}, Quarantined: []AppliedPlacement{},
+		TreeHashesUpgraded: upgrade.upgraded, Migrated: upgrade.formatMigrated}
 	var primary error
 	quarantineOperations := operationsWithActions(mutationOperations, PlanActionUpdate, PlanActionQuarantine)
 	if len(quarantineOperations) > 0 {

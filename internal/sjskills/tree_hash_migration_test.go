@@ -38,7 +38,18 @@ func writeApplyStateFixture(t *testing.T, session *ProjectApplySession, state Pr
 
 func TestLegacyTreeHashProvenanceIsVerifiedAndPersistedOnApply(t *testing.T) {
 	targets := []Target{TargetAgents, TargetClaude}
-	session, _, _, hash := newApplyFixture(t, targets)
+	session, _, skill, _ := newApplyFixture(t, targets)
+	// An executable script is the case tree-sha256-v2 hashed differently by
+	// host; on macOS and Linux its legacy record carries "executable".
+	script := filepath.Join(session.Materialized.snapshots[skill.Name].Path, "run.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho demo\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(script, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hash := rehashApplySnapshot(t, session, skill.Name)
+	makeSessionPlanCurrent(t, session)
 	applyFixture(t, session)
 	legacyState := rewriteStateAsLegacy(t, session)
 
@@ -162,6 +173,127 @@ func TestLegacyTreeHashProvenanceUpdatesThroughTheTransaction(t *testing.T) {
 	if len(state.Records) != 1 || state.Records[0].TreeHashAlgorithm != TreeHashAlgorithmSHA256V3 ||
 		state.Records[0].TreeHash != session.Expected[skill.Name].Digest {
 		t.Fatalf("updated provenance = %#v", state.Records)
+	}
+}
+
+// TestLegacyTreeHashProvenanceRemovesWithVerifiedSource quarantines a skill
+// that is no longer desired while its record is still tree-sha256-v2.
+func TestLegacyTreeHashProvenanceRemovesWithVerifiedSource(t *testing.T) {
+	session, _, _, oldHash := removedApplyFixture(t, []Target{TargetAgents})
+	legacyState := rewriteStateAsLegacy(t, session)
+	makeSessionPlanCurrent(t, session)
+	if len(session.Plan.Operations) != 1 || session.Plan.Operations[0].Action != PlanActionQuarantine ||
+		session.Plan.Operations[0].Source != legacyState.Records[0].SourceIdentity {
+		t.Fatalf("legacy removal plan = %#v", session.Plan.Operations)
+	}
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.TreeHashesUpgraded || len(result.Quarantined) != 1 {
+		t.Fatalf("result = %#v", result)
+	}
+	entry := readUpdateManifest(t, session).Entries[0]
+	if entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V3 || entry.OldTreeHash != oldHash.Digest ||
+		entry.OldSourceIdentity != legacyState.Records[0].SourceIdentity {
+		t.Fatalf("quarantine entry = %#v", entry)
+	}
+	if state := readApplyState(t, session); len(state.Records) != 0 {
+		t.Fatalf("removed provenance survived: %#v", state.Records)
+	}
+}
+
+// TestRecoveryAcceptsLegacyTreeHashJournal recovers an update that a release
+// before tree-sha256-v3 interrupted after replacing the placement: its state,
+// journal, and quarantine manifest all carry tree-sha256-v2 digests.
+func TestRecoveryAcceptsLegacyTreeHashJournal(t *testing.T) {
+	session, _, skill, oldHash := updateApplyFixture(t, []Target{TargetAgents})
+	destination := filepath.Join(session.Layout.AgentsSkillsPath, skill.Name)
+	snapshot := session.Materialized.snapshots[skill.Name].Path
+	oldLegacy, newLegacy := legacyTreeHash(t, destination), legacyTreeHash(t, snapshot)
+	rewriteStateAsLegacy(t, session)
+	preimage, err := captureApplyStatePreimage(session.Layout)
+	if err != nil || !preimage.exists {
+		t.Fatalf("capture preimage=%#v err=%v", preimage, err)
+	}
+	record := preimage.state.Records[0]
+	recordedAt := fixedApplyTime()
+	candidate := preimage.state
+	candidate.Records = []ProvenanceRecord{record}
+	candidate.Records[0].TreeHash, candidate.Records[0].RecordedAt = newLegacy.Digest, recordedAt
+	candidateData, err := marshalApplyState(candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal := projectTransactionJournal{
+		Version: projectTransactionJournalVersion, ID: testQuarantineID, Kind: projectTransactionKindApply,
+		QuarantineID: testQuarantineID, CandidateState: candidateData,
+		PreState: projectJournalState{Exists: true, Mode: uint32(preimage.mode.Perm()), Data: preimage.data},
+		Entries: []projectJournalEntry{{
+			Action: PlanActionUpdate, Skill: skill.Name, Target: TargetAgents,
+			ManagedParentExisted: true, ManagedRootExisted: true,
+			OldSourceIdentity: record.SourceIdentity, NewSourceIdentity: record.SourceIdentity,
+			TreeHashAlgorithm: TreeHashAlgorithmSHA256V2, OldTreeHash: oldLegacy.Digest, NewTreeHash: newLegacy.Digest,
+		}},
+	}
+	if !validProjectTransactionJournal(journal) {
+		t.Fatalf("legacy journal fixture is invalid: %#v", journal)
+	}
+	journalData, err := marshalProjectTransactionJournal(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarantined := filepath.Join(session.Layout.QuarantinePath, testQuarantineID, filepath.FromSlash(projectQuarantinedPlacement(TargetAgents, skill.Name)))
+	if err := os.MkdirAll(filepath.Dir(quarantined), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(destination, quarantined); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(destination, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyApplyTree(snapshot, destination, func(file *os.File) error { return file.Sync() }); err != nil {
+		t.Fatal(err)
+	}
+	manifest := ProjectQuarantineManifest{
+		Version: ProjectQuarantineManifestVersion, ID: testQuarantineID, CreatedAt: recordedAt,
+		Status: ProjectQuarantineActive,
+		Entries: []ProjectQuarantineManifestEntry{{
+			Action: ProjectQuarantineEntryActionUpdate, Skill: skill.Name, Target: TargetAgents,
+			OriginalPlacement:    projectOriginalPlacement(TargetAgents, skill.Name),
+			QuarantinedPlacement: projectQuarantinedPlacement(TargetAgents, skill.Name),
+			OldSourceIdentity:    record.SourceIdentity, NewSourceIdentity: record.SourceIdentity,
+			TreeHashAlgorithm: TreeHashAlgorithmSHA256V2, OldTreeHash: oldLegacy.Digest, NewTreeHash: newLegacy.Digest,
+			Status: ProjectQuarantineEntryReplaced,
+		}},
+	}
+	manifestData, err := marshalProjectQuarantineManifest(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, data := range map[string][]byte{
+		filepath.Join(session.Layout.QuarantinePath, testQuarantineID, applyManifestName): manifestData,
+		projectTransactionJournalPath(session.Layout):                                     journalData,
+		session.Layout.ReconcilerStatePath:                                                candidateData,
+	} {
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := ApplyProjectChanges(context.Background(), session, updateTestDeps()); err == nil || err.Error() != "project apply unavailable: interrupted project transaction was recovered; rerun apply" {
+		t.Fatalf("legacy recovery error = %v", err)
+	}
+	if got := hashSkillAt(t, destination); got != oldHash {
+		t.Fatalf("recovered hash = %#v, want %#v", got, oldHash)
+	}
+	if state := readApplyState(t, session); len(state.Records) != 1 || state.Records[0] != record {
+		t.Fatalf("recovered provenance = %#v, want %#v", state.Records, record)
+	}
+	makeSessionPlanCurrent(t, session)
+	if !planHasEvidence(session.Plan, treeHashMigrationEvidenceKind) || session.Plan.Operations[0].Reason != string(ProjectStateReasonVerifiedUpdate) {
+		t.Fatalf("post-recovery plan = %#v", session.Plan)
 	}
 }
 

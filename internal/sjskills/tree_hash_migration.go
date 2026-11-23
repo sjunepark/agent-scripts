@@ -1,6 +1,9 @@
 package sjskills
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // Provenance written before tree-sha256-v3 records tree-sha256-v2 digests,
 // which hash each file's executable bit. A v2 record still proves ownership of
@@ -46,11 +49,54 @@ func upgradeLegacyTreeHashRecords(records []ProvenanceRecord, roots []ProjectSki
 
 // persistPlannedTreeHashUpgrade persists the upgrade only when the verified
 // plan reported it, so apply never writes state its plan did not show.
-func (tx *applyTransaction) persistPlannedTreeHashUpgrade(plan Plan) (bool, error) {
+func (tx *applyTransaction) persistPlannedTreeHashUpgrade(session *ProjectApplySession, plan Plan) (treeHashUpgradeResult, error) {
 	if !planHasEvidence(plan, treeHashMigrationEvidenceKind) {
-		return false, nil
+		return treeHashUpgradeResult{}, nil
 	}
-	return tx.persistTreeHashUpgrade()
+	result, err := tx.persistTreeHashUpgrade()
+	if err != nil {
+		return result, err
+	}
+	// The transaction must start from exactly the provenance the plan
+	// classified with. A record that verified at planning but could not be
+	// rewritten now (a changed tree, a transient read failure) would stay
+	// tree-sha256-v2 on disk, and an update would then quarantine its old copy
+	// without the verified source. Re-plan from the persisted state instead:
+	// it must need no further rewrite and match the verified plan.
+	refreshed, err := refreshApplyPlan(session)
+	if err != nil {
+		return result, err
+	}
+	derived := []string{treeHashMigrationEvidenceKind}
+	if result.formatMigrated {
+		derived = append(derived, "provenance-migration")
+	}
+	if planHasEvidence(refreshed, treeHashMigrationEvidenceKind) ||
+		!sameReviewedPlan(withoutEvidence(plan, derived...), refreshed, session.global != nil) {
+		return result, applyConflict("provenance changed during tree hash upgrade")
+	}
+	return result, nil
+}
+
+// treeHashUpgradeResult reports what persistTreeHashUpgrade committed.
+type treeHashUpgradeResult struct {
+	// upgraded is true once the rewritten state landed, even when its
+	// replacement could not be confirmed.
+	upgraded bool
+	// formatMigrated is true when the rewrite also moved legacy version 1
+	// global state to the current format.
+	formatMigrated bool
+}
+
+func withoutEvidence(plan Plan, kinds ...string) Plan {
+	result := clonePlanForApply(plan)
+	result.Evidence = make([]Evidence, 0, len(plan.Evidence))
+	for _, item := range plan.Evidence {
+		if !slices.Contains(kinds, item.Kind) {
+			result.Evidence = append(result.Evidence, item)
+		}
+	}
+	return result
 }
 
 func hasLegacyTreeHashRecord(records []ProvenanceRecord) bool {
@@ -91,40 +137,42 @@ func treeHashMigrationEvidence(count int) Evidence {
 // journal. Legacy version 1 global state decodes into the current format, so
 // writing it here also performs that format migration; the reviewed
 // state-only migration transaction that follows then rewrites equal records.
-func (tx *applyTransaction) persistTreeHashUpgrade() (bool, error) {
+func (tx *applyTransaction) persistTreeHashUpgrade() (treeHashUpgradeResult, error) {
 	preimage, err := tx.captureStatePreimage()
 	if err != nil {
-		return false, err
+		return treeHashUpgradeResult{}, err
 	}
 	if !preimage.exists || !hasLegacyTreeHashRecord(preimage.state.Records) {
-		return false, nil
+		return treeHashUpgradeResult{}, nil
 	}
 	var roots []ProjectSkillsRootInventory
 	if tx.global != nil {
 		inventory, inspectErr := InspectGlobal(tx.global.layout)
 		if inspectErr != nil {
-			return false, applyConflict("global boundary changed after planning")
+			return treeHashUpgradeResult{}, applyConflict("global boundary changed after planning")
 		}
 		roots = inventory.Roots
 	} else {
 		inventory, inspectErr := InspectProject(tx.layout)
 		if inspectErr != nil {
-			return false, applyConflict("project boundary changed after planning")
+			return treeHashUpgradeResult{}, applyConflict("project boundary changed after planning")
 		}
 		roots = inventory.Roots
 	}
 	records, upgraded := upgradeLegacyTreeHashRecords(preimage.state.Records, roots)
 	if upgraded == 0 {
-		return false, nil
+		return treeHashUpgradeResult{}, nil
 	}
 	state := preimage.state
 	state.Records = records
 	data, err := marshalApplyState(state)
 	if err != nil {
-		return false, applyUnavailable("provenance tree hash upgrade could not be encoded")
+		return treeHashUpgradeResult{}, applyUnavailable("provenance tree hash upgrade could not be encoded")
 	}
-	if _, err := tx.writeStateBytes(preimage, data, preimage.mode); err != nil {
-		return false, err
+	_, current := decodeTransactionProvenanceState(preimage.data, tx.scope, false)
+	commit, err := tx.writeStateBytes(preimage, data, preimage.mode)
+	if commit == nil || !commit.replaced {
+		return treeHashUpgradeResult{}, err
 	}
-	return true, nil
+	return treeHashUpgradeResult{upgraded: true, formatMigrated: !current}, err
 }
