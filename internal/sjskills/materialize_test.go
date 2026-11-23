@@ -23,6 +23,14 @@ type materializeCall struct {
 type materializeRunner struct {
 	calls  []materializeCall
 	invoke func(context.Context, string, []string, []string) (ProcessResult, error)
+	// gitVersion answers preflight's `git version` probe before invoke runs,
+	// so fakes that model only bunx or fetches need not. Empty means a
+	// supported version.
+	gitVersion string
+}
+
+func isGitVersionProbe(command string, args []string) bool {
+	return strings.TrimSuffix(filepath.Base(command), ".exe") == "git" && reflect.DeepEqual(args, []string{"version"})
 }
 
 func (r *materializeRunner) Run(ctx context.Context, command string, args []string, env []string) (ProcessResult, error) {
@@ -31,6 +39,13 @@ func (r *materializeRunner) Run(ctx context.Context, command string, args []stri
 		args:    append([]string(nil), args...),
 		env:     append([]string(nil), env...),
 	})
+	if isGitVersionProbe(command, args) {
+		version := r.gitVersion
+		if version == "" {
+			version = "git version 2.45.1\n"
+		}
+		return ProcessResult{Stdout: []byte(version)}, nil
+	}
 	if r.invoke == nil {
 		return ProcessResult{}, nil
 	}
@@ -126,17 +141,21 @@ func TestMaterializeUsesPinnedPreflightAndExactInstallArguments(t *testing.T) {
 			t.Errorf("cleanup materialization: %v", err)
 		}
 	}()
-	if len(runner.calls) != 3 {
-		t.Fatalf("calls = %d, want preflight twice plus one install", len(runner.calls))
+	if len(runner.calls) != 4 {
+		t.Fatalf("calls = %d, want three preflight checks plus one install", len(runner.calls))
 	}
-	want := [][]string{
-		{"--version"},
-		{"skills@" + SkillsCLIVersion, "--version"},
-		{"skills@" + SkillsCLIVersion, "add", "example/catalog", "--skill", "demo", "--copy", "--global", "--agent", "codex", "--yes", "--full-depth"},
+	want := []struct {
+		command string
+		args    []string
+	}{
+		{"bunx", []string{"--version"}},
+		{"bunx", []string{"skills@" + SkillsCLIVersion, "--version"}},
+		{"git", []string{"version"}},
+		{"bunx", []string{"skills@" + SkillsCLIVersion, "add", "example/catalog", "--skill", "demo", "--copy", "--global", "--agent", "codex", "--yes", "--full-depth"}},
 	}
 	for i, call := range runner.calls {
-		if call.command != "bunx" || !reflect.DeepEqual(call.args, want[i]) {
-			t.Errorf("call %d = %s %q, want bunx %q", i, call.command, call.args, want[i])
+		if call.command != want[i].command || !reflect.DeepEqual(call.args, want[i].args) {
+			t.Errorf("call %d = %s %q, want %s %q", i, call.command, call.args, want[i].command, want[i].args)
 		}
 	}
 	if len(plan.Snapshots()) != 1 {
@@ -563,6 +582,8 @@ func TestMaterializeIsolatesHomeSignalsAndPreservesCredentialHelpers(t *testing.
 	}()
 	env := runner.calls[0].env
 	root := plan.Root()
+	// Skills CLI's own clones of branch sources use the same checkout bytes.
+	assertCanonicalCheckoutConfig(t, runner.calls[len(runner.calls)-1].env)
 	want := map[string]string{
 		"PATH": "/custom/bin", "HOME": root, "USERPROFILE": root,
 		"CODEX_HOME": filepath.Join(root, ".agents"), "CLAUDE_CONFIG_DIR": filepath.Join(root, ".claude"),
@@ -964,14 +985,14 @@ func TestMaterializeBatchesSourceAndDiscoveryOptionsWithoutPartialSuccess(t *tes
 			t.Errorf("cleanup materialization: %v", err)
 		}
 	}()
-	if len(runner.calls) != 5 || len(plan.Snapshots()) != 4 {
+	if len(runner.calls) != 6 || len(plan.Snapshots()) != 4 {
 		t.Fatalf("batches calls=%d snapshots=%d", len(runner.calls), len(plan.Snapshots()))
 	}
 	want := []string{"skills@" + SkillsCLIVersion, "add", "example/repo", "--skill", "a", "b", "--copy", "--global", "--agent", "codex", "--yes"}
-	if !reflect.DeepEqual(runner.calls[2].args, want) {
-		t.Fatalf("batch argv=%q", runner.calls[2].args)
+	if !reflect.DeepEqual(runner.calls[3].args, want) {
+		t.Fatalf("batch argv=%q", runner.calls[3].args)
 	}
-	if runner.calls[3].args[len(runner.calls[3].args)-1] != "--full-depth" {
+	if runner.calls[4].args[len(runner.calls[4].args)-1] != "--full-depth" {
 		t.Fatal("discovery options merged")
 	}
 	partial := defaultMaterializeRunner()
@@ -1022,6 +1043,9 @@ func TestMaterializeFetchesCommitPinnedPublicSourceWithGit(t *testing.T) {
 	var git []materializeCall
 	var add materializeCall
 	for _, call := range runner.calls {
+		if isGitVersionProbe(call.command, call.args) {
+			continue
+		}
 		if call.command == "git" {
 			git = append(git, call)
 		} else if len(call.args) > 1 && call.args[1] == "add" {
@@ -1040,12 +1064,14 @@ func TestMaterializeFetchesCommitPinnedPublicSourceWithGit(t *testing.T) {
 		if strings.Contains(joined, "credential.helper=!") || !strings.Contains(joined, "-c credential.helper= ") || envValue(call.env, "GIT_TERMINAL_PROMPT") != "0" {
 			t.Fatalf("git call is not anonymous: %q", joined)
 		}
-		// System configuration (core.autocrlf) must match Skills CLI's own
-		// clones, while a caller's repository variables must never leak in.
-		if envHas(call.env, "GIT_CONFIG_NOSYSTEM") || envHas(call.env, "GIT_DIR") || envHas(call.env, "git_work_tree") || envHas(call.env, "SSH_ASKPASS") || envHas(call.env, "GH_TOKEN") || envValue(call.env, "HOME") == "" {
+		// Host configuration is excluded, line endings are pinned, and a
+		// caller's repository variables never leak in.
+		if envHas(call.env, "GIT_DIR") || envHas(call.env, "git_work_tree") || envHas(call.env, "SSH_ASKPASS") || envHas(call.env, "GH_TOKEN") || envValue(call.env, "HOME") == "" {
 			t.Fatalf("git environment = %q", call.env)
 		}
+		assertCanonicalCheckoutConfig(t, call.env)
 	}
+	assertCanonicalCheckoutConfig(t, add.env)
 	if !filepath.IsAbs(add.args[2]) || filepath.Base(add.args[2]) != "skills" {
 		t.Fatalf("skills add source = %q, want the fetched checkout", add.args[2])
 	}

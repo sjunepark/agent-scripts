@@ -97,7 +97,8 @@ func credentialEnvironment(base []string, root, platform string) []string {
 		filtered = append(filtered, entry)
 	}
 	env := isolatedEnvironment(filtered, root, platform)
-	return append(env, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+filepath.Join(root, ".gitconfig"), "GIT_TERMINAL_PROMPT=0", "GIT_ALLOW_PROTOCOL=https", "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "GH_NO_EXTENSION_UPDATE_NOTIFIER=1", "GH_TELEMETRY_DISABLED=1")
+	// isolatedEnvironment already excludes system and global Git configuration.
+	return append(env, "GIT_TERMINAL_PROMPT=0", "GIT_ALLOW_PROTOCOL=https", "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "GH_NO_EXTENSION_UPDATE_NOTIFIER=1", "GH_TELEMETRY_DISABLED=1")
 }
 
 func gitShellQuote(value string) string {
@@ -121,9 +122,10 @@ func pinnedPublicGitHubSource(skill DesiredSkill) bool {
 
 // publicSource fetches a commit-pinned public GitHub source anonymously. Every
 // credential helper is disabled; only the pinned commit is fetched. Git runs in
-// the environment Skills CLI uses for its own remote clones, keeping system
-// configuration such as core.autocrlf, so installed bytes and expected-content
-// hashes match those of a branch install on the same machine.
+// the environment Skills CLI uses for its own remote clones, which reads no
+// host Git configuration or attribute files (see canonicalCheckoutConfig), so
+// installed bytes and expected-content hashes match a branch install and every
+// other host.
 func (m *Materializer) publicSource(ctx context.Context, root, source string) (string, error) {
 	repo, err := githubRepository(source)
 	if err != nil {

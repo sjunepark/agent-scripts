@@ -246,6 +246,45 @@ func (m *Materializer) preflightIn(ctx context.Context, root string) error {
 			return m.diagnosticErrorAt(root, "preflight", fmt.Sprintf("Skills CLI version output was not exactly %q", check.expected), nil, result)
 		}
 	}
+
+	// Every remote source is checked out by Git, through sjskills or Skills
+	// CLI. Older Git ignores GIT_CONFIG_COUNT, and a fetch would then succeed
+	// with host-dependent bytes, so refuse it before any fetch.
+	git, err := m.lookPath("git")
+	if err != nil {
+		return m.errorAt(root, "preflight", "git is unavailable; remote skills are fetched with Git", err)
+	}
+	result, err := m.runCommand(ctx, git, []string{"version"}, isolatedEnvironment(m.baseEnv, root, m.platform))
+	if err != nil {
+		return m.diagnosticErrorAt(root, "preflight", "Git version check failed", err, result)
+	}
+	if result.ExitCode != 0 {
+		return m.diagnosticErrorAt(root, "preflight", fmt.Sprintf("Git version check exited with status %d", result.ExitCode), nil, result)
+	}
+	if err := requireCanonicalCheckoutGit(result.Stdout); err != nil {
+		return m.errorAt(root, "preflight", err.Error(), nil)
+	}
+	return nil
+}
+
+var gitVersionOutput = regexp.MustCompile(`^git version (\d+)\.(\d+)`)
+
+// requireCanonicalCheckoutGit accepts `git version` output for Git 2.31 or
+// later, the first release that reads GIT_CONFIG_COUNT. Unrecognized output
+// fails closed rather than risking an unpinned checkout.
+func requireCanonicalCheckoutGit(output []byte) error {
+	match := gitVersionOutput.FindSubmatch(output)
+	if match == nil {
+		return errors.New("cannot determine the Git version; sjskills requires Git 2.31 or later")
+	}
+	major, majorErr := strconv.Atoi(string(match[1]))
+	minor, minorErr := strconv.Atoi(string(match[2]))
+	if majorErr != nil || minorErr != nil {
+		return errors.New("cannot determine the Git version; sjskills requires Git 2.31 or later")
+	}
+	if major < 2 || major == 2 && minor < 31 {
+		return fmt.Errorf("Git %d.%d is too old; sjskills requires Git 2.31 or later to pin checkout configuration", major, minor)
+	}
 	return nil
 }
 
@@ -628,16 +667,51 @@ func ensureContext(ctx context.Context) error {
 	}
 }
 
+// Staged bytes must equal the source's committed blobs on every host, because
+// projects commit their placements and a Windows host must stage what macOS
+// and Linux stage. Host Git configuration and attribute files can rewrite
+// checkout contents: Git for Windows' system config sets core.autocrlf=true
+// and an LFS filter, a system or core.attributesFile attribute file can add
+// eol conversions, and any configured filter.<name>.smudge driver runs for a
+// source that names that filter. So no materialization process reads host
+// configuration or attribute files: isolatedEnvironment sets
+// GIT_CONFIG_NOSYSTEM and GIT_ATTR_NOSYSTEM, points the global config into
+// the staging root (HOME and XDG_CONFIG_HOME already are), and drops inherited
+// GIT_CONFIG*/GIT_ATTR_* variables. A fresh clone's repository config defines
+// no filter drivers, so source-named filters pass blobs through unchanged.
+// Network settings come from the environment (HTTPS_PROXY), as they already
+// did for authenticated fetches.
+//
+// canonicalCheckoutConfig then pins the remaining built-in defaults that vary
+// by platform. core.eol=lf replaces the "native" default for paths a source's
+// .gitattributes marks as text, while an explicit eol attribute in that
+// source still applies identically everywhere. Command-scope environment
+// configuration is inherited by the Git processes Skills CLI spawns; it needs
+// Git 2.31, which preflight enforces.
+var canonicalCheckoutConfig = [][2]string{
+	{"core.autocrlf", "false"},
+	{"core.eol", "lf"},
+}
+
+// inheritedGitConfiguration reports inherited variables that select Git
+// configuration or attribute files, or carry command-scope configuration.
+func inheritedGitConfiguration(key string) bool {
+	upper := strings.ToUpper(key)
+	return strings.HasPrefix(upper, "GIT_CONFIG") || strings.HasPrefix(upper, "GIT_ATTR_")
+}
+
 // isolatedEnvironment keeps ordinary inherited environment values (notably
 // PATH and Git credential-helper variables) while replacing home/profile and
 // common temp/cache/config signals that could make the CLI write outside the
-// staging root.
+// staging root. It also isolates every Git checkout that sjskills or its
+// Skills CLI subprocess performs from host configuration (see
+// canonicalCheckoutConfig).
 func isolatedEnvironment(base []string, root, platform string) []string {
 	values := make(map[string]string, len(base)+8)
 	order := make([]string, 0, len(base)+8)
 	for _, item := range base {
 		key, value, ok := strings.Cut(item, "=")
-		if !ok || key == "" {
+		if !ok || key == "" || inheritedGitConfiguration(key) {
 			continue
 		}
 		if _, exists := values[key]; !exists {
@@ -693,6 +767,14 @@ func isolatedEnvironment(base []string, root, platform string) []string {
 	}
 	for key, value := range redirects {
 		set(key, value)
+	}
+	set("GIT_CONFIG_NOSYSTEM", "1")
+	set("GIT_CONFIG_GLOBAL", filepath.Join(root, ".gitconfig"))
+	set("GIT_ATTR_NOSYSTEM", "1")
+	set("GIT_CONFIG_COUNT", strconv.Itoa(len(canonicalCheckoutConfig)))
+	for index, entry := range canonicalCheckoutConfig {
+		set(fmt.Sprintf("GIT_CONFIG_KEY_%d", index), entry[0])
+		set(fmt.Sprintf("GIT_CONFIG_VALUE_%d", index), entry[1])
 	}
 	if windows {
 		if drive, pathPart := windowsHomeParts(root); drive != "" {

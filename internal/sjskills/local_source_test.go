@@ -299,8 +299,8 @@ func TestMaterializeMixedLocalAndRemoteSources(t *testing.T) {
 			}
 		}
 	}
-	if len(runner.calls) != 3 {
-		t.Fatalf("calls = %d, want preflight twice and one add", len(runner.calls))
+	if len(runner.calls) != 4 {
+		t.Fatalf("calls = %d, want three preflight checks and one add", len(runner.calls))
 	}
 }
 

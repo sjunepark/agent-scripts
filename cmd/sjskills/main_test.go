@@ -2735,7 +2735,11 @@ func assertExpectedContentEvidence(t *testing.T, envelope sjskillsEnvelope) {
 
 type injectedMaterializeRunner struct{}
 
-func (injectedMaterializeRunner) Run(_ context.Context, _ string, args []string, environment []string) (sjskills.ProcessResult, error) {
+func (injectedMaterializeRunner) Run(_ context.Context, command string, args []string, environment []string) (sjskills.ProcessResult, error) {
+	if strings.TrimSuffix(filepath.Base(command), ".exe") == "git" && len(args) == 1 && args[0] == "version" {
+		// Preflight's Git version probe (Git 2.31+ reads GIT_CONFIG_COUNT).
+		return sjskills.ProcessResult{Stdout: []byte("git version 2.45.1\n")}, nil
+	}
 	if len(args) == 1 && args[0] == "--version" {
 		return sjskills.ProcessResult{Stdout: []byte("bunx 1\n")}, nil
 	}

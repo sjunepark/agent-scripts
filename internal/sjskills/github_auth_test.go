@@ -126,7 +126,8 @@ func TestAuthenticatedFetchFailureCleanup(t *testing.T) {
 			}
 			if mode == "missing-gh" || mode == "missing-git" || mode == "migration" {
 				for _, call := range runner.calls {
-					if call.command == "git" || call.command == "gh" {
+					// The preflight Git version probe is not an auth process.
+					if (call.command == "git" || call.command == "gh") && !isGitVersionProbe(call.command, call.args) {
 						t.Fatal("preflight invoked auth process")
 					}
 				}
@@ -138,13 +139,15 @@ func TestAuthenticatedFetchFailureCleanup(t *testing.T) {
 func TestGHEnvironmentAndSourceParsing(t *testing.T) {
 	original := t.TempDir()
 	config := filepath.Join(original, "gh")
-	env := []string{"HOME=" + original, "GH_CONFIG_DIR=" + config, "GIT_CONFIG_COUNT=2", "GIT_TRACE=1", "GH_DEBUG=api", "GH_TOKEN=sentinel", "GITHUB_TOKEN=sentinel", "PATH=/bin"}
+	env := []string{"HOME=" + original, "GH_CONFIG_DIR=" + config, "GIT_CONFIG_COUNT=8", "GIT_CONFIG_KEY_7=core.autocrlf", "GIT_CONFIG_VALUE_7=true", "GIT_TRACE=1", "GH_DEBUG=api", "GH_TOKEN=sentinel", "GITHUB_TOKEN=sentinel", "PATH=/bin"}
 	isolated := credentialEnvironment(env, t.TempDir(), "darwin")
-	for _, name := range []string{"GIT_TRACE", "GIT_CONFIG_COUNT", "GH_DEBUG", "GH_TOKEN", "GITHUB_TOKEN", "GH_CONFIG_DIR"} {
+	for _, name := range []string{"GIT_TRACE", "GIT_CONFIG_KEY_7", "GIT_CONFIG_VALUE_7", "GH_DEBUG", "GH_TOKEN", "GITHUB_TOKEN", "GH_CONFIG_DIR"} {
 		if environmentValue(isolated, name, "darwin") != "" {
 			t.Fatalf("leaked %s", name)
 		}
 	}
+	// The inherited count is replaced, never merged, with the canonical one.
+	assertCanonicalCheckoutConfig(t, isolated)
 	if environmentValue(isolated, "GIT_ALLOW_PROTOCOL", "darwin") != "https" {
 		t.Fatal("protocol widened")
 	}
