@@ -2722,7 +2722,7 @@ func assertExpectedContentEvidence(t *testing.T, envelope sjskillsEnvelope) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := fmt.Sprintf("%s %s:%s", name, sjskills.TreeHashAlgorithmSHA256V2, hash.Digest)
+		want := fmt.Sprintf("%s %s:%s", name, sjskills.TreeHashAlgorithmSHA256V3, hash.Digest)
 		if gotDetails[index] != want {
 			t.Errorf("expected evidence[%d]=%q, want %q", index, gotDetails[index], want)
 		}

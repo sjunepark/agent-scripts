@@ -103,7 +103,10 @@ type ProjectInventory struct {
 	StatePath    string                       `json:"statePath"`
 	State        ProvenanceState              `json:"state"`
 	StateTrusted bool                         `json:"stateTrusted"`
-	Problems     []InventoryProblem           `json:"problems,omitempty"`
+	// TreeHashMigration counts State records read as tree-sha256-v2 and
+	// rewritten in memory as tree-sha256-v3; see upgradeLegacyTreeHashRecords.
+	TreeHashMigration int                `json:"treeHashMigration,omitempty"`
+	Problems          []InventoryProblem `json:"problems,omitempty"`
 }
 
 // InspectProject establishes a canonical project boundary, inventories only
@@ -142,6 +145,9 @@ func InspectProject(layout DerivedLayout) (ProjectInventory, error) {
 	state, trusted, stateProblems := inspectProvenanceState(root, layout.ReconcilerStatePath)
 	inventory.State = state
 	inventory.StateTrusted = trusted
+	if trusted {
+		inventory.State.Records, inventory.TreeHashMigration = upgradeLegacyTreeHashRecords(state.Records, inventory.Roots)
+	}
 	inventory.Problems = append(inventory.Problems, stateProblems...)
 	return detachProjectInventory(inventory), nil
 }
@@ -503,7 +509,7 @@ func decodeProvenanceState(data []byte) (ProvenanceState, bool) {
 			record.Skill == "" || !isPortableName(record.Skill) ||
 			(record.Target != TargetAgents && record.Target != TargetClaude) ||
 			record.SourceIdentity == "" ||
-			record.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
+			!isRecordedTreeHashAlgorithm(record.TreeHashAlgorithm) ||
 			!lowercaseDigestPattern.MatchString(record.TreeHash) ||
 			record.RecordedAt.IsZero() {
 			return ProvenanceState{}, false

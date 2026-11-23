@@ -685,12 +685,18 @@ func ensureContext(ctx context.Context) error {
 // canonicalCheckoutConfig then pins the remaining built-in defaults that vary
 // by platform. core.eol=lf replaces the "native" default for paths a source's
 // .gitattributes marks as text, while an explicit eol attribute in that
-// source still applies identically everywhere. Command-scope environment
+// source still applies identically everywhere. core.symlinks=false replaces
+// the value clone probes from the filesystem (true on macOS and Linux, false
+// on Windows without symlink privilege), so a committed symlink checks out
+// everywhere as a regular file holding its target. Otherwise macOS and Linux
+// would stage a link that Skills CLI copies as the dereferenced content,
+// while Windows stages the target text. Command-scope environment
 // configuration is inherited by the Git processes Skills CLI spawns; it needs
 // Git 2.31, which preflight enforces.
 var canonicalCheckoutConfig = [][2]string{
 	{"core.autocrlf", "false"},
 	{"core.eol", "lf"},
+	{"core.symlinks", "false"},
 }
 
 // inheritedGitConfiguration reports inherited variables that select Git
@@ -944,7 +950,8 @@ func (p *MaterializationPlan) Cleanup() error {
 }
 
 // TreeHash is the reconciler-owned digest representation.  Algorithm is
-// always tree-sha256-v2 for snapshots produced here.
+// always tree-sha256-v3 for hashes computed now; tree-sha256-v2 appears only
+// in provenance and evidence recorded by earlier releases.
 type TreeHash struct {
 	Algorithm string `json:"algorithm"`
 	Digest    string `json:"digest"`
@@ -1067,24 +1074,80 @@ func locateStagedSkill(root, name string) (string, error) {
 	return expected, nil
 }
 
-// HashSkillTree computes the exact tree-sha256-v2 digest used by the legacy
-// reconciler.  It rejects malformed trees and symlink escapes, and never
-// follows a symlink while walking.
+// HashSkillTree computes the current tree-sha256-v3 digest.  It rejects
+// malformed trees and symlink escapes, and never follows a symlink while
+// walking.
 func HashSkillTree(root string) (TreeHash, error) {
 	return hashSkillTree(root, MaterializerLimits{})
 }
 
 func hashSkillTree(root string, limits MaterializerLimits) (TreeHash, error) {
+	digests, err := hashSkillTreeDigests(root, limits)
+	return digests.current, err
+}
+
+// hashSkillTreeAs computes the digest a recorded hash was made with, so
+// evidence written before tree-sha256-v3 (quarantine manifests, recovery
+// journals) can still be proven against the tree it describes.
+func hashSkillTreeAs(root, algorithm string) (TreeHash, error) {
+	digests, err := hashSkillTreeDigests(root, MaterializerLimits{})
+	if err != nil {
+		return TreeHash{}, err
+	}
+	switch algorithm {
+	case TreeHashAlgorithmSHA256V3:
+		return digests.current, nil
+	case TreeHashAlgorithmSHA256V2:
+		return digests.legacy, nil
+	default:
+		return TreeHash{}, materializationError("tree", "tree hash algorithm is unsupported", nil)
+	}
+}
+
+// treeDigests holds both digests of one walk, so a legacy match always pairs
+// with the current digest of the very same bytes.
+type treeDigests struct {
+	current TreeHash
+	legacy  TreeHash
+}
+
+// hashSkillTreeDigests walks the tree once and feeds two digests.
+//
+// tree-sha256-v3 (current) is a host-independent identity: directories, paths
+// (as UTF-16-ordered slash paths), file bytes, and symlink targets. It omits
+// the executable bit, which Windows cannot represent and Git for Windows does
+// not check out, so a committed placement hashes the same on every host. Its
+// first field names the algorithm, so no v3 digest can equal a v2 digest.
+//
+// tree-sha256-v2 (legacy) additionally records each file's executable bit. It
+// is computed only to recognize provenance and evidence written by earlier
+// releases; nothing new is recorded with it.
+func hashSkillTreeDigests(root string, limits MaterializerLimits) (treeDigests, error) {
 	limits = normalizedLimits(limits)
 	if err := validateStagingTreeRoot(root); err != nil {
-		return TreeHash{}, err
+		return treeDigests{}, err
 	}
-	hash := sha256.New()
+	current, legacy := sha256.New(), sha256.New()
+	updateHashField(current, TreeHashAlgorithmSHA256V3)
 	stats := treeStats{}
-	if err := hashPathInto(hash, root, ".", root, 0, limits, &stats); err != nil {
-		return TreeHash{}, err
+	if err := hashPathInto(treeHashWriters{current: current, legacy: legacy}, root, ".", root, 0, limits, &stats); err != nil {
+		return treeDigests{}, err
 	}
-	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: hex.EncodeToString(hash.Sum(nil))}, nil
+	return treeDigests{
+		current: TreeHash{Algorithm: TreeHashAlgorithmSHA256V3, Digest: hex.EncodeToString(current.Sum(nil))},
+		legacy:  TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: hex.EncodeToString(legacy.Sum(nil))},
+	}, nil
+}
+
+type treeHashWriters struct {
+	current io.Writer
+	legacy  io.Writer
+}
+
+// field feeds a value both algorithms record.
+func (w treeHashWriters) field(value any) {
+	updateHashField(w.current, value)
+	updateHashField(w.legacy, value)
 }
 
 type treeStats struct {
@@ -1092,7 +1155,7 @@ type treeStats struct {
 	entries int
 }
 
-func hashPathInto(hash io.Writer, path, relative, root string, depth int, limits MaterializerLimits, stats *treeStats) error {
+func hashPathInto(hash treeHashWriters, path, relative, root string, depth int, limits MaterializerLimits, stats *treeStats) error {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return materializationError("tree", "staged entry is unreadable", err)
@@ -1115,18 +1178,18 @@ func hashPathInto(hash io.Writer, path, relative, root string, depth int, limits
 		if err := validateSymlinkTarget(path, target, root); err != nil {
 			return err
 		}
-		updateHashField(hash, "symlink")
-		updateHashField(hash, portable)
-		updateHashField(hash, target)
+		hash.field("symlink")
+		hash.field(portable)
+		hash.field(target)
 		return nil
 	}
 	if info.Mode().IsRegular() {
-		updateHashField(hash, "file")
-		updateHashField(hash, portable)
+		hash.field("file")
+		hash.field(portable)
 		if info.Mode().Perm()&0o111 == 0 {
-			updateHashField(hash, "non-executable")
+			updateHashField(hash.legacy, "non-executable")
 		} else {
-			updateHashField(hash, "executable")
+			updateHashField(hash.legacy, "executable")
 		}
 		content, err := readBoundedFile(path, limits.MaxTreeBytes-stats.bytes)
 		if err != nil {
@@ -1135,14 +1198,14 @@ func hashPathInto(hash io.Writer, path, relative, root string, depth int, limits
 		if err := addTreeBytes(stats, int64(len(content)), limits); err != nil {
 			return err
 		}
-		updateHashField(hash, content)
+		hash.field(content)
 		return nil
 	}
 	if !info.IsDir() {
 		return materializationError("tree", "staged tree contains an unsupported entry type", nil)
 	}
-	updateHashField(hash, "directory")
-	updateHashField(hash, portable)
+	hash.field("directory")
+	hash.field(portable)
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return materializationError("tree", "staged directory is unreadable", err)

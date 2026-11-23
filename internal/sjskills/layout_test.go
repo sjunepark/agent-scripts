@@ -74,7 +74,7 @@ func TestProvenanceStateShapeIsMinimalAndVersioned(t *testing.T) {
 		Version: ProvenanceStateVersion,
 		Records: []ProvenanceRecord{{
 			Scope: ScopeProject, Skill: "example", Target: TargetAgents,
-			SourceIdentity: "example/catalog", TreeHashAlgorithm: TreeHashAlgorithmSHA256V2,
+			SourceIdentity: "example/catalog", TreeHashAlgorithm: TreeHashAlgorithmSHA256V3,
 			TreeHash: "0123456789abcdef", RecordedAt: recordedAt,
 		}},
 	}

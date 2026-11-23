@@ -25,6 +25,9 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 		return GlobalClassification{}, err
 	}
 	managed := classifyManagedState(inventory.Home, inventory.StatePath, inventory.StateTrusted, desiredByName, expectedByName, recordsByKey, rootsByTarget)
+	if inventory.StateTrusted {
+		managed.TreeHashMigration = inventory.TreeHashMigration
+	}
 
 	desiredPlacements := make(map[string]struct{})
 	for _, skill := range desiredByName {
@@ -141,8 +144,8 @@ func validateGlobalClassificationInputs(registry Registry, desired DesiredState,
 			issues = append(issues, Issue{Code: IssueMissingReference, Path: "expected." + name, Message: "expected hash requires a desired skills-cli skill"})
 			continue
 		}
-		if hash.Algorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(hash.Digest) {
-			issues = append(issues, Issue{Code: IssueMalformedInput, Path: "expected." + name, Message: "expected hash must use tree-sha256-v2 and lowercase 64-hex digest"})
+		if hash.Algorithm != TreeHashAlgorithmSHA256V3 || !lowercaseDigestPattern.MatchString(hash.Digest) {
+			issues = append(issues, Issue{Code: IssueMalformedInput, Path: "expected." + name, Message: "expected hash must use tree-sha256-v3 and lowercase 64-hex digest"})
 		}
 		expectedByName[name] = hash
 	}

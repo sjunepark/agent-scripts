@@ -66,9 +66,12 @@ type GlobalInventory struct {
 	StateTrusted      bool                         `json:"stateTrusted"`
 	ProvenanceFormat  GlobalProvenanceFormat       `json:"provenanceFormat"`
 	MigrationRequired bool                         `json:"migrationRequired"`
-	LegacyRoot        GlobalLegacyRootInventory    `json:"legacyRoot"`
-	Protected         []GlobalProtectedLocation    `json:"protected"`
-	Problems          []InventoryProblem           `json:"problems,omitempty"`
+	// TreeHashMigration counts State records rewritten in memory from
+	// tree-sha256-v2; see upgradeLegacyTreeHashRecords.
+	TreeHashMigration int                       `json:"treeHashMigration,omitempty"`
+	LegacyRoot        GlobalLegacyRootInventory `json:"legacyRoot"`
+	Protected         []GlobalProtectedLocation `json:"protected"`
+	Problems          []InventoryProblem        `json:"problems,omitempty"`
 }
 
 // InspectGlobal inventories only paths named by GlobalLayout. It never scans
@@ -112,6 +115,9 @@ func InspectGlobal(layout GlobalLayout) (GlobalInventory, error) {
 	inventory.StateTrusted = trusted
 	inventory.ProvenanceFormat = format
 	inventory.MigrationRequired = trusted && format == GlobalProvenanceLegacyV1
+	if trusted {
+		inventory.State.Records, inventory.TreeHashMigration = upgradeLegacyTreeHashRecords(state.Records, inventory.Roots)
+	}
 	inventory.Problems = append(inventory.Problems, stateProblems...)
 
 	inventory.LegacyRoot = inspectGlobalLegacyRoot(home, layout.LegacyPiSkillsPath)
@@ -305,7 +311,7 @@ func decodeGlobalProvenanceState(data []byte) (GlobalProvenanceState, GlobalProv
 			}
 			identity, ok := canonicalProjectSourceIdentity(record.Source)
 			key := projectPlacementKey(target, record.Skill)
-			if !ok || IsLocalSource(record.Source) || !isPortableName(record.Skill) || record.HashAlgorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(record.Hash) || record.RecordedAt.IsZero() {
+			if !ok || IsLocalSource(record.Source) || !isPortableName(record.Skill) || !isRecordedTreeHashAlgorithm(record.HashAlgorithm) || !lowercaseDigestPattern.MatchString(record.Hash) || record.RecordedAt.IsZero() {
 				return GlobalProvenanceState{}, "", false
 			}
 			if _, duplicate := seen[key]; duplicate {
@@ -344,7 +350,7 @@ func validGlobalProvenanceRecords(records []ProvenanceRecord) bool {
 		if record.Scope != ScopeGlobal || !isPortableName(record.Skill) ||
 			(record.Target != TargetAgents && record.Target != TargetClaude) ||
 			!isCanonicalProjectSourceIdentity(record.SourceIdentity) || isCanonicalLocalSourceIdentity(record.SourceIdentity) ||
-			record.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
+			!isRecordedTreeHashAlgorithm(record.TreeHashAlgorithm) ||
 			!lowercaseDigestPattern.MatchString(record.TreeHash) || record.RecordedAt.IsZero() {
 			return false
 		}

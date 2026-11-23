@@ -530,7 +530,7 @@ func (tx *restoreTransaction) preflight(ctx context.Context) error {
 			if statErr != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 				return restoreConflict("quarantined placement is unavailable")
 			}
-			hash, hashErr := HashSkillTree(quarantined)
+			hash, hashErr := hashSkillTreeAs(quarantined, oldHash.Algorithm)
 			if hashErr != nil || hash != oldHash {
 				return restoreConflict("quarantined placement content changed")
 			}
@@ -550,7 +550,7 @@ func (tx *restoreTransaction) preflight(ctx context.Context) error {
 			if statErr != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 				return restoreConflict("restored destination is unavailable")
 			}
-			hash, hashErr := HashSkillTree(destination)
+			hash, hashErr := hashSkillTreeAs(destination, oldHash.Algorithm)
 			if hashErr != nil || hash != oldHash {
 				return restoreConflict("restored destination content changed")
 			}
@@ -714,7 +714,7 @@ func (tx *restoreTransaction) reproveRestoreEntry(index int) error {
 	if statErr != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || entry.quarantineInfo == nil || !os.SameFile(entry.quarantineInfo, info) {
 		return restoreConflict("quarantined placement changed during restore")
 	}
-	hash, hashErr := HashSkillTree(entry.quarantined)
+	hash, hashErr := hashSkillTreeAs(entry.quarantined, entry.oldHash.Algorithm)
 	if hashErr != nil || hash != entry.oldHash {
 		return restoreConflict("quarantined placement content changed during restore")
 	}
@@ -776,7 +776,7 @@ func (tx *restoreTransaction) proveMovedEntry(index int) (os.FileInfo, bool) {
 	if _, err := os.Lstat(entry.quarantined); !errors.Is(err, os.ErrNotExist) {
 		return info, false
 	}
-	hash, err := HashSkillTree(entry.destination)
+	hash, err := hashSkillTreeAs(entry.destination, entry.oldHash.Algorithm)
 	if err != nil || hash != entry.oldHash {
 		return info, false
 	}
@@ -798,7 +798,7 @@ func (tx *restoreTransaction) verifyMovedPlacements() error {
 		if statErr != nil || moved.info == nil || !os.SameFile(moved.info, info) || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 			return restoreConflict("restored placement ownership changed during restore")
 		}
-		hash, hashErr := HashSkillTree(moved.destination)
+		hash, hashErr := hashSkillTreeAs(moved.destination, moved.oldHash.Algorithm)
 		if hashErr != nil || hash != moved.oldHash {
 			return restoreConflict("restored placement content changed during restore")
 		}
@@ -1113,7 +1113,7 @@ func (tx *restoreTransaction) verifyCommittedPreimage() error {
 			failed = true
 			continue
 		}
-		hash, hashErr := HashSkillTree(entry.quarantined)
+		hash, hashErr := hashSkillTreeAs(entry.quarantined, entry.oldHash.Algorithm)
 		if hashErr != nil || hash != entry.oldHash {
 			tx.ambiguous[index] = true
 			failed = true
@@ -1158,7 +1158,7 @@ func (tx *restoreTransaction) rollbackMovedPlacement(moved restoredPlacement) er
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() || !os.SameFile(moved.info, info) {
 		return restoreConflict("restore destination ownership changed during rollback")
 	}
-	hash, err := HashSkillTree(moved.destination)
+	hash, err := hashSkillTreeAs(moved.destination, moved.oldHash.Algorithm)
 	if err != nil || hash != moved.oldHash {
 		return restoreConflict("restore destination content changed during rollback")
 	}
@@ -1187,7 +1187,7 @@ func (tx *restoreTransaction) proveRolledBackPlacement(moved restoredPlacement) 
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() || !os.SameFile(moved.info, info) {
 		return false
 	}
-	hash, err := HashSkillTree(moved.source)
+	hash, err := hashSkillTreeAs(moved.source, moved.oldHash.Algorithm)
 	if err != nil || hash != moved.oldHash {
 		return false
 	}

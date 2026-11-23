@@ -204,6 +204,10 @@ type ApplyResult struct {
 	Quarantined []AppliedPlacement
 	Quarantine  *ProjectQuarantineResult
 	Migrated    bool
+	// TreeHashesUpgraded reports that tree-sha256-v2 provenance records were
+	// rewritten as tree-sha256-v3 (see persistTreeHashUpgrade). The rewrite
+	// is committed before placements change, so it can be true on failure.
+	TreeHashesUpgraded bool
 }
 
 // ProjectQuarantineResult is the path-free recovery handle returned when an
@@ -402,7 +406,10 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 		if !sameReviewedPlan(freshPlan, verifiedPlan, session.global != nil) {
 			return finishApplySetup(&tx, verifiedPlan, applyConflict("project state changed during apply verification"))
 		}
-		return finishApplySetup(&tx, verifiedPlan, nil)
+		upgraded, upgradeErr := tx.persistPlannedTreeHashUpgrade(verifiedPlan)
+		result, err := finishApplySetup(&tx, verifiedPlan, upgradeErr)
+		result.TreeHashesUpgraded = upgraded
+		return result, err
 	}
 	if err := tx.syncCreatedDirectoryParents(createdDerived); err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
@@ -412,11 +419,19 @@ func applyChanges(ctx context.Context, session *ProjectApplySession, deps ApplyD
 		return finishApplySetup(&tx, freshPlan, err)
 	}
 	tx.ancestors = ancestors
-	preimage, err := captureTransactionStatePreimage(session.Layout, session.Desired.Scope)
+	// Persist upgraded records first, so the transaction below, its journal,
+	// and any quarantine manifest start from the provenance the plan used.
+	upgraded, err := tx.persistPlannedTreeHashUpgrade(freshPlan)
 	if err != nil {
 		return finishApplySetup(&tx, freshPlan, err)
 	}
-	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}, Quarantined: []AppliedPlacement{}}
+	preimage, err := captureTransactionStatePreimage(session.Layout, session.Desired.Scope)
+	if err != nil {
+		result, setupErr := finishApplySetup(&tx, freshPlan, err)
+		result.TreeHashesUpgraded = upgraded
+		return result, setupErr
+	}
+	result := ApplyResult{Plan: freshPlan, Installed: []AppliedPlacement{}, Updated: []AppliedPlacement{}, Quarantined: []AppliedPlacement{}, TreeHashesUpgraded: upgraded}
 	var primary error
 	quarantineOperations := operationsWithActions(mutationOperations, PlanActionUpdate, PlanActionQuarantine)
 	if len(quarantineOperations) > 0 {
@@ -759,7 +774,7 @@ func expectedEvidence(hash TreeHash) string {
 }
 
 func treeHashFromPlanEvidence(evidence PlanEvidence) (TreeHash, bool) {
-	const prefix = TreeHashAlgorithmSHA256V2 + ":"
+	const prefix = TreeHashAlgorithmSHA256V3 + ":"
 	if evidence.Kind != projectEvidenceTreeHash || !strings.HasPrefix(evidence.Detail, prefix) {
 		return TreeHash{}, false
 	}
@@ -767,7 +782,7 @@ func treeHashFromPlanEvidence(evidence PlanEvidence) (TreeHash, bool) {
 	if !lowercaseDigestPattern.MatchString(digest) {
 		return TreeHash{}, false
 	}
-	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: digest}, true
+	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V3, Digest: digest}, true
 }
 
 func findPlanOperation(operations []PlanOperation, key string) (PlanOperation, bool) {
@@ -810,6 +825,7 @@ func refreshApplyPlan(session *ProjectApplySession) (Plan, error) {
 	base := clonePlanForApply(session.Plan)
 	base.Operations = nil
 	base.Warnings = staticProjectWarnings(base.Warnings)
+	base.Evidence = staticProjectEvidence(base.Evidence)
 	plan, err := TranslateProjectClassification(base, classification)
 	if err != nil {
 		return Plan{}, applyConflict("project translation changed after planning")
@@ -821,9 +837,21 @@ func staticGlobalEvidence(evidence []Evidence) []Evidence {
 	result := make([]Evidence, 0, len(evidence))
 	for _, item := range evidence {
 		switch item.Kind {
-		case "global-inventory", "provenance-migration":
+		case "global-inventory", "provenance-migration", treeHashMigrationEvidenceKind:
 			continue
 		default:
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// staticProjectEvidence drops evidence that translation derives from the
+// current inventory, so a refreshed plan reports it once.
+func staticProjectEvidence(evidence []Evidence) []Evidence {
+	result := make([]Evidence, 0, len(evidence))
+	for _, item := range evidence {
+		if item.Kind != treeHashMigrationEvidenceKind {
 			result = append(result, item)
 		}
 	}

@@ -131,9 +131,9 @@ authenticated) reads host Git configuration or attribute files.
 `GIT_CONFIG_NOSYSTEM` and `GIT_ATTR_NOSYSTEM` are set, the global
 configuration and `HOME` point into private staging, and inherited
 `GIT_CONFIG*` and `GIT_ATTR_*` variables are dropped. On top of that,
-`core.autocrlf=false` and `core.eol=lf` are forced through `GIT_CONFIG_COUNT`.
-This needs Git 2.31 or later, and remote materialization refuses older Git
-before fetching.
+`core.autocrlf=false`, `core.eol=lf`, and `core.symlinks=false` are forced
+through `GIT_CONFIG_COUNT`. This needs Git 2.31 or later, and remote
+materialization refuses older Git before fetching.
 
 So no host can add line-ending conversion, attributes such as a
 `core.attributesFile`, or filter drivers (LFS or any other `filter=<name>` a
@@ -147,9 +147,36 @@ through `HTTPS_PROXY`, as authenticated fetching already required. Installs
 made by earlier sjskills releases on a host that converted line endings (any
 Windows host with that default) hold converted bytes, so the first plan after
 upgrading reports those skills as updates once.
-The tree hash also records each file's executable bit and symlinks, which
-Windows checkouts do not preserve, so a skill with executable or symlinked
-files still hashes differently on Windows than on macOS and Linux.
+
+The tree identity does not depend on the host either. Provenance, plans, and
+quarantine evidence use `tree-sha256-v3`, which hashes directories, paths, file
+bytes, and symlink targets but not the executable bit, which Windows cannot
+represent. A committed placement therefore hashes the same after a Windows
+checkout as on macOS and Linux. Installs still keep a source's executable bits
+where the filesystem supports them. Because of `core.symlinks=false`, a
+symlink committed in a source installs on every host as a regular file that
+holds its target path, which is what Git for Windows writes by default. Before
+this, macOS and Linux installed a copy of the linked content instead. A skill
+that needs that content must commit real files.
+
+Releases before `tree-sha256-v3` recorded `tree-sha256-v2`, which also hashes
+the executable bit. A `tree-sha256-v2` record still counts as ownership
+evidence while its placement holds exactly the recorded tree. Plans then treat
+it as the placement's `tree-sha256-v3` digest and report a
+`tree-hash-migration` evidence item. The next `apply` rewrites those records
+before it changes anything else, even when no placement changes. A
+`tree-sha256-v2` record whose tree no longer matches stays as written and
+classifies as `local-modification`. That includes a record made on macOS or
+Linux for a skill with executable files, when Windows reads it. Quarantines and
+interrupted transactions recorded with `tree-sha256-v2` are still verified with
+that algorithm, so recovery and `restore` keep working. The exception is
+restoring an update quarantined by an earlier release after an `apply` has
+rewritten that skill's record: restore then reports a conflict and leaves the
+quarantined copy in place. Restore such quarantines before the first `apply`
+with the new release. To end cross-platform churn in a project that commits
+`.sjskills/state.json`, run `apply` once on the host that wrote the state, or
+on any host where `plan` reports no `local-modification`, and commit the
+rewritten state.
 
 Authenticated selections require Git, GitHub CLI,
 and an existing gh login with repository access. They accept GitHub.com

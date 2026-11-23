@@ -273,7 +273,7 @@ func TestInspectProjectRejectsRootFileAndSpecialEntry(t *testing.T) {
 	}
 }
 
-func TestInspectProjectHashesDirectoriesAndExecutableBits(t *testing.T) {
+func TestInspectProjectHashesDirectoriesIgnoringExecutableBits(t *testing.T) {
 	_, layout := inventoryTestLayout(t)
 	if err := os.MkdirAll(layout.AgentsSkillsPath, 0o755); err != nil {
 		t.Fatal(err)
@@ -291,7 +291,7 @@ func TestInspectProjectHashesDirectoriesAndExecutableBits(t *testing.T) {
 		t.Fatal(err)
 	}
 	entry := findInventoryEntry(t, inventoryRoot(t, inventory, TargetAgents), "demo")
-	if entry.Hash == nil || entry.Hash.Algorithm != TreeHashAlgorithmSHA256V2 || entry.Hash.Digest == "" || entry.Problem != "" {
+	if entry.Hash == nil || entry.Hash.Algorithm != TreeHashAlgorithmSHA256V3 || entry.Hash.Digest == "" || entry.Problem != "" {
 		t.Fatalf("non-executable entry = %#v", entry)
 	}
 	want, err := HashSkillTree(directory)
@@ -308,9 +308,11 @@ func TestInspectProjectHashesDirectoriesAndExecutableBits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A Windows checkout of the same committed placement has no executable
+	// bit, so the identity must not depend on it.
 	changedEntry := findInventoryEntry(t, inventoryRoot(t, changed, TargetAgents), "demo")
-	if changedEntry.Hash == nil || entry.Hash == nil || *changedEntry.Hash == *entry.Hash {
-		t.Fatalf("executable-bit change did not change hash: %#v", changedEntry.Hash)
+	if changedEntry.Hash == nil || entry.Hash == nil || *changedEntry.Hash != *entry.Hash {
+		t.Fatalf("executable-bit change changed hash: %#v, want %#v", changedEntry.Hash, entry.Hash)
 	}
 }
 
@@ -597,7 +599,7 @@ func validInventoryProvenanceRecord(skill string, target Target) ProvenanceRecor
 		Skill:             skill,
 		Target:            target,
 		SourceIdentity:    "github:example/" + skill,
-		TreeHashAlgorithm: TreeHashAlgorithmSHA256V2,
+		TreeHashAlgorithm: TreeHashAlgorithmSHA256V3,
 		TreeHash:          "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 		RecordedAt:        time.Date(2026, time.August, 24, 9, 30, 0, 0, time.UTC),
 	}

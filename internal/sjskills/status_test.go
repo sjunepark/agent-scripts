@@ -186,7 +186,7 @@ func TestStatusCompleteSnapshotsAndHostileCache(t *testing.T) {
 			default:
 				switch kind {
 				case "wrong-hash":
-					entry.Expected[scope.Plan.Desired.Skills[0].Name] = TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: "invalid"}
+					entry.Expected[scope.Plan.Desired.Skills[0].Name] = TreeHash{Algorithm: TreeHashAlgorithmSHA256V3, Digest: "invalid"}
 				case "partial":
 					entry.Expected = map[string]TreeHash{}
 				case "wrong-identity":

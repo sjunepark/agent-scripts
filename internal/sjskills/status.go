@@ -185,7 +185,7 @@ func (s StatusScope) identity() string {
 		Desired   DesiredState
 		CLI, Hash string
 		Format    int
-	}{s.Root, registry, desired, SkillsCLIVersion, TreeHashAlgorithmSHA256V2, statusCacheVersion})
+	}{s.Root, registry, desired, SkillsCLIVersion, TreeHashAlgorithmSHA256V3, statusCacheVersion})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
 }
@@ -211,7 +211,7 @@ func (s StatusScope) cacheKey() string {
 		Inputs    []input
 		CLI, Hash string
 		Format    int
-	}{inputs, SkillsCLIVersion, TreeHashAlgorithmSHA256V2, statusCacheVersion})
+	}{inputs, SkillsCLIVersion, TreeHashAlgorithmSHA256V3, statusCacheVersion})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
 }
@@ -350,7 +350,7 @@ func validStatusExpected(desired DesiredState, expected map[string]TreeHash) boo
 		}
 		count++
 		h, ok := expected[skill.Name]
-		if !ok || h.Algorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(h.Digest) {
+		if !ok || h.Algorithm != TreeHashAlgorithmSHA256V3 || !lowercaseDigestPattern.MatchString(h.Digest) {
 			return false
 		}
 	}

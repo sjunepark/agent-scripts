@@ -302,11 +302,13 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 		}
 	}
 	formerHash := writeGlobalSkill(t, session.Layout.AgentsSkillsPath, "former", "former\n")
+	baseLegacy := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "base"))
+	formerLegacy := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "former"))
 	recordedAt := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, session.Layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
-		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
-		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
-		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: formerHash.Algorithm, Hash: formerHash.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: baseLegacy.Algorithm, Hash: baseLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: baseLegacy.Algorithm, Hash: baseLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: formerLegacy.Algorithm, Hash: formerLegacy.Digest, RecordedAt: recordedAt},
 	})
 	inventory, err := InspectGlobal(session.Layout)
 	if err != nil || inventory.ProvenanceFormat != GlobalProvenanceLegacyV1 {
@@ -365,7 +367,7 @@ func TestApplyGlobalChangesRejectsMigrationStatusRace(t *testing.T) {
 		t.Fatalf("current plan=%#v err=%v", session.Plan, err)
 	}
 	bindGlobalApplyFixture(t, session)
-	hash := session.Expected["base"]
+	hash := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "base"))
 	writeLegacyGlobalState(t, session.Layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
 		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
 		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
