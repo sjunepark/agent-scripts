@@ -234,7 +234,11 @@ def summarize_graphql_errors(errors: list[dict[str, Any]]) -> str:
 
 def gh_text(args: list[str]) -> str:
     command = ["gh", *args]
-    result = subprocess.run(command, text=True, capture_output=True, check=False)
+    # gh emits UTF-8 regardless of console code page; decoding with the locale
+    # (for example cp949) fails and leaves stdout as None.
+    result = subprocess.run(
+        command, capture_output=True, check=False, encoding="utf-8", errors="replace"
+    )
     if result.returncode != 0:
         raise CommandError(f"command failed: {shell_join(command)}", result.stderr)
     return result.stdout
