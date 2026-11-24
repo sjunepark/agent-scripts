@@ -1,0 +1,116 @@
+{
+ "set1/A": {
+  "files": [
+   "AGENTS.md",
+   "README.md",
+   "docs/config-format.md",
+   "docs/decisions/0001-use-toml.md",
+   "docs/exit-codes.md",
+   "docs/roadmap.md"
+  ],
+  "A3_missing": [],
+  "A4_agents_exists": true,
+  "A4_agents_release_target": [
+   "README.md"
+  ],
+  "release_section_in": [
+   "README.md"
+  ],
+  "A5_adr_identical": true,
+  "A7_broken_links": [],
+  "readme_has_dev_or_release": true,
+  "links_config_and_exit": true
+ },
+ "set2/A": {
+  "files": [
+   "AGENTS.md",
+   "README.md",
+   "docs/config-format.md",
+   "docs/decisions/0001-use-toml.md",
+   "docs/exit-codes.md",
+   "docs/roadmap.md"
+  ],
+  "A3_missing": [
+   "pip install"
+  ],
+  "A4_agents_exists": true,
+  "A4_agents_release_target": [
+   "README.md"
+  ],
+  "release_section_in": [
+   "README.md"
+  ],
+  "A5_adr_identical": true,
+  "A7_broken_links": [],
+  "readme_has_dev_or_release": true,
+  "links_config_and_exit": true
+ },
+ "set3/A": {
+  "files": [
+   "AGENTS.md",
+   "CONTRIBUTING.md",
+   "README.md",
+   "docs/config-format.md",
+   "docs/decisions/0001-use-toml.md",
+   "docs/exit-codes.md",
+   "docs/roadmap.md"
+  ],
+  "A3_missing": [],
+  "A4_agents_exists": true,
+  "A4_agents_release_target": [
+   "CONTRIBUTING.md"
+  ],
+  "release_section_in": [
+   "CONTRIBUTING.md"
+  ],
+  "A5_adr_identical": true,
+  "A7_broken_links": [],
+  "readme_has_dev_or_release": false,
+  "links_config_and_exit": true
+ },
+ "set4/A": {
+  "files": [
+   "AGENTS.md",
+   "CONTRIBUTING.md",
+   "README.md",
+   "docs/config-format.md",
+   "docs/decisions/0001-use-toml.md",
+   "docs/exit-codes.md",
+   "docs/roadmap.md"
+  ],
+  "A3_missing": [],
+  "A4_agents_exists": true,
+  "A4_agents_release_target": [
+   "CONTRIBUTING.md"
+  ],
+  "release_section_in": [
+   "CONTRIBUTING.md"
+  ],
+  "A5_adr_identical": true,
+  "A7_broken_links": [],
+  "readme_has_dev_or_release": false,
+  "links_config_and_exit": true
+ },
+ "set5/A": {
+  "files": [
+   "AGENTS.md",
+   "README.md",
+   "docs/config-format.md",
+   "docs/decisions/0001-use-toml.md",
+   "docs/exit-codes.md",
+   "docs/roadmap.md"
+  ],
+  "A3_missing": [],
+  "A4_agents_exists": true,
+  "A4_agents_release_target": [
+   "README.md"
+  ],
+  "release_section_in": [
+   "README.md"
+  ],
+  "A5_adr_identical": true,
+  "A7_broken_links": [],
+  "readme_has_dev_or_release": true,
+  "links_config_and_exit": true
+ }
+}

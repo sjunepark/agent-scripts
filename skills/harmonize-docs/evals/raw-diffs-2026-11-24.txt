@@ -1,0 +1,686 @@
+===== round1/set1-A.diff
+ M README.md
+diff --git a/README.md b/README.md
+index 90dd26d..b2abc5b 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ tally counts the words in a text file, optionally filtering by a TOML config.
+ 
+ ## Install
+ 
++tally requires Python 3.11 or later (it uses the standard-library `tomllib`).
++
+ ```
+ pip install tally-words
+ ```
+@@ -15,23 +17,39 @@ tally notes.txt
+ tally notes.txt --config ./my-tally.toml
+ ```
+ 
+-By default tally reads `tally.toml` from the current directory if present.
++tally prints the number of words that remain after filtering. See
++[docs/config-format.md](docs/config-format.md) for config keys, defaults, and the
++default config path, and [docs/exit-codes.md](docs/exit-codes.md) for exit codes.
+ 
+ ## Development
+ 
+-Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+-test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
+-module names in `src/`.
++The repository has no packaging metadata (`pyproject.toml` or `setup.py`), so
++`pip install -e .` is not available. Install the tools the Makefile uses
++directly with `pip install pytest ruff`, and run the CLI from a checkout with
++`python src/tally.py FILE [--config PATH]`.
++
++Run `make test` for the test suite and `make lint` for ruff. Tests live in
++`tests/` and mirror the module names in `src/`.
+ 
+ ## Code layout
+ 
+ - `src/tally.py` holds the CLI entry point, config loading, and counting.
+-- `scripts/bump_version.py` bumps `VERSION` during releases.
++- `scripts/bump_version.py` is meant to bump `VERSION` during releases. It is
++  currently a placeholder that does not change `VERSION`.
++
++## Documentation
++
++- [Config format](docs/config-format.md)
++- [Exit codes](docs/exit-codes.md)
++- [Roadmap](docs/roadmap.md): planned and proposed features
++- [Decision records](docs/decisions/): accepted design decisions
+ 
+ ## Release process
+ 
+ 1. Make sure `make test` and `make lint` pass on `main`.
+-2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
++2. Run `make release`, which runs `scripts/bump_version.py` and then tags
++   `v<version>` from `VERSION`. Because the bump script is still a placeholder,
++   the tag currently uses the existing `VERSION` value unchanged.
+ 3. Push the tag; CI publishes to PyPI.
+ 4. Announce the release in the changelog discussion.
+ 
+===== round1/set1-B.diff
+===== round1/set1-C.diff
+ M README.md
+ M docs/cli.md
+ M src/export.py
+diff --git a/README.md b/README.md
+index 7c3d529..551d3bf 100644
+--- a/README.md
++++ b/README.md
+@@ -3,7 +3,7 @@
+ Exports records from a source database file to CSV.
+ 
+ ```
+-python src/export.py records.db --out records.csv
++python src/export.py records.db --output records.csv
+ ```
+ 
+ See [CLI reference](docs/cli.md). Operators: see docs/deployment.md, docs/ops-notes.md, and docs/runbook.md.
+diff --git a/docs/cli.md b/docs/cli.md
+index fff5b0b..9ab6401 100644
+--- a/docs/cli.md
++++ b/docs/cli.md
+@@ -1,8 +1,8 @@
+ # CLI reference
+ 
+-`export SOURCE [--out FILE] [--delimiter CHAR]`
++`export SOURCE [--output FILE] [--delimiter CHAR]`
+ 
+ | Option | Default | Meaning |
+ | --- | --- | --- |
+-| `--out FILE` | `export.csv` | Output CSV path. |
++| `--output FILE`, `-o FILE` | `export.csv` | Output CSV path. |
+ | `--delimiter CHAR` | `,` | Field delimiter. |
+diff --git a/src/export.py b/src/export.py
+index cad3d1c..70fff65 100644
+--- a/src/export.py
++++ b/src/export.py
+@@ -2,9 +2,9 @@ import argparse
+ def main():
+     p = argparse.ArgumentParser(prog="export")
+     p.add_argument("source")
+-    p.add_argument("--out", default="export.csv", help="output file")
++    p.add_argument("--output", "-o", default="export.csv", help="output file")
+     p.add_argument("--delimiter", default=",")
+     a = p.parse_args()
+-    print(f"exporting {a.source} to {a.out} with {a.delimiter!r}")
++    print(f"exporting {a.source} to {a.output} with {a.delimiter!r}")
+ if __name__ == "__main__":
+     main()
+===== round1/set1-D.diff
+ M README.md
+D  docs/faq.md
+ M docs/ops.md
+diff --git a/README.md b/README.md
+index 499f1d7..2782575 100644
+--- a/README.md
++++ b/README.md
+@@ -2,5 +2,25 @@
+ 
+ pinger polls a URL and posts to a webhook after repeated failures.
+ 
+-Set `PINGER_TARGET` to the URL to check and run `python src/pinger.py`.
+-For alerts, see docs/ops.md. Questions? See docs/faq.md.
++## Usage
++
++pinger is a single Python 3 script with no third-party dependencies:
++
++```sh
++PINGER_TARGET=https://example.com/health python src/pinger.py
++```
++
++It runs in the foreground until stopped. For running it as a service and for
++alert behavior, see [Operating pinger](docs/ops.md).
++
++## Configuration
++
++pinger reads its settings from environment variables at startup.
++
++| Variable | Default | Meaning |
++| --- | --- | --- |
++| `PINGER_TARGET` | required | URL to check. pinger exits with an error if it is unset. |
++| `PINGER_INTERVAL` | `30` | Seconds to wait after each check before the next one. |
++| `PINGER_TIMEOUT` | `5` | Seconds before a check times out. Raise it if a slow target causes false alerts. |
++| `PINGER_FAILS` | `3` | Consecutive failed checks that trigger an alert. |
++| `PINGER_WEBHOOK` | unset | Webhook URL that receives alerts. Without it, pinger sends no alerts. |
+diff --git a/docs/ops.md b/docs/ops.md
+index 8afdd73..11a4fa8 100644
+--- a/docs/ops.md
++++ b/docs/ops.md
+@@ -1,8 +1,26 @@
+ # Operating pinger
+ 
+-Run it under systemd with `Restart=always`.
++Settings and defaults are listed under
++[Configuration](../README.md#configuration).
+ 
+-Set `PINGER_WEBHOOK` to a Slack-compatible incoming webhook URL to receive
+-alerts. pinger posts `{"text":"down"}` once per outage.
++## Running as a service
+ 
+-Polling defaults to every 30 seconds; change it with `PINGER_INTERVAL` (seconds).
++Run pinger under systemd with `Restart=always`. pinger does not catch errors
++from the webhook request, so a failed alert delivery stops the process; the
++restart policy brings it back, and the failure count starts again from zero.
++
++## Alerts
++
++A check fails when the request raises an error: a connection failure, a
++timeout, or an HTTP status of 400 or above. Redirects are followed.
++
++When `PINGER_FAILS` consecutive checks fail, pinger sends one `POST` to
++`PINGER_WEBHOOK` with the body `{"text":"down"}`, the message format of a
++Slack-compatible incoming webhook. It alerts once per outage: it does not repeat the alert while
++the target stays down, and it sends no recovery message. A successful check
++resets the count, so the next outage alerts again.
++
++The request is sent with Python's default
++`application/x-www-form-urlencoded` content type rather than
++`application/json`, so a receiver that requires a JSON content type may reject
++it.
+===== round1/set2-A.diff
+ M README.md
+ M docs/config-format.md
+ M docs/roadmap.md
+diff --git a/README.md b/README.md
+index 90dd26d..c52ec54 100644
+--- a/README.md
++++ b/README.md
+@@ -4,36 +4,56 @@ tally counts the words in a text file, optionally filtering by a TOML config.
+ 
+ ## Install
+ 
+-```
+-pip install tally-words
+-```
++tally requires Python 3.11 or later, because it reads config with the standard
++library's `tomllib`.
++
++This repository does not yet contain packaging metadata or a publish workflow,
++so tally runs from a checkout. Publishing to PyPI as `tally-words` is planned;
++see the [roadmap](docs/roadmap.md).
+ 
+ ## Usage
+ 
+ ```
+-tally notes.txt
+-tally notes.txt --config ./my-tally.toml
++python src/tally.py notes.txt
++python src/tally.py notes.txt --config ./my-tally.toml
+ ```
+ 
+-By default tally reads `tally.toml` from the current directory if present.
++The input file must be the first argument. tally prints the number of words
++that remain after filtering. By default it reads `tally.toml` from the current
++directory if present.
++
++## Documentation
++
++- [Config format](docs/config-format.md): config keys, defaults, and how a
++  missing or malformed file is handled.
++- [Exit codes](docs/exit-codes.md): what each exit status means.
++- [Roadmap](docs/roadmap.md): planned and discussed work that is not
++  implemented.
++- [Decision records](docs/decisions/): accepted design decisions, such as
++  [using TOML](docs/decisions/0001-use-toml.md).
+ 
+ ## Development
+ 
+-Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+-test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
+-module names in `src/`.
++Run `make test` for the test suite (pytest) and `make lint` for ruff; install
++both tools yourself, since there is no dev-dependency manifest yet. Tests live
++in `tests/` and mirror the module names in `src/`.
+ 
+ ## Code layout
+ 
+ - `src/tally.py` holds the CLI entry point, config loading, and counting.
+-- `scripts/bump_version.py` bumps `VERSION` during releases.
++- `scripts/bump_version.py` is the version-bump step that `make release` runs;
++  see the release process for its current state.
+ 
+ ## Release process
+ 
+ 1. Make sure `make test` and `make lint` pass on `main`.
+-2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
+-3. Push the tag; CI publishes to PyPI.
+-4. Announce the release in the changelog discussion.
++2. Set the new version in `VERSION` and commit it. The bump script does not do
++   this yet.
++3. Run `make release`, which runs the bump script and tags `v<version>` from
++   `VERSION` on the current commit.
++4. Push the tag. No CI publish workflow exists in this repository yet, so
++   pushing the tag does not publish a package.
++5. Announce the release in the changelog discussion.
+ 
+ ## License
+ 
+diff --git a/docs/config-format.md b/docs/config-format.md
+index 90e6a61..06acda4 100644
+--- a/docs/config-format.md
++++ b/docs/config-format.md
+@@ -8,4 +8,7 @@ tally reads an optional TOML file (`tally.toml` by default, or `--config PATH`).
+ | `min_length` | int | `1` | Drop words shorter than this. |
+ | `stopwords` | list of strings | `[]` | Words to exclude. |
+ 
++Stopwords are compared exactly as written. With `ignore_case = true`, words are
++lowercased before the comparison, so write stopwords in lowercase.
++
+ A missing file uses the defaults. A malformed file exits with code 2.
+diff --git a/docs/roadmap.md b/docs/roadmap.md
+index e644897..6eb017c 100644
+--- a/docs/roadmap.md
++++ b/docs/roadmap.md
+@@ -1,4 +1,10 @@
+ # Roadmap
+ 
+ - **Planned, not implemented:** `--format json` output with per-word counts.
++- **Planned, not implemented:** PyPI distribution as `tally-words`: packaging
++  metadata with a `tally` console command and a `dev` extra, and a CI workflow
++  that publishes when a release tag is pushed.
++- **Planned, not implemented:** `scripts/bump_version.py` bumping `VERSION`
++  during `make release`. It is a placeholder today, and `make release` tags
++  without committing a bumped `VERSION`.
+ - **Under discussion:** reading from stdin when no file is given.
+===== round1/set2-B.diff
+===== round1/set2-C.diff
+ M README.md
+ M docs/cli.md
+ M src/export.py
+diff --git a/README.md b/README.md
+index 7c3d529..551d3bf 100644
+--- a/README.md
++++ b/README.md
+@@ -3,7 +3,7 @@
+ Exports records from a source database file to CSV.
+ 
+ ```
+-python src/export.py records.db --out records.csv
++python src/export.py records.db --output records.csv
+ ```
+ 
+ See [CLI reference](docs/cli.md). Operators: see docs/deployment.md, docs/ops-notes.md, and docs/runbook.md.
+diff --git a/docs/cli.md b/docs/cli.md
+index fff5b0b..9ab6401 100644
+--- a/docs/cli.md
++++ b/docs/cli.md
+@@ -1,8 +1,8 @@
+ # CLI reference
+ 
+-`export SOURCE [--out FILE] [--delimiter CHAR]`
++`export SOURCE [--output FILE] [--delimiter CHAR]`
+ 
+ | Option | Default | Meaning |
+ | --- | --- | --- |
+-| `--out FILE` | `export.csv` | Output CSV path. |
++| `--output FILE`, `-o FILE` | `export.csv` | Output CSV path. |
+ | `--delimiter CHAR` | `,` | Field delimiter. |
+diff --git a/src/export.py b/src/export.py
+index cad3d1c..70fff65 100644
+--- a/src/export.py
++++ b/src/export.py
+@@ -2,9 +2,9 @@ import argparse
+ def main():
+     p = argparse.ArgumentParser(prog="export")
+     p.add_argument("source")
+-    p.add_argument("--out", default="export.csv", help="output file")
++    p.add_argument("--output", "-o", default="export.csv", help="output file")
+     p.add_argument("--delimiter", default=",")
+     a = p.parse_args()
+-    print(f"exporting {a.source} to {a.out} with {a.delimiter!r}")
++    print(f"exporting {a.source} to {a.output} with {a.delimiter!r}")
+ if __name__ == "__main__":
+     main()
+===== round1/set2-D.diff
+ M README.md
+D  docs/faq.md
+ M docs/ops.md
+diff --git a/README.md b/README.md
+index 499f1d7..54121e5 100644
+--- a/README.md
++++ b/README.md
+@@ -3,4 +3,7 @@
+ pinger polls a URL and posts to a webhook after repeated failures.
+ 
+ Set `PINGER_TARGET` to the URL to check and run `python src/pinger.py`.
+-For alerts, see docs/ops.md. Questions? See docs/faq.md.
++Set `PINGER_WEBHOOK` to receive alerts.
++
++[docs/ops.md](docs/ops.md) covers supervision, every setting and its default,
++and exactly when alerts fire.
+diff --git a/docs/ops.md b/docs/ops.md
+index 8afdd73..1127502 100644
+--- a/docs/ops.md
++++ b/docs/ops.md
+@@ -1,8 +1,40 @@
+ # Operating pinger
+ 
+-Run it under systemd with `Restart=always`.
++This page owns pinger's configuration and alerting behavior. Defaults below
++match `src/pinger.py`.
+ 
+-Set `PINGER_WEBHOOK` to a Slack-compatible incoming webhook URL to receive
+-alerts. pinger posts `{"text":"down"}` once per outage.
++## Running
+ 
+-Polling defaults to every 30 seconds; change it with `PINGER_INTERVAL` (seconds).
++pinger uses only the Python 3 standard library. Run it under a supervisor such
++as systemd with `Restart=always`: the process exits on an unset `PINGER_TARGET`
++and whenever an alert post fails (see [Alerting](#alerting)).
++
++## Configuration
++
++All settings are environment variables.
++
++| Variable | Default | Meaning |
++| --- | --- | --- |
++| `PINGER_TARGET` | required | URL to check. |
++| `PINGER_WEBHOOK` | unset | Webhook URL that receives alerts. When unset, pinger checks but never alerts. |
++| `PINGER_FAILS` | `3` | Consecutive failed checks that trigger an alert. Use a positive integer. |
++| `PINGER_TIMEOUT` | `5` | Seconds to wait for the target before a check fails. Raise it if a slow target keeps alerting. |
++| `PINGER_INTERVAL` | `30` | Seconds to wait after each check before the next one. |
++
++A check fails on any error opening the target: connection failure, timeout, or
++an HTTP 4xx/5xx response.
++
++## Alerting
++
++pinger posts the body `{"text":"down"}` to `PINGER_WEBHOOK` once per outage:
++on the `PINGER_FAILS`-th consecutive failure. A successful check resets the
++count, so the next outage alerts again. There is no recovery message.
++
++The failure count lives in memory, so a restart during an ongoing outage sends
++another alert after `PINGER_FAILS` more failures.
++
++pinger does not set a `Content-Type` header, so Python sends the JSON body as
++`application/x-www-form-urlencoded`. Confirm that your webhook receiver accepts
++that before relying on it.
++
++If the alert post fails, pinger exits with an error; the supervisor restarts it.
+===== round2/set3-A.diff
+ M AGENTS.md
+ A CONTRIBUTING.md
+ M README.md
+diff --git a/AGENTS.md b/AGENTS.md
+index 4d699fe..225373d 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,5 +1,5 @@
+ # Agent instructions
+ 
+ - Run `make test` and `make lint` before proposing changes.
+-- When asked to cut a release, follow the "Release process" section in README.md exactly.
++- When asked to cut a release, follow the "Release process" section in CONTRIBUTING.md exactly.
+ - Do not edit files under docs/decisions/; they are accepted decision records.
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..fa86abd
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,32 @@
++# Contributing to tally
++
++This guide is for maintainers: development setup, code layout, and releases.
++For using tally, see the [README](README.md).
++
++## Development
++
++tally needs Python 3.11 or later, because config loading uses the standard
++library's `tomllib`. Development also needs `pytest` and `ruff`.
++
++The repository has no packaging metadata (`pyproject.toml` or `setup.py`), so
++install the tools directly, for example `pip install pytest ruff`.
++
++Run `make test` for the test suite and `make lint` for ruff. Tests live in
++`tests/` and mirror the module names in `src/`.
++
++## Code layout
++
++- `src/tally.py` holds the CLI entry point, config loading, and counting.
++- `scripts/bump_version.py` is the release hook that `make release` runs before
++  tagging.
++- `VERSION` holds the current version string used for the release tag.
++
++## Release process
++
++1. Make sure `make test` and `make lint` pass on `main`.
++2. Run `make release`, which runs `scripts/bump_version.py` and then tags
++   `v<version>` from `VERSION`. The bump script is currently a placeholder that
++   leaves `VERSION` unchanged, so the tag uses whatever `VERSION` already
++   contains.
++3. Push the tag; CI publishes to PyPI.
++4. Announce the release in the changelog discussion.
+diff --git a/README.md b/README.md
+index 90dd26d..23eca99 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ tally counts the words in a text file, optionally filtering by a TOML config.
+ 
+ ## Install
+ 
++tally requires Python 3.11 or later.
++
+ ```
+ pip install tally-words
+ ```
+@@ -15,25 +17,19 @@ tally notes.txt
+ tally notes.txt --config ./my-tally.toml
+ ```
+ 
+-By default tally reads `tally.toml` from the current directory if present.
+-
+-## Development
+-
+-Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+-test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
+-module names in `src/`.
+-
+-## Code layout
++tally prints the number of words that remain after filtering. By default it
++reads `tally.toml` from the current directory if present.
+ 
+-- `src/tally.py` holds the CLI entry point, config loading, and counting.
+-- `scripts/bump_version.py` bumps `VERSION` during releases.
++## Documentation
+ 
+-## Release process
++- [Config format](docs/config-format.md): config keys, defaults, and error
++  handling.
++- [Exit codes](docs/exit-codes.md): what each exit status means.
++- [Roadmap](docs/roadmap.md): planned and proposed features.
++- [Decision records](docs/decisions/): accepted design decisions.
+ 
+-1. Make sure `make test` and `make lint` pass on `main`.
+-2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
+-3. Push the tag; CI publishes to PyPI.
+-4. Announce the release in the changelog discussion.
++Development setup, code layout, and the release process are in
++[CONTRIBUTING.md](CONTRIBUTING.md).
+ 
+ ## License
+ 
+===== round2/set3-B.diff
+===== round2/set4-A.diff
+ M AGENTS.md
+ A CONTRIBUTING.md
+ M README.md
+ M docs/config-format.md
+ M docs/exit-codes.md
+ M docs/roadmap.md
+diff --git a/AGENTS.md b/AGENTS.md
+index 4d699fe..225373d 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,5 +1,5 @@
+ # Agent instructions
+ 
+ - Run `make test` and `make lint` before proposing changes.
+-- When asked to cut a release, follow the "Release process" section in README.md exactly.
++- When asked to cut a release, follow the "Release process" section in CONTRIBUTING.md exactly.
+ - Do not edit files under docs/decisions/; they are accepted decision records.
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..ea2a325
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,34 @@
++# Contributing
++
++## Development
++
++tally needs Python 3.11 or later because it uses the standard-library
++`tomllib`. Install `pytest` and `ruff`, then run:
++
++- `make test` for the test suite.
++- `make lint` for ruff.
++
++The repository contains no package metadata (`pyproject.toml` or `setup.py`),
++so an editable install is not available from a checkout. Run the CLI from source
++with `python src/tally.py FILE [--config PATH]`.
++
++## Code layout
++
++- `src/tally.py` holds the CLI entry point, config loading, and counting. Its
++  exit-code constants are documented in [docs/exit-codes.md](docs/exit-codes.md),
++  and its config keys in [docs/config-format.md](docs/config-format.md); update
++  those pages when the behavior changes.
++- `tests/` mirrors the module names in `src/`.
++- `scripts/bump_version.py` is the release version-bump step.
++- `docs/decisions/` holds accepted decision records, which are not edited.
++
++## Release process
++
++1. Make sure `make test` and `make lint` pass on `main`.
++2. Set `VERSION` to the new version and commit it on `main`.
++   `scripts/bump_version.py` is currently a placeholder that does not change
++   `VERSION`, so this manual step is required until the script is implemented.
++3. Run `make release`, which runs the bump script and tags `v<version>` from
++   the contents of `VERSION`.
++4. Push the tag; CI publishes to PyPI.
++5. Announce the release in the changelog discussion.
+diff --git a/README.md b/README.md
+index 90dd26d..174914e 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ tally counts the words in a text file, optionally filtering by a TOML config.
+ 
+ ## Install
+ 
++tally requires Python 3.11 or later.
++
+ ```
+ pip install tally-words
+ ```
+@@ -15,25 +17,15 @@ tally notes.txt
+ tally notes.txt --config ./my-tally.toml
+ ```
+ 
+-By default tally reads `tally.toml` from the current directory if present.
+-
+-## Development
+-
+-Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+-test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
+-module names in `src/`.
+-
+-## Code layout
+-
+-- `src/tally.py` holds the CLI entry point, config loading, and counting.
+-- `scripts/bump_version.py` bumps `VERSION` during releases.
++tally prints the number of words that remain after filtering. By default it
++reads `tally.toml` from the current directory if present.
+ 
+-## Release process
++## Documentation
+ 
+-1. Make sure `make test` and `make lint` pass on `main`.
+-2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
+-3. Push the tag; CI publishes to PyPI.
+-4. Announce the release in the changelog discussion.
++- [Config format](docs/config-format.md): the keys tally reads and their defaults.
++- [Exit codes](docs/exit-codes.md): what each exit status means, for scripts.
++- [Roadmap](docs/roadmap.md): planned and proposed features.
++- [Contributing](CONTRIBUTING.md): development setup, code layout, and releases.
+ 
+ ## License
+ 
+diff --git a/docs/config-format.md b/docs/config-format.md
+index 90e6a61..959860f 100644
+--- a/docs/config-format.md
++++ b/docs/config-format.md
+@@ -8,4 +8,8 @@ tally reads an optional TOML file (`tally.toml` by default, or `--config PATH`).
+ | `min_length` | int | `1` | Drop words shorter than this. |
+ | `stopwords` | list of strings | `[]` | Words to exclude. |
+ 
+-A missing file uses the defaults. A malformed file exits with code 2.
++Stopwords themselves are not lowercased. When `ignore_case` is true, words are
++lowercased before the comparison, so list stopwords in lowercase.
++
++A missing file uses the defaults, including a path given with `--config`. A
++malformed file exits with code 2 (see [exit codes](exit-codes.md)).
+diff --git a/docs/exit-codes.md b/docs/exit-codes.md
+index 803404d..65ea255 100644
+--- a/docs/exit-codes.md
++++ b/docs/exit-codes.md
+@@ -6,3 +6,7 @@
+ | 1 | Usage error (no file given) |
+ | 2 | Config file could not be parsed |
+ | 3 | Input file could not be read |
++
++Errors tally does not handle currently end with a Python traceback and status 1,
++the same code as a usage error. Examples are `--config` given without a path and
++an input file that cannot be decoded with the platform's default text encoding.
+diff --git a/docs/roadmap.md b/docs/roadmap.md
+index e644897..3df015d 100644
+--- a/docs/roadmap.md
++++ b/docs/roadmap.md
+@@ -2,3 +2,6 @@
+ 
+ - **Planned, not implemented:** `--format json` output with per-word counts.
+ - **Under discussion:** reading from stdin when no file is given.
++- **Intended, not implemented:** `scripts/bump_version.py` bumping `VERSION`
++  during `make release`; it is a placeholder today (see the
++  [release process](../CONTRIBUTING.md#release-process)).
+===== round2/set5-A.diff
+ M README.md
+ M docs/config-format.md
+diff --git a/README.md b/README.md
+index 90dd26d..333859e 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ tally counts the words in a text file, optionally filtering by a TOML config.
+ 
+ ## Install
+ 
++tally requires Python 3.11 or later (it uses the standard-library `tomllib`).
++
+ ```
+ pip install tally-words
+ ```
+@@ -17,6 +19,14 @@ tally notes.txt --config ./my-tally.toml
+ 
+ By default tally reads `tally.toml` from the current directory if present.
+ 
++## Documentation
++
++- [Config format](docs/config-format.md): the keys tally reads from its TOML config.
++- [Exit codes](docs/exit-codes.md): what each process exit status means.
++- [Roadmap](docs/roadmap.md): planned and proposed features that are not implemented yet.
++- [Decision records](docs/decisions/): accepted design decisions, such as
++  [using TOML](docs/decisions/0001-use-toml.md).
++
+ ## Development
+ 
+ Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+diff --git a/docs/config-format.md b/docs/config-format.md
+index 90e6a61..9c28076 100644
+--- a/docs/config-format.md
++++ b/docs/config-format.md
+@@ -8,4 +8,4 @@ tally reads an optional TOML file (`tally.toml` by default, or `--config PATH`).
+ | `min_length` | int | `1` | Drop words shorter than this. |
+ | `stopwords` | list of strings | `[]` | Words to exclude. |
+ 
+-A missing file uses the defaults. A malformed file exits with code 2.
++A missing file uses the defaults. A malformed file exits with code 2 (see [Exit codes](exit-codes.md)).

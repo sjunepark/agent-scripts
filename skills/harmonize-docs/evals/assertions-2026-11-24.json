@@ -1,0 +1,50 @@
+{
+  "frozen_before_trials": true,
+  "conditions": {"k3": "baseline 1670f7a", "m8": "candidate (structural assessment)"},
+  "assignment": {"set1/A": "k3", "set2/A": "m8", "set1/B": "m8", "set2/B": "k3", "set1/C": "k3", "set2/C": "m8", "set1/D": "m8", "set2/D": "k3"},
+  "cases": {
+    "A": {
+      "prompt": "Use $harmonize-docs on this repository.",
+      "hard_because": "Every claim is accurate and noncontradictory; the defects are reader-path defects the prompt never names.",
+      "assertions": {
+        "A1": "Discovers the audience mix: maintainer-only material (development, code layout, release process) is moved out of the user-facing README path (for example to CONTRIBUTING.md or a maintainer doc) or the README is otherwise restructured so users reach install/usage without maintainer material. Equivalent layouts pass.",
+        "A2": "Surfaces docs/config-format.md and docs/exit-codes.md from an entry point (README link or a docs index). Merging their content into a linked owner also passes.",
+        "A3": "Preserves all useful content: install, usage, every config key with default, all four exit codes, release steps 1-4, development commands, roadmap items, license.",
+        "A4": "Instruction routing preserved: AGENTS.md still exists at the root and its release instruction points to wherever the release steps now live (or the steps remain in README).",
+        "A5": "docs/decisions/0001-use-toml.md is byte-identical to the fixture.",
+        "A6": "Roadmap items remain framed as planned or under discussion, not as implemented behavior.",
+        "A7": "Every relative Markdown link in the result resolves.",
+        "A8": "The final report states the structural disposition (what moved and why)."
+      }
+    },
+    "B": {
+      "prompt": "Use $harmonize-docs on this repository.",
+      "hard_because": "A stronger structural prompt could tempt cosmetic moves or new indexes in an already healthy repository.",
+      "assertions": {
+        "B1": "No new documentation files created and no documentation files moved, renamed, or deleted.",
+        "B2": "No new categories, indexes, or sections added to the existing documents; small wording fixes are acceptable.",
+        "B3": "The report says the structure was retained (or equivalently reports no topology change) without manufacturing problems."
+      }
+    },
+    "C": {
+      "prompt": "Use $harmonize-docs changes",
+      "hard_because": "The unrelated ops docs visibly overlap, tempting a scoped run into a repository-wide restructure.",
+      "assertions": {
+        "C1": "docs/cli.md and the README usage example document --output (and -o) instead of --out.",
+        "C2": "docs/deployment.md, docs/ops-notes.md, and docs/runbook.md are unchanged, and the README operator line still lists the same three files.",
+        "C3": "The report mentions the overlapping ops documents as a separate follow-up concern, or makes no claim about them; it does not claim to have restructured them.",
+        "C4": "src/export.py is unchanged from the working-tree state given to the agent."
+      }
+    },
+    "D": {
+      "prompt": "Use $harmonize-docs on this repository.",
+      "hard_because": "Holdout independent of the observed mytech example: no audience mix, but the configuration reference is scattered across README, ops, and FAQ with no single owner.",
+      "assertions": {
+        "D1": "All five PINGER_* variables with their defaults (TARGET required, INTERVAL 30, TIMEOUT 5, WEBHOOK unset, FAILS 3) are documented together in one canonical location reachable from README.",
+        "D2": "Other documents link to that location rather than each carrying a separate partial reference.",
+        "D3": "Useful content preserved: systemd Restart=always, webhook payload, once-per-outage behavior, slow-target advice.",
+        "D4": "Every relative Markdown link in the result resolves."
+      }
+    }
+  }
+}
