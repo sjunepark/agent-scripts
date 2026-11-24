@@ -63,6 +63,14 @@ within their scope.
 - In interfaces, use typography, spacing, alignment, and contrast for hierarchy.
   Avoid unnecessary nested panels; keep controls usable on desktop and mobile.
 
+## Deliverable text
+
+In documents, spreadsheets, and slides written for people, use punctuation
+typed on a standard keyboard: commas rather than middle dots (·) for lists,
+hyphens rather than en or em dashes, "(1)" rather than ①, and plain wording
+rather than →, ※, ▶, or ✓. Keep symbols that units, currency, or formulas
+require.
+
 ## Delegation
 
 Use subagents for bounded reconnaissance or independent work when they reduce
