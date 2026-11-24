@@ -1,10 +1,29 @@
 # sjskills standalone release delivery
 
-Status: `sjskills-v1.6.0` published as an immutable release on 2026-11-24 (KST).
+Status: `sjskills-v1.7.0` published as an immutable release on 2026-11-24 (KST).
 Hosted verification is working; unattended hosted publication still needs a
 suitable GitHub identity.
 
 ## Published releases
+
+- [sjskills-v1.7.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.7.0)
+  points to `1793abf5b858935fce5de47e7093b45bbf4d537b` and is immutable.
+  It records skill trees as `tree-sha256-v3`, which ignores the executable bit,
+  and forces `core.symlinks=false`, so committed placements hash the same on
+  every host (merged PR #50). The first apply rewrites verified v2 records.
+  Version 1.6.0 accepts only v2 records and cannot read state written by 1.7.0.
+- The [v1.7.0 release run](https://github.com/sjunepark/agent-scripts/actions/runs/45297560301)
+  passed native reconciliation and installer checks on macOS amd64, macOS arm64,
+  and Windows amd64 with `publish=false`.
+- Publication used the exact CI artifacts. Tag/commit identity, `SHA256SUMS`,
+  and archive contents were verified locally with `scripts/release.py`.
+  `scripts/publish-release.py` created draft ID `456164397` and uploaded all
+  six assets, then stopped at its by-tag lookup, which cannot see drafts. Every
+  server-side digest was matched by release ID before the draft was published.
+- The published installer updated `%LOCALAPPDATA%\sjskillsin\sjskills.exe`
+  on the Windows development machine to v1.7.0. Its binary matches the verified
+  windows/amd64 archive, with SHA-256
+  `eb8a4bd30ac45a9df2185cfd062c3efeaf7cd455b10917a66fc4ac1ee9128b93`.
 
 - [sjskills-v1.6.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.6.0)
   points to `0975d3d4dc4fc76ffbdee120c3ca32491ad6a162` and is immutable.
