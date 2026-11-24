@@ -27,7 +27,7 @@ for run in sys.argv[2:]:
     readme = d.get("README.md", "")
     release_home = [n for n, t in d.items() if "Release process" in t and n != "AGENTS.md"]
     agents = d.get("AGENTS.md", "")
-    out[run.split("hd/")[-1]] = {
+    out["/".join(pathlib.Path(run).parts[-2:])] = {
         "files": sorted(d),
         "A3_missing": missing,
         "A4_agents_exists": "AGENTS.md" in d,

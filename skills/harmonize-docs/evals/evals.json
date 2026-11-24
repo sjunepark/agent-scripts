@@ -39,6 +39,12 @@
       "id": 7,
       "prompt": "Use $harmonize-docs on this repository. (Fixture: the published docs site builds from docs/api/, which mixes end-user API guides with internal maintainer notes; repository evidence conflicts on whether external links into docs/api/ must stay stable.)",
       "expected_output": "Unresolved consequential choice. The agent completes independent accuracy and navigation fixes, presents the concrete audience/stable-path tradeoff, and asks one targeted question only for the dependent move instead of either silently restructuring the published boundary or adding a blanket approval round. Not yet run."
+    },
+    {
+      "id": 8,
+      "fixture": "make-fixtures.sh case E",
+      "prompt": "Use $harmonize-docs on this repository.",
+      "expected_output": "Over-reach gate for the reader-path criterion. A small README ends with a two-sentence Contributing note that is appropriate where it is. The agent keeps it in place, creates no CONTRIBUTING.md or other document, and reports the structure as retained."
     }
   ]
 }

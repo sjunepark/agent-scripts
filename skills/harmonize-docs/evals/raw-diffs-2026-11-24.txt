@@ -684,3 +684,98 @@ index 90e6a61..9c28076 100644
  
 -A missing file uses the defaults. A malformed file exits with code 2.
 +A missing file uses the defaults. A malformed file exits with code 2 (see [Exit codes](exit-codes.md)).
+===== round3/set6-A.diff
+ M AGENTS.md
+ A CONTRIBUTING.md
+ M README.md
+diff --git a/AGENTS.md b/AGENTS.md
+index 4d699fe..225373d 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,5 +1,5 @@
+ # Agent instructions
+ 
+ - Run `make test` and `make lint` before proposing changes.
+-- When asked to cut a release, follow the "Release process" section in README.md exactly.
++- When asked to cut a release, follow the "Release process" section in CONTRIBUTING.md exactly.
+ - Do not edit files under docs/decisions/; they are accepted decision records.
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..38bac7f
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,33 @@
++# Contributing to tally
++
++This guide is for maintainers. User-facing usage lives in the [README](README.md).
++
++## Development
++
++Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
++test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
++module names in `src/`.
++
++## Code layout
++
++- `src/tally.py` holds the CLI entry point, config loading, and counting.
++- `scripts/bump_version.py` bumps `VERSION` during releases.
++- `docs/decisions/` holds accepted decision records; do not edit them.
++
++## Release process
++
++1. Make sure `make test` and `make lint` pass on `main`.
++2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
++3. Push the tag; CI publishes to PyPI.
++4. Announce the release in the changelog discussion.
++
++## Current gaps
++
++These differ from the procedures above in the current tree:
++
++- There is no `pyproject.toml`, so `pip install -e .[dev]` does not work yet.
++- `scripts/bump_version.py` is a placeholder; `make release` currently tags the
++  existing `VERSION` without bumping it.
++- `tests/test_tally.py` contains only a placeholder test.
++- No CI configuration is checked in, so the PyPI publish step is not defined
++  in this repository.
+diff --git a/README.md b/README.md
+index 90dd26d..5cbca57 100644
+--- a/README.md
++++ b/README.md
+@@ -15,25 +15,18 @@ tally notes.txt
+ tally notes.txt --config ./my-tally.toml
+ ```
+ 
+-By default tally reads `tally.toml` from the current directory if present.
++By default tally reads `tally.toml` from the current directory if present. See
++the [config format](docs/config-format.md) for the available keys.
+ 
+-## Development
++## Documentation
+ 
+-Install dev dependencies with `pip install -e .[dev]`. Run `make test` for the
+-test suite and `make lint` for ruff. Tests live in `tests/` and mirror the
+-module names in `src/`.
++- [Config format](docs/config-format.md): config keys, defaults, and error handling.
++- [Exit codes](docs/exit-codes.md): what each exit status means.
++- [Roadmap](docs/roadmap.md): planned and discussed features that are not implemented.
++- [Decision records](docs/decisions/): accepted design decisions.
+ 
+-## Code layout
+-
+-- `src/tally.py` holds the CLI entry point, config loading, and counting.
+-- `scripts/bump_version.py` bumps `VERSION` during releases.
+-
+-## Release process
+-
+-1. Make sure `make test` and `make lint` pass on `main`.
+-2. Run `make release`, which bumps `VERSION` and tags `v<version>`.
+-3. Push the tag; CI publishes to PyPI.
+-4. Announce the release in the changelog discussion.
++Maintainers: development setup, code layout, and the release process are in
++[CONTRIBUTING.md](CONTRIBUTING.md).
+ 
+ ## License
+ 
+===== round3/set6-E.diff
+===== round3/set7-E.diff

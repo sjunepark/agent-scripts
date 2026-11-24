@@ -243,7 +243,9 @@ When the nightly export fails: check disk space on the reporting host, read
 /var/log/export.log, and rerun manually with `python src/export.py`.
 EOF
 commit
-sed -i 's/"--out", default/"--output", "-o", default/; s/a\.out/a.output/' src/export.py
+# Portable in-place edit (BSD sed lacks GNU's bare -i).
+sed 's/"--out", default/"--output", "-o", default/; s/a\.out/a.output/' src/export.py > src/export.py.new
+mv src/export.py.new src/export.py
 cd ..
 
 # ---------- D (holdout): configuration reference scattered across README, ops, FAQ
@@ -299,6 +301,50 @@ set `PINGER_FAILS` to change it.
 default 5).
 
 **Does pinger alert again while still down?** No, once per outage.
+EOF
+commit
+cd ..
+
+# ---------- E: small README whose brief contributor note is appropriate (retain)
+mkdir -p E/src E/docs
+cd E
+cat > src/notes.py <<'EOF'
+import json, sys
+def main():
+    path = sys.argv[1] if len(sys.argv) > 1 else "notes.json"
+    with open(path, encoding="utf-8") as f:
+        notes = json.load(f)
+    for note in notes:
+        print(f"- {note['title']}")
+if __name__ == "__main__":
+    main()
+EOF
+cat > README.md <<'EOF'
+# notes
+
+Lists the titles in a JSON notes file.
+
+```
+python src/notes.py my-notes.json
+```
+
+Without an argument it reads `notes.json`. The file format is described in
+[docs/format.md](docs/format.md).
+
+## Contributing
+
+Run `python src/notes.py` against a sample file to check changes, and open a
+pull request against `main`.
+EOF
+cat > docs/format.md <<'EOF'
+# Notes file format
+
+A JSON array of objects. Each object needs a string `title`; other keys are
+ignored.
+
+```json
+[{"title": "Groceries"}, {"title": "Ideas", "tags": ["misc"]}]
+```
 EOF
 commit
 cd ..

@@ -57,8 +57,9 @@ route readers poorly, so consistent claims do not settle this:
 
 - **Reader paths:** each audience reaches what it needs from a suitable entry
   point without reading material meant for another audience or reconstructing
-  the route. A user-facing entry point that also carries maintainer procedures
-  is friction even when every section is accurate and the repository is small.
+  the route. Maintainer procedures beyond a short pointer in a user-facing entry
+  point are friction even when every section is accurate and the repository is
+  small.
 - **Document boundaries:** mixed purposes or audiences, overlapping ownership,
   scattered explanations, or mismatched lifecycles.
 - **Net benefit:** a change must materially improve discovery, comprehension, or
@@ -67,17 +68,17 @@ route readers poorly, so consistent claims do not settle this:
 Reach a proportionate change-or-retain decision grounded in concrete reader
 friction; retaining a structure that works is a valid outcome. Rewrite, merge,
 split, move, or remove material when that decision warrants it, and create a
-document only for a distinct durable responsibility. Apply justified in-scope
-changes without a separate approval round; ask only about a consequential choice
-the evidence cannot resolve. Preserve tool-recognized instruction discovery and
-precedence when changing those files.
+document only for a distinct durable responsibility. Ask only about a
+consequential choice the evidence cannot resolve. Preserve tool-recognized
+instruction discovery and precedence when changing those files.
 
 For creating, rewriting, splitting, merging, or moving `ARCHITECTURE.md`, read
 the [architecture documentation guide](guides/architecture-docs.md). Keep target
 architecture visibly framed, and let plans own delivery order and remaining work
 instead of making architecture a second roadmap.
 
-Apply the coherent result directly. Integrate updates where they belong, prune
+Apply the coherent result directly, including justified in-scope structural
+changes, without a separate approval round. Integrate updates where they belong, prune
 superseded statements and transcript-like history, and repair affected links,
 commands, terminology, and navigation. Preserve useful intent even when its
 original wording or location no longer fits. Stage, commit, and push only when
@@ -97,5 +98,6 @@ checks, and fix failures caused by the rewrite.
 
 Report meaningful corrections, the structural disposition (each topology change
 and the reader problem it solves, or briefly why the structure was retained when
-that is material), validation, and unresolved limits. Finish when the scoped documents agree and readers can find
-what exists, what is intended, and what remains.
+that is material), validation, and unresolved limits. Finish when the scoped
+documents agree and readers can find what exists, what is intended, and what
+remains.
