@@ -155,8 +155,14 @@ The tree identity does not depend on the host either. Provenance, plans, and
 quarantine evidence use `tree-sha256-v3`, which hashes directories, paths, file
 bytes, and symlink targets but not the executable bit, which Windows cannot
 represent. A committed placement therefore hashes the same after a Windows
-checkout as on macOS and Linux. Installs still keep a source's executable bits
-where the filesystem supports them. Because of `core.symlinks=false`, a
+checkout as on macOS and Linux. Installs and updates still copy a source's
+executable bits where the filesystem supports them, but a change to the bit
+alone is not a change to the identity. On macOS and Linux, a source commit that
+only makes a file executable or not executable leaves existing placements
+reported as unchanged, with their old modes. A local `chmod` on a placement is
+not reported either. To pick up such a source change, remove the skill from
+`sjskills.toml`, apply, then restore the entry and apply again. Because of
+`core.symlinks=false`, a
 symlink committed in a source installs on every host as a regular file that
 holds its target path, which is what Git for Windows writes by default. Before
 this, macOS and Linux installed a copy of the linked content instead. A skill
