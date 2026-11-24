@@ -6,6 +6,11 @@ NEEDLES = ["pip install", "ignore_case", "min_length", "stopwords", "make test",
            "make release", "Push the tag", "changelog", "--format json", "stdin", "MIT",
            "| 0 |", "| 1 |", "| 2 |", "| 3 |"]
 
+ADR = "docs/decisions/0001-use-toml.md"
+# Read up front so a wrong pristine path always fails, even if every run
+# deleted its own copy.
+PRISTINE_ADR = (PRISTINE / ADR).read_bytes()
+
 def docs(root):
     return {p.relative_to(root).as_posix(): p.read_text(encoding="utf-8")
             for p in root.rglob("*.md") if ".git" not in p.parts}
@@ -23,7 +28,6 @@ for run in sys.argv[2:]:
                 continue
             if not (root / name).parent.joinpath(target).resolve().exists():
                 broken.append(f"{name} -> {target}")
-    adr = "docs/decisions/0001-use-toml.md"
     readme = d.get("README.md", "")
     release_home = [n for n, t in d.items() if "Release process" in t and n != "AGENTS.md"]
     agents = d.get("AGENTS.md", "")
@@ -33,10 +37,9 @@ for run in sys.argv[2:]:
         "A4_agents_exists": "AGENTS.md" in d,
         "A4_agents_release_target": re.findall(r"in ([A-Za-z./-]+\.md)", agents),
         "release_section_in": release_home,
-        # A deleted ADR is a failed run, not a checker crash; a missing
-        # pristine ADR still raises because the invocation is wrong.
-        "A5_adr_identical": (root / adr).is_file()
-        and (root / adr).read_bytes() == (PRISTINE / adr).read_bytes(),
+        # A deleted ADR is a failed run, not a checker crash.
+        "A5_adr_identical": (root / ADR).is_file()
+        and (root / ADR).read_bytes() == PRISTINE_ADR,
         "A7_broken_links": broken,
         "readme_has_dev_or_release": any(h in readme for h in ("## Release process", "## Code layout", "## Development")),
         "links_config_and_exit": "config-format.md" in readme and "exit-codes.md" in readme,
