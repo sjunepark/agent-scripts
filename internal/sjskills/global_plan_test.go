@@ -65,6 +65,17 @@ func writeGlobalSkill(t *testing.T, root, name, content string) TreeHash {
 	return hash
 }
 
+// legacyTreeHash is the tree-sha256-v2 digest a release before tree-sha256-v3
+// recorded for path; legacy version 1 global state only ever carried it.
+func legacyTreeHash(t *testing.T, path string) TreeHash {
+	t.Helper()
+	hash, err := hashSkillTreeAs(path, TreeHashAlgorithmSHA256V2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return hash
+}
+
 type legacyGlobalRecordFixture struct {
 	Root          string    `json:"root"`
 	Skill         string    `json:"skill"`
@@ -129,7 +140,8 @@ func TestInspectGlobalUsesOnlyFixedRootsAndMigratesStrictLegacyState(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	agentsHash := writeGlobalSkill(t, layout.AgentsSkillsPath, "base", "agents\n")
+	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "base", "agents\n")
+	agentsLegacy := legacyTreeHash(t, filepath.Join(layout.AgentsSkillsPath, "base"))
 	_ = writeGlobalSkill(t, layout.ClaudeSkillsPath, "base", "claude\n")
 	_ = writeGlobalSkill(t, layout.LegacyPiSkillsPath, "legacy", "legacy\n")
 	for _, path := range []string{layout.LegacyQuarantinePath, layout.CodexSystemSkillsPath, layout.CodexPluginCachePath} {
@@ -147,7 +159,7 @@ func TestInspectGlobalUsesOnlyFixedRootsAndMigratesStrictLegacyState(t *testing.
 	}
 	recordedAt := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, layout.ProvenanceStatePath, []legacyGlobalRecordFixture{{
-		Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: agentsHash.Algorithm, Hash: agentsHash.Digest, RecordedAt: recordedAt,
+		Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: agentsLegacy.Algorithm, Hash: agentsLegacy.Digest, RecordedAt: recordedAt,
 	}})
 
 	inventory, err := InspectGlobal(layout)
@@ -243,7 +255,7 @@ func TestInspectGlobalReadsStrictCurrentProvenance(t *testing.T) {
 		Records: []ProvenanceRecord{
 			{
 				Scope: ScopeGlobal, Skill: "base", Target: TargetClaude,
-				SourceIdentity: "github:example/skills", TreeHashAlgorithm: TreeHashAlgorithmSHA256V2,
+				SourceIdentity: "github:example/skills", TreeHashAlgorithm: TreeHashAlgorithmSHA256V3,
 				TreeHash: strings.Repeat("a", 64), RecordedAt: recordedAt,
 			},
 		},
@@ -314,9 +326,10 @@ func TestGlobalClassificationDoesNotInferAbsenceFromUnsafeRoot(t *testing.T) {
 	}
 	expectedDir := filepath.Join(t.TempDir(), "expected")
 	expected := writeGlobalSkill(t, expectedDir, "base", "base\n")
+	expectedLegacy := legacyTreeHash(t, filepath.Join(expectedDir, "base"))
 	recordedAt := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, layout.ProvenanceStatePath, []legacyGlobalRecordFixture{{
-		Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: expected.Algorithm, Hash: expected.Digest, RecordedAt: recordedAt,
+		Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: expectedLegacy.Algorithm, Hash: expectedLegacy.Digest, RecordedAt: recordedAt,
 	}})
 	inventory, err := InspectGlobal(layout)
 	if err != nil {
@@ -345,18 +358,21 @@ func TestGlobalClassificationMigratesOwnershipWithoutTrustingBytesOrVendorLocks(
 	home := canonicalTempHome(t)
 	layout, _ := LayoutForGlobal(home)
 	agentsBase := writeGlobalSkill(t, layout.AgentsSkillsPath, "base", "base-v1\n")
-	claudeBase := writeGlobalSkill(t, layout.ClaudeSkillsPath, "base", "base-v1\n")
-	former := writeGlobalSkill(t, layout.AgentsSkillsPath, "former", "former\n")
+	_ = writeGlobalSkill(t, layout.ClaudeSkillsPath, "base", "base-v1\n")
+	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "former", "former\n")
 	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "unknown", "unknown\n")
 	_ = writeGlobalSkill(t, layout.LegacyPiSkillsPath, "base", "legacy\n")
+	agentsBaseLegacy := legacyTreeHash(t, filepath.Join(layout.AgentsSkillsPath, "base"))
+	claudeBaseLegacy := legacyTreeHash(t, filepath.Join(layout.ClaudeSkillsPath, "base"))
+	formerLegacy := legacyTreeHash(t, filepath.Join(layout.AgentsSkillsPath, "former"))
 	if err := os.WriteFile(layout.AgentsVendorLockPath, []byte(`{"skills":{"base":{"source":"example/skills","hashAlgorithm":"tree-sha256-v2","contentHash":"`+agentsBase.Digest+`"}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	recordedAt := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
-		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: agentsBase.Algorithm, Hash: agentsBase.Digest, RecordedAt: recordedAt},
-		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: former.Algorithm, Hash: former.Digest, RecordedAt: recordedAt},
-		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: claudeBase.Algorithm, Hash: claudeBase.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: agentsBaseLegacy.Algorithm, Hash: agentsBaseLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: formerLegacy.Algorithm, Hash: formerLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: claudeBaseLegacy.Algorithm, Hash: claudeBaseLegacy.Digest, RecordedAt: recordedAt},
 	})
 	inventory, err := InspectGlobal(layout)
 	if err != nil {
@@ -409,14 +425,16 @@ func TestGlobalClassificationDistinguishesOutdatedModifiedAndStaleProvenance(t *
 	desired, _ := ResolveGlobal(registry)
 	home := canonicalTempHome(t)
 	layout, _ := LayoutForGlobal(home)
-	oldAgents := writeGlobalSkill(t, layout.AgentsSkillsPath, "base", "old\n")
-	oldClaude := writeGlobalSkill(t, layout.ClaudeSkillsPath, "base", "old\n")
+	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "base", "old\n")
+	_ = writeGlobalSkill(t, layout.ClaudeSkillsPath, "base", "old\n")
+	oldAgentsLegacy := legacyTreeHash(t, filepath.Join(layout.AgentsSkillsPath, "base"))
+	oldClaudeLegacy := legacyTreeHash(t, filepath.Join(layout.ClaudeSkillsPath, "base"))
 	recordedAt := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
-		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: oldAgents.Algorithm, Hash: oldAgents.Digest, RecordedAt: recordedAt},
-		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: oldClaude.Algorithm, Hash: oldClaude.Digest, RecordedAt: recordedAt},
-		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: oldAgents.Algorithm, Hash: oldAgents.Digest, RecordedAt: recordedAt},
-		{Root: "claude", Skill: "former", Source: "example/skills", HashAlgorithm: oldClaude.Algorithm, Hash: oldClaude.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: oldAgentsLegacy.Algorithm, Hash: oldAgentsLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: oldClaudeLegacy.Algorithm, Hash: oldClaudeLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: oldAgentsLegacy.Algorithm, Hash: oldAgentsLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "former", Source: "example/skills", HashAlgorithm: oldClaudeLegacy.Algorithm, Hash: oldClaudeLegacy.Digest, RecordedAt: recordedAt},
 	})
 	_ = writeGlobalSkill(t, layout.AgentsSkillsPath, "former", "modified former\n")
 	if err := os.WriteFile(filepath.Join(layout.AgentsSkillsPath, "base", "SKILL.md"), []byte("modified\n"), 0o644); err != nil {

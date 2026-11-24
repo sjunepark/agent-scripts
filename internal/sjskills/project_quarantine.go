@@ -239,7 +239,7 @@ func validProjectQuarantineEntry(entry ProjectQuarantineManifestEntry) bool {
 		(entry.Target != TargetAgents && entry.Target != TargetClaude) ||
 		entry.OriginalPlacement != projectOriginalPlacement(entry.Target, entry.Skill) ||
 		entry.QuarantinedPlacement != projectQuarantinedPlacement(entry.Target, entry.Skill) ||
-		entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 ||
+		!isRecordedTreeHashAlgorithm(entry.TreeHashAlgorithm) ||
 		!lowercaseDigestPattern.MatchString(entry.OldTreeHash) ||
 		!validProjectQuarantineEntryStatus(entry.Status) {
 		return false

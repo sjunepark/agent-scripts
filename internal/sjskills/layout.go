@@ -12,8 +12,19 @@ const (
 	ProvenanceStateFileName    = "state.json"
 	QuarantineDirectoryName    = "quarantine"
 	ProvenanceStateVersion     = 1
-	TreeHashAlgorithmSHA256V2  = "tree-sha256-v2"
+	// TreeHashAlgorithmSHA256V3 is the only algorithm new hashes, provenance,
+	// and evidence use. See hashSkillTreeDigests.
+	TreeHashAlgorithmSHA256V3 = "tree-sha256-v3"
+	// TreeHashAlgorithmSHA256V2 is accepted only in records written by earlier
+	// releases; it hashes the host-dependent executable bit.
+	TreeHashAlgorithmSHA256V2 = "tree-sha256-v2"
 )
+
+// isRecordedTreeHashAlgorithm reports whether persisted provenance or
+// evidence may carry algorithm. Freshly computed hashes are always v3.
+func isRecordedTreeHashAlgorithm(algorithm string) bool {
+	return algorithm == TreeHashAlgorithmSHA256V3 || algorithm == TreeHashAlgorithmSHA256V2
+}
 
 // DerivedLayout maps one already-discovered canonical project root to every
 // path owned by reconciliation. The manifest is the only

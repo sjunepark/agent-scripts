@@ -20,7 +20,7 @@ func fail() { os.Exit(7) }
 // and attribute files excluded; anything inherited from the caller (such as
 // an untrusted credential helper) must be dropped.
 func canonicalCommandConfig() bool {
-	want := [][2]string{{"core.autocrlf", "false"}, {"core.eol", "lf"}}
+	want := [][2]string{{"core.autocrlf", "false"}, {"core.eol", "lf"}, {"core.symlinks", "false"}}
 	if os.Getenv("GIT_CONFIG_NOSYSTEM") != "1" || os.Getenv("GIT_ATTR_NOSYSTEM") != "1" || os.Getenv("GIT_CONFIG_PARAMETERS") != "" || os.Getenv("GIT_CONFIG_COUNT") != fmt.Sprint(len(want)) {
 		return false
 	}

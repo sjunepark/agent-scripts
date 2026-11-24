@@ -291,7 +291,7 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 		if !isPortableName(entry.Skill) {
 			return false
 		}
-		if _, ok := supportedTargets[entry.Target]; !ok || entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V2 {
+		if _, ok := supportedTargets[entry.Target]; !ok || !isRecordedTreeHashAlgorithm(entry.TreeHashAlgorithm) {
 			return false
 		}
 		if entry.ManagedRootExisted && !entry.ManagedParentExisted {
@@ -794,8 +794,8 @@ func (tx *applyTransaction) recoverInterruptedRestore(journal projectTransaction
 		destination := filepath.Join(root, entry.Skill)
 		quarantined := filepath.Join(tx.layout.QuarantinePath, journal.QuarantineID, filepath.FromSlash(projectQuarantinedPlacement(entry.Target, entry.Skill)))
 		oldHash := TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.OldTreeHash}
-		destinationHash, destinationExists, destinationErr := inspectRecoveryTree(tx.root, destination)
-		quarantineHash, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined)
+		destinationHash, destinationExists, destinationErr := inspectRecoveryTree(tx.root, destination, oldHash.Algorithm)
+		quarantineHash, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined, oldHash.Algorithm)
 		if destinationErr != nil || quarantineErr != nil {
 			return firstRecoveryError(destinationErr, quarantineErr)
 		}
@@ -1060,18 +1060,18 @@ func (tx *applyTransaction) recoverApplyEntry(journal projectTransactionJournal,
 	}
 	if entry.Action != PlanActionQuarantine {
 		newHash := TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.NewTreeHash}
-		destinationHash, destinationExists, inspectErr := inspectRecoveryTree(tx.root, destination)
+		destinationHash, destinationExists, inspectErr := inspectRecoveryTree(tx.root, destination, newHash.Algorithm)
 		if inspectErr != nil {
 			return inspectErr
 		}
-		recoveryHash, recoveryExists, recoveryErr := inspectRecoveryTree(tx.layout.DerivedDirectoryPath, recoveryPath)
+		recoveryHash, recoveryExists, recoveryErr := inspectRecoveryTree(tx.layout.DerivedDirectoryPath, recoveryPath, newHash.Algorithm)
 		if recoveryErr != nil {
 			return recoveryErr
 		}
 		if destinationExists && destinationHash == newHash {
 			if entry.Action == PlanActionUpdate && entry.OldTreeHash == entry.NewTreeHash {
 				quarantined := filepath.Join(tx.layout.QuarantinePath, journal.QuarantineID, filepath.FromSlash(projectQuarantinedPlacement(entry.Target, entry.Skill)))
-				_, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined)
+				_, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined, newHash.Algorithm)
 				if quarantineErr != nil {
 					return quarantineErr
 				}
@@ -1105,11 +1105,11 @@ func (tx *applyTransaction) recoverApplyEntry(journal projectTransactionJournal,
 	}
 	oldHash := TreeHash{Algorithm: entry.TreeHashAlgorithm, Digest: entry.OldTreeHash}
 	quarantined := filepath.Join(tx.layout.QuarantinePath, journal.QuarantineID, filepath.FromSlash(projectQuarantinedPlacement(entry.Target, entry.Skill)))
-	destinationHash, destinationExists, inspectErr := inspectRecoveryTree(tx.root, destination)
+	destinationHash, destinationExists, inspectErr := inspectRecoveryTree(tx.root, destination, oldHash.Algorithm)
 	if inspectErr != nil {
 		return inspectErr
 	}
-	quarantineHash, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined)
+	quarantineHash, quarantineExists, quarantineErr := inspectRecoveryTree(tx.layout.QuarantinePath, quarantined, oldHash.Algorithm)
 	if quarantineErr != nil {
 		return quarantineErr
 	}
@@ -1128,12 +1128,14 @@ func (tx *applyTransaction) recoverApplyEntry(journal projectTransactionJournal,
 	return moveRecoveryTree(tx, quarantined, destination, oldHash)
 }
 
-func inspectRecoveryTree(boundary, path string) (TreeHash, bool, error) {
-	hash, _, exists, err := inspectRecoveryTreeIdentity(boundary, path, nil)
+// inspectRecoveryTree hashes with the journal entry's algorithm, so a journal
+// written before tree-sha256-v3 still proves the trees it describes.
+func inspectRecoveryTree(boundary, path, algorithm string) (TreeHash, bool, error) {
+	hash, _, exists, err := inspectRecoveryTreeIdentity(boundary, path, algorithm, nil)
 	return hash, exists, err
 }
 
-func inspectRecoveryTreeIdentity(boundary, path string, afterHash func()) (TreeHash, os.FileInfo, bool, error) {
+func inspectRecoveryTreeIdentity(boundary, path, algorithm string, afterHash func()) (TreeHash, os.FileInfo, bool, error) {
 	if !pathWithin(boundary, path) {
 		return TreeHash{}, nil, false, applyConflict("interrupted recovery path escapes its boundary")
 	}
@@ -1154,7 +1156,7 @@ func inspectRecoveryTreeIdentity(boundary, path string, afterHash func()) (TreeH
 	if probe.info == nil || probe.info.Mode()&os.ModeSymlink != 0 || !probe.info.IsDir() {
 		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery entry is not a real directory")
 	}
-	hash, err := HashSkillTree(path)
+	hash, err := hashSkillTreeAs(path, algorithm)
 	if err != nil {
 		return TreeHash{}, probe.info, true, applyConflict("interrupted recovery content could not be verified")
 	}
@@ -1192,11 +1194,11 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 	if err := tx.checkLock(); err != nil {
 		return err
 	}
-	before, sourceInfo, exists, err := inspectRecoveryTreeIdentity(tx.root, source, tx.deps.afterRecoveryTreeHash)
+	before, sourceInfo, exists, err := inspectRecoveryTreeIdentity(tx.root, source, expected.Algorithm, tx.deps.afterRecoveryTreeHash)
 	if err != nil || !exists || before != expected {
 		return applyConflict("interrupted recovery source changed before move")
 	}
-	if _, exists, err := inspectRecoveryTree(tx.root, destination); err != nil || exists {
+	if _, exists, err := inspectRecoveryTree(tx.root, destination, expected.Algorithm); err != nil || exists {
 		if err != nil {
 			return err
 		}
@@ -1206,9 +1208,9 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 		tx.deps.beforeRecoveryTreeMove()
 	}
 	if err := publishNoReplace(source, destination); err != nil {
-		landed, landedExists, _ := inspectRecoveryTree(tx.root, destination)
+		landed, landedExists, _ := inspectRecoveryTree(tx.root, destination, expected.Algorithm)
 		landedInfo, landedStatErr := os.Lstat(destination)
-		_, sourceExists, _ := inspectRecoveryTree(tx.root, source)
+		_, sourceExists, _ := inspectRecoveryTree(tx.root, source, expected.Algorithm)
 		if landedExists && landed == expected && !sourceExists {
 			if landedStatErr == nil && os.SameFile(sourceInfo, landedInfo) {
 				return applyUnavailable("interrupted recovery move was not confirmed")
@@ -1221,9 +1223,9 @@ func moveRecoveryTree(tx *applyTransaction, source, destination string, expected
 		}
 		return applyUnavailable("interrupted recovery move could not be completed")
 	}
-	landed, landedExists, err := inspectRecoveryTree(tx.root, destination)
+	landed, landedExists, err := inspectRecoveryTree(tx.root, destination, expected.Algorithm)
 	landedInfo, landedStatErr := os.Lstat(destination)
-	_, sourceExists, sourceErr := inspectRecoveryTree(tx.root, source)
+	_, sourceExists, sourceErr := inspectRecoveryTree(tx.root, source, expected.Algorithm)
 	if err != nil || sourceErr != nil || landedStatErr != nil || !landedExists || landed != expected || sourceExists || !os.SameFile(sourceInfo, landedInfo) {
 		if landedExists && !sourceExists {
 			// The moved tree was not ours. Return it to the public source path

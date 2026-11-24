@@ -111,7 +111,7 @@ func TestTranslateProjectClassificationBoundsUnverifiableEvidence(t *testing.T) 
 	classification := ProjectClassification{States: []ProjectState{{
 		Kind: ProjectStateMisplaced, Action: PlanActionBlocked, Skill: "symlinked", Target: TargetAgents,
 		Reason:   ProjectStateReasonExpectedCopyIsSymlink,
-		Current:  &TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: "/private/staging/path"},
+		Current:  &TreeHash{Algorithm: TreeHashAlgorithmSHA256V3, Digest: "/private/staging/path"},
 		Expected: &TreeHash{Algorithm: "raw-error", Digest: "/private/staging/path"},
 	}}}
 	translated, err := TranslateProjectClassification(plan, classification)

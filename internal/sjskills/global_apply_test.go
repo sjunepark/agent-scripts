@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -302,11 +303,13 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 		}
 	}
 	formerHash := writeGlobalSkill(t, session.Layout.AgentsSkillsPath, "former", "former\n")
+	baseLegacy := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "base"))
+	formerLegacy := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "former"))
 	recordedAt := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	writeLegacyGlobalState(t, session.Layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
-		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
-		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
-		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: formerHash.Algorithm, Hash: formerHash.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: baseLegacy.Algorithm, Hash: baseLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: baseLegacy.Algorithm, Hash: baseLegacy.Digest, RecordedAt: recordedAt},
+		{Root: "shared", Skill: "former", Source: "example/skills", HashAlgorithm: formerLegacy.Algorithm, Hash: formerLegacy.Digest, RecordedAt: recordedAt},
 	})
 	inventory, err := InspectGlobal(session.Layout)
 	if err != nil || inventory.ProvenanceFormat != GlobalProvenanceLegacyV1 {
@@ -325,12 +328,20 @@ func TestApplyGlobalChangesMigratesTrustedLegacyStateWithoutReplacingPlacements(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Installed)+len(result.Updated) != 0 || len(result.Quarantined) != 1 || result.Quarantine == nil || !result.Migrated {
+	if len(result.Installed)+len(result.Updated) != 0 || len(result.Quarantined) != 1 || result.Quarantine == nil || !result.Migrated || !result.TreeHashesUpgraded {
 		t.Fatalf("result = %#v", result)
 	}
 	inventory, err = InspectGlobal(session.Layout)
-	if err != nil || inventory.ProvenanceFormat != GlobalProvenanceCurrent || inventory.MigrationRequired {
+	if err != nil || inventory.ProvenanceFormat != GlobalProvenanceCurrent || inventory.MigrationRequired || inventory.TreeHashMigration != 0 {
 		t.Fatalf("current inventory=%#v err=%v", inventory, err)
+	}
+	// The legacy records were persisted as tree-sha256-v3, not only read so.
+	data, err := os.ReadFile(session.Layout.ProvenanceStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), TreeHashAlgorithmSHA256V2) || !strings.Contains(string(data), hash.Digest) {
+		t.Fatalf("persisted global state = %s", data)
 	}
 	if len(inventory.State.Records) != 2 {
 		t.Fatalf("migrated records = %#v", inventory.State.Records)
@@ -365,7 +376,7 @@ func TestApplyGlobalChangesRejectsMigrationStatusRace(t *testing.T) {
 		t.Fatalf("current plan=%#v err=%v", session.Plan, err)
 	}
 	bindGlobalApplyFixture(t, session)
-	hash := session.Expected["base"]
+	hash := legacyTreeHash(t, filepath.Join(session.Layout.AgentsSkillsPath, "base"))
 	writeLegacyGlobalState(t, session.Layout.ProvenanceStatePath, []legacyGlobalRecordFixture{
 		{Root: "shared", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},
 		{Root: "claude", Skill: "base", Source: "example/skills", HashAlgorithm: hash.Algorithm, Hash: hash.Digest, RecordedAt: recordedAt},

@@ -15,7 +15,7 @@ const classificationDigest = "0123456789abcdef0123456789abcdef0123456789abcdef01
 func classificationHash(suffix byte) TreeHash {
 	digest := []byte(classificationDigest)
 	digest[len(digest)-1] = suffix
-	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V2, Digest: string(digest)}
+	return TreeHash{Algorithm: TreeHashAlgorithmSHA256V3, Digest: string(digest)}
 }
 
 func classificationInventory(t *testing.T, root string, agents, claude []InventoryEntry, trusted bool, records []ProvenanceRecord) ProjectInventory {

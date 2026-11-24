@@ -72,6 +72,9 @@ type ProjectState struct {
 type ProjectClassification struct {
 	Root   string         `json:"root"`
 	States []ProjectState `json:"states"`
+	// TreeHashMigration counts trusted records classified as tree-sha256-v3
+	// after a verified tree-sha256-v2 match; apply persists them.
+	TreeHashMigration int `json:"treeHashMigration,omitempty"`
 }
 
 var projectSourceSegmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
@@ -86,7 +89,11 @@ func ClassifyProject(desired DesiredState, expected map[string]TreeHash, invento
 	if err := newValidationErrors(issues); err != nil {
 		return ProjectClassification{}, err
 	}
-	return classifyManagedState(inventory.Root, inventory.StatePath, inventory.StateTrusted, desiredByName, expectedByName, recordsByKey, rootsByTarget), nil
+	classification := classifyManagedState(inventory.Root, inventory.StatePath, inventory.StateTrusted, desiredByName, expectedByName, recordsByKey, rootsByTarget)
+	if inventory.StateTrusted {
+		classification.TreeHashMigration = inventory.TreeHashMigration
+	}
+	return classification, nil
 }
 
 // classifyManagedState is the pure exact-state engine shared by project and
@@ -375,8 +382,8 @@ func validateProjectClassificationInputs(desired DesiredState, expected map[stri
 			issues = append(issues, Issue{Code: IssueMissingReference, Path: "expected." + name, Message: "expected hash requires a skills-cli desired skill"})
 			continue
 		}
-		if hash.Algorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(hash.Digest) {
-			issues = append(issues, Issue{Code: IssueMalformedInput, Path: "expected." + name, Message: "expected hash must use tree-sha256-v2 and lowercase 64-hex digest"})
+		if hash.Algorithm != TreeHashAlgorithmSHA256V3 || !lowercaseDigestPattern.MatchString(hash.Digest) {
+			issues = append(issues, Issue{Code: IssueMalformedInput, Path: "expected." + name, Message: "expected hash must use tree-sha256-v3 and lowercase 64-hex digest"})
 		}
 		expectedByName[name] = hash
 	}

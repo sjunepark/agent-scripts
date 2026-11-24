@@ -760,6 +760,42 @@ func TestMaterializeRejectsMissingNonDirectoryAndSpecialStagedEntries(t *testing
 	}
 }
 
+// TestHashSkillTreeV3VectorIsHostIndependent pins the current digest of a
+// tree with an executable script and no symlink. It runs on every host
+// (symlinks need privileges on Windows), so CI on Linux and macOS and a local
+// Windows run all assert the same constant even though only Windows drops the
+// executable bit.
+func TestHashSkillTreeV3VectorIsHostIndependent(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for name, file := range map[string]struct {
+		content string
+		mode    os.FileMode
+	}{
+		"a.txt":    {"A", 0o644},
+		"b.sh":     {"#!/bin/sh\necho hi\n", 0o755},
+		"sub/z":    {"é", 0o644},
+		"SKILL.md": {"---\nname: demo\n---\n", 0o644},
+	} {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.WriteFile(path, []byte(file.content), file.mode); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, file.mode); err != nil {
+			t.Fatal(err)
+		}
+	}
+	hash, err := HashSkillTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hash.Algorithm != TreeHashAlgorithmSHA256V3 || hash.Digest != "317249c47c4bc5e1cdef415f6ec79d1a52da636ec703360e688c0f8f7deec1da" {
+		t.Fatalf("hash = %#v", hash)
+	}
+}
+
 func TestHashSkillTreeMatchesLegacyV2VectorAndDetectsTampering(t *testing.T) {
 	root := t.TempDir()
 	if err := os.Mkdir(filepath.Join(root, "sub"), 0o755); err != nil {
@@ -777,17 +813,27 @@ func TestHashSkillTreeMatchesLegacyV2VectorAndDetectsTampering(t *testing.T) {
 	if err := os.Symlink("a.txt", filepath.Join(root, "link")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
+	// Legacy digests are still computed exactly as earlier releases recorded
+	// them, so their provenance and evidence remain verifiable.
+	legacy, err := hashSkillTreeAs(root, TreeHashAlgorithmSHA256V2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantLegacy := "1a1731f91aeff9ae9af8aae368d794bd55fe555e4fb6bf40f66e00f0cfde6718"
+	if runtime.GOOS == "windows" {
+		// Windows synthesizes regular-file permissions without execute bits;
+		// b.sh is non-executable in this fixture even when created with 0755.
+		wantLegacy = "ae5040f40a5dbe1a8b89d64b0f2688493dbaa0f940225bdca9502b3db330637a"
+	}
+	if legacy.Algorithm != TreeHashAlgorithmSHA256V2 || legacy.Digest != wantLegacy {
+		t.Fatalf("legacy hash = %#v", legacy)
+	}
 	hash, err := HashSkillTree(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "1a1731f91aeff9ae9af8aae368d794bd55fe555e4fb6bf40f66e00f0cfde6718"
-	if runtime.GOOS == "windows" {
-		// Windows synthesizes regular-file permissions without execute bits;
-		// b.sh is non-executable in this fixture even when created with 0755.
-		want = "ae5040f40a5dbe1a8b89d64b0f2688493dbaa0f940225bdca9502b3db330637a"
-	}
-	if hash.Algorithm != TreeHashAlgorithmSHA256V2 || hash.Digest != want {
+	// The current digest has one value on every host.
+	if hash.Algorithm != TreeHashAlgorithmSHA256V3 || hash.Digest != "07431c73b9f38e85b048b315cc9e73358a9ed1f5a4f992a544d07c29153e8edc" {
 		t.Fatalf("hash = %#v", hash)
 	}
 	if err := os.WriteFile(filepath.Join(root, "a.txt"), []byte("tampered"), 0o644); err != nil {

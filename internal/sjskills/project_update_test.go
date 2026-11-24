@@ -751,7 +751,7 @@ func TestProjectQuarantineManifestDecodingIsStrictAndBounded(t *testing.T) {
 			Action: ProjectQuarantineEntryActionUpdate, Skill: "demo", Target: TargetAgents,
 			OriginalPlacement: projectOriginalPlacement(TargetAgents, "demo"), QuarantinedPlacement: projectQuarantinedPlacement(TargetAgents, "demo"),
 			OldSourceIdentity: "github:example/demo", NewSourceIdentity: "github:example/demo",
-			TreeHashAlgorithm: TreeHashAlgorithmSHA256V2,
+			TreeHashAlgorithm: TreeHashAlgorithmSHA256V3,
 			OldTreeHash:       strings.Repeat("a", 64), NewTreeHash: strings.Repeat("b", 64),
 			Status: ProjectQuarantineEntryReplaced,
 		}},
@@ -798,7 +798,7 @@ func TestProjectQuarantineManifestDecodingIsStrictAndBounded(t *testing.T) {
 	remove.Entries = []ProjectQuarantineManifestEntry{{
 		Action: ProjectQuarantineEntryActionRemove, Skill: "demo", Target: TargetAgents,
 		OriginalPlacement: projectOriginalPlacement(TargetAgents, "demo"), QuarantinedPlacement: projectQuarantinedPlacement(TargetAgents, "demo"),
-		OldSourceIdentity: "github:example/demo", TreeHashAlgorithm: TreeHashAlgorithmSHA256V2,
+		OldSourceIdentity: "github:example/demo", TreeHashAlgorithm: TreeHashAlgorithmSHA256V3,
 		OldTreeHash: strings.Repeat("a", 64), Status: ProjectQuarantineEntryQuarantined,
 	}}
 	removeData, err := json.Marshal(remove)

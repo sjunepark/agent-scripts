@@ -32,7 +32,7 @@ func TestApplyProjectChangesRejectsBlockedPlanBeforeLock(t *testing.T) {
 		Layout:       layout,
 		Desired:      desired,
 		Plan:         Plan{Desired: desired, Operations: []PlanOperation{{Action: PlanActionBlocked, Skill: "blocked", Target: TargetAgents, Manager: ManagerSkillsCLI}}},
-		Expected:     map[string]TreeHash{"blocked": {Algorithm: TreeHashAlgorithmSHA256V2, Digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+		Expected:     map[string]TreeHash{"blocked": {Algorithm: TreeHashAlgorithmSHA256V3, Digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
 		Materialized: &MaterializationPlan{snapshots: map[string]*SkillSnapshot{}},
 	}
 	if _, err := ApplyProjectChanges(context.Background(), session, ApplyDeps{}); err == nil {

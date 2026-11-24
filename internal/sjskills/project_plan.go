@@ -38,6 +38,9 @@ func translateManagedClassification(plan Plan, classification ProjectClassificat
 	result.Operations = make([]PlanOperation, 0, len(classification.States))
 	result.Warnings = append([]Warning{}, plan.Warnings...)
 	result.Evidence = append([]Evidence{}, plan.Evidence...)
+	if classification.TreeHashMigration > 0 {
+		result.Evidence = append(result.Evidence, treeHashMigrationEvidence(classification.TreeHashMigration))
+	}
 
 	desiredByPlacement := make(map[string]DesiredSkill)
 	for _, skill := range result.Desired.Skills {
@@ -134,7 +137,7 @@ func projectTreeHashEvidence(hash *TreeHash, emptyKind string) PlanEvidence {
 	if hash == nil {
 		return PlanEvidence{Kind: emptyKind, Detail: emptyKind}
 	}
-	if hash.Algorithm != TreeHashAlgorithmSHA256V2 || !lowercaseDigestPattern.MatchString(hash.Digest) {
+	if !isRecordedTreeHashAlgorithm(hash.Algorithm) || !lowercaseDigestPattern.MatchString(hash.Digest) {
 		return PlanEvidence{Kind: projectEvidenceUnavailable, Detail: projectEvidenceUnavailable}
 	}
 	return PlanEvidence{Kind: projectEvidenceTreeHash, Detail: hash.Algorithm + ":" + hash.Digest}

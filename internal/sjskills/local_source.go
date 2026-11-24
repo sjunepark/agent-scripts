@@ -405,7 +405,8 @@ func copyLocalSkillTree(source, destination string, remaining *int64) error {
 	return nil
 }
 
-// copyLocalSkillFile preserves the executable bits the tree hash records; the
+// copyLocalSkillFile preserves the source's executable bits, which scripts need
+// on macOS and Linux even though the tree hash ignores them; the
 // owner read/write bits only keep the staging copy removable.
 func copyLocalSkillFile(source, destination string, expected os.FileInfo, remaining *int64) error {
 	input, err := os.Open(source)

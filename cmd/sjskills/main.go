@@ -683,9 +683,12 @@ func applyExecutionEvidenceForScope(result sjskills.ApplyResult, err error, glob
 		if len(result.SourceMigrated) > 0 {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("re-recorded %d unchanged %s placements under their source's current identity", len(result.SourceMigrated), scope)})
 		}
+		if result.TreeHashesUpgraded {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("trusted %s provenance tree hashes rewritten as tree-sha256-v3", scope)})
+		}
 		return evidence
 	}
-	if len(result.Installed)+len(result.Updated)+len(result.Quarantined)+len(result.SourceMigrated) > 0 || result.Migrated {
+	if len(result.Installed)+len(result.Updated)+len(result.Quarantined)+len(result.SourceMigrated) > 0 || result.Migrated || result.TreeHashesUpgraded {
 		evidence := []sjskills.Evidence{
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed %s placements before apply failure", len(result.Installed), scope)},
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated %s placements before apply failure", len(result.Updated), scope)},
@@ -696,6 +699,9 @@ func applyExecutionEvidenceForScope(result sjskills.ApplyResult, err error, glob
 		}
 		if len(result.SourceMigrated) > 0 {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("source identity migration of %d unchanged %s placements committed before apply failure", len(result.SourceMigrated), scope)})
+		}
+		if result.TreeHashesUpgraded {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("trusted %s provenance tree hash rewrite committed before apply failure", scope)})
 		}
 		return evidence
 	}
@@ -763,7 +769,7 @@ func (p *preparedPlan) syncPlan(plan sjskills.Plan) {
 	for _, snapshot := range p.snapshots {
 		p.envelope.Evidence = append(p.envelope.Evidence, sjskills.Evidence{
 			Kind:   "expected-content",
-			Detail: fmt.Sprintf("%s %s:%s", snapshot.Skill.Name, sjskills.TreeHashAlgorithmSHA256V2, snapshot.Hash.Digest),
+			Detail: fmt.Sprintf("%s %s:%s", snapshot.Skill.Name, snapshot.Hash.Algorithm, snapshot.Hash.Digest),
 		})
 	}
 }
