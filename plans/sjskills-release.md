@@ -1,10 +1,29 @@
 # sjskills standalone release delivery
 
-Status: `sjskills-v1.5.0` published as an immutable release on 2026-10-06 (KST).
+Status: `sjskills-v1.6.0` published as an immutable release on 2026-11-24 (KST).
 Hosted verification is working; unattended hosted publication still needs a
 suitable GitHub identity.
 
 ## Published releases
+
+- [sjskills-v1.6.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.6.0)
+  points to `0975d3d4dc4fc76ffbdee120c3ca32491ad6a162` and is immutable.
+  It reads registry version 5, whose sources may declare `formerIdentities`
+  so installs from a renamed repository migrate (merged PR #49), and includes
+  host-independent skill checkouts (merged PR #48). Version 1.5.0 fails
+  closed on the version 5 registry.
+- The [v1.6.0 release run](https://github.com/sjunepark/agent-scripts/actions/runs/45293197112)
+  passed native reconciliation and installer checks on macOS amd64, macOS arm64,
+  and Windows amd64 with `publish=false`.
+- Publication used the exact CI artifacts. Tag/commit identity, `SHA256SUMS`,
+  and archive contents were verified locally with `scripts/release.py`.
+  `scripts/publish-release.py` created draft ID `456144306` and uploaded all
+  six assets, then stopped at its by-tag lookup, which cannot see drafts. Every
+  server-side digest was matched by release ID before the draft was published.
+- The published installer updated `%LOCALAPPDATA%\sjskills\bin\sjskills.exe`
+  on the Windows development machine to v1.6.0. Its binary matches the verified
+  windows/amd64 archive, with SHA-256
+  `0115936d534f6ac71cd05e1cee9352ecf37663bcd2bcf26ac2ef65ffd1c6c196`.
 
 - [sjskills-v1.5.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.5.0)
   points to `67c3f60ca4d2d12fad637ed98638c7a73c40c7e0` and is immutable.

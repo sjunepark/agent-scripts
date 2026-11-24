@@ -21,6 +21,10 @@ quarantine, then replaced with verified published content. Plans report these
 as updates with reason `local-modification`. This requires trusted provenance
 for the same source and a verifiable current tree; an unknown desired copy
 still blocks reconciliation. Restoring edited bytes does not grant ownership.
+A source the registry declares renamed (its `formerIdentities`) counts as the
+same source: identical copies show as `unchanged` with reason
+`former-source-identity`, and apply re-records their provenance under the
+current identity.
 
 Keep four states distinct:
 
@@ -116,7 +120,9 @@ independent unblocked scope unless the user required an all-or-nothing result.
    request, or materialization; an operational failure is not a valid plan.
 4. Review `local-modification` updates as preservation-and-replacement operations,
    including when the current tree already matches the published tree but
-   differs from its recorded installation. Stop before apply for an unmanaged
+   differs from its recorded installation. Placements listed as `unchanged`
+   with reason `former-source-identity` still need `apply` to rewrite their
+   provenance; no bytes change. Stop before apply for an unmanaged
    desired copy, source mismatch, malformed or untrusted provenance, an unsafe filesystem
    boundary, an unverifiable extra, failed materialization, or another conflict.
 5. For authorized project reconciliation, run `sjskills apply --yes` after the

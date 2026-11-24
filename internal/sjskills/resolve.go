@@ -138,7 +138,17 @@ func resolveCentralSkill(registry Registry, declaration SkillDeclaration, scope 
 		Workflow:  declaration.Workflow,
 		FullDepth: declaration.FullDepth,
 		Targets:   effectiveTargets(registry, declaration.Name),
+		// Manual and workflow entries never own copies, so their records never
+		// need an identity migration.
+		FormerSourceIdentities: formerIdentitiesFor(source, declaration.Manager),
 	}
+}
+
+func formerIdentitiesFor(source Source, manager Manager) []string {
+	if manager != ManagerSkillsCLI || len(source.FormerIdentities) == 0 {
+		return nil
+	}
+	return append([]string(nil), source.FormerIdentities...)
 }
 
 func resolveDirectSkill(registry Registry, direct DirectSkill) DesiredSkill {
@@ -171,7 +181,15 @@ func sortDesiredSkills(skills []DesiredSkill) {
 	})
 	for index := range skills {
 		skills[index].Targets = copyTargets(skills[index].Targets)
+		skills[index].FormerSourceIdentities = copyStrings(skills[index].FormerSourceIdentities)
 	}
+}
+
+func copyStrings(values []string) []string {
+	if values == nil {
+		return nil
+	}
+	return append([]string(nil), values...)
 }
 
 func collisionError(origin, name, previous string) error {

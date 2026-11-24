@@ -52,6 +52,9 @@ type projectTransactionJournal struct {
 	CandidateState []byte                `json:"candidateState"`
 	PreManifest    []byte                `json:"preManifest,omitempty"`
 	Entries        []projectJournalEntry `json:"entries"`
+	// SourceMigrations lists apply-time source identity rewrites. Entries
+	// describe migrated records by their current identity.
+	SourceMigrations []sourceIdentityMigration `json:"sourceMigrations,omitempty"`
 }
 
 func projectTransactionJournalPath(layout DerivedLayout) string {
@@ -83,8 +86,11 @@ func newApplyJournal(preimage *applyStatePreimage, session *ProjectApplySession,
 	if !valid {
 		return projectTransactionJournal{}, applyConflict("transaction candidate state is invalid")
 	}
-	preRecords := recoveryRecordMap(preimage.state)
+	preRecords := effectiveProvenanceRecords(preimage.state, session.Desired)
 	candidateRecords := recoveryRecordMap(candidate)
+	if migrations := sourceIdentityMigrations(preimage.state, session.Desired); len(migrations) > 0 {
+		journal.SourceMigrations = migrations
+	}
 	for _, operation := range reviewedMutationOperations(session) {
 		entry := projectJournalEntry{Action: operation.Action, Skill: operation.Skill, Target: operation.Target}
 		key := projectPlacementKey(operation.Target, operation.Skill)
@@ -247,7 +253,10 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 	if !valid {
 		return false
 	}
-	if len(journal.Entries) == 0 {
+	if !validJournalSourceMigrations(journal) {
+		return false
+	}
+	if len(journal.Entries) == 0 && len(journal.SourceMigrations) == 0 {
 		if journal.Kind != projectTransactionKindApply || candidateScope != ScopeGlobal || !journal.PreState.Exists || journal.QuarantineID != "" {
 			return false
 		}
@@ -255,6 +264,8 @@ func validProjectTransactionJournal(journal projectTransactionJournal) bool {
 		if !legacyValid || format != GlobalProvenanceLegacyV1 {
 			return false
 		}
+	} else if len(journal.Entries) == 0 && (!journal.PreState.Exists || journal.QuarantineID != "") {
+		return false
 	}
 	preState := ProvenanceState{Version: candidateState.Version, Records: []ProvenanceRecord{}}
 	if journal.PreState.Exists {
@@ -358,6 +369,17 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 	}
 	preRecords := recoveryRecordMap(preState)
 	candidateRecords := recoveryRecordMap(candidateState)
+	// Each migration must name the recorded identity; afterwards the record is
+	// compared as if it had carried the new identity all along.
+	for _, migration := range journal.SourceMigrations {
+		key := projectPlacementKey(migration.Target, migration.Skill)
+		pre, exists := preRecords[key]
+		if !exists || pre.Scope != scope || pre.SourceIdentity != migration.OldSourceIdentity {
+			return false
+		}
+		pre.SourceIdentity = migration.NewSourceIdentity
+		preRecords[key] = pre
+	}
 	changed := make(map[string]struct{}, len(journal.Entries))
 	for _, entry := range journal.Entries {
 		key := projectPlacementKey(entry.Target, entry.Skill)
@@ -418,6 +440,44 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 	return true
 }
 
+// validJournalSourceMigrations bounds the registry-free migration evidence:
+// apply journals only, sorted unique placements, and canonical remote
+// identities that actually change.
+func validJournalSourceMigrations(journal projectTransactionJournal) bool {
+	if len(journal.SourceMigrations) == 0 {
+		return journal.SourceMigrations == nil
+	}
+	if journal.Kind != projectTransactionKindApply || len(journal.SourceMigrations) > maxProjectQuarantineEntries {
+		return false
+	}
+	seen := make(map[string]struct{}, len(journal.SourceMigrations))
+	for _, migration := range journal.SourceMigrations {
+		if !isPortableName(migration.Skill) {
+			return false
+		}
+		if _, ok := supportedTargets[migration.Target]; !ok {
+			return false
+		}
+		if !isCanonicalSourceIdentityForScope(ScopeGlobal, migration.OldSourceIdentity) ||
+			!isCanonicalSourceIdentityForScope(ScopeGlobal, migration.NewSourceIdentity) ||
+			migration.OldSourceIdentity == migration.NewSourceIdentity {
+			return false
+		}
+		key := projectPlacementKey(migration.Target, migration.Skill)
+		if _, duplicate := seen[key]; duplicate {
+			return false
+		}
+		seen[key] = struct{}{}
+	}
+	return sort.SliceIsSorted(journal.SourceMigrations, func(i, k int) bool {
+		left, right := journal.SourceMigrations[i], journal.SourceMigrations[k]
+		if projectTargetRank(left.Target) != projectTargetRank(right.Target) {
+			return projectTargetRank(left.Target) < projectTargetRank(right.Target)
+		}
+		return compareUTF16(left.Skill, right.Skill) < 0
+	})
+}
+
 func recoveryRecordMatches(record ProvenanceRecord, entry projectJournalEntry, useNew bool, scope Scope) bool {
 	source, hash := entry.OldSourceIdentity, entry.OldTreeHash
 	if useNew {
@@ -476,6 +536,9 @@ func decodeProjectTransactionJournal(data []byte) (projectTransactionJournal, bo
 	journal.CandidateState = append([]byte(nil), journal.CandidateState...)
 	journal.PreManifest = append([]byte(nil), journal.PreManifest...)
 	journal.Entries = append([]projectJournalEntry(nil), journal.Entries...)
+	if journal.SourceMigrations != nil {
+		journal.SourceMigrations = append([]sourceIdentityMigration(nil), journal.SourceMigrations...)
+	}
 	return journal, true
 }
 

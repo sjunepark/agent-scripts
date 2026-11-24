@@ -594,8 +594,9 @@ func (a *application) applyApproved(ctx context.Context, global, yes bool, appro
 	updateCount := planActionCount(prepared.plan, sjskills.PlanActionUpdate)
 	quarantineCount := planActionCount(prepared.plan, sjskills.PlanActionQuarantine)
 	migrateProvenance := global && planHasEvidence(prepared.plan, "provenance-migration")
-	if (installCount+updateCount+quarantineCount > 0 || migrateProvenance) && !yes {
-		confirmed, confirmErr := confirmApply(a.input, a.promptOutput, global, installCount, updateCount, quarantineCount, migrateProvenance)
+	sourceMigrationCount := planSourceMigrationCount(prepared.plan)
+	if (installCount+updateCount+quarantineCount+sourceMigrationCount > 0 || migrateProvenance) && !yes {
+		confirmed, confirmErr := confirmApply(a.input, a.promptOutput, global, installCount, updateCount, quarantineCount, sourceMigrationCount, migrateProvenance)
 		if confirmErr != nil {
 			envelope.Result = sjskills.ResultUnavailable
 			envelope.Error = &sjskills.Issue{Code: sjskills.IssueUnavailable, Path: "apply", Message: "confirmation could not be read"}
@@ -679,12 +680,15 @@ func applyExecutionEvidenceForScope(result sjskills.ApplyResult, err error, glob
 		if result.Migrated {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: "trusted global provenance migrated to version 2"})
 		}
+		if len(result.SourceMigrated) > 0 {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("re-recorded %d unchanged %s placements under their source's current identity", len(result.SourceMigrated), scope)})
+		}
 		if result.TreeHashesUpgraded {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("trusted %s provenance tree hashes rewritten as tree-sha256-v3", scope)})
 		}
 		return evidence
 	}
-	if len(result.Installed)+len(result.Updated)+len(result.Quarantined) > 0 || result.Migrated || result.TreeHashesUpgraded {
+	if len(result.Installed)+len(result.Updated)+len(result.Quarantined)+len(result.SourceMigrated) > 0 || result.Migrated || result.TreeHashesUpgraded {
 		evidence := []sjskills.Evidence{
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed installed %s placements before apply failure", len(result.Installed), scope)},
 			{Kind: "execution", Detail: fmt.Sprintf("reported %d committed updated %s placements before apply failure", len(result.Updated), scope)},
@@ -692,6 +696,9 @@ func applyExecutionEvidenceForScope(result sjskills.ApplyResult, err error, glob
 		}
 		if result.Migrated {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: "trusted global provenance migration committed before apply failure"})
+		}
+		if len(result.SourceMigrated) > 0 {
+			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("source identity migration of %d unchanged %s placements committed before apply failure", len(result.SourceMigrated), scope)})
 		}
 		if result.TreeHashesUpgraded {
 			evidence = append(evidence, sjskills.Evidence{Kind: "migration", Detail: fmt.Sprintf("trusted %s provenance tree hash rewrite committed before apply failure", scope)})
@@ -822,6 +829,18 @@ func planActionCount(plan sjskills.Plan, action sjskills.PlanAction) int {
 	return count
 }
 
+// planSourceMigrationCount counts unchanged placements whose provenance apply
+// re-records from a registry-declared former source identity.
+func planSourceMigrationCount(plan sjskills.Plan) int {
+	count := 0
+	for _, operation := range plan.Operations {
+		if operation.Action == sjskills.PlanActionUnchanged && operation.Reason == string(sjskills.ProjectStateReasonFormerSourceIdentity) {
+			count++
+		}
+	}
+	return count
+}
+
 func planHasEvidence(plan sjskills.Plan, kind string) bool {
 	for _, evidence := range plan.Evidence {
 		if evidence.Kind == kind {
@@ -831,7 +850,7 @@ func planHasEvidence(plan sjskills.Plan, kind string) bool {
 	return false
 }
 
-func confirmApply(input io.Reader, output io.Writer, global bool, installs, updates, removals int, migrateProvenance bool) (bool, error) {
+func confirmApply(input io.Reader, output io.Writer, global bool, installs, updates, removals, sourceMigrations int, migrateProvenance bool) (bool, error) {
 	if input == nil {
 		input = strings.NewReader("")
 	}
@@ -845,8 +864,8 @@ func confirmApply(input io.Reader, output io.Writer, global bool, installs, upda
 	}
 	count := installs + updates + removals
 	switch {
-	case migrateProvenance:
-		categories := make([]string, 0, 4)
+	case migrateProvenance || sourceMigrations > 0:
+		categories := make([]string, 0, 5)
 		if installs > 0 {
 			categories = append(categories, mutationCount(installs, "install"))
 		}
@@ -856,12 +875,19 @@ func confirmApply(input io.Reader, output io.Writer, global bool, installs, upda
 		if removals > 0 {
 			categories = append(categories, mutationCount(removals, "removal")+" to quarantine")
 		}
-		categories = append(categories, "provenance migration")
+		if sourceMigrations > 0 {
+			categories = append(categories, mutationCount(sourceMigrations, "source identity migration"))
+			count += sourceMigrations
+		}
+		if migrateProvenance {
+			categories = append(categories, "provenance migration")
+			count++
+		}
 		changeWord := "changes"
-		if count == 0 {
+		if count == 1 {
 			changeWord = "change"
 		}
-		prompt = fmt.Sprintf("Apply %d global %s (%s)? [y/N] ", count+1, changeWord, strings.Join(categories, ", "))
+		prompt = fmt.Sprintf("Apply %d %s %s (%s)? [y/N] ", count, scope, changeWord, strings.Join(categories, ", "))
 	case count == 0:
 		return false, nil
 	case updates == 0 && removals == 0:
@@ -899,7 +925,7 @@ func confirmApply(input io.Reader, output io.Writer, global bool, installs, upda
 }
 
 func confirmProjectApply(input io.Reader, output io.Writer, installs, updates, removals int) (bool, error) {
-	return confirmApply(input, output, false, installs, updates, removals, false)
+	return confirmApply(input, output, false, installs, updates, removals, 0, false)
 }
 
 func mutationCount(count int, singular string) string {
@@ -1279,7 +1305,9 @@ func renderOperationCounts(output io.Writer, operations []sjskills.PlanOperation
 
 func renderPlanOperations(output io.Writer, operations []sjskills.PlanOperation) {
 	for _, operation := range operations {
-		if operation.Action == sjskills.PlanActionUnchanged || operation.Skill == "" {
+		// Unchanged placements stay quiet unless apply will still rewrite their
+		// provenance from a former source identity.
+		if (operation.Action == sjskills.PlanActionUnchanged && operation.Reason != string(sjskills.ProjectStateReasonFormerSourceIdentity)) || operation.Skill == "" {
 			continue
 		}
 		placement := operation.Skill

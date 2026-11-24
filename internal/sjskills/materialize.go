@@ -560,11 +560,16 @@ func sameDesiredSkill(left, right DesiredSkill) bool {
 	if left.Access.Effective() != right.Access.Effective() || left.Name != right.Name || left.SourceID != right.SourceID || left.Source != right.Source || left.LocalPath != right.LocalPath ||
 		left.Scope != right.Scope || left.Origin != right.Origin || left.Manager != right.Manager ||
 		left.Mode != right.Mode || left.Workflow != right.Workflow || left.FullDepth != right.FullDepth ||
-		len(left.Targets) != len(right.Targets) {
+		len(left.Targets) != len(right.Targets) || len(left.FormerSourceIdentities) != len(right.FormerSourceIdentities) {
 		return false
 	}
 	for index := range left.Targets {
 		if left.Targets[index] != right.Targets[index] {
+			return false
+		}
+	}
+	for index := range left.FormerSourceIdentities {
+		if left.FormerSourceIdentities[index] != right.FormerSourceIdentities[index] {
 			return false
 		}
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// ParseRegistry decodes a version-4 registry and validates its complete
+// ParseRegistry decodes a version-5 registry and validates its complete
 // desired-state contract. Unknown JSON fields are rejected before semantic
 // validation.
 func ParseRegistry(data []byte) (Registry, error) {

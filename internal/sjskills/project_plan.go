@@ -105,6 +105,7 @@ func cloneDesiredState(state DesiredState) DesiredState {
 	state.Skills = append([]DesiredSkill(nil), state.Skills...)
 	for index := range state.Skills {
 		state.Skills[index].Targets = copyTargets(state.Skills[index].Targets)
+		state.Skills[index].FormerSourceIdentities = copyStrings(state.Skills[index].FormerSourceIdentities)
 	}
 	if state.Skills == nil {
 		state.Skills = []DesiredSkill{}
@@ -179,6 +180,7 @@ func projectStableReason(reason ProjectStateReason) string {
 		ProjectStateReasonDesiredPathUnmanaged,
 		ProjectStateReasonProvenanceSourceMismatch,
 		ProjectStateReasonVerifiedExact,
+		ProjectStateReasonFormerSourceIdentity,
 		ProjectStateReasonVerifiedUpdate,
 		ProjectStateReasonLocalModification,
 		ProjectStateReasonMalformedEntryPreserved,

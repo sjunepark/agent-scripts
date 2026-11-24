@@ -89,7 +89,7 @@ func ClassifyGlobal(registry Registry, desired DesiredState, expected map[string
 func validateGlobalClassificationInputs(registry Registry, desired DesiredState, expected map[string]TreeHash, inventory GlobalInventory) (map[string]DesiredSkill, map[string]TreeHash, map[string]ProvenanceRecord, map[Target]ProjectSkillsRootInventory, []Issue) {
 	var issues []Issue
 	if err := ValidateRegistry(registry); err != nil {
-		issues = append(issues, Issue{Code: IssueMalformedInput, Path: "registry", Message: "global classification requires a valid version 4 registry"})
+		issues = append(issues, Issue{Code: IssueMalformedInput, Path: "registry", Message: "global classification requires a valid version 5 registry"})
 	}
 	resolved, resolveErr := ResolveGlobal(registry)
 	if resolveErr != nil || !reflect.DeepEqual(resolved, desired) {
@@ -135,6 +135,7 @@ func validateGlobalClassificationInputs(registry Registry, desired DesiredState,
 		} else if skill.Manager != ManagerManual && skill.Manager != ManagerWorkflow {
 			issues = append(issues, Issue{Code: IssueInvalidManager, Path: path + ".manager", Message: "unsupported manager"})
 		}
+		validateDesiredFormerIdentities(path, skill, &issues)
 	}
 
 	expectedByName := make(map[string]TreeHash, len(expected))
