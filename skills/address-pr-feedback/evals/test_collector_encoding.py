@@ -41,6 +41,8 @@ class CollectorEncodingTest(unittest.TestCase):
 
             def run_fake_gh(command, **kwargs):
                 self.assertEqual(command[0], "gh")
+                # Catches a revert on UTF-8 locales, where decoding alone passes.
+                self.assertEqual(kwargs.get("encoding"), "utf-8")
                 return real_run([sys.executable, str(fake_gh), *command[1:]], **kwargs)
 
             collector.subprocess.run = run_fake_gh
