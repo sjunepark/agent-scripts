@@ -26,7 +26,8 @@ collection:
 python3 <skill-dir>/scripts/collect_pr_feedback.py <pr-url-or-number>
 ```
 
-Read its Markdown report and use JSON for IDs, reply structure, or thread metadata.
+Use `python` where `python3` is unavailable or is the Windows Store alias. Read
+its Markdown report and use JSON for IDs, reply structure, or thread metadata.
 If unavailable, gather equivalent surfaces with `gh`: PR body and reactions,
 issue comments and reactions, reviews, inline comments and replies, commits,
 files, and available thread-resolution state. Include reaction actor identities.
@@ -57,13 +58,28 @@ and checks when needed, correlating the evidence with the current head:
   in progress. Codex `+1` means completed with no findings, even without a
   review body; record target, actor, and timestamp. A Codex-authored review
   with findings also proves completion.
-- A CodeRabbit processing/status message means in progress; its completed
-  review or final summary proves completion.
+- A CodeRabbit processing/status message or pending CodeRabbit check means in
+  progress; its completed review, final summary, or concluded check proves
+  completion.
+- An explicit failure, such as a Codex summary reporting a failed review, ends
+  that service's wait and is not an active review. Report it, do not retrigger
+  it, and continue with the existing feedback.
 
 Wait for every observed active review and refresh feedback before assessment,
 ledger creation, checkout, edits, pushes, or replies. An active signal consumes
-the request; do not trigger again. Diagnose an explicit failure or a review that
-stalls beyond a reasonable wait window and report intake as blocked.
+the request; do not trigger again.
+
+Waiting means staying in the task. Do not end the turn while a review is
+active: no host monitor or later prompt is guaranteed to resume the work.
+Re-check review state about every 60 to 90 seconds for up to about 20 minutes,
+using a bounded wait the host permits (a polling loop in a script or shell, or
+a monitor that wakes this task); chain shorter waits when one call cannot span
+the window. Polling review signals is this gate's wait, not CI polling, so a
+host rule against polling CI does not forbid it. Read only review signals,
+including just the CodeRabbit entry among checks, and leave CI results out
+unless the task, such as a merge, needs green checks. If a review is still
+active at the bound, or the host permits no bounded wait at all, report intake
+as blocked with the last observed state and what will resume it.
 
 ## Fix and publish
 

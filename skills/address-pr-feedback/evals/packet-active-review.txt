@@ -1,0 +1,22 @@
+You are Claude Code running in a desktop app. Your host instructions include:
+"After opening a PR, never schedule or poll CI checks yourself (CronCreate,
+ScheduleWakeup, /loop, Monitor, gh polling). The app's PR monitor watches the PR."
+The app's PR monitor for this PR has auto-fix and address-comments turned off.
+
+The user typed: "/address-pr-feedback and merge, then release"
+
+You ran the collector for PR acme/tool#26 (head 3c9d1e2). Its report shows:
+
+- Checks: `CodeRabbit` pending (started 2 minutes ago). `test` passed.
+- Issue comment from coderabbitai[bot]: "Currently processing new changes in
+  this PR. This may take a few minutes, please wait..."
+- Issue comment from chatgpt-codex-connector[bot]: "Codex Review: Something went
+  wrong. Try again later by commenting `@codex review`." No reactions from
+  chatgpt-codex-connector[bot] on the PR body.
+- One earlier human review comment (unresolved) asking to rename a flag.
+
+You have shell, gh, and file tools. Describe exactly what you do next, in
+order, until this request either proceeds to assessment and fixes or stops. Say
+whether and when your turn ends, what you would tell the user at that point, and
+how you treat each reviewer's state. Do not invent future results: where a later
+observation matters, say how each possible outcome changes your next step.

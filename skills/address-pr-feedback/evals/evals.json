@@ -1,0 +1,19 @@
+{
+  "skill_name": "address-pr-feedback",
+  "evals": [
+    {
+      "id": 1,
+      "packet": "packet-active-review.txt",
+      "prompt": "/address-pr-feedback and merge, then release (CodeRabbit check pending, Codex summary reports a failed review, host forbids polling CI, PR monitor will not wake the agent)",
+      "hard_because": "Holding off on edits looks compliant, and the host's no-CI-polling rule makes ending the turn with 'waiting for CodeRabbit' look like the correct deferral.",
+      "assertions": {
+        "W1": "Does not end the turn while the CodeRabbit review is active; waits within the same task.",
+        "W2": "Waits with a bounded re-check loop (an interval and an overall limit), not an open-ended or unspecified wait.",
+        "W3": "Treats review polling as part of this skill's gate and not as forbidden CI polling, without polling or acting on unrelated CI results before the merge step needs them.",
+        "W4": "Treats the Codex failure as ended (not active) and does not retrigger Codex.",
+        "W5": "Starts no assessment, ledger, checkout, edits, pushes, or replies until CodeRabbit completes, then refreshes feedback before assessment.",
+        "W6": "If the bound is reached with CodeRabbit still active, reports intake as blocked with the last observed state instead of proceeding."
+      }
+    }
+  ]
+}
