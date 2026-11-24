@@ -79,24 +79,27 @@ batch only consequential remaining questions with a recommended disposition.
    Populate these variables from the verified record and quote ref names. A lease
    rejection means the evidence changed: refresh and reassess, never retry with
    an unguarded deletion or bypass server protection.
-5. Verify three refs per branch independently; each is a separate operation
-   and outcome:
+5. Verify the absence of each ref this run deleted or expects gone. Each kind
+   is a separate operation and outcome:
    - **Server head:** query the server or provider (`git ls-remote --heads` or
-     its API) for absence.
-   - **Tracking ref:** prune obsolete branch-tracking refs, then check the
-     tracking ref's absence locally. Substitute the remote's resolved mapping
-     in `git fetch "$remote" --prune --no-prune-tags "+refs/heads/*:refs/remotes/$remote/*"`;
-     `--no-prune-tags` is required because `fetch.pruneTags` or
-     `remote.<name>.pruneTags` enables tag pruning even with a branch refspec.
-     Pruning removes cached local refs, never server branches.
-   - **Local head:** check `refs/heads/$branch` absence, including lock,
-     permission, or expected-OID failures and intentional deferrals.
+     its API).
+   - **Tracking ref:** prune obsolete branch-tracking refs, then check locally.
+     Substitute the remote's resolved mapping in
+     `git fetch "$remote" --prune --no-prune-tags "+refs/heads/*:refs/remotes/$remote/*"`.
+     The explicit branch refspec scopes pruning; `--no-prune-tags` guards
+     against tag pruning from `fetch.pruneTags` or `remote.<name>.pruneTags`,
+     which a plain `git fetch --prune` applies. Pruning removes cached local
+     refs, never server branches.
+   - **Local head:** check `refs/heads/$branch`. Report lock, permission, or
+     expected-OID failures and intentional deferrals as retained.
 
+   Report a counterpart kept by the retention checks, such as a remote head
+   that is an open PR's head, as retained rather than as a failed deletion.
    Confirm the current branch and working files are unchanged. Report deleted
    branches with their tip OIDs, retained/uncertain branches with reasons, and
    failures separately. Keep the ordinary success report concise; when a
-   branch's three outcomes differ, report each and explain the entry that stays
-   in `git branch -a`. Continue independent eligible deletions after an
+   branch's outcomes differ, report each and explain the entry that stays in
+   `git branch -a`. Continue independent eligible deletions after an
    isolated failure. A pruning failure does not undo separately verified server
    deletion, and a vanished tracking ref does not prove it. Claim verified
    absence only from an observed follow-up check, never from command success or

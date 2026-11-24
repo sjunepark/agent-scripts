@@ -137,28 +137,47 @@ No publication, installation, real cleanup or reliability claim follows from it.
 
 ## Stale tracking-ref revision (issue #21)
 
-The revision makes post-deletion verification three independent outcomes
-(server head, cached tracking ref, local head), names the configuration that
-lets a plain `git fetch` leave tracking refs in place, and requires
-`--no-prune-tags` on the branch-scoped prune.
+The revision verifies each ref a run deleted or expects gone (server head,
+cached tracking ref, local head) as an independent outcome. It names the
+configuration that lets a plain `git fetch` leave tracking refs in place, and
+it reports a counterpart kept by retention checks as retained.
 
-`git-smoke.py` gained three executed checks, run with Git 2.45.1 on Windows
-(11 of 11 pass): a server head deleted from another clone stays visible as
-`remotes/origin/<branch>` and a local head after a plain fetch with pruning
-off; the branch-scoped prune removes the stale tracking refs while keeping
-tags under both `fetch.pruneTags` and `remote.origin.pruneTags`; and a
-`.lock` file makes one expected-OID local deletion fail while the other
-succeeds, so `git branch -a` drops the removed refs and still lists the
-retained head. The script's final version query no longer assumes `/tmp`.
+The issue proposed `--no-prune-tags` because `fetch.pruneTags` would otherwise
+prune tags "even with the branch refspec". Independent review showed that is
+false on Git 2.45.1: with an explicit `refs/heads/*` refspec, a local-only tag
+survives `fetch.pruneTags`, `remote.origin.pruneTags`, and even an explicit
+`--prune-tags`. Only a plain `git fetch --prune` under that configuration drops
+it. The skill therefore keeps `--no-prune-tags` as a defensive guard and says
+the refspec is what scopes pruning. Newer Git versions were not checked.
+
+`git-smoke.py` gained four executed checks, run with Git 2.45.1 on Windows
+(12 of 12 pass):
+
+- A server head deleted from another clone stays visible after a plain fetch
+  with pruning off, both as `remotes/origin/<branch>` and as a local head.
+- The branch-scoped prune removes the stale tracking refs and keeps tags under
+  both pruneTags settings.
+- Controls: the branch refspec alone keeps the local-only tag, while a plain
+  `git fetch --prune` under `fetch.pruneTags` deletes it.
+- A `.lock` file makes one expected-OID local deletion fail while the other
+  succeeds, so `git branch -a` drops the removed refs and still lists the
+  retained head.
+
+The script pins the files ref backend, which the lock check needs, and its
+final version query no longer assumes `/tmp`. Nothing exercises a non-default
+tracking namespace; the packet and smoke test both use `origin`.
 
 `packet-prune.txt` and `assertions-prune.json` freeze one reporting case:
 verified server absence, stale tracking refs after an unpruned fetch,
 `fetch.pruneTags=true`, and a locked local deletion. One fresh Sonnet 5.5
-worker per condition read only the packet and one skill copy; responses are
-in `raw-prune.md`. Both conditions pass P1, P2, P4, P5 and P6: each disables
-tag pruning (the baseline by `-c fetch.pruneTags=false --no-tags`), keeps the
-locked head as retained, and claims nothing unobserved. On P3 the candidate
-reports all three outcomes per branch; the baseline groups by outcome type
-and covers the same facts. This is a regression guard with little headroom,
-not evidence of improved decisions. Grading was by the revision's author,
-unblinded, one trial per condition.
+worker per condition read only the packet and one skill copy. Responses are in
+`raw-prune.md`; both ran against the first candidate, before the review
+rewording. Both conditions pass P1, P2, P4 and P6. The baseline disables tag
+pruning with `-c fetch.pruneTags=false --no-tags`, and both workers repeat the
+issue's mistaken rationale for it. P5 passes for both, with one caveat: the
+candidate's "none of the deletions above count as verified" blurs the server
+absence it reported as observed. On P3 the candidate reports all three
+outcomes per branch, while the baseline groups by outcome type and covers the
+same facts. This is a regression guard with little headroom, not evidence of
+improved decisions. Grading was by the revision's author, unblinded, with one
+trial per condition.

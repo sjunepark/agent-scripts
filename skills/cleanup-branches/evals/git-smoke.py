@@ -1,6 +1,7 @@
 import json, os, pathlib, subprocess, tempfile
 results=[]
-env=dict(os.environ, GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull, GIT_TERMINAL_PROMPT='0')
+# The lock-file check below needs the files ref backend, not reftable.
+env=dict(os.environ, GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull, GIT_TERMINAL_PROMPT='0', GIT_DEFAULT_REF_FORMAT='files')
 def git(cwd,*args,ok=True):
     p=subprocess.run(['git',*args],cwd=cwd,env=env,text=True,capture_output=True)
     if ok and p.returncode: raise AssertionError((args,p.stdout,p.stderr))
@@ -78,6 +79,14 @@ with tempfile.TemporaryDirectory(prefix='cleanup-branches-smoke-') as tmp:
     assert has('refs/tags/local-only-tag') and has('refs/tags/keep-local')
     assert has('refs/remotes/origin/main')
     results.append('branch-scoped prune removed stale tracking refs and kept tags under fetch.pruneTags and remote pruneTags')
+    # Controls: the explicit branch refspec alone already keeps tags; the hazard
+    # --no-prune-tags guards against is a plain prune under pruneTags config.
+    git(repo,'fetch','origin','--prune','+refs/heads/*:refs/remotes/origin/*')
+    assert has('refs/tags/local-only-tag')
+    git(repo,'fetch','origin','--prune')
+    assert not has('refs/tags/local-only-tag')
+    git(repo,'config','--unset','fetch.pruneTags'); git(repo,'config','--unset','remote.origin.pruneTags')
+    results.append('controls: branch refspec alone kept the local-only tag; plain prune under pruneTags deleted it')
     lock=repo/'.git'/'refs'/'heads'/'stale-a.lock'; lock.write_text('')
     assert git(repo,'update-ref','-d','refs/heads/stale-a',tips['stale-a'],ok=False).returncode
     assert has('refs/heads/stale-a'); lock.unlink()
