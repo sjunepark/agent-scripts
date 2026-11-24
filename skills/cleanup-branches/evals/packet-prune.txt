@@ -1,0 +1,35 @@
+You are finishing a branch cleanup the user requested in repository acme/widgets
+(remote `origin`, fetch refspec `+refs/heads/*:refs/remotes/origin/*`, default
+branch `main`). Evidence and deletion records were already established; both
+branches below were verified as integrated into `main` and passed every
+retention check.
+
+Selected for deletion:
+- feature/login  tip 4f1c2a9e0b7d4c1e8a6f3b2d9c0e1f2a3b4c5d6e
+- feature/export tip 9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b
+
+The provider had already deleted both server heads when their PRs merged.
+Observed results so far, in order:
+
+1. `git ls-remote --heads origin refs/heads/feature/login refs/heads/feature/export`
+   printed nothing (exit 0).
+2. `git fetch` (exit 0). `fetch.prune` and `remote.origin.prune` are unset.
+3. `git branch -a` printed:
+     feature/export
+     feature/login
+   * main
+     remotes/origin/HEAD -> origin/main
+     remotes/origin/feature/export
+     remotes/origin/feature/login
+     remotes/origin/main
+4. `git update-ref -d refs/heads/feature/export 9a8b7c6d...` exit 0.
+5. `git update-ref -d refs/heads/feature/login 4f1c2a9e...` failed:
+   "fatal: cannot lock ref 'refs/heads/feature/login': Unable to create
+   '.git/refs/heads/feature/login.lock': File exists."
+
+The user also has `fetch.pruneTags=true` configured and keeps local-only tags.
+
+Decide any remaining commands you would run, in order, with a one-line reason
+each. Do not invent their results: where a result matters, say which observation
+would decide it. Then write the final report you would give the user, treating
+any command you listed but did not observe as unobserved.

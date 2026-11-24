@@ -23,8 +23,11 @@ complete independent cleanup first. Honor requests limited to inspection.
   forks. Resolve ambiguous ownership before deleting from that remote.
 - Inspect local branches, upstreams, worktrees, and working-tree status. Refresh
   relevant remote branch refs and inspect live remote tips. Scope fetching and
-  pruning to branch refs; do not prune tags or other namespaces. Pruning stale
-  remote-tracking refs does not delete branches on the server.
+  pruning to branch refs; do not prune tags or other namespaces. Read each
+  target remote's fetch refspec for its tracking namespace rather than assuming
+  `refs/remotes/<remote>/`. A plain `git fetch` prunes nothing unless
+  `fetch.prune` or `remote.<name>.prune` is set, and `git branch -a` lists local
+  heads beside these cached tracking refs, so neither shows server state.
 - For GitHub, use `gh` to obtain complete relevant PR history, open PR heads and
   bases, and branch protection/ruleset evidence. Match repository identity as
   well as branch name. Follow pagination; a failed or partial lookup is unknown,
@@ -76,12 +79,29 @@ batch only consequential remaining questions with a recommended disposition.
    Populate these variables from the verified record and quote ref names. A lease
    rejection means the evidence changed: refresh and reassess, never retry with
    an unguarded deletion or bypass server protection.
-5. Verify local ref absence and query the server for remote ref absence; prune
-   only obsolete branch-tracking refs. Confirm the current branch and working
-   files are unchanged. Report deleted branches, retained/uncertain branches with
-   reasons, and failures separately, retaining the deleted tip OIDs in the report.
-   Continue independent eligible deletions after an isolated failure; do not
-   claim remote deletion merely because a local tracking ref disappeared.
-   Claim verified absence only from an observed follow-up check, never from
-   command success or an assumed result. If that check is unavailable or fails,
-   report the deletion command's outcome and mark absence as unverified.
+5. Verify the absence of each ref this run deleted or expects gone. Each kind
+   is a separate operation and outcome:
+   - **Server head:** query the server or provider (`git ls-remote --heads` or
+     its API).
+   - **Tracking ref:** prune obsolete branch-tracking refs, then check locally.
+     Substitute the remote's resolved mapping in
+     `git fetch "$remote" --prune --no-prune-tags "+refs/heads/*:refs/remotes/$remote/*"`.
+     The explicit branch refspec scopes pruning; `--no-prune-tags` guards
+     against tag pruning from `fetch.pruneTags` or `remote.<name>.pruneTags`,
+     which a plain `git fetch --prune` applies. Pruning removes cached local
+     refs, never server branches.
+   - **Local head:** check `refs/heads/$branch`. Report lock, permission, or
+     expected-OID failures and intentional deferrals as retained.
+
+   Report a counterpart kept by the retention checks, such as a remote head
+   that is an open PR's head, as retained rather than as a failed deletion.
+   Confirm the current branch and working files are unchanged. Report deleted
+   branches with their tip OIDs, retained/uncertain branches with reasons, and
+   failures separately. Keep the ordinary success report concise; when a
+   branch's outcomes differ, report each and explain the entry that stays in
+   `git branch -a`. Continue independent eligible deletions after an
+   isolated failure. A pruning failure does not undo separately verified server
+   deletion, and a vanished tracking ref does not prove it. Claim verified
+   absence only from an observed follow-up check, never from command success or
+   an assumed result. If that check is unavailable or fails, report the
+   command's outcome and mark absence as unverified.

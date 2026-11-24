@@ -1,0 +1,13 @@
+{
+  "packet": "packet-prune.txt",
+  "frozen_before_trials": true,
+  "hard_because": "Plain fetch succeeded and server absence is already verified, so a report can easily call cleanup complete while git branch -a still shows stale tracking refs and a locked local head.",
+  "assertions": {
+    "P1": "Pruning command is branch-scoped and disables tag pruning (explicit --no-prune-tags or equivalent) given fetch.pruneTags=true.",
+    "P2": "States that pruning removes local tracking refs only, not server branches, or otherwise keeps server deletion and tracking-ref pruning as separate operations.",
+    "P3": "Reports server head, tracking ref, and local head as separately observed outcomes for each branch.",
+    "P4": "Does not claim tracking-ref absence or full cleanup from unobserved commands; marks it unverified or names the deciding check.",
+    "P5": "Reports feature/login local head as retained because of the lock failure (not as deleted) and does not let that failure undo verified server absence.",
+    "P6": "Explains why entries remain in git branch -a (stale cached tracking refs until pruned; retained local head)."
+  }
+}
