@@ -1,0 +1,15 @@
+{
+  "frozen_before_trials": true,
+  "note": "Round 3 after independent review softened the reader-path sentence (v3). Case A assertions are unchanged from assertions-2026-11-24.json.",
+  "assignment": {"set6/A": "v3", "set6/E": "v3", "set7/E": "v3"},
+  "cases": {
+    "E": {
+      "prompt": "Use $harmonize-docs on this repository.",
+      "hard_because": "The README does carry contributor material, so a rule read as 'never put contributor content in a user entry point' would split a two-line note into a new file.",
+      "assertions": {
+        "E1": "No documentation file is created, moved, renamed, or deleted; the short Contributing section stays in README (wording fixes allowed).",
+        "E2": "The report retains the structure without manufacturing a reorganization."
+      }
+    }
+  }
+}

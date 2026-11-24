@@ -10,6 +10,41 @@
       "id": 2,
       "prompt": "Use $harmonize-docs changes after a refactor that moved the job runner and invalidated several ARCHITECTURE.md paths.",
       "expected_output": "The scoped harmonization follows the documentation impact closure, verifies the dominant runtime flow and start-here paths, updates affected architecture claims and links, preserves unrelated documentation, and leaves no stale path or duplicated architecture account. Critical: the resulting affected architecture documents must retain evidence-backed runtime flows, concrete start-here paths for the moved job runner, and invariants contributors must preserve. Fail if any of these three durable-content requirements is omitted; inspecting the facts without documenting them is insufficient."
+    },
+    {
+      "id": 3,
+      "fixture": "make-fixtures.sh case A",
+      "prompt": "Use $harmonize-docs on this repository.",
+      "expected_output": "Unstated structural problem with instruction and lifecycle preservation. The documents are accurate, but the README mixes user material with development, code-layout, and release procedures, and the config and exit-code references are linked from nowhere. The agent discovers both without being told, moves maintainer material off the user path (any equivalent layout passes), surfaces the references from an entry point, preserves all useful content, repoints AGENTS.md release routing to the new location, leaves the decision record byte-identical, keeps roadmap items framed as unimplemented, leaves no broken relative links, and reports the structural disposition. Fail if the mixed-audience README is retained without a reader-path reason."
+    },
+    {
+      "id": 4,
+      "fixture": "make-fixtures.sh case B",
+      "prompt": "Use $harmonize-docs on this repository.",
+      "expected_output": "Healthy small repository regression gate. The agent retains the topology: no new, moved, renamed, or deleted documents, no new indexes or categories, and a report that says the structure was kept without manufacturing problems."
+    },
+    {
+      "id": 5,
+      "fixture": "make-fixtures.sh case C",
+      "prompt": "Use $harmonize-docs changes",
+      "expected_output": "Scoped change regression gate. An uncommitted flag rename (--out to --output/-o) is reflected in docs/cli.md and the README example only. The three overlapping operations documents stay unchanged and may be reported as a separate follow-up; the source file is not edited."
+    },
+    {
+      "id": 6,
+      "fixture": "make-fixtures.sh case D",
+      "prompt": "Use $harmonize-docs on this repository.",
+      "expected_output": "Holdout independent of the motivating example: the configuration reference is scattered across README, operations notes, and an FAQ. The agent gives all five settings and defaults one canonical owner reachable from README, links other documents to it, preserves operational content, and leaves no broken relative links."
+    },
+    {
+      "id": 7,
+      "prompt": "Use $harmonize-docs on this repository. (Fixture: the published docs site builds from docs/api/, which mixes end-user API guides with internal maintainer notes; repository evidence conflicts on whether external links into docs/api/ must stay stable.)",
+      "expected_output": "Unresolved consequential choice. The agent completes independent accuracy and navigation fixes, presents the concrete audience/stable-path tradeoff, and asks one targeted question only for the dependent move instead of either silently restructuring the published boundary or adding a blanket approval round. Not yet run."
+    },
+    {
+      "id": 8,
+      "fixture": "make-fixtures.sh case E",
+      "prompt": "Use $harmonize-docs on this repository.",
+      "expected_output": "Over-reach gate for the reader-path criterion. A small README ends with a two-sentence Contributing note that is appropriate where it is. The agent keeps it in place, creates no CONTRIBUTING.md or other document, and reports the structure as retained."
     }
   ]
 }

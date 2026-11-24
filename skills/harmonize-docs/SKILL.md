@@ -25,8 +25,8 @@ the boundary rather than substituting unrelated history.
 Include documentation-specific navigation and configuration. Source code supplies
 evidence but stays outside the edit boundary. Archives, generated output, vendored
 files, and dependencies are excluded; preserve immutable history while correcting
-active status framing or routes to it. Record credible unrelated conflicts for
-follow-up without expanding scope.
+active status framing or routes to it. Record credible unrelated conflicts or
+structural concerns for follow-up without expanding scope.
 
 ## Separate the claims
 
@@ -51,18 +51,34 @@ evidence. Recover decisions and useful rationale; expose unresolved conflicts
 rather than inventing intent. Independent areas may be delegated, with the
 coordinator owning coverage and the integrated result.
 
-Choose a purpose, audience, scope, and lifecycle for each document. Retain concise
-documents that already work. Rewrite, merge, split, move, or remove material when
-its ownership or reader path warrants it; create a document only for a distinct
-durable responsibility. Preserve tool-recognized instruction discovery and
-precedence when changing those files.
+Choose a purpose, audience, scope, and lifecycle for each document, then assess
+the in-scope structure as a whole. Accurate, noncontradictory documents can still
+route readers poorly, so consistent claims do not settle this:
+
+- **Reader paths:** each audience reaches what it needs from a suitable entry
+  point without reading material meant for another audience or reconstructing
+  the route. Maintainer procedures beyond a short pointer in a user-facing entry
+  point are friction even when every section is accurate and the repository is
+  small.
+- **Document boundaries:** mixed purposes or audiences, overlapping ownership,
+  scattered explanations, or mismatched lifecycles.
+- **Net benefit:** a change must materially improve discovery, comprehension, or
+  maintenance enough to justify changed paths, links, and navigation.
+
+Reach a proportionate change-or-retain decision grounded in concrete reader
+friction; retaining a structure that works is a valid outcome. Rewrite, merge,
+split, move, or remove material when that decision warrants it, and create a
+document only for a distinct durable responsibility. Ask only about a
+consequential choice the evidence cannot resolve. Preserve tool-recognized
+instruction discovery and precedence when changing those files.
 
 For creating, rewriting, splitting, merging, or moving `ARCHITECTURE.md`, read
 the [architecture documentation guide](guides/architecture-docs.md). Keep target
 architecture visibly framed, and let plans own delivery order and remaining work
 instead of making architecture a second roadmap.
 
-Apply the coherent result directly. Integrate updates where they belong, prune
+Apply the coherent result directly, including justified in-scope structural
+changes, without a separate approval round. Integrate updates where they belong, prune
 superseded statements and transcript-like history, and repair affected links,
 commands, terminology, and navigation. Preserve useful intent even when its
 original wording or location no longer fits. Stage, commit, and push only when
@@ -80,6 +96,8 @@ Direct-entry overviews must route to the same authoritative state as detailed
 plans. Account for every in-scope document and conflict, run relevant available
 checks, and fix failures caused by the rewrite.
 
-Report meaningful corrections, ownership or topology changes, validation, and
-unresolved limits. Finish when the scoped documents agree and readers can find
-what exists, what is intended, and what remains.
+Report meaningful corrections, the structural disposition (each topology change
+and the reader problem it solves, or briefly why the structure was retained when
+that is material), validation, and unresolved limits. Finish when the scoped
+documents agree and readers can find what exists, what is intended, and what
+remains.
