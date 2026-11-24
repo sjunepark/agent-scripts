@@ -144,6 +144,21 @@ index 499f1d7..2782575 100644
 +| `PINGER_TIMEOUT` | `5` | Seconds before a check times out. Raise it if a slow target causes false alerts. |
 +| `PINGER_FAILS` | `3` | Consecutive failed checks that trigger an alert. |
 +| `PINGER_WEBHOOK` | unset | Webhook URL that receives alerts. Without it, pinger sends no alerts. |
+diff --git a/docs/faq.md b/docs/faq.md
+deleted file mode 100644
+index af9bb60..0000000
+--- a/docs/faq.md
++++ /dev/null
+@@ -1,9 +0,0 @@
+-# FAQ
+-
+-**How many failures trigger an alert?** Three consecutive failures by default;
+-set `PINGER_FAILS` to change it.
+-
+-**My target is slow and keeps alerting.** Raise `PINGER_TIMEOUT` (seconds,
+-default 5).
+-
+-**Does pinger alert again while still down?** No, once per outage.
 diff --git a/docs/ops.md b/docs/ops.md
 index 8afdd73..11a4fa8 100644
 --- a/docs/ops.md
@@ -350,6 +365,21 @@ index 499f1d7..54121e5 100644
 +
 +[docs/ops.md](docs/ops.md) covers supervision, every setting and its default,
 +and exactly when alerts fire.
+diff --git a/docs/faq.md b/docs/faq.md
+deleted file mode 100644
+index af9bb60..0000000
+--- a/docs/faq.md
++++ /dev/null
+@@ -1,9 +0,0 @@
+-# FAQ
+-
+-**How many failures trigger an alert?** Three consecutive failures by default;
+-set `PINGER_FAILS` to change it.
+-
+-**My target is slow and keeps alerting.** Raise `PINGER_TIMEOUT` (seconds,
+-default 5).
+-
+-**Does pinger alert again while still down?** No, once per outage.
 diff --git a/docs/ops.md b/docs/ops.md
 index 8afdd73..1127502 100644
 --- a/docs/ops.md

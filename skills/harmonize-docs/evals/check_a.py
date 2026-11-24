@@ -33,7 +33,10 @@ for run in sys.argv[2:]:
         "A4_agents_exists": "AGENTS.md" in d,
         "A4_agents_release_target": re.findall(r"in ([A-Za-z./-]+\.md)", agents),
         "release_section_in": release_home,
-        "A5_adr_identical": (root / adr).read_bytes() == (PRISTINE / adr).read_bytes(),
+        # A deleted ADR is a failed run, not a checker crash; a missing
+        # pristine ADR still raises because the invocation is wrong.
+        "A5_adr_identical": (root / adr).is_file()
+        and (root / adr).read_bytes() == (PRISTINE / adr).read_bytes(),
         "A7_broken_links": broken,
         "readme_has_dev_or_release": any(h in readme for h in ("## Release process", "## Code layout", "## Development")),
         "links_config_and_exit": "config-format.md" in readme and "exit-codes.md" in readme,
