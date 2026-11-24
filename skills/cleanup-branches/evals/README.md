@@ -134,3 +134,31 @@ agent decision evidence.
 
 This is manual evaluator review against frozen anchors, not blind human review.
 No publication, installation, real cleanup or reliability claim follows from it.
+
+## Stale tracking-ref revision (issue #21)
+
+The revision makes post-deletion verification three independent outcomes
+(server head, cached tracking ref, local head), names the configuration that
+lets a plain `git fetch` leave tracking refs in place, and requires
+`--no-prune-tags` on the branch-scoped prune.
+
+`git-smoke.py` gained three executed checks, run with Git 2.45.1 on Windows
+(11 of 11 pass): a server head deleted from another clone stays visible as
+`remotes/origin/<branch>` and a local head after a plain fetch with pruning
+off; the branch-scoped prune removes the stale tracking refs while keeping
+tags under both `fetch.pruneTags` and `remote.origin.pruneTags`; and a
+`.lock` file makes one expected-OID local deletion fail while the other
+succeeds, so `git branch -a` drops the removed refs and still lists the
+retained head. The script's final version query no longer assumes `/tmp`.
+
+`packet-prune.txt` and `assertions-prune.json` freeze one reporting case:
+verified server absence, stale tracking refs after an unpruned fetch,
+`fetch.pruneTags=true`, and a locked local deletion. One fresh Sonnet 5.5
+worker per condition read only the packet and one skill copy; responses are
+in `raw-prune.md`. Both conditions pass P1, P2, P4, P5 and P6: each disables
+tag pruning (the baseline by `-c fetch.pruneTags=false --no-tags`), keeps the
+locked head as retained, and claims nothing unobserved. On P3 the candidate
+reports all three outcomes per branch; the baseline groups by outcome type
+and covers the same facts. This is a regression guard with little headroom,
+not evidence of improved decisions. Grading was by the revision's author,
+unblinded, one trial per condition.
