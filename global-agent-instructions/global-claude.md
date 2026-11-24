@@ -67,11 +67,12 @@ within their scope.
 
 ## Deliverable text
 
-In documents, spreadsheets, and slides written for people, use punctuation
-typed on a standard keyboard: commas rather than middle dots (·) for lists,
-hyphens rather than en or em dashes, "(1)" rather than ①, and plain wording
-rather than →, ※, ▶, or ✓. Keep symbols that units, currency, or formulas
-require.
+In office-format deliverables written for people, such as Word reports,
+spreadsheets, and slides, use punctuation typed on a standard keyboard: commas
+rather than middle dots (·) for lists, hyphens rather than en or em dashes,
+"(1)" rather than ①, and plain wording rather than →, ※, ▶, or ✓. Keep symbols
+that units, currency, or formulas require. Repository Markdown and code keep
+their own conventions.
 
 ## Delegation
 
