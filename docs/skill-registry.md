@@ -267,8 +267,9 @@ under, such as `github:sjunepark/kicpa` for `kicpa`, whose location is now
 lowercase `github:<owner>/<repo>` or canonical HTTPS identities, never `local:`;
 each differs from every source's current identity, and only sources sharing one
 current identity may list the same former identity. The list requires a remote
-location and is version 5's only schema addition, so a version 4 binary fails
-closed and names the release to install.
+location and is version 5's only schema addition, so a binary that reads
+registry version 4 (sjskills 1.5.0) fails closed and asks for the sjskills
+release that supports version 5.
 
 A trusted record from a declared former identity of the placement's own
 central source is then classified like a record from the current identity:
