@@ -20,7 +20,7 @@ suitable GitHub identity.
   `scripts/publish-release.py` created draft ID `456164397` and uploaded all
   six assets, then stopped at its by-tag lookup, which cannot see drafts. Every
   server-side digest was matched by release ID before the draft was published.
-- The published installer updated `%LOCALAPPDATA%\sjskillsin\sjskills.exe`
+- The published installer updated `%LOCALAPPDATA%\sjskills\bin\sjskills.exe`
   on the Windows development machine to v1.7.0. Its binary matches the verified
   windows/amd64 archive, with SHA-256
   `eb8a4bd30ac45a9df2185cfd062c3efeaf7cd455b10917a66fc4ac1ee9128b93`.
