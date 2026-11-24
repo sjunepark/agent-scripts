@@ -336,3 +336,77 @@ func TestRestoreAcceptsLegacyTreeHashQuarantine(t *testing.T) {
 		t.Fatalf("restored legacy record did not verify: %#v err = %v", inventory.State.Records, err)
 	}
 }
+
+// TestLegacyTreeHashAndFormerSourceIdentityMigrateInOneApply composes the two
+// provenance migrations for an unchanged placement: a tree-sha256-v2 record
+// under a registry-declared former identity becomes, in one apply, a v3 record
+// under the current identity.
+func TestLegacyTreeHashAndFormerSourceIdentityMigrateInOneApply(t *testing.T) {
+	targets := []Target{TargetAgents, TargetClaude}
+	session, _, skill, hash := newApplyFixture(t, targets)
+	applyFixture(t, session)
+	legacyState := rewriteStateAsLegacy(t, session)
+	renameApplyFixtureSource(t, session, skill, true)
+	assertOperationReasons(t, session.Plan, PlanActionUnchanged, ProjectStateReasonFormerSourceIdentity, len(targets))
+	if !planHasEvidence(session.Plan, treeHashMigrationEvidenceKind) {
+		t.Fatalf("plan does not report the tree hash rewrite: %#v", session.Plan.Evidence)
+	}
+
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.TreeHashesUpgraded || len(result.SourceMigrated) != len(targets) || len(result.Installed)+len(result.Updated)+len(result.Quarantined) != 0 {
+		t.Fatalf("apply result = %#v", result)
+	}
+	state := readApplyState(t, session)
+	if len(state.Records) != len(legacyState.Records) {
+		t.Fatalf("records = %#v", state.Records)
+	}
+	for index, record := range state.Records {
+		want := legacyState.Records[index]
+		want.SourceIdentity, want.TreeHashAlgorithm, want.TreeHash = renamedFixtureIdentity, hash.Algorithm, hash.Digest
+		if record != want {
+			t.Fatalf("migrated record = %#v, want %#v", record, want)
+		}
+	}
+	makeSessionPlanCurrent(t, session)
+	assertOperationReasons(t, session.Plan, PlanActionUnchanged, ProjectStateReasonVerifiedExact, len(targets))
+	if planHasEvidence(session.Plan, treeHashMigrationEvidenceKind) {
+		t.Fatalf("migrated plan still reports a rewrite: %#v", session.Plan.Evidence)
+	}
+}
+
+// TestLegacyTreeHashAndFormerSourceIdentityUpdateInOneApply composes both
+// migrations with a source update: the old copy is quarantined with its v3
+// digest under the current identity, and the new record is v3 too.
+func TestLegacyTreeHashAndFormerSourceIdentityUpdateInOneApply(t *testing.T) {
+	session, _, skill, _ := newApplyFixture(t, []Target{TargetAgents})
+	applyFixture(t, session)
+	oldHash := hashPlacedSkill(t, session, skill.Name, TargetAgents)
+	if err := os.WriteFile(filepath.Join(session.Materialized.snapshots[skill.Name].Path, "SKILL.md"), []byte("updated\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	newHash := rehashApplySnapshot(t, session, skill.Name)
+	rewriteStateAsLegacy(t, session)
+	renameApplyFixtureSource(t, session, skill, true)
+	assertOperationReasons(t, session.Plan, PlanActionUpdate, ProjectStateReasonVerifiedUpdate, 1)
+
+	result, err := ApplyProjectChanges(context.Background(), session, updateTestDeps())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.TreeHashesUpgraded || len(result.Updated) != 1 || result.SourceMigrated != nil {
+		t.Fatalf("apply result = %#v", result)
+	}
+	entry := readUpdateManifest(t, session).Entries[0]
+	if entry.TreeHashAlgorithm != TreeHashAlgorithmSHA256V3 || entry.OldTreeHash != oldHash.Digest || entry.NewTreeHash != newHash.Digest ||
+		entry.OldSourceIdentity != renamedFixtureIdentity || entry.NewSourceIdentity != renamedFixtureIdentity {
+		t.Fatalf("manifest entry = %#v", entry)
+	}
+	state := readApplyState(t, session)
+	if len(state.Records) != 1 || state.Records[0].SourceIdentity != renamedFixtureIdentity ||
+		state.Records[0].TreeHashAlgorithm != TreeHashAlgorithmSHA256V3 || state.Records[0].TreeHash != newHash.Digest {
+		t.Fatalf("state = %#v", state)
+	}
+}
