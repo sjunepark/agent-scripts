@@ -109,7 +109,7 @@
     },
     "excel-formula-remover": {
       "kind": "external",
-      "location": "https://github.com/cpaikr/excel-tovalue/tree/main/skill/excel-formula-remover"
+      "location": "https://github.com/cpaikr/excel-tovalue/tree/main/skills/excel-formula-remover"
     },
     "impeccable": {
       "kind": "external",
