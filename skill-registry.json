@@ -43,7 +43,6 @@
       "skills": [
         "dart-dsd",
         "darty",
-        "excel-formula-remover",
         "kasb",
         "kisnet-ytm",
         "krx-cli",
@@ -51,6 +50,7 @@
         "smbs",
         "todoist-cli",
         "windows-cleanup",
+        "xlclean",
         "xldif"
       ]
     },
@@ -97,10 +97,6 @@
       "kind": "external",
       "location": "https://github.com/cpaikr/darty/tree/main/skill/darty"
     },
-    "excel-formula-remover": {
-      "kind": "external",
-      "location": "https://github.com/cpaikr/excel-tovalue/tree/main/skills/excel-formula-remover"
-    },
     "impeccable": {
       "kind": "external",
       "location": "npm:impeccable@latest"
@@ -146,6 +142,10 @@
     "todoist-cli": {
       "kind": "external",
       "location": "https://github.com/todoist/todoist-cli/tree/main/skills/todoist-cli"
+    },
+    "xlclean": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/excel-tovalue/tree/main/skills/xlclean"
     },
     "xldif": {
       "kind": "external",
@@ -258,12 +258,6 @@
     {
       "name": "excel",
       "source": "kicpa",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "excel-formula-remover",
-      "source": "excel-formula-remover",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -406,6 +400,12 @@
     {
       "name": "windows-cleanup",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "xlclean",
+      "source": "xlclean",
       "manager": "skills-cli",
       "mode": "copy"
     },
