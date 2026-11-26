@@ -1,4 +1,0 @@
-interface:
-  display_name: "Release Please Release"
-  short_description: "Prepare and review Release Please releases safely"
-  default_prompt: "Use $release-please-release to prepare or review a Release Please-managed release, classify SemVer impact, and check breaking changes."

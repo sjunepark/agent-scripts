@@ -1,6 +1,6 @@
 ---
 name: develop-skills
-description: "Author, audit, merge, and evaluate Agent Skills and instruction stacks. Explicit invocation only."
+description: "Author, audit, merge, and evaluate Agent Skills and instruction stacks, including AGENTS.md and CLAUDE.md hierarchies. Explicit invocation only."
 ---
 
 # Develop Skills
@@ -15,7 +15,11 @@ Read the route needed for the requested operation, not every workflow:
 
 - [Create or revise](workflows/create-or-revise.md) for skill authoring.
 - [Audit instructions](workflows/audit-instructions.md) for instruction-stack or
-  catalog audits, including model migrations.
+  catalog audits and revisions, including model migrations.
+- [Instruction files](references/instruction-files.md) when designing, auditing,
+  or migrating `AGENTS.md`, `CLAUDE.md`, or other rules-file hierarchies, or when
+  an instruction is ignored or not loaded: per-client discovery, precedence,
+  size limits, and verification commands.
 - [Merge skills](workflows/merge.md) for consolidation and predecessor retirement.
 - [Evaluate a skill](workflows/evaluate.md) for validation and behavioral or
   selection evidence. For edits, use the checks relevant to what changed.

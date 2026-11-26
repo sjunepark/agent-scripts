@@ -19,8 +19,8 @@ Revert these once the upstream bug is fixed.
 **Claude Code model invocation re-enabled (since 2026-10-07).** Since about
 2026-10-01, the Claude desktop Code tab refuses to send a message that starts
 with a slash command and also contains another slash command, a link, or inline
-formatting. Its warning names all three, and a message starting
-`/clarify /brainstorming` was blocked locally.
+formatting. Its warning names all three, and a message starting with two
+slash commands was blocked locally.
 [anthropics/claude-code#98568](https://github.com/anthropics/claude-code/issues/98568)
 tracks the URL and backtick cases;
 [#98577](https://github.com/anthropics/claude-code/issues/98577) tracks the same
@@ -29,15 +29,11 @@ cannot be combined in one message, so `disable-model-invocation: true` was
 removed from these skills' `SKILL.md` frontmatter. Their descriptions still
 state the explicit-invocation intent, and Codex adapters are unchanged.
 
-- `address-issues`
-- `brainstorming`
-- `clarify`
-- `delegate`
 - `develop-skills`
-- `next-goal`
 
-To revert, restore `disable-model-invocation: true` after `description:` in
-each listed skill, delete this section, validate, commit, push, and reconcile
+The other skills first listed here were since retired or, like `delegate`,
+now install only for Codex. To revert, restore
+`disable-model-invocation: true` after `description:` in each listed skill, delete this section, validate, commit, push, and reconcile
 the global and project installs with `sjskills`.
 
 ## Layout
@@ -73,30 +69,13 @@ harness. It keeps the service-account token in the host's secret store rather
 than agent configuration. See [docs/1password.md](docs/1password.md) for setup
 and migration from the former `op-codex` wrapper.
 
-Use `$progress` when explicitly invoked to organize, orient to, brief or review,
-continue, or hand off repo-local plans and tasks. Use `$code-review` for a
-bounded review pass that applies only obvious safe fixes.
+Use `$code-review` for a bounded review pass that applies only obvious safe
+fixes.
 
 Use [$cleanup-branches](skills/cleanup-branches/SKILL.md) to clean completed
 local and remote Git branches. It decides routine deletions from repository and
 PR evidence, preserves active or retained work, and asks only about consequential
 unresolved cases. It is included in the `dev` project profile.
-
-Use [$address-issues](skills/address-issues/SKILL.md) for a specified GitHub
-issue or a confirmed issue queue, through reviewed PR merge and verified
-resolution. Multiple mode requires Codex app task tools and runs one
-Astra/medium task at a time; blocked issues defer dependents while independent
-issues continue in the confirmed order.
-
-Use [$next-goal](skills/next-goal/SKILL.md) to select a substantial goal and
-return its prompt. `$next-goal prepare` completes and reviews planning, commits
-the relevant preparation, and returns the prompt. `$next-goal spawn luna`
-also creates a new Codex task from the prepared state and verifies native goal
-startup. `spawn astra` selects Astra/medium; `spawn luna` selects Luna/max;
-an optional reasoning argument overrides the preset, as in `spawn astra high`.
-Bare `spawn` defaults to Astra/medium. Preparation preserves
-unrelated work; spawning requires the Codex app task tools and native goal
-support in the destination task.
 
 ## Validation
 

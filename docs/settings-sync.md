@@ -173,30 +173,8 @@ state against the one fixed baseline. `sjskills`, not chezmoi, owns
 reconciliation. Machine profiles and host inference are retired; manual and
 workflow entries remain with their recorded manager.
 
-The `delegate-ui-to-claude` orchestration skill is intentionally installed only
-for Codex. Impeccable is not a machine-global prerequisite: when the skill
-delegates work in a UI repository, it provisions Claude's project-scoped copy
-with `npx --yes impeccable@latest install -y --providers=claude --scope=project`
-if needed and refreshes an existing copy with the matching `update` command.
-Using `@latest` is intentional: delegation should use the current published
-Impeccable workflow rather than a pinned or long-lived local CLI.
-The intended harness exposure stays under `.claude/`, including the Impeccable
-skill tree and Claude hook settings. Codex-facing copies such as
-`.agents/skills/impeccable`, user-level Impeccable skills under `~/.agents` or
-`~/.codex`, and Impeccable entries in `.codex/hooks.json` are conflicts; the
-skill reports them and asks the user to remove them rather than deleting them
-automatically. Shared hook files should retain their unrelated entries.
-
-Greenfield work, redesigns, missing product context, and other consequential
-design choices use resumable approval phases when user judgment remains
-unresolved. Apply existing answers and delegated authority before relaying a
-question. Claude returns unresolved choices to Codex, Codex relays them to the
-user, and implementation resumes in the same Claude session once the decision
-is settled. Claude remains read-only during these
-phases; Codex may persist an approved PM-owned contract such as `PRODUCT.md`
-when Impeccable needs it to derive the next options. Scoped work that inherits
-an established product and visual world can use a one-shot run; so can work
-for which the user explicitly authorizes unattended design decisions.
+The `delegate` skill installs only for Codex because it pins GPT-5.6 Luna
+workers; Claude Code delegation follows the global instructions instead.
 
 Do not reproduce the reconciler's placement work in chezmoi. It maps the
 registry's `.agents` target to `~/.agents/skills` and `.claude` to

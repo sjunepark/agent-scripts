@@ -1,6 +1,6 @@
 ---
 name: merge-branch
-description: "Integrate Git branches deliberately: plan or dry-run merges, transplant work, resolve conflicts, or audit completed or in-progress merges."
+description: "Integrate Git branches deliberately: plan or dry-run merges, transplant work, resolve conflicts, audit completed or in-progress merges, or switch this worktree to its base branch and fast-forward it to its upstream. Updating the base alone does not merge or rebase it into a feature branch."
 ---
 
 # Merge Branch
@@ -15,7 +15,8 @@ only when ambiguity remains about which branch should receive which work.
 
 - **Dry plan:** When the user asks to analyze or plan without changing repository state, read and follow [modes/dry-plan.md](modes/dry-plan.md). A plan-only request finishes with the plan and any unresolved decisions.
 - **Audit:** When the user asks to review a completed or in-progress merge result, read and follow [modes/audit.md](modes/audit.md). Do not start or redo a merge unless separately authorized.
-- **Integrate:** When the user asks to perform a merge, transplant branch work, or resolve conflicts, read and follow [modes/integrate.md](modes/integrate.md) through the authorized committed or uncommitted endpoint.
+- **Integrate:** When the user asks to perform a merge, transplant branch work, or resolve conflicts, read and follow [modes/integrate.md](modes/integrate.md) through the authorized committed or uncommitted endpoint. Merging or rebasing an updated base into a feature branch belongs here.
+- **Update base:** When the user asks to switch this worktree to its base or integration branch and bring that branch up to date, read and follow [modes/update-base.md](modes/update-base.md). It only fast-forwards; forcing a divergent branch to match its remote is out of scope.
 
 If the request combines assessment and integration, complete the read-only mode first, then perform the already authorized integration. Ask only for consequential decisions or authority still missing from the request and inspected evidence.
 

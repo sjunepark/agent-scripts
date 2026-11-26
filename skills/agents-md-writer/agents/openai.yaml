@@ -1,4 +1,0 @@
-interface:
-  display_name: "AGENTS.md Writer"
-  short_description: "Design and audit instruction hierarchies"
-  default_prompt: "Use $agents-md-writer to design or audit this repository’s agent-instruction hierarchy."

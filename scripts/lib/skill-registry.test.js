@@ -49,19 +49,14 @@ test("version 5 resolves one fixed global baseline with target exceptions", () =
   assert.deepEqual(
     entries.map((entry) => entry.name),
     [
-      "brainstorming",
-      "clarify",
       "codex-cleanup",
-      "distill-response",
       "interview",
-      "next-goal",
       "pdf-to-markdown",
-      "progress",
       "sjskills"
     ]
   );
   assert.deepEqual(entries.find((entry) => entry.name === "codex-cleanup").targets, [".agents"]);
-  assert.deepEqual(entries.find((entry) => entry.name === "clarify").targets, [".agents", ".claude"]);
+  assert.deepEqual(entries.find((entry) => entry.name === "interview").targets, [".agents", ".claude"]);
   assert.ok(entries.every((entry) => entry.manager === "skills-cli" && entry.mode === "copy"));
 });
 
@@ -92,11 +87,11 @@ test("version 5 validates desired-set integrity", () => {
     "global.baseline references unknown skill missing-skill"
   );
   assertErrorIncludes(
-    validationErrors((registry) => registry.profiles.dev.skills.push("brainstorming")),
-    "brainstorming appears in multiple desired sets"
+    validationErrors((registry) => registry.profiles.dev.skills.push("interview")),
+    "interview appears in multiple desired sets"
   );
   assertErrorIncludes(
-    validationErrors((registry) => registry.global.baseline.push("brainstorming")),
+    validationErrors((registry) => registry.global.baseline.push("interview")),
     "global.baseline repeats a skill"
   );
 });
@@ -110,9 +105,9 @@ test("version 5 validates targets and installable remote sources", () => {
   );
   assertErrorIncludes(
     validationErrors((registry) => {
-      registry.targetExceptions.clarify = [".claude", ".agents"];
+      registry.targetExceptions.interview = [".claude", ".agents"];
     }),
-    "target exception clarify must contain sorted unique supported targets"
+    "target exception interview must contain sorted unique supported targets"
   );
   assertErrorIncludes(
     validationErrors((registry) => {
@@ -125,11 +120,11 @@ test("version 5 validates targets and installable remote sources", () => {
 test("version 5 rejects unclassified repository skills", () => {
   const registry = liveRegistry();
   const errors = validateSkillRegistry(registry, {
-    repositorySkillNames: ["brainstorming", "not-classified"]
+    repositorySkillNames: ["interview", "not-classified"]
   });
 
   assertErrorIncludes(errors, "repository skill is not classified: not-classified");
-  assertErrorIncludes(errors, "repository source references missing skills/clarify/SKILL.md");
+  assertErrorIncludes(errors, "repository source references missing skills/codex-cleanup/SKILL.md");
 });
 
 test("skills-cli sources must be public git shorthands or credential-free HTTPS", () => {

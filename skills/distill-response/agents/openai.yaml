@@ -1,6 +1,0 @@
-interface:
-  display_name: "Distill Response"
-  short_description: "Create a navigable map of a response's decision spine"
-  default_prompt: "Use $distill-response to rewrite the latest assistant response as a standalone, drill-down-ready mental map."
-policy:
-  allow_implicit_invocation: true

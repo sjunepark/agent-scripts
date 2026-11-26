@@ -6,10 +6,9 @@ description: "Review changes or implementation against intended behavior, system
 # Code Review
 
 Deliver one bounded review with evidenced, actionable findings or a defensible
-clean result. Apply the implementation, system, design, and diet perspectives
-proportionately; no finding is preferable to a speculative one.
+clean result. No finding is preferable to a speculative one.
 
-## Scope and guidance
+## Target
 
 Use the named files, subsystem, branch, commit, PR, or diff. A roadmap,
 specification, issue, ADR, or migration review covers its governed implementation,
@@ -17,34 +16,32 @@ not just the document. Establish the intended outcome, claimed milestone,
 implementation range, and edit policy. Without a named target, use uncommitted
 changes when present; ask only if no target can be inferred.
 
-Read the [implementation lens](lenses/implementation-review.md) for the core
-review and safe-fix policy. Load the other detailed lenses when their dimensions
-are material to the target:
+Read the [implementation lens](lenses/implementation-review.md) for every review.
+For an initiative, milestone, or durable technical choice (dependency, runtime,
+protocol, storage, deployment), also read the [system lens](lenses/system.md).
 
-- [System](lenses/system.md): initiative delivery, technical choices, or
-  cross-cutting consequences. Check that the requested outcome is actually delivered.
-- [Design](lenses/design.md): changed responsibilities, interfaces, dependencies,
-  or consumers. Check that contracts and invariants have clear owners.
-- [Diet](lenses/diet.md): added concepts, states, wrappers, compatibility paths,
-  or other complexity. Check that the machinery earns its maintenance cost.
-
-For a routine local edit, these can be brief checks without loading every lens
-or expanding into a repository-wide audit. Follow affected requirements and
-consumer paths; separate introduced issues from pre-existing debt.
+Follow affected requirements, contracts, and consumers rather than auditing the
+repository, and separate introduced issues from pre-existing debt. Design and
+complexity findings need a concrete correctness, maintenance, testability, or
+change-locality cost and a viable simpler shape; taste, file size, hypothetical
+flexibility, and useful explicitness or duplication are not findings. Repository
+decisions outweigh generic patterns. Compatibility layers, aliases, fallbacks,
+and dual paths need a current rollout, external contract, or migration window;
+identify their consumers before proposing removal.
 
 ## Findings and fixes
 
 Record each issue once, where its remedy belongs, with a trigger scenario,
 affected path or governing requirement, consequence, evidence, and likely action.
-Architectural taste and hypothetical flexibility are not findings.
 
 - **Bucket I — Safe fixes:** narrow, in-scope, mechanically verifiable changes
   without unresolved product, design, rollout, compatibility, or risk judgment.
   Apply these by default unless the user requested review-only; then mark proposed.
 - **Bucket II — Needs decision:** real issues with unresolved tradeoffs or
-  authority. Explain the smallest viable alternative and decision needed. Apply
-  an already supplied decision within the authorized scope; ask only for what
-  remains unresolved.
+  authority, including broader refactors, public contracts, migrations, and
+  durable technical choices. Explain the smallest viable alternative and the
+  decision needed. Apply an already supplied decision within the authorized
+  scope; ask only for what remains unresolved.
 
 Recheck fixes and affected validation until the evidenced problems are resolved
 or a concrete limitation prevents continuation. Do not turn the pass into an

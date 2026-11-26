@@ -26,8 +26,6 @@
   execution evidence.
 - [Install private GitHub skills through authenticated profiles](plans/sjskills-private-github-sources.md)
   is recorded as shipped in v1.3.0; live private-skill installation remains separate.
-- [Prepare and spawn the next goal](tasks/next-goal-preparation-spawn.md)
-  has implemented and evaluated source.
 - [Include the sjskills CLI version in automatic status checks](tasks/sjskills-cli-version-status.md)
   shipped in `sjskills-v1.0.0` after validation on all supported native targets;
   installed-binary upgrades remain separate.

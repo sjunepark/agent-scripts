@@ -1,3 +1,15 @@
+# Catalog pruning (2026-11-27)
+
+- Retired 11 skills and merged four more into their nearest owners; the global
+  baseline is now `codex-cleanup`, `interview`, `pdf-to-markdown`, and
+  `sjskills`. The [pruning audit](skills/develop-skills/evals/catalog-audit-2026-11-27.md)
+  owns per-skill decisions and evidence limits.
+- Structural validation and the Node registry suite pass; no behavioral
+  evaluation of the merged or trimmed skills was run.
+- Next action: publish the branch, then reconcile global and project installs
+  with `sjskills` so retired copies leave `~/.claude/skills` and
+  `~/.agents/skills`.
+
 # Catalog skill revision
 
 - Reviewed all published source skills except clarify and interview: 23 revised,

@@ -9,14 +9,9 @@
   },
   "global": {
     "baseline": [
-      "brainstorming",
-      "clarify",
       "codex-cleanup",
-      "distill-response",
       "interview",
-      "next-goal",
       "pdf-to-markdown",
-      "progress",
       "sjskills"
     ]
   },
@@ -24,29 +19,23 @@
     "dev": {
       "access": "public",
       "skills": [
-        "address-issues",
         "address-pr-feedback",
-        "agents-md-writer",
         "cleanup-branches",
         "code-review",
         "consult-mytech",
         "context7-cli",
         "create-pr",
         "delegate",
-        "delegate-ui-to-claude",
         "develop-skills",
         "explore-repo",
         "harmonize-docs",
-        "merge-branch",
-        "teach",
-        "update-base-branch"
+        "merge-branch"
       ]
     },
     "go": {
       "access": "public",
       "skills": [
-        "modern-go",
-        "write-go-docs"
+        "modern-go"
       ]
     },
     "kicpa": {
@@ -83,7 +72,6 @@
     "rust": {
       "access": "public",
       "skills": [
-        "clear-rust",
         "modern-rust"
       ]
     }
@@ -168,7 +156,7 @@
     "codex-cleanup": [
       ".agents"
     ],
-    "delegate-ui-to-claude": [
+    "delegate": [
       ".agents"
     ],
     "impeccable": [
@@ -177,25 +165,7 @@
   },
   "skills": [
     {
-      "name": "address-issues",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "address-pr-feedback",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "agents-md-writer",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "brainstorming",
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
@@ -207,19 +177,7 @@
       "mode": "copy"
     },
     {
-      "name": "clarify",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "cleanup-branches",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "clear-rust",
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
@@ -285,19 +243,7 @@
       "mode": "copy"
     },
     {
-      "name": "delegate-ui-to-claude",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "develop-skills",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "distill-response",
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
@@ -336,8 +282,7 @@
     {
       "name": "impeccable",
       "source": "impeccable",
-      "manager": "workflow",
-      "workflow": "delegate-ui-to-claude"
+      "manager": "manual"
     },
     {
       "name": "interview",
@@ -360,12 +305,6 @@
     {
       "name": "krx-cli",
       "source": "krx-cli",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "macos-storage-cleanup",
-      "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -394,12 +333,6 @@
       "mode": "copy"
     },
     {
-      "name": "next-goal",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "organize-engagement-files",
       "source": "kicpa",
       "manager": "skills-cli",
@@ -414,18 +347,6 @@
     {
       "name": "pptdif",
       "source": "pptdif",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "progress",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "release-please-release",
-      "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
     },
@@ -465,12 +386,6 @@
       "mode": "copy"
     },
     {
-      "name": "teach",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "tf-basic-data-prep",
       "source": "kicpa",
       "manager": "skills-cli",
@@ -483,18 +398,6 @@
       "mode": "copy"
     },
     {
-      "name": "ui-lab",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "update-base-branch",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
       "name": "wacc-peer-screening",
       "source": "kicpa",
       "manager": "skills-cli",
@@ -502,12 +405,6 @@
     },
     {
       "name": "windows-cleanup",
-      "source": "agent-scripts",
-      "manager": "skills-cli",
-      "mode": "copy"
-    },
-    {
-      "name": "write-go-docs",
       "source": "agent-scripts",
       "manager": "skills-cli",
       "mode": "copy"
