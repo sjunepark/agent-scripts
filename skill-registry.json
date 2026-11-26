@@ -58,6 +58,7 @@
         "kasb",
         "kisnet-ytm",
         "krx-cli",
+        "smbs",
         "todoist-cli",
         "windows-cleanup",
         "xldif"
@@ -144,6 +145,10 @@
     },
     "skill-cleaner-manual": {
       "kind": "external"
+    },
+    "smbs": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/smbs/tree/main/skill/smbs"
     },
     "todoist-cli": {
       "kind": "external",
@@ -435,6 +440,12 @@
       "name": "skill-cleaner",
       "source": "skill-cleaner-manual",
       "manager": "manual"
+    },
+    {
+      "name": "smbs",
+      "source": "smbs",
+      "manager": "skills-cli",
+      "mode": "copy"
     },
     {
       "name": "sync-rfi",
