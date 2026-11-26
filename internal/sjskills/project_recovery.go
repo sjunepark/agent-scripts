@@ -390,7 +390,13 @@ func journalStateTransitionMatches(journal projectTransactionJournal, preState, 
 		if journal.Kind == projectTransactionKindApply {
 			switch entry.Action {
 			case PlanActionInstall:
-				if preExists || !newMatches {
+				// A committed record can outlive its placement, for example when
+				// the target root is git-ignored and the checkout is fresh. The
+				// planner then installs over that stale record. The journal only
+				// needs the record to belong to this scope: no-replace
+				// publication proves the placement was absent, and rollback
+				// restores the whole pre-state, stale record included.
+				if (preExists && pre.Scope != scope) || !newMatches {
 					return false
 				}
 			case PlanActionUpdate:
