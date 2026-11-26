@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -106,7 +107,12 @@ func TestApplyProjectChangesRecoversInterruptedInstallOverStaleRecord(t *testing
 	if err := copyApplyTree(session.Materialized.snapshots[skill.Name].Path, destination, func(file *os.File) error { return file.Sync() }); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(session.Layout.ReconcilerStatePath, candidateData, info.Mode().Perm()); err != nil {
+	// Apply commits candidate state privately; the restored pre-state keeps
+	// the committed checkout's broader mode.
+	if err := os.Remove(session.Layout.ReconcilerStatePath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(session.Layout.ReconcilerStatePath, candidateData, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -119,6 +125,9 @@ func TestApplyProjectChangesRecoversInterruptedInstallOverStaleRecord(t *testing
 	restored, err := os.ReadFile(session.Layout.ReconcilerStatePath)
 	if err != nil || !bytes.Equal(restored, staleData) {
 		t.Fatalf("recovery did not restore the committed stale record: err=%v state=%s", err, restored)
+	}
+	if restoredInfo, err := os.Stat(session.Layout.ReconcilerStatePath); err != nil || (runtime.GOOS != "windows" && restoredInfo.Mode().Perm() != info.Mode().Perm()) {
+		t.Fatalf("recovery did not restore the committed state mode: info=%v err=%v", restoredInfo, err)
 	}
 	if _, err := os.Lstat(projectTransactionJournalPath(session.Layout)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("transaction journal survived recovery: %v", err)
