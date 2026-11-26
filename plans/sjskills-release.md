@@ -1,10 +1,28 @@
 # sjskills standalone release delivery
 
-Status: `sjskills-v1.7.0` published as an immutable release on 2026-11-24 (KST).
+Status: `sjskills-v1.7.1` published as an immutable release on 2026-11-26 (KST).
 Hosted verification is working; unattended hosted publication still needs a
 suitable GitHub identity.
 
 ## Published releases
+
+- [sjskills-v1.7.1](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.7.1)
+  points to `b270f3f8591294ddc0f4834a8a1e236fdfdb0895` and is immutable.
+  Apply now installs over a committed provenance record whose placement is
+  absent, as in a fresh checkout that git-ignores its target root, instead of
+  failing with `transaction recovery evidence is invalid` (merged PR #59).
+  The state format is unchanged from 1.7.0.
+- The [v1.7.1 release run](https://github.com/sjunepark/agent-scripts/actions/runs/45735680951)
+  passed native reconciliation and installer checks on macOS amd64, macOS arm64,
+  and Windows amd64 with `publish=false`.
+- Publication used the exact CI artifacts, verified locally with
+  `scripts/release.py verify --tag sjskills-v1.7.1` from a clean checkout of the
+  tag. The authenticated session created draft ID `458839746`, uploaded all six
+  assets by release ID, matched every server-side digest, then published it.
+- The published installer updated `%LOCALAPPDATA%\sjskills\bin\sjskills.exe`
+  on the Windows development machine to v1.7.1. Its binary matches the verified
+  windows/amd64 archive, with SHA-256
+  `4380cf36f7cf3de54f7132131e0824ab59d2ea5601affe8c8639ef9fc8d649c5`.
 
 - [sjskills-v1.7.0](https://github.com/sjunepark/agent-scripts/releases/tag/sjskills-v1.7.0)
   points to `1793abf5b858935fce5de47e7093b45bbf4d537b` and is immutable.
