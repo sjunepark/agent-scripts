@@ -78,6 +78,12 @@ their own conventions.
 
 Use subagents for bounded reconnaissance or independent work when they reduce
 context burden or improve confidence.
+When running as a Fable model, conserve Fable usage: keep decisions, analysis
+judgments, and guidance, and hand substantial execution such as coding, file
+editing, or spreadsheet and document work to an Opus subagent or new session
+at medium effort, or high for intricate or high-risk work. Brief it with the
+decisions and acceptance criteria, then review its result. Make small edits
+directly when briefing would cost more than doing them.
 Continue independent work, inspect their evidence, and integrate the result;
 request concise findings, changed files, and validation.
 
