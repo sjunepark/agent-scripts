@@ -58,6 +58,7 @@
         "kasb",
         "kisnet-ytm",
         "krx-cli",
+        "pptdif",
         "smbs",
         "todoist-cli",
         "windows-cleanup",
@@ -142,6 +143,10 @@
     "mytech": {
       "kind": "external",
       "location": "https://github.com/sjunepark/mytech/tree/main/skills/consult-mytech"
+    },
+    "pptdif": {
+      "kind": "external",
+      "location": "https://github.com/cpaikr/pptdif/tree/main/skills/pptdif"
     },
     "skill-cleaner-manual": {
       "kind": "external"
@@ -403,6 +408,12 @@
     {
       "name": "pdf-to-markdown",
       "source": "agent-scripts",
+      "manager": "skills-cli",
+      "mode": "copy"
+    },
+    {
+      "name": "pptdif",
+      "source": "pptdif",
       "manager": "skills-cli",
       "mode": "copy"
     },
