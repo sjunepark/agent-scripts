@@ -36,8 +36,8 @@ within their scope.
 - After review, use `{{invoke}}harmonize-docs changes` when behavior, architecture,
   operations, commands, or delivery status materially change.
 - When creating a PR, attach or request its initial CodeRabbit review unless
-  opted out. For simple fixes or edits, disable CodeRabbit and Codex review on
-  the PR instead. Handle automatic reviews; manually retrigger CodeRabbit or
+  opted out. For simple fixes or edits, disable CodeRabbit and request no Codex
+  review instead. Handle automatic reviews; manually retrigger CodeRabbit or
   Codex only when asked.
 - Write commits that explain the change, intent, and non-obvious tradeoffs.
   Preserve individual commits when merging PRs unless instructed otherwise.

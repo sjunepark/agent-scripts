@@ -1,4 +1,4 @@
 interface:
   display_name: "Create PR"
   short_description: "Create focused or stacked PRs with review-bot controls."
-  default_prompt: "Use $create-pr to open or update a focused PR, choose safe bases for stacks, and decide whether CodeRabbit or Greptile reviews should run."
+  default_prompt: "Use $create-pr to open or update a focused PR, choose safe bases for stacks, and decide whether CodeRabbit, Codex, or Greptile reviews should run."
