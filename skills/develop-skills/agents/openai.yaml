@@ -1,6 +1,6 @@
 interface:
   display_name: "Develop Skills"
-  short_description: "Create, merge, and evaluate portable skills"
-  default_prompt: "Use $develop-skills to create, consolidate, or evaluate a portable skill."
+  short_description: "Author, audit, and evaluate skills and rules files"
+  default_prompt: "Use $develop-skills to create, consolidate, or evaluate a portable skill, or audit AGENTS.md and CLAUDE.md rules files."
 policy:
   allow_implicit_invocation: false

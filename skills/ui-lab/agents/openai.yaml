@@ -1,4 +1,0 @@
-interface:
-  display_name: "UI Lab"
-  short_description: "Build or extend a lightweight dev-only UI Lab route for web apps: real production UI states, deterministic fixtures, and scenarios reusable from UI tests."
-  default_prompt: "Use $ui-lab to set up or extend a lightweight in-app UI Lab: a dev-only route that renders production UI states (dialogs, empty/error/loading, overflow, large data sets) from deterministic fixtures shared with UI tests."

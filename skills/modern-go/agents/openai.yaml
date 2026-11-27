@@ -1,4 +1,4 @@
 interface:
   display_name: "Modern Go"
-  short_description: "Use recent Go language and toolchain features"
+  short_description: "Use recent Go features and write high-signal Go docs"
   default_prompt: "Use $modern-go to account for recent Go releases while working on this Go codebase."

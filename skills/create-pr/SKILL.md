@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: "Create or update GitHub PRs with gh, including stacked PR bases and CodeRabbit or Greptile review controls. Use when asked to open, raise, or submit a PR, put work up for review, or change an existing PR's base, title, or body."
+description: "Create or update GitHub PRs with gh, including stacked PR bases and CodeRabbit, Codex, or Greptile review controls. Use when asked to open, raise, or submit a PR, put work up for review, or change an existing PR's base, title, or body."
 ---
 
 # Create PR
@@ -53,6 +53,11 @@ CodeRabbit configuration needs interpretation—read
 [review-bots/coderabbit.md](review-bots/coderabbit.md) before finalizing the PR
 body and labels.
 
+When the selected policy suppresses or requests Codex review, or repository
+evidence shows that Codex reviews PRs, read
+[review-bots/codex.md](review-bots/codex.md) before posting or withholding a
+Codex trigger.
+
 When the user requests Greptile control, `greptile.json` exists, or repository
 evidence shows that Greptile reviews PRs, read
 [review-bots/greptile.md](review-bots/greptile.md) before allowing, suppressing,
@@ -69,5 +74,5 @@ After opening or updating the PR:
 
 - Report the PR URL, base/head, draft status, and any reviewer/label assignments.
 - For a stacked PR, report its position, dependency, integration branch, and next landing action.
-- State exactly what happened with CodeRabbit and Greptile: defaulted, disabled, opt-in label/body keyword used, manual trigger posted, or config change needed but not made.
+- State exactly what happened with CodeRabbit, Codex, and Greptile: defaulted, disabled, opt-in label/body keyword used, manual trigger posted or withheld, or config change needed but not made.
 - If bot comments were requested, post them with `gh pr comment <number-or-url> --body '<command>'` only after the PR exists.

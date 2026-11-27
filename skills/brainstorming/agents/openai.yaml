@@ -1,6 +1,0 @@
-interface:
-  display_name: "Brainstorming"
-  short_description: "Fan out fresh perspectives, then synthesize"
-  default_prompt: "Use $brainstorming to explore this topic through several distinct, fresh perspectives and synthesize the strongest ideas."
-policy:
-  allow_implicit_invocation: false

@@ -1,6 +1,0 @@
-interface:
-  display_name: "Clarify"
-  short_description: "Clarify the current prompt's intent and unknowns"
-  default_prompt: "Use $clarify to resolve consequential gaps in this request, briefly read back the intent, and continue the authorized task."
-policy:
-  allow_implicit_invocation: false

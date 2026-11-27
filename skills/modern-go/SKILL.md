@@ -1,6 +1,6 @@
 ---
 name: modern-go
-description: "Modern Go release awareness for any Go source, test, module, tooling, build, upgrade, or API work from Go 1.21 onward."
+description: "Modern Go release awareness for any Go source, test, module, tooling, build, upgrade, or API work from Go 1.21 onward, plus Go doc comment writing, revision, pruning, and audits."
 ---
 
 # Modern Go
@@ -17,6 +17,12 @@ cutoff.
    declared compatibility target permits them or the task raises that target.
 3. Read every release crossed by an upgrade and any release whose feature or
    behavior affects the task.
+
+## Documentation
+
+When writing, revising, pruning, or auditing Go package or declaration
+comments, examples, or deprecation notices, read
+[Go doc comments](guides/docs.md).
 
 ## Release Radar
 

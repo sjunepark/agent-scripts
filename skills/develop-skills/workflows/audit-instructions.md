@@ -1,6 +1,7 @@
 # Audit Instructions
 
-Use for instruction-stack audits, model migrations, or catalog revisions.
+Use for instruction-stack audits and revisions, including rules-file
+hierarchies, model migrations, or catalog revisions.
 Produce scoped corrections backed by the inspected instructions and task evidence;
 compliant files may remain unchanged.
 

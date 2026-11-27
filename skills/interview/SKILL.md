@@ -1,6 +1,6 @@
 ---
 name: interview
-description: "Resolve open decisions from the conversation through an informed interview. Explicit request only."
+description: "Resolve open decisions from the conversation, or consequential gaps in the current request, through an informed interview. Explicit request only."
 ---
 
 # Interview
@@ -8,7 +8,9 @@ description: "Resolve open decisions from the conversation through an informed i
 Resolve the items named in the invoking prompt and consequential open decisions
 from the relevant preceding conversation. Respect an explicitly narrowed agenda.
 Include newly discovered issues only when they materially affect direction,
-scope, user-visible behavior, external contracts, or risk.
+scope, user-visible behavior, external contracts, or risk. When the request is
+to clarify the invoking task itself, the agenda is only the gaps that could
+change its outcome; a well-specified request needs no question.
 
 ## Decide who needs to answer
 
